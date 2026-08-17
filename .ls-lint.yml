@@ -1,0 +1,27 @@
+ls:
+  .dir: regex:([.a-z0-9]*)([-.][a-z0-9]+)*
+  .css: regex:([.a-z0-9]*)([-.][a-z0-9]+)*
+  .ts: regex:([.a-z0-9]*)([-.][a-z0-9]+)*
+  .tsx: regex:([.a-z0-9]*)([-.][a-z0-9]+)*
+  apps/api/src/infrastructure/database/migrations:
+    .ts: snake_case
+
+ignore:
+  - .git
+  - .github
+  - node_modules
+  - build
+  - packages/types/build
+  - packages/types/node_modules
+  - packages/schemas/build
+  - packages/schemas/node_modules
+  - packages/config/build
+  - packages/config/node_modules
+  - packages/constants/build
+  - packages/constants/node_modules
+  - apps/web/build
+  - apps/web/node_modules
+  - apps/api/build
+  - apps/api/node_modules
+  - apps/worker/build
+  - apps/worker/node_modules

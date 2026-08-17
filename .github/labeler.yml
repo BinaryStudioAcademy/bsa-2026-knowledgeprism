@@ -1,0 +1,43 @@
+root:
+  - changed-files:
+      - any-glob-to-any-file: "*"
+
+workflows:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**/*"
+
+packages:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "packages/**/*"
+
+api:
+  - changed-files:
+      - all-globs-to-any-file:
+          - "apps/api/**/*"
+          - "!apps/api/.env.example"
+
+web:
+  - changed-files:
+      - all-globs-to-any-file:
+          - "apps/web/**/*"
+          - "!apps/web/.env.example"
+
+worker:
+  - changed-files:
+      - all-globs-to-any-file:
+          - "apps/worker/**/*"
+          - "!apps/worker/.env.example"
+
+env:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "apps/api/.env.example"
+          - "apps/web/.env.example"
+          - "apps/worker/.env.example"
+
+config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".platform/**/*"
