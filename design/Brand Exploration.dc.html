@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#F2F0EC;font-family:Outfit,sans-serif}
+.dv-turn{padding:44px 48px 40px}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 22px}
+.dv-tid{font:600 10px "JetBrains Mono",monospace;padding:3px 8px;background:rgb(54,51,48);color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:500 14px/1.2 Outfit,sans-serif;color:rgb(54,51,48)}
+.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}
+.dv-opt{flex:none;display:flex;flex-direction:column;gap:10px;scroll-margin-top:16px}
+.dv-oid{font:600 10.5px "JetBrains Mono",monospace;padding:3px 8px;background:rgba(54,51,48,.08);color:rgb(54,51,48);border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 12px/1.3 Outfit,sans-serif;color:rgb(107,102,95)}
+.dv-card{max-width:100%;width:440px;background:#fff;border:1px solid rgb(229,226,219);border-radius:6px;box-shadow:0 1px 3px rgba(0,0,0,.05);overflow:hidden}
+.dv-opt:target .dv-oid{background:rgb(42,107,90);color:#fff}
+.dv-next{margin:24px 0 0;font:12px/1.6 Outfit,sans-serif;color:rgb(107,102,95)}
+.dv-next a{color:rgb(42,107,90)}
+.row{display:flex;align-items:center;gap:16px;padding:20px 24px;border-bottom:1px solid rgb(242,240,236)}
+.row:last-child{border-bottom:none}
+.row-label{font:500 10px "JetBrains Mono",monospace;text-transform:uppercase;letter-spacing:.06em;color:rgb(168,162,153);width:74px;flex-shrink:0}
+.wordmark{font-family:"DM Serif Display",serif;font-size:24px;color:rgb(54,51,48);letter-spacing:-0.2px}
+.wordmark .accent{color:rgb(42,107,90)}
+.tile{display:flex;align-items:center;justify-content:center;flex-shrink:0}
+</style>
+</helmet>
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">KnowledgePrism &mdash; brand mark concepts</span></div>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Prism Graph &mdash; connected nodes forming a triangle</div>
+<div class="dv-card">
+<div class="row"><span class="row-label">Mark</span>
+<svg width="72" height="66" viewBox="0 0 44 40"><line x1="22" y1="8" x2="8" y2="32" stroke="rgb(42,107,90)" stroke-width="2.4"/><line x1="22" y1="8" x2="36" y2="32" stroke="rgb(42,107,90)" stroke-width="2.4"/><line x1="8" y1="32" x2="36" y2="32" stroke="rgb(42,107,90)" stroke-width="2.4"/><rect x="18" y="4" width="8" height="8" rx="2" fill="rgb(42,107,90)"/><rect x="4" y="28" width="8" height="8" rx="2" fill="rgb(42,107,90)"/><rect x="32" y="28" width="8" height="8" rx="2" fill="rgb(42,107,90)"/></svg>
+</div>
+<div class="row"><span class="row-label">Horizontal</span>
+<div style="display:flex;align-items:center;gap:12px"><svg width="34" height="31" viewBox="0 0 44 40"><line x1="22" y1="8" x2="8" y2="32" stroke="rgb(42,107,90)" stroke-width="3"/><line x1="22" y1="8" x2="36" y2="32" stroke="rgb(42,107,90)" stroke-width="3"/><line x1="8" y1="32" x2="36" y2="32" stroke="rgb(42,107,90)" stroke-width="3"/><rect x="17" y="3" width="10" height="10" rx="2.5" fill="rgb(42,107,90)"/><rect x="2" y="27" width="10" height="10" rx="2.5" fill="rgb(42,107,90)"/><rect x="32" y="27" width="10" height="10" rx="2.5" fill="rgb(42,107,90)"/></svg><span class="wordmark">Knowledge<span class="accent">Prism</span></span></div>
+</div>
+<div class="row"><span class="row-label">Compact</span>
+<svg width="40" height="37" viewBox="0 0 44 40"><line x1="22" y1="8" x2="8" y2="32" stroke="rgb(42,107,90)" stroke-width="2.8"/><line x1="22" y1="8" x2="36" y2="32" stroke="rgb(42,107,90)" stroke-width="2.8"/><line x1="8" y1="32" x2="36" y2="32" stroke="rgb(42,107,90)" stroke-width="2.8"/><rect x="18" y="4" width="8" height="8" rx="2" fill="rgb(42,107,90)"/><rect x="4" y="28" width="8" height="8" rx="2" fill="rgb(42,107,90)"/><rect x="32" y="28" width="8" height="8" rx="2" fill="rgb(42,107,90)"/></svg>
+</div>
+<div class="row"><span class="row-label">Favicon</span>
+<div style="display:flex;gap:10px">
+<div class="tile" style="width:32px;height:32px;border-radius:7px;background:rgb(42,107,90)"><svg width="18" height="16" viewBox="0 0 44 40"><line x1="22" y1="8" x2="8" y2="32" stroke="#fff" stroke-width="3.2"/><line x1="22" y1="8" x2="36" y2="32" stroke="#fff" stroke-width="3.2"/><line x1="8" y1="32" x2="36" y2="32" stroke="#fff" stroke-width="3.2"/><rect x="17" y="3" width="10" height="10" rx="2.5" fill="#fff"/><rect x="2" y="27" width="10" height="10" rx="2.5" fill="#fff"/><rect x="32" y="27" width="10" height="10" rx="2.5" fill="#fff"/></svg></div>
+<div class="tile" style="width:16px;height:16px;border-radius:3.5px;background:rgb(42,107,90)"><svg width="9" height="8" viewBox="0 0 44 40"><rect x="17" y="3" width="10" height="10" rx="2.5" fill="#fff"/><rect x="2" y="27" width="10" height="10" rx="2.5" fill="#fff"/><rect x="32" y="27" width="10" height="10" rx="2.5" fill="#fff"/><line x1="22" y1="8" x2="8" y2="32" stroke="#fff" stroke-width="4"/><line x1="22" y1="8" x2="36" y2="32" stroke="#fff" stroke-width="4"/><line x1="8" y1="32" x2="36" y2="32" stroke="#fff" stroke-width="4"/></svg></div>
+</div>
+</div>
+<div class="row" style="background:rgb(54,51,48)"><span class="row-label" style="color:rgb(168,162,153)">On dark</span>
+<svg width="40" height="37" viewBox="0 0 44 40"><line x1="22" y1="8" x2="8" y2="32" stroke="#fff" stroke-width="2.8"/><line x1="22" y1="8" x2="36" y2="32" stroke="#fff" stroke-width="2.8"/><line x1="8" y1="32" x2="36" y2="32" stroke="#fff" stroke-width="2.8"/><rect x="18" y="4" width="8" height="8" rx="2" fill="#fff"/><rect x="4" y="28" width="8" height="8" rx="2" fill="#fff"/><rect x="32" y="28" width="8" height="8" rx="2" fill="#fff"/></svg>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Faceted Prism &mdash; a gem split into three tones</div>
+<div class="dv-card">
+<div class="row"><span class="row-label">Mark</span>
+<svg width="72" height="72" viewBox="0 0 44 44"><polygon points="22,4 22,40 4,40" fill="rgb(30,80,68)"/><polygon points="22,4 40,40 22,40" fill="rgb(42,107,90)"/><polygon points="22,4 4,40 22,40" fill="rgb(58,139,116)" opacity="0"/><polygon points="22,4 22,22 4,40" fill="rgb(58,139,116)"/></svg>
+</div>
+<div class="row"><span class="row-label">Horizontal</span>
+<div style="display:flex;align-items:center;gap:12px"><svg width="34" height="34" viewBox="0 0 44 44"><polygon points="22,4 22,40 4,40" fill="rgb(30,80,68)"/><polygon points="22,4 40,40 22,40" fill="rgb(42,107,90)"/><polygon points="22,4 22,22 4,40" fill="rgb(58,139,116)"/></svg><span class="wordmark">Knowledge<span class="accent">Prism</span></span></div>
+</div>
+<div class="row"><span class="row-label">Compact</span>
+<svg width="40" height="40" viewBox="0 0 44 44"><polygon points="22,4 22,40 4,40" fill="rgb(30,80,68)"/><polygon points="22,4 40,40 22,40" fill="rgb(42,107,90)"/><polygon points="22,4 22,22 4,40" fill="rgb(58,139,116)"/></svg>
+</div>
+<div class="row"><span class="row-label">Favicon</span>
+<div style="display:flex;gap:10px">
+<div class="tile" style="width:32px;height:32px;border-radius:7px;background:rgb(250,249,247)"><svg width="20" height="20" viewBox="0 0 44 44"><polygon points="22,4 22,40 4,40" fill="rgb(42,107,90)"/><polygon points="22,4 40,40 22,40" fill="rgb(58,139,116)"/><polygon points="22,4 22,22 4,40" fill="rgb(30,80,68)"/></svg></div>
+<div class="tile" style="width:16px;height:16px;border-radius:3.5px;background:rgb(250,249,247)"><svg width="10" height="10" viewBox="0 0 44 44"><polygon points="22,4 22,40 4,40" fill="rgb(42,107,90)"/><polygon points="22,4 40,40 22,40" fill="rgb(58,139,116)"/><polygon points="22,4 22,22 4,40" fill="rgb(30,80,68)"/></svg></div>
+</div>
+</div>
+<div class="row" style="background:rgb(54,51,48)"><span class="row-label" style="color:rgb(168,162,153)">On dark</span>
+<svg width="40" height="40" viewBox="0 0 44 44"><polygon points="22,4 22,40 4,40" fill="rgba(255,255,255,.55)"/><polygon points="22,4 40,40 22,40" fill="#fff"/><polygon points="22,4 22,22 4,40" fill="rgba(255,255,255,.8)"/></svg>
+</div>
+</div>
+</div>
+
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Order from Chaos &mdash; planes aligning into order</div>
+<div class="dv-card">
+<div class="row"><span class="row-label">Mark</span>
+<svg width="72" height="72" viewBox="0 0 44 44"><rect x="8" y="30" width="26" height="8" rx="3" fill="rgb(209,205,196)" transform="rotate(-11 21 34)"/><rect x="8" y="18" width="26" height="8" rx="3" fill="rgb(147,211,191)" transform="rotate(-4 21 22)"/><rect x="8" y="6" width="26" height="8" rx="3" fill="rgb(42,107,90)"/></svg>
+</div>
+<div class="row"><span class="row-label">Horizontal</span>
+<div style="display:flex;align-items:center;gap:12px"><svg width="34" height="34" viewBox="0 0 44 44"><rect x="8" y="30" width="26" height="8" rx="3" fill="rgb(209,205,196)" transform="rotate(-11 21 34)"/><rect x="8" y="18" width="26" height="8" rx="3" fill="rgb(147,211,191)" transform="rotate(-4 21 22)"/><rect x="8" y="6" width="26" height="8" rx="3" fill="rgb(42,107,90)"/></svg><span class="wordmark">Knowledge<span class="accent">Prism</span></span></div>
+</div>
+<div class="row"><span class="row-label">Compact</span>
+<svg width="40" height="40" viewBox="0 0 44 44"><rect x="8" y="30" width="26" height="8" rx="3" fill="rgb(209,205,196)" transform="rotate(-11 21 34)"/><rect x="8" y="18" width="26" height="8" rx="3" fill="rgb(147,211,191)" transform="rotate(-4 21 22)"/><rect x="8" y="6" width="26" height="8" rx="3" fill="rgb(42,107,90)"/></svg>
+</div>
+<div class="row"><span class="row-label">Favicon</span>
+<div style="display:flex;gap:10px">
+<div class="tile" style="width:32px;height:32px;border-radius:7px;background:rgb(42,107,90)"><svg width="20" height="20" viewBox="0 0 44 44"><rect x="8" y="30" width="26" height="8" rx="3" fill="rgba(255,255,255,.45)" transform="rotate(-11 21 34)"/><rect x="8" y="18" width="26" height="8" rx="3" fill="rgba(255,255,255,.75)" transform="rotate(-4 21 22)"/><rect x="8" y="6" width="26" height="8" rx="3" fill="#fff"/></svg></div>
+<div class="tile" style="width:16px;height:16px;border-radius:3.5px;background:rgb(42,107,90)"><svg width="10" height="10" viewBox="0 0 44 44"><rect x="8" y="18" width="26" height="8" rx="3" fill="rgba(255,255,255,.75)" transform="rotate(-4 21 22)"/><rect x="8" y="6" width="26" height="8" rx="3" fill="#fff"/></svg></div>
+</div>
+</div>
+<div class="row" style="background:rgb(54,51,48)"><span class="row-label" style="color:rgb(168,162,153)">On dark</span>
+<svg width="40" height="40" viewBox="0 0 44 44"><rect x="8" y="30" width="26" height="8" rx="3" fill="rgba(255,255,255,.4)" transform="rotate(-11 21 34)"/><rect x="8" y="18" width="26" height="8" rx="3" fill="rgba(255,255,255,.7)" transform="rotate(-4 21 22)"/><rect x="8" y="6" width="26" height="8" rx="3" fill="#fff"/></svg>
+</div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "go with <a class="dv-oid" href="#1a">1a</a>" &middot; "combine the triangle of <a class="dv-oid" href="#1a">1a</a> with the tones of <a class="dv-oid" href="#1b">1b</a>" &middot; "more variations on <a class="dv-oid" href="#1c">1c</a>"</p>
+</section>
+</x-dc>
+</body>
+</html>

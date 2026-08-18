@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:rgb(234,232,227);font-family:Outfit,sans-serif;color:rgb(54,51,48)}
+a{color:rgb(42,107,90);text-decoration:none}
+a:hover{color:rgb(32,87,73)}
+.pf-frame{background:rgb(250,249,247);border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.10);overflow:hidden;flex-shrink:0}
+.pf-label{font:500 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.06em;color:rgb(135,130,122);margin-bottom:12px}
+.hdr{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:64px;border-bottom:1px solid rgb(229,226,219);background:#fff;flex-shrink:0}
+.brand{font-family:'DM Serif Display',serif;font-size:19px;color:rgb(54,51,48)}
+.brand .ac{color:rgb(42,107,90)}
+.tab{padding:9px 4px;font:500 13px Outfit,sans-serif;color:rgb(135,130,122);border-bottom:2px solid transparent;cursor:pointer;display:flex;align-items:center;gap:7px}
+.tab.on{color:rgb(42,107,90);border-bottom-color:rgb(42,107,90)}
+.filerow{display:flex;align-items:center;gap:11px;padding:10px 12px;border:1px solid rgb(229,226,219);border-radius:10px;background:rgb(250,249,247)}
+.iconbtn{background:transparent;border:none;cursor:pointer;padding:4px;display:flex;color:rgb(168,162,153)}
+.iconbtn:hover{color:rgb(107,102,95)}
+.field{border:1px solid rgb(229,226,219);border-radius:8px;padding:10px 12px;font:400 13.5px Outfit,sans-serif;color:rgb(54,51,48);background:#fff;outline:none;width:100%;box-sizing:border-box}
+.field:focus{border-color:rgb(42,107,90)}
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;align-items:center;gap:64px;padding:56px 40px">
+
+<div data-screen-label="Add Knowledge — Desktop">
+  <div class="pf-label">Desktop &middot; 1440 &times; 900 &mdash; modal over Project KB, centered dialog</div>
+  <div class="pf-frame" style="width:1440px;height:900px;position:relative">
+    <div style="filter:blur(1px);opacity:.5">
+      <div class="hdr"><span class="brand">Knowledge<span class="ac">Prism</span></span><div style="width:30px;height:30px;border-radius:50%;background:rgb(229,226,219)"></div></div>
+      <div style="display:flex">
+        <div style="width:200px;flex-shrink:0;height:836px;border-right:1px solid rgb(229,226,219);background:#fff"></div>
+        <div style="width:260px;flex-shrink:0;height:836px;border-right:1px solid rgb(229,226,219);background:#fff"></div>
+        <div style="flex:1;height:836px;background:rgb(234,232,227)"></div>
+      </div>
+    </div>
+
+    <div style="position:absolute;inset:0;background:rgba(45,42,38,.42);display:flex;align-items:center;justify-content:center">
+      <div style="width:600px;max-height:800px;background:#fff;border-radius:14px;box-shadow:0 20px 48px rgba(0,0,0,.22);display:flex;flex-direction:column;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 26px 0">
+          <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:21px;margin:0">Add Knowledge</h3>
+          <a href="Product - Knowledge Tree.dc.html" class="iconbtn" style="padding:6px"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgb(135,130,122)" stroke-width="1.5" stroke-linecap="round"/></svg></a>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;padding:10px 26px 18px;font-size:12px;color:rgb(107,102,95)">
+          <span>Destination</span>
+          <span style="display:flex;align-items:center;gap:5px;background:rgb(242,240,236);border-radius:6px;padding:4px 9px;font-size:12px;color:rgb(54,51,48);font-weight:500">Project Alpha<svg width="6" height="9" viewBox="0 0 4.317 7" fill="rgb(135,130,122)"><path d="M0 0l4.3 3.5L0 7z"/></svg>Hardware specs<svg width="9" height="9" viewBox="0 0 20 20" fill="none" style="margin-left:2px"><path d="M5 7.5l5 5 5-5" stroke="rgb(135,130,122)" stroke-width="1.6" stroke-linecap="round"/></svg></span>
+        </div>
+
+        <div style="display:flex;gap:22px;padding:0 26px;border-bottom:1px solid rgb(229,226,219)">
+          <div class="tab {{ uploadTabClass }}" onClick="{{ setTabUpload }}"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M10 13V3M6 7l4-4 4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 14v2a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.5"/></svg>Upload files</div>
+          <div class="tab {{ textTabClass }}" onClick="{{ setTabText }}"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M3 4h14M3 9h14M3 14h9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>Paste text</div>
+          <div class="tab {{ linkTabClass }}" onClick="{{ setTabLink }}"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M8.5 11.5a3 3 0 0 0 4 .3l2-2a3 3 0 0 0-4.2-4.2l-1 1M11.5 8.5a3 3 0 0 0-4-.3l-2 2a3 3 0 0 0 4.2 4.2l1-1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>Web link</div>
+        </div>
+
+        <div style="padding:22px 26px 26px;overflow:auto;flex:1;min-height:280px">
+          <sc-if value="{{ isUpload }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="border:1.5px dashed {{ dropBorderColor }};border-radius:12px;background:{{ dropBg }};padding:32px 20px;display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center" onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}">
+                <div style="width:40px;height:40px;border-radius:10px;background:rgb(238,246,243);display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 13V3M6 7l4-4 4 4" stroke="rgb(42,107,90)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 15v1a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-1" stroke="rgb(42,107,90)" stroke-width="1.6"/></svg></div>
+                <div style="font-size:13.5px;font-weight:500">Drag files here, or <span style="color:rgb(42,107,90);text-decoration:underline;cursor:pointer" onClick="{{ browseClick }}">browse</span></div>
+                <div style="font-size:11.5px;color:rgb(168,162,153)">PDF, DOCX, TXT, MD, CSV &middot; up to 25MB each</div>
+                <input ref="{{ fileInputRef }}" type="file" multiple="{{ true }}" style="display:none" onChange="{{ onFileInput }}"/>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px">
+                <sc-for list="{{ files }}" as="f" hint-placeholder-count="0">
+                  <div class="filerow">
+                    <div style="width:32px;height:32px;border-radius:7px;background:{{ f.iconBg }};display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M5 2.5h7l3 3v11.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z" stroke="{{ f.iconColor }}" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ f.name }}</div>
+                      <div style="font-size:11.5px;color:rgb(168,162,153);margin-top:1px">{{ f.sizeLabel }} &middot; {{ f.statusLabel }}</div>
+                      <sc-if value="{{ f.showBar }}" hint-placeholder-val="{{ false }}">
+                        <div style="height:3px;background:rgb(238,236,231);border-radius:2px;margin-top:6px;overflow:hidden"><div style="height:100%;background:rgb(42,107,90);border-radius:2px;width:{{ f.progressWidth }};transition:width .3s"></div></div>
+                      </sc-if>
+                    </div>
+                    <button class="iconbtn" onClick="{{ f.remove }}"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ filesEmpty }}" hint-placeholder-val="{{ false }}">
+                  <div style="text-align:center;padding:10px 0;font-size:12px;color:rgb(168,162,153)">No files added yet</div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isText }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:12px">
+              <div>
+                <div style="font-size:12px;color:rgb(107,102,95);margin-bottom:6px">Title</div>
+                <input class="field" placeholder="e.g. Onboarding notes" value="{{ pastedTitle }}" onChange="{{ onTitleChange }}"/>
+              </div>
+              <div>
+                <div style="font-size:12px;color:rgb(107,102,95);margin-bottom:6px">Content</div>
+                <textarea class="field" style="resize:vertical;min-height:180px;font-family:Outfit,sans-serif;line-height:1.6" placeholder="Paste or type the knowledge you want Prism to learn&hellip;" value="{{ pastedText }}" onChange="{{ onTextChange }}"></textarea>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isLink }}" hint-placeholder-val="{{ false }}">
+            <div>
+              <div style="display:flex;gap:8px">
+                <input class="field" placeholder="https://example.com/docs/api-reference" value="{{ linkUrl }}" onChange="{{ onLinkChange }}"/>
+                <button style="background:rgb(45,42,38);color:#fff;border:none;border-radius:8px;padding:0 18px;font:500 13px Outfit,sans-serif;cursor:pointer;flex-shrink:0" onClick="{{ addLink }}">Fetch</button>
+              </div>
+              <div style="font-size:11.5px;color:rgb(168,162,153);margin-top:6px">Prism will crawl the page and keep it in sync on a weekly schedule.</div>
+
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px">
+                <sc-for list="{{ links }}" as="l" hint-placeholder-count="0">
+                  <div class="filerow">
+                    <div style="width:32px;height:32px;border-radius:7px;background:rgb(234,242,249);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="14" height="14" viewBox="0 0 20 20" fill="none"><path d="M8.5 11.5a3 3 0 0 0 4 .3l2-2a3 3 0 0 0-4.2-4.2l-1 1M11.5 8.5a3 3 0 0 0-4-.3l-2 2a3 3 0 0 0 4.2 4.2l1-1" stroke="rgb(74,139,194)" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ l.url }}</div>
+                      <div style="font-size:11.5px;color:rgb(168,162,153);margin-top:1px">{{ l.statusLabel }}</div>
+                    </div>
+                    <button class="iconbtn" onClick="{{ l.remove }}"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 26px;border-top:1px solid rgb(229,226,219);background:rgb(250,249,247)">
+          <span style="font-size:12px;color:rgb(107,102,95)">{{ countLabel }}</span>
+          <div style="display:flex;gap:10px">
+            <a href="Product - Knowledge Tree.dc.html" style="background:transparent;border:none;padding:10px 16px;font:500 13px Outfit,sans-serif;cursor:pointer;color:rgb(107,102,95)">Cancel</a>
+            <button onClick="{{ onSubmit }}" style="background:{{ submitBg }};color:#fff;border:none;border-radius:8px;padding:10px 20px;font:500 13px Outfit,sans-serif;cursor:pointer;display:flex;align-items:center;gap:7px" disabled="{{ submitDisabled }}"><svg width="9" height="9" viewBox="0 0 8.167 8.167" fill="#fff"><path d="M3.6 0h1v3.6H8.2v1H4.6v3.6h-1V4.6H0v-1h3.6z"/></svg>Add to Knowledge Tree</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div data-screen-label="Add Knowledge — Tablet">
+  <div class="pf-label">Tablet &middot; 1024 &times; 768 &mdash; same dialog, narrower centered width</div>
+  <div class="pf-frame" style="width:1024px;height:768px;position:relative">
+    <div style="filter:blur(1px);opacity:.5">
+      <div class="hdr" style="padding:0 20px"><span class="brand">Knowledge<span class="ac">Prism</span></span><div style="width:28px;height:28px;border-radius:50%;background:rgb(229,226,219)"></div></div>
+      <div style="display:flex">
+        <div style="width:56px;flex-shrink:0;height:704px;border-right:1px solid rgb(229,226,219);background:#fff"></div>
+        <div style="flex:1;height:704px;background:rgb(234,232,227)"></div>
+      </div>
+    </div>
+    <div style="position:absolute;inset:0;background:rgba(45,42,38,.42);display:flex;align-items:center;justify-content:center">
+      <div style="width:480px;max-height:660px;background:#fff;border-radius:14px;box-shadow:0 20px 48px rgba(0,0,0,.22);display:flex;flex-direction:column;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 22px 0">
+          <h3 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:19px;margin:0">Add Knowledge</h3>
+          <button class="iconbtn"><svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgb(135,130,122)" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+        </div>
+        <div style="padding:9px 22px 14px;font-size:11.5px;color:rgb(107,102,95)">
+          <span style="display:inline-flex;align-items:center;gap:5px;background:rgb(242,240,236);border-radius:6px;padding:4px 9px;color:rgb(54,51,48);font-weight:500">Hardware specs</span>
+        </div>
+        <div style="display:flex;gap:18px;padding:0 22px;border-bottom:1px solid rgb(229,226,219)">
+          <div class="tab on" style="font-size:12.5px">Upload files</div>
+          <div class="tab" style="font-size:12.5px">Paste text</div>
+          <div class="tab" style="font-size:12.5px">Web link</div>
+        </div>
+        <div style="padding:18px 22px 22px">
+          <div style="border:1.5px dashed rgb(229,226,219);border-radius:12px;padding:26px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+            <div style="width:36px;height:36px;border-radius:9px;background:rgb(238,246,243);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 13V3M6 7l4-4 4 4" stroke="rgb(42,107,90)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div style="font-size:12.5px;font-weight:500">Drag files here, or <span style="color:rgb(42,107,90);text-decoration:underline">browse</span></div>
+            <div style="font-size:11px;color:rgb(168,162,153)">PDF, DOCX, TXT, MD, CSV &middot; up to 25MB</div>
+          </div>
+          <div class="filerow" style="margin-top:14px">
+            <div style="width:30px;height:30px;border-radius:7px;background:rgb(238,246,243);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 2.5h7l3 3v11.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z" stroke="rgb(42,107,90)" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
+            <div style="flex:1"><div style="font-size:12.5px;font-weight:500">sensor-datasheet.pdf</div><div style="font-size:11px;color:rgb(168,162,153)">2.1 MB &middot; Ready</div></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 22px;border-top:1px solid rgb(229,226,219);background:rgb(250,249,247)">
+          <span style="font-size:11.5px;color:rgb(107,102,95)">1 item ready</span>
+          <div style="display:flex;gap:8px">
+            <button style="background:transparent;border:none;padding:8px 14px;font:500 12.5px Outfit,sans-serif;color:rgb(107,102,95)">Cancel</button>
+            <button style="background:rgb(42,107,90);color:#fff;border:none;border-radius:8px;padding:8px 16px;font:500 12.5px Outfit,sans-serif">Add to Knowledge Tree</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div data-screen-label="Add Knowledge — Mobile">
+  <div class="pf-label">Mobile &middot; 390 &times; 844 &mdash; full-screen sheet, segmented tabs, sticky footer</div>
+  <div class="pf-frame" style="width:390px;height:844px;display:flex;flex-direction:column">
+    <div class="hdr" style="padding:0 14px;height:56px">
+      <a href="Product - Knowledge Tree.dc.html" class="iconbtn" style="padding:6px"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M1 1l12 12M13 1L1 13" stroke="rgb(107,102,95)" stroke-width="1.5" stroke-linecap="round"/></svg></a>
+      <span style="font-size:14px;font-weight:500">Add Knowledge</span>
+      <span style="width:26px"></span>
+    </div>
+    <div style="padding:14px 16px 0">
+      <span style="display:inline-flex;align-items:center;gap:5px;background:rgb(242,240,236);border-radius:6px;padding:4px 9px;font-size:11.5px;color:rgb(54,51,48);font-weight:500">Hardware specs</span>
+    </div>
+    <div style="display:flex;background:rgb(242,240,236);border-radius:9px;margin:12px 16px;padding:3px">
+      <div style="flex:1;text-align:center;padding:7px 0;border-radius:7px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08);font:500 12px Outfit,sans-serif;color:rgb(54,51,48)">Upload</div>
+      <div style="flex:1;text-align:center;padding:7px 0;font:500 12px Outfit,sans-serif;color:rgb(135,130,122)">Text</div>
+      <div style="flex:1;text-align:center;padding:7px 0;font:500 12px Outfit,sans-serif;color:rgb(135,130,122)">Link</div>
+    </div>
+    <div style="flex:1;overflow:auto;padding:4px 16px 16px">
+      <div style="border:1.5px dashed rgb(229,226,219);border-radius:12px;padding:26px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center">
+        <div style="width:36px;height:36px;border-radius:9px;background:rgb(238,246,243);display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 20 20" fill="none"><path d="M10 13V3M6 7l4-4 4 4" stroke="rgb(42,107,90)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div style="font-size:12.5px;font-weight:500">Tap to browse files</div>
+        <div style="font-size:11px;color:rgb(168,162,153)">PDF, DOCX, TXT, MD, CSV &middot; up to 25MB</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-top:14px">
+        <div class="filerow">
+          <div style="width:30px;height:30px;border-radius:7px;background:rgb(238,246,243);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 2.5h7l3 3v11.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z" stroke="rgb(42,107,90)" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
+          <div style="flex:1"><div style="font-size:12.5px;font-weight:500">sensor-datasheet.pdf</div><div style="font-size:11px;color:rgb(168,162,153)">2.1 MB &middot; Ready</div></div>
+        </div>
+        <div class="filerow">
+          <div style="width:30px;height:30px;border-radius:7px;background:rgb(250,244,231);display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="13" height="13" viewBox="0 0 20 20" fill="none"><path d="M5 2.5h7l3 3v11.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1z" stroke="rgb(201,154,58)" stroke-width="1.3" stroke-linejoin="round"/></svg></div>
+          <div style="flex:1">
+            <div style="font-size:12.5px;font-weight:500">test-report.docx</div>
+            <div style="font-size:11px;color:rgb(168,162,153);margin-top:1px">840 KB &middot; Processing&hellip;</div>
+            <div style="height:3px;background:rgb(238,236,231);border-radius:2px;margin-top:5px;overflow:hidden"><div style="height:100%;width:62%;background:rgb(42,107,90);border-radius:2px"></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:14px 16px;border-top:1px solid rgb(229,226,219);background:#fff;flex-shrink:0">
+      <button style="width:100%;background:rgb(42,107,90);color:#fff;border:none;border-radius:9px;padding:13px 0;font:500 13.5px Outfit,sans-serif;display:flex;align-items:center;justify-content:center;gap:7px"><svg width="9" height="9" viewBox="0 0 8.167 8.167" fill="#fff"><path d="M3.6 0h1v3.6H8.2v1H4.6v3.6h-1V4.6H0v-1h3.6z"/></svg>Add to Knowledge Tree &middot; 2 items</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const ICONS = {
+  pdf: { bg: 'rgb(238,246,243)', color: 'rgb(42,107,90)' },
+  doc: { bg: 'rgb(234,242,249)', color: 'rgb(74,139,194)' },
+  txt: { bg: 'rgb(242,240,236)', color: 'rgb(107,102,95)' },
+};
+function kindFor(name) {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  if (ext === 'pdf') return 'pdf';
+  if (ext === 'doc' || ext === 'docx') return 'doc';
+  return 'txt';
+}
+function formatSize(bytes) {
+  if (bytes >= 1e6) return (bytes / 1e6).toFixed(1) + ' MB';
+  if (bytes >= 1e3) return Math.round(bytes / 1e3) + ' KB';
+  return bytes + ' B';
+}
+let uid = 1;
+
+class Component extends DCLogic {
+  state = {
+    tab: 'upload',
+    files: [],
+    links: [],
+    dragActive: false,
+    pastedTitle: '',
+    pastedText: '',
+    linkUrl: '',
+  };
+
+  fileInputEl = null;
+
+  addFiles(fileList) {
+    const arr = Array.from(fileList || []);
+    if (!arr.length) return;
+    const entries = arr.map(f => ({ id: uid++, name: f.name, size: f.size, status: 'processing', progress: 8 }));
+    this.setState(s => ({ files: [...s.files, ...entries] }));
+    entries.forEach(entry => this.simulateUpload(entry.id));
+  }
+
+  simulateUpload(id) {
+    const tick = () => {
+      this.setState(s => ({
+        files: s.files.map(f => {
+          if (f.id !== id || f.status !== 'processing') return f;
+          const next = Math.min(100, f.progress + 18 + Math.random() * 22);
+          return { ...f, progress: next };
+        }),
+      }));
+      const f = this.state.files.find(x => x.id === id);
+      if (f && f.progress < 100) {
+        setTimeout(tick, 320);
+      } else {
+        setTimeout(() => {
+          this.setState(s => ({ files: s.files.map(x => x.id === id ? { ...x, status: 'done', progress: 100 } : x) }));
+        }, 250);
+      }
+    };
+    setTimeout(tick, 280);
+  }
+
+  removeFile(id) {
+    this.setState(s => ({ files: s.files.filter(f => f.id !== id) }));
+  }
+
+  addLink() {
+    const url = this.state.linkUrl.trim();
+    if (!url) return;
+    const id = uid++;
+    this.setState(s => ({ links: [...s.links, { id, url, status: 'processing' }], linkUrl: '' }));
+    setTimeout(() => {
+      this.setState(s => ({ links: s.links.map(l => l.id === id ? { ...l, status: 'done' } : l) }));
+    }, 900);
+  }
+
+  removeLink(id) {
+    this.setState(s => ({ links: s.links.filter(l => l.id !== id) }));
+  }
+
+  renderVals() {
+    const s = this.state;
+    const tabStyle = (t) => (s.tab === t ? 'on' : '');
+
+    const files = s.files.map(f => {
+      const kind = ICONS[kindFor(f.name)];
+      const statusLabel = f.status === 'done' ? 'Ready' : f.status === 'error' ? 'Failed' : 'Processing\u2026';
+      return {
+        name: f.name,
+        sizeLabel: formatSize(f.size),
+        statusLabel,
+        showBar: f.status === 'processing',
+        progressWidth: Math.round(f.progress) + '%',
+        iconBg: kind.bg,
+        iconColor: kind.color,
+        remove: () => this.removeFile(f.id),
+      };
+    });
+
+    const links = s.links.map(l => ({
+      url: l.url,
+      statusLabel: l.status === 'done' ? 'Indexed' : 'Fetching\u2026',
+      remove: () => this.removeLink(l.id),
+    }));
+
+    const totalReady = files.filter(f => f.showBar === false).length + links.filter(l => l.statusLabel === 'Indexed').length + (s.pastedText.trim() ? 1 : 0);
+    const totalPending = s.files.length - files.filter(f => f.showBar === false).length;
+    const canSubmit = totalReady > 0;
+
+    let countLabel = 'No knowledge added yet';
+    if (totalReady > 0 || totalPending > 0) {
+      const parts = [];
+      if (totalReady > 0) parts.push(totalReady + ' ready');
+      if (totalPending > 0) parts.push(totalPending + ' processing');
+      countLabel = parts.join(' \u00b7 ');
+    }
+
+    return {
+      isUpload: s.tab === 'upload',
+      isText: s.tab === 'text',
+      isLink: s.tab === 'link',
+      uploadTabClass: tabStyle('upload'),
+      textTabClass: tabStyle('text'),
+      linkTabClass: tabStyle('link'),
+      setTabUpload: () => this.setState({ tab: 'upload' }),
+      setTabText: () => this.setState({ tab: 'text' }),
+      setTabLink: () => this.setState({ tab: 'link' }),
+
+      files,
+      filesEmpty: files.length === 0,
+      dragActive: s.dragActive,
+      dropBorderColor: s.dragActive ? 'rgb(42,107,90)' : 'rgb(229,226,219)',
+      dropBg: s.dragActive ? 'rgb(238,246,243)' : 'transparent',
+      onDragOver: (e) => { e.preventDefault(); this.setState({ dragActive: true }); },
+      onDragLeave: () => this.setState({ dragActive: false }),
+      onDrop: (e) => {
+        e.preventDefault();
+        this.setState({ dragActive: false });
+        this.addFiles(e.dataTransfer.files);
+      },
+      onFileInput: (e) => this.addFiles(e.target.files),
+      fileInputRef: (el) => { this.fileInputEl = el; },
+      browseClick: () => this.fileInputEl && this.fileInputEl.click(),
+
+      pastedTitle: s.pastedTitle,
+      onTitleChange: (e) => this.setState({ pastedTitle: e.target.value }),
+      pastedText: s.pastedText,
+      onTextChange: (e) => this.setState({ pastedText: e.target.value }),
+
+      linkUrl: s.linkUrl,
+      onLinkChange: (e) => this.setState({ linkUrl: e.target.value }),
+      addLink: () => this.addLink(),
+      links,
+
+      countLabel,
+      submitDisabled: !canSubmit,
+      submitBg: canSubmit ? 'rgb(42,107,90)' : 'rgb(196,206,201)',
+      onSubmit: () => { if (canSubmit) window.location.href = 'Product - Knowledge Tree.dc.html'; },
+    };
+  }
+}
+</script>
+</body>
+</html>

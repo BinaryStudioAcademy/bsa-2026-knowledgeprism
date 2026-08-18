@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:rgb(250,249,247);font-family:Outfit,sans-serif;color:rgb(54,51,48)}
+a{color:rgb(42,107,90);text-decoration:none}
+a:hover{color:rgb(30,80,68)}
+@keyframes kp-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+.field{display:flex;flex-direction:column;gap:6px}
+.lbl{font:500 12.5px Outfit,sans-serif;color:rgb(54,51,48)}
+.input{height:44px;border-radius:8px;border:1px solid rgb(229,226,219);padding:0 14px;font:14px Outfit,sans-serif;color:rgb(54,51,48);background:#fff;outline:none;width:100%;box-sizing:border-box}
+.input:focus{border-color:rgb(42,107,90);box-shadow:0 0 0 3px rgba(42,107,90,.15)}
+.pf-frame{background:rgb(250,249,247);border-radius:6px;box-shadow:0 8px 28px rgba(0,0,0,.10);overflow:hidden;flex-shrink:0}
+.pf-label{font:500 11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.06em;color:rgb(135,130,122);margin-bottom:12px}
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;align-items:center;gap:64px;padding:56px 40px;background:rgb(234,232,227)">
+
+<div>
+  <div class="pf-label">Desktop &middot; 1440 &times; 900</div>
+  <div class="pf-frame" style="width:1440px;height:900px;display:flex">
+    <div style="flex:1;background:rgb(45,42,38);color:#fff;padding:64px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden">
+      <svg width="30" height="30" viewBox="0 0 44 44" style="position:absolute;top:18%;right:14%;opacity:.15;animation:kp-float 8s ease-in-out infinite"><polygon points="22,4 22,40 4,40" fill="#fff"></polygon><polygon points="22,4 40,40 22,40" fill="#fff"></polygon></svg>
+      <a href="Landing Page.dc.html" style="display:flex;align-items:center;gap:9px"><svg width="24" height="24" viewBox="0 0 44 44"><polygon points="22,4 22,40 4,40" fill="rgba(255,255,255,.55)"></polygon><polygon points="22,4 40,40 22,40" fill="#fff"></polygon><polygon points="22,4 22,22 4,40" fill="rgba(255,255,255,.85)"></polygon></svg><span style="font-family:'DM Serif Display',serif;font-size:20px;color:#fff">KnowledgePrism</span></a>
+      <div style="max-width:380px"><h2 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:32px;line-height:1.2;margin:0 0 14px">Order from Chaos.</h2><p style="font-size:14.5px;line-height:1.65;color:rgba(255,255,255,.65);margin:0">Turn scattered documents into one queryable knowledge graph &mdash; with every answer traced back to its source.</p></div>
+      <span style="font:11px 'JetBrains Mono',monospace;color:rgba(255,255,255,.4)">&copy; 2026 KnowledgePrism AI</span>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:64px">
+      <div style="width:100%;max-width:380px">
+        <sc-if value="{{ isSignIn }}" hint-placeholder-val="{{ true }}">
+          <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:28px;margin:0 0 8px">Welcome back</h1>
+          <p style="font-size:14px;color:rgb(107,102,95);margin:0 0 28px">Sign in to continue to your workspace.</p>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="field"><span class="lbl">Email</span><input class="input" type="email" placeholder="you@company.com"/></div>
+            <div class="field"><span class="lbl">Password</span><input class="input" type="password" placeholder="Enter your password"/></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-top:-4px"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:rgb(107,102,95);cursor:pointer"><span style="width:16px;height:16px;border-radius:4px;border:1px solid rgb(209,205,196);display:inline-block"></span>Remember me</label><a href="#" style="font-size:13px">Forgot password?</a></div>
+            <button onClick="{{ goWorkspace }}" style="background:rgb(45,42,38);color:#fff;border:none;border-radius:8px;padding:13px 0;font:500 14px Outfit,sans-serif;cursor:pointer;margin-top:6px" style-hover="background:rgb(26,24,22)">Sign In</button>
+          </div>
+          <p style="text-align:center;font-size:13.5px;color:rgb(107,102,95);margin:24px 0 0">Don't have an account? <a href="#" onClick="{{ goSignUp }}" style="font-weight:500">Sign up</a></p>
+        </sc-if>
+        <sc-if value="{{ isSignUp }}">
+          <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:28px;margin:0 0 8px">Create your account</h1>
+          <p style="font-size:14px;color:rgb(107,102,95);margin:0 0 28px">Start building your knowledge graph.</p>
+          <div style="display:flex;flex-direction:column;gap:16px">
+            <div class="field"><span class="lbl">Full name</span><input class="input" type="text" placeholder="Sarah J."/></div>
+            <div class="field"><span class="lbl">Email</span><input class="input" type="email" placeholder="you@company.com"/></div>
+            <div class="field"><span class="lbl">Password</span><input class="input" type="password" placeholder="At least 8 characters"/></div>
+            <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;color:rgb(107,102,95);cursor:pointer;margin-top:-4px"><span style="width:16px;height:16px;border-radius:4px;border:1px solid rgb(209,205,196);display:inline-block;flex-shrink:0;margin-top:1px"></span>I agree to the <a href="#">Terms</a> and <a href="#">Privacy Policy</a></label>
+            <button onClick="{{ goWorkspace }}" style="background:rgb(45,42,38);color:#fff;border:none;border-radius:8px;padding:13px 0;font:500 14px Outfit,sans-serif;cursor:pointer;margin-top:6px" style-hover="background:rgb(26,24,22)">Create Account</button>
+          </div>
+          <p style="text-align:center;font-size:13.5px;color:rgb(107,102,95);margin:24px 0 0">Already have an account? <a href="#" onClick="{{ goSignIn }}" style="font-weight:500">Sign in</a></p>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="pf-label">Tablet &middot; 1024 &times; 768 &mdash; brand panel narrows, form keeps full padding</div>
+  <div class="pf-frame" style="width:1024px;height:768px;display:flex">
+    <div style="flex:0.8;background:rgb(45,42,38);color:#fff;padding:44px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden">
+      <a href="Landing Page.dc.html" style="display:flex;align-items:center;gap:9px"><svg width="20" height="20" viewBox="0 0 44 44"><polygon points="22,4 22,40 4,40" fill="rgba(255,255,255,.55)"></polygon><polygon points="22,4 40,40 22,40" fill="#fff"></polygon><polygon points="22,4 22,22 4,40" fill="rgba(255,255,255,.85)"></polygon></svg><span style="font-family:'DM Serif Display',serif;font-size:17px;color:#fff">KnowledgePrism</span></a>
+      <h2 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:24px;line-height:1.25;margin:0">Order from Chaos.</h2>
+      <span style="font:10px 'JetBrains Mono',monospace;color:rgba(255,255,255,.4)">&copy; 2026 KnowledgePrism AI</span>
+    </div>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:44px">
+      <div style="width:100%;max-width:340px">
+        <sc-if value="{{ isSignIn }}"><h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:25px;margin:0 0 8px">Welcome back</h1><div style="display:flex;flex-direction:column;gap:14px;margin-top:20px"><div class="field"><span class="lbl">Email</span><input class="input" type="email" placeholder="you@company.com"/></div><div class="field"><span class="lbl">Password</span><input class="input" type="password" placeholder="Enter your password"/></div><button onClick="{{ goWorkspace }}" style="background:rgb(45,42,38);color:#fff;border:none;border-radius:8px;padding:12px 0;font:500 13.5px Outfit,sans-serif;margin-top:4px">Sign In</button></div></sc-if>
+        <sc-if value="{{ isSignUp }}"><h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:25px;margin:0 0 8px">Create your account</h1><div style="display:flex;flex-direction:column;gap:14px;margin-top:20px"><div class="field"><span class="lbl">Full name</span><input class="input" type="text" placeholder="Sarah J."/></div><div class="field"><span class="lbl">Email</span><input class="input" type="email" placeholder="you@company.com"/></div><button onClick="{{ goWorkspace }}" style="background:rgb(45,42,38);color:#fff;border:none;border-radius:8px;padding:12px 0;font:500 13.5px Outfit,sans-serif;margin-top:4px">Create Account</button></div></sc-if>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div>
+  <div class="pf-label">Mobile &middot; 390 &times; 844 &mdash; brand panel becomes a compact header band, form fills the rest</div>
+  <div class="pf-frame" style="width:390px;height:844px;display:flex;flex-direction:column">
+    <div style="background:rgb(45,42,38);color:#fff;padding:28px 24px;display:flex;flex-direction:column;gap:10px;flex-shrink:0">
+      <a href="Landing Page.dc.html" style="display:flex;align-items:center;gap:8px"><svg width="18" height="18" viewBox="0 0 44 44"><polygon points="22,4 22,40 4,40" fill="rgba(255,255,255,.55)"></polygon><polygon points="22,4 40,40 22,40" fill="#fff"></polygon><polygon points="22,4 22,22 4,40" fill="rgba(255,255,255,.85)"></polygon></svg><span style="font-family:'DM Serif Display',serif;font-size:16px;color:#fff">KnowledgePrism</span></a>
+      <span style="font-size:12px;color:rgba(255,255,255,.6)">Order from Chaos.</span>
+    </div>
+    <div style="flex:1;overflow:auto;padding:28px 22px">
+      <sc-if value="{{ isSignIn }}">
+        <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:23px;margin:0 0 20px">Welcome back</h1>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="field"><span class="lbl">Email</span><input class="input" type="email" placeholder="you@company.com"/></div>
+          <div class="field"><span class="lbl">Password</span><input class="input" type="password" placeholder="Enter your password"/></div>
+          <a href="#" style="font-size:12.5px;text-align:right">Forgot password?</a>
+          <button onClick="{{ goWorkspace }}" style="background:rgb(45,42,38);color:#fff;border:none;border-radius:8px;padding:13px 0;font:500 14px Outfit,sans-serif">Sign In</button>
+        </div>
+        <p style="text-align:center;font-size:13px;color:rgb(107,102,95);margin:22px 0 0">Don't have an account? <a href="#" onClick="{{ goSignUp }}" style="font-weight:500">Sign up</a></p>
+      </sc-if>
+      <sc-if value="{{ isSignUp }}">
+        <h1 style="font-family:'DM Serif Display',serif;font-weight:400;font-size:23px;margin:0 0 20px">Create your account</h1>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <div class="field"><span class="lbl">Full name</span><input class="input" type="text" placeholder="Sarah J."/></div>
+          <div class="field"><span class="lbl">Email</span><input class="input" type="email" placeholder="you@company.com"/></div>
+          <div class="field"><span class="lbl">Password</span><input class="input" type="password" placeholder="At least 8 characters"/></div>
+          <button onClick="{{ goWorkspace }}" style="background:rgb(45,42,38);color:#fff;border:none;border-radius:8px;padding:13px 0;font:500 14px Outfit,sans-serif">Create Account</button>
+        </div>
+        <p style="text-align:center;font-size:13px;color:rgb(107,102,95);margin:22px 0 0">Already have an account? <a href="#" onClick="{{ goSignIn }}" style="font-weight:500">Sign in</a></p>
+      </sc-if>
+    </div>
+  </div>
+</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { mode: 'signin' };
+  renderVals() {
+    const m = this.state.mode;
+    return {
+      isSignIn: m === 'signin',
+      isSignUp: m === 'signup',
+      goSignIn: () => this.setState({ mode: 'signin' }),
+      goSignUp: () => this.setState({ mode: 'signup' }),
+      goWorkspace: () => { window.location.href = 'Product - Workspace.dc.html'; },
+    };
+  }
+}
+</script>
+</body>
+</html>
