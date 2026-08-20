@@ -7,8 +7,8 @@ import { configureStore } from "@reduxjs/toolkit";
 
 import { type Config } from "~/lib/config/config.js";
 import { AppEnvironment } from "~/lib/enums/enums.js";
-import { authApi, reducer as authReducer } from "~/modules/auth/index.js";
-import { userApi, reducer as usersReducer } from "~/modules/users/index.js";
+import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
+import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
 
 type ExtraArguments = {
 	authApi: typeof authApi;

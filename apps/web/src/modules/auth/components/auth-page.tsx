@@ -7,7 +7,7 @@ import {
 	useLocation,
 } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
-import { actions as authActions } from "~/modules/auth/index.js";
+import { actions as authActions } from "~/modules/auth/auth.js";
 
 import { SignInForm, SignUpForm } from "./components.js";
 

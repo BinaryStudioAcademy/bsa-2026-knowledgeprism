@@ -7,7 +7,7 @@ import {
 	useLocation,
 } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
-import { actions as userActions } from "~/modules/users/index.js";
+import { actions as userActions } from "~/modules/users/users.js";
 
 const App: React.FC = () => {
 	const { pathname } = useLocation();
