@@ -61,6 +61,14 @@ jobs:
           key: ci-${{ hashFiles('**/package-lock.json') }}
 
       - name: Code Linting
+        env:
+          NODE_ENV: development
+          HOST: localhost
+          PORT: 3001
+          DB_CONNECTION_STRING: postgresql://user:password@localhost:5432/db
+          DB_DIALECT: pg
+          DB_POOL_MIN: 2
+          DB_POOL_MAX: 10
         run: |
           npm run lint
   build:

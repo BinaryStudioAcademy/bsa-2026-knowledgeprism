@@ -1,6 +1,7 @@
 import { type KnipConfig } from "knip";
 
 const config: KnipConfig = {
+	ignore: ["design/support.js"],
 	prettier: ["./prettier.config.js"],
 	stylelint: ["./stylelint.config.ts"],
 	workspaces: {
