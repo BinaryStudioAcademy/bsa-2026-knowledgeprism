@@ -1,8 +1,8 @@
 import { config } from "~/infrastructure/config/config.js";
 import { database } from "~/infrastructure/database/database.js";
 import { logger } from "~/infrastructure/logger/logger.js";
-import { authController } from "~/modules/auth/index.js";
-import { userController } from "~/modules/users/index.js";
+import { authController } from "~/modules/auth/auth.js";
+import { userController } from "~/modules/users/users.js";
 
 import { BaseServerApplicationApi } from "./base-server-application-api.js";
 import { BaseServerApplication } from "./base-server-application.js";
