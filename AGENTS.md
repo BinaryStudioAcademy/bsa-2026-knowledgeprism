@@ -140,6 +140,37 @@ Organisation → Project → Membership → Role → Permission. Never trust a
   environment branch (see `dangerfile.ts`).
 - PRs require an assignee, a label, and a milestone (Danger enforces this).
 
+## Code Quality Rules
+
+Distilled from the BSA JS/TS style guide — the ten with the most
+practical effect on this codebase:
+
+- **No `any`.** Prefer `unknown` with narrowing; `any` defeats the type
+  system this repo otherwise relies on.
+- **No dead code.** Remove unused files, modules, and commented-out code
+  rather than leaving them in the tree.
+- **No unused dependencies.** Keep `package.json` dependency lists trimmed
+  to what's actually imported (`knip.config.ts` enforces this at the repo
+  level; see per-workspace `ignoreDependencies` for known exceptions like
+  `pg`).
+- **No `index` files except as an app/package entry point.** Re-export
+  barrels obscure where things actually live; import from the concrete
+  module path.
+- **DRY.** If the same logic is repeated across modules, extract it into a
+  shared module (e.g. `packages/*` for cross-app reuse, a local helper for
+  in-app reuse) instead of copy-pasting.
+- **Split long functions/methods into smaller ones.** A function or method
+  that's grown to handle multiple concerns should be broken up by concern.
+- **No magic values.** Replace inline literals with a named constant that
+  explains what the value means.
+- **Group related constants into enums/const objects** instead of scattering
+  standalone constants of the same kind (e.g. status strings, action types).
+- **Modules don't export mutable variables.** Export values that are
+  computed once, not `let` bindings that change after export.
+- **Code matches the linter, and lint rules are never disabled inline.**
+  `npm run lint` (ESLint/Stylelint/Prettier) must pass clean with no
+  `eslint-disable` escape hatches added to work around it.
+
 ## Common Commands (run from repo root unless noted)
 
 ```bash
