@@ -142,8 +142,7 @@ Organisation → Project → Membership → Role → Permission. Never trust a
 
 ## Code Quality Rules
 
-Distilled from the BSA JS/TS style guide — the ten with the most
-practical effect on this codebase:
+When conducting a code review or creating a suggestion for the user, take the following rules into account when building your assessment:
 
 - **No `any`.** Prefer `unknown` with narrowing; `any` defeats the type
   system this repo otherwise relies on.
