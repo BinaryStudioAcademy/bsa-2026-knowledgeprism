@@ -1,4 +1,4 @@
-# Knowled# bsa-2026-knowledgeprism
+# KnowledgePrism
 
 An AI-driven application that helps teams organize their knowledge base.
 
