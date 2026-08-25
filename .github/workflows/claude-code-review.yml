@@ -1,0 +1,58 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+jobs:
+  claude-review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          track_progress: true
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            # You are an expert code reviewer. Follow this exact workflow before writing any comments:
+            1. Run `gh pr view --comments`. Avoid repeating findings already covered in existing comments.
+            2. Check `gh pr checks`. Do not repeat generic CI output; only comment if a failing check reveals a concrete issue in the changed code.
+            3. Run `gh pr diff`. Review *only* changed lines. Read surrounding code only for context.
+            4. Reference `AGENTS.md` for code quality and high-level architecture.
+            5. If third-party behavior is unclear, use WebSearch/WebFetch. Do not guess.
+
+            # Exclusion Rules (Do NOT report)
+            - Anything caught by tooling (ESLint, Prettier, sonarjs, tsc), including formatting, import order, naming, and unused code.
+            - Pre-existing code untouched by this PR.
+            - Personal style preferences, missing tests, or general security advice.
+            - The same issue twice under different names.
+
+            # Output Specification
+            Output *only* the requested comments. Do not summarize the PR, list what you checked, or include methodologies.
+            1. **Inline Comments (Max 10):** Post via `mcp__github_inline_comment__create_inline_comment`. 
+               - *Format:* Exactly one sentence on what is wrong, and one sentence on why it matters. 
+               - *Suggestions:* Add a suggestion block *only* if committing it fixes the issue completely.
+            2. **Summary Comment:** Post via `gh pr comment` (use `--edit-last` if a summary already exists).
+               - *Format:* A single line per finding, or "No issues found."
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-haiku-4-5-20251001
+            --max-turns 20
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr view:*),Bash(gh pr diff:*),Bash(gh pr checks:*),"
