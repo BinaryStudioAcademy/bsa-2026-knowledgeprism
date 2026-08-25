@@ -11,7 +11,7 @@
 		"npm": "11.x.x"
 	},
 	"scripts": {
-		"git:hook:precommit": "lint-staged --cwd .",
+		"git:hook:precommit": "lint-staged",
 		"git:hook:commit": "npx @commitlint/cli --edit",
 		"build:constants": "npm run build -w packages/constants",
 		"build:types": "npm run build -w packages/types",
