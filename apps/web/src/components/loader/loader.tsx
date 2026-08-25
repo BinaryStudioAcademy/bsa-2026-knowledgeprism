@@ -19,7 +19,7 @@ const Loader = ({
 		<span
 			role="status"
 			aria-label="Loading"
-			className={`inline-block animate-spin rounded-full border-solid border-accent border-t-transparent ${SIZE_STYLES[size]}`}
+			className={`inline-block animagte-spin rounded-full border-solid border-accent border-t-transparent ${SIZE_STYLES[size]}`}
 		>
 			<span className="sr-only">Loading...</span>
 		</span>
