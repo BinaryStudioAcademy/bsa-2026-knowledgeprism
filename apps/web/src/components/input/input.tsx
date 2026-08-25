@@ -26,6 +26,7 @@ const Input = <T extends FieldValues>({
 	type = "text",
 }: Properties<T>): React.JSX.Element => {
 	const { field } = useFormController({ control, name });
+	const someunusedVariable = "This variable is declared but not used"; // This line is just to illustrate that you can declare variables if needed.
 
 	const error = errors[name]?.message;
 	const hasError = Boolean(error);
