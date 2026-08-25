@@ -3,13 +3,6 @@ name: Claude Code Review
 on:
   pull_request:
     types: [opened, synchronize, ready_for_review, reopened]
-    paths:
-      - "src/**/*.css"
-      - "src/**/*.scss"
-      - "src/**/*.ts"
-      - "src/**/*.tsx"
-      - "src/**/*.js"
-      - "src/**/*.jsx"
 
 jobs:
   claude-review:
