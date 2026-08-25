@@ -30,6 +30,11 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
+            SYSTEM DIRECTIVES:
+            - Focus heavily on security issues, performance bugs, and edge cases.
+            - MUST explicitly flag: unused variables, dead code, and type safety issues.
+            - IGNORE formatting and style rules entirely (these are checked via separate linter).
+
             Review this PR against our strict team checklist:
 
             ## TypeScript & Type Safety
@@ -64,6 +69,5 @@ jobs:
             actions: read
           claude_args: |
             --model claude-sonnet-5
-            --append-system-prompt "Be concise and direct. Focus strictly on security issues, performance bugs, and edge cases. Do not comment on code formatting, style, or linting errors."
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*)"
             --disallowedTools "Write,Edit"
