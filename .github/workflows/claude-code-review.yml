@@ -68,5 +68,5 @@ jobs:
           additional_permissions: |
             actions: read
           claude_args: |
-            --model claude-sonnet-5
+            --model claude-haiku-4-5-20251001
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*)"
