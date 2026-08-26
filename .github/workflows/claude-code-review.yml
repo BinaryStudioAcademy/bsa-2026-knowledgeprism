@@ -25,6 +25,7 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           track_progress: true
+          use_sticky_comment: true
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           prompt: |
             REPO: ${{ github.repository }}
@@ -45,11 +46,10 @@ jobs:
 
             # Output Specification
             Output *only* the requested comments. Do not summarize the PR, list what you checked, or include methodologies.
-            1. **Inline Comments (Max 10):** Post via `mcp__github_inline_comment__create_inline_comment`. 
-               - *Format:* Exactly one sentence on what is wrong, and one sentence on why it matters. 
-               - *Suggestions:* Add a suggestion block *only* if committing it fixes the issue completely.
+            1. **Inline Comments (Max 10):** Post via `mcp__github_inline_comment__create_inline_comment`.
+              - *Format:* Exactly one sentence on what is wrong, and one sentence on why it matters.
             2. **Summary Comment:** Post via `gh pr comment` (use `--edit-last` if a summary already exists).
-               - *Format:* A single line per finding, or "No issues found."
+              - *Format:* A single line per finding, or "No issues found."
           additional_permissions: |
             actions: read
           claude_args: |
