@@ -7,6 +7,7 @@ import {
 } from "react-hook-form";
 
 import { useFormController } from "~/hooks/hooks.js";
+import { getClassNames } from "~/lib/helpers/helpers.js";
 
 type Properties<T extends FieldValues> = {
 	control: Control<T, null>;
@@ -36,14 +37,14 @@ const Input = <T extends FieldValues>({
 	return (
 		<div className="flex flex-col gap-1.5 w-full">
 			<label
-				className={`form-label ${hasError ? "is-error" : ""}`}
+				className={getClassNames("form-label", hasError && "is-error")}
 				htmlFor={id}
 			>
 				{label}
 			</label>
 			<input
 				{...field}
-				className={`form-input ${hasError ? "is-error" : ""}`}
+				className={getClassNames("form-input", hasError && "is-error")}
 				disabled={disabled}
 				id={id}
 				placeholder={placeholder}
