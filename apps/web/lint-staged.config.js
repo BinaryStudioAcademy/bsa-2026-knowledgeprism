@@ -1,10 +1,11 @@
-import baseConfig from "../../lint-staged.config.js";
-
 /** @type {import('lint-staged').Config} */
 const config = {
-	...baseConfig,
-	"**/*.css": [() => "npm run lint:css -w apps/web"],
-	"**/*.{ts,tsx}": [() => "npm run lint:js", () => "npm run lint:type"],
+	"*": [
+		() => "npm run lint:editor",
+		() => "npm run lint:fs",
+		() => "npm run lint:trash",
+		() => "npm run lint:format",
+	],
 };
 
 export default config;
