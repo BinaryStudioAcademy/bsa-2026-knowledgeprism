@@ -1,5 +1,5 @@
-@import url("./scaffolding.css");
-@import url("tailwindcss");
+@import "./scaffolding.css";
+@import "tailwindcss";
 
 @theme {
 	--font-serif: "DM Serif Display", serif;
@@ -178,6 +178,11 @@
 		text-decoration: none;
 		border-radius: var(--radius-md);
 		transition: background-color 0.15s ease;
+	}
+
+	.nav-item:hover {
+		color: var(--color-text);
+		background-color: var(--color-secondary);
 	}
 
 	.nav-item.is-active {

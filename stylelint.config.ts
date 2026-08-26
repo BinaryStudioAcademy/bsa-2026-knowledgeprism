@@ -11,6 +11,7 @@ const config: Config = {
 		],
 		"color-hex-length": "long",
 		"declaration-no-important": true,
+		"import-notation": "string",
 		"max-nesting-depth": 0,
 		"no-descending-specificity": true,
 		"selector-class-pattern": null,

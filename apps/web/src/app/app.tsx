@@ -1,5 +1,10 @@
 import reactLogo from "~/assets/img/react.svg";
-import { Link, RouterOutlet } from "~/components/components.js";
+import {
+	Link,
+	MobileNav,
+	RouterOutlet,
+	Sidebar,
+} from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -45,6 +50,11 @@ const App: React.FC = () => {
 			<div>
 				<RouterOutlet />
 			</div>
+
+			<MobileNav />
+
+			<Sidebar />
+
 			{isRoot && (
 				<>
 					<h2>Users:</h2>
