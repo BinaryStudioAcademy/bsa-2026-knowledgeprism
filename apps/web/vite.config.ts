@@ -1,3 +1,4 @@
+import tailwindcss from "@tailwindcss/vite";
 import reactPlugin from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
 import { type ConfigEnv, defineConfig, loadEnv } from "vite";
@@ -18,7 +19,7 @@ const config = ({ mode }: ConfigEnv): ReturnType<typeof defineConfig> => {
 		build: {
 			outDir: "build",
 		},
-		plugins: [reactPlugin()],
+		plugins: [reactPlugin(), tailwindcss()],
 		resolve: {
 			alias: [
 				{
