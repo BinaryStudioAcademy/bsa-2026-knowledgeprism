@@ -1,12 +1,12 @@
 import reactLogo from "~/assets/img/react.svg";
-import { Link, RouterOutlet } from "~/components/components.js";
+import { Link, Loader, RouterOutlet } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
 	useEffect,
 	useLocation,
 } from "~/hooks/hooks.js";
-import { AppRoute } from "~/lib/enums/enums.js";
+import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 const App: React.FC = () => {
@@ -18,6 +18,7 @@ const App: React.FC = () => {
 	}));
 
 	const isRoot = pathname === AppRoute.ROOT;
+	const isLoading = dataStatus === DataStatus.PENDING;
 
 	useEffect(() => {
 		if (isRoot) {
@@ -49,11 +50,15 @@ const App: React.FC = () => {
 				<>
 					<h2>Users:</h2>
 					<h3>Status: {dataStatus}</h3>
-					<ul>
-						{users.map((user) => (
-							<li key={user.id}>{user.email}</li>
-						))}
-					</ul>
+					{isLoading ? (
+						<Loader />
+					) : (
+						<ul>
+							{users.map((user) => (
+								<li key={user.id}>{user.email}</li>
+							))}
+						</ul>
+					)}
 				</>
 			)}
 		</>
