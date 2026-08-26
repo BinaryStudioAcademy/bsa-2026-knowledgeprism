@@ -1,0 +1,85 @@
+.header {
+	position: sticky;
+	top: 0;
+	background-color: #ffffff;
+	border-top: 2px solid #3498db;
+	border-bottom: 1px solid #e8e8e8;
+}
+
+.bar {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 72px;
+	padding: 0 24px;
+}
+
+.brand {
+	display: flex;
+	gap: 8px;
+	align-items: center;
+	font-family: "DM Serif Display", Georgia, serif;
+	font-size: 20px;
+	color: #1a4731;
+	text-decoration: none;
+}
+
+.nav {
+	display: none;
+	flex-basis: 100%;
+	flex-direction: column;
+	gap: 16px;
+	padding-bottom: 20px;
+}
+
+.nav-open {
+	display: flex;
+}
+
+.link {
+	color: #666666;
+	text-decoration: none;
+}
+
+.sign-in {
+	color: #333333;
+	text-decoration: none;
+}
+
+.sign-up {
+	padding: 8px 20px;
+	font-weight: 500;
+	color: #ffffff;
+	text-align: center;
+	text-decoration: none;
+	background-color: #222222;
+	border-radius: 8px;
+}
+
+.toggle {
+	padding: 8px;
+	cursor: pointer;
+	background-color: transparent;
+	border: 0;
+}
+
+@media (width >= 860px) {
+	.bar {
+		padding: 0 40px;
+	}
+
+	.nav,
+	.nav-open {
+		display: flex;
+		flex-basis: auto;
+		flex-direction: row;
+		gap: 32px;
+		align-items: center;
+		padding: 0;
+	}
+
+	.toggle {
+		display: none;
+	}
+}

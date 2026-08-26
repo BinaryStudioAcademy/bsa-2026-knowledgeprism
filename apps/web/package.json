@@ -17,11 +17,11 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
+		"@hookform/resolvers": "5.5.8",
 		"@knowledgeprism/config": "*",
 		"@knowledgeprism/constants": "*",
 		"@knowledgeprism/schemas": "*",
 		"@knowledgeprism/types": "*",
-		"@hookform/resolvers": "5.5.8",
 		"@reduxjs/toolkit": "2.12.0",
 		"react": "19.2.8",
 		"react-dom": "19.2.8",
@@ -37,5 +37,8 @@
 		"eslint-plugin-react": "7.37.5",
 		"eslint-plugin-react-hooks": "7.1.1",
 		"vite": "8.2.0"
+	},
+	"optionalDependencies": {
+		"@rolldown/binding-win32-x64-msvc": "1.2.6"
 	}
 }
