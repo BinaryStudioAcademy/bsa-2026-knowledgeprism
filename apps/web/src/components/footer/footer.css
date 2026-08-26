@@ -19,7 +19,6 @@ footer ul {
 	display: flex;
 	gap: 24px;
 	align-items: center;
-	justify-content: space-between;
 	margin: 20px 0;
 	cursor: default;
 }
