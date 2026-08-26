@@ -7,7 +7,7 @@ import {
 } from "react-hook-form";
 
 import { useFormController } from "~/hooks/hooks.js";
-import { getClassNames } from "~/lib/helpers/helpers.js";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 type Properties<T extends FieldValues> = {
 	control: Control<T, null>;
@@ -35,16 +35,16 @@ const Input = <T extends FieldValues>({
 	const hasError = Boolean(error);
 
 	return (
-		<div className="flex flex-col gap-1.5 w-full">
+		<div className="flex w-full flex-col gap-1.5">
 			<label
-				className={getClassNames("form-label", hasError && "is-error")}
+				className={getValidClassNames("form-label", hasError && "is-error")}
 				htmlFor={id}
 			>
 				{label}
 			</label>
 			<input
 				{...field}
-				className={getClassNames("form-input", hasError && "is-error")}
+				className={getValidClassNames("form-input", hasError && "is-error")}
 				disabled={disabled}
 				id={id}
 				placeholder={placeholder}
