@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useId } from "react";
 import {
 	type Control,
 	type FieldErrors,
@@ -10,15 +10,17 @@ import { useFormController } from "~/hooks/hooks.js";
 
 type Properties<T extends FieldValues> = {
 	control: Control<T, null>;
+	disabled?: boolean;
 	errors: FieldErrors<T>;
 	label: string;
 	name: FieldPath<T>;
 	placeholder?: string;
-	type?: "email" | "text";
+	type?: "email" | "password" | "text";
 };
 
 const Input = <T extends FieldValues>({
 	control,
+	disabled = false,
 	errors,
 	label,
 	name,
@@ -26,16 +28,31 @@ const Input = <T extends FieldValues>({
 	type = "text",
 }: Properties<T>): React.JSX.Element => {
 	const { field } = useFormController({ control, name });
+	const id = useId();
 
 	const error = errors[name]?.message;
 	const hasError = Boolean(error);
 
 	return (
-		<label>
-			<span>{label}</span>
-			<input {...field} placeholder={placeholder} type={type} />
-			{hasError && <span>{error as string}</span>}
-		</label>
+		<div className="flex flex-col gap-1.5 w-full">
+			<label
+				className={`form-label ${hasError ? "is-error" : ""}`}
+				htmlFor={id}
+			>
+				{label}
+			</label>
+			<input
+				{...field}
+				className={`form-input ${hasError ? "is-error" : ""}`}
+				disabled={disabled}
+				id={id}
+				placeholder={placeholder}
+				type={type}
+			/>
+			{hasError && (
+				<span className="form-error-message">{error as string}</span>
+			)}
+		</div>
 	);
 };
 
