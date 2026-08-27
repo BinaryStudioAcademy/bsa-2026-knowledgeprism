@@ -15,8 +15,8 @@ type SpinnerProperties = {
 
 const sizeToStyle = {
 	lg: "size-10 border-4",
-	md: "size-6 border-3",
-	sm: "size-3.5 border-2",
+	md: "size-6 border-4",
+	sm: "size-4 border-2",
 } as const;
 
 const Spinner = ({ size = "sm" }: SpinnerProperties): JSX.Element => {
