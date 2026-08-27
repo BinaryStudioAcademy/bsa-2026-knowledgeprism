@@ -50,11 +50,8 @@ const App: React.FC = () => {
 			<div>
 				<RouterOutlet />
 			</div>
-
 			<MobileNav />
-
 			<Sidebar />
-
 			{isRoot && (
 				<>
 					<h2>Users:</h2>
