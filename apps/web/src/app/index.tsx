@@ -30,13 +30,13 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								element: <AuthPage />,
 								path: AppRoute.SIGN_UP,
 							},
-							{
-								element: <NotFoundPage />,
-								path: "*",
-							},
 						],
 						element: <App />,
 						path: AppRoute.ROOT,
+					},
+					{
+						element: <NotFoundPage />,
+						path: "*",
 					},
 				]}
 			/>
