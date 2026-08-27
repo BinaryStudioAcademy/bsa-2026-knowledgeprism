@@ -1,5 +1,4 @@
-import reactLogo from "~/assets/img/react.svg";
-import { Link, RouterOutlet } from "~/components/components.js";
+import { Link, Logo, RouterOutlet } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -27,7 +26,7 @@ const App: React.FC = () => {
 
 	return (
 		<>
-			<img alt="logo" className="App-logo" src={reactLogo} width="30" />
+			<Logo />
 
 			<ul className="App-navigation-list">
 				<li>
