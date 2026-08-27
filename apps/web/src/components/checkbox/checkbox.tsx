@@ -1,48 +1,54 @@
-import React from "react";
+import React, { useCallback } from "react";
 import {
-	get,
 	type Control,
-	type FieldErrors,
 	type FieldPath,
 	type FieldValues,
+	useController,
 } from "react-hook-form";
 
-import { useFormController } from "~/hooks/hooks.js";
-
 type Properties<T extends FieldValues = FieldValues> = {
-	control: Control<T, null>;
-	errors: FieldErrors<T>;
-	label: string;
-	name: FieldPath<T>;
+	control: Control<T>;
 	disabled?: boolean;
+	label: React.ReactNode;
+	name: FieldPath<T>;
 };
 
 const Checkbox = <T extends FieldValues = FieldValues>({
 	control,
-	errors,
+	disabled = false,
 	label,
 	name,
-	disabled = false,
-}: Properties<T>) => {
-	const { field } = useFormController({ control, name });
-	const error = get(errors, name);
-	const errorMessage = error?.message as string | undefined;
+}: Properties<T>): React.JSX.Element => {
+	const { field, fieldState } = useController({ control, name });
+	const { name: fieldName, onBlur, onChange, ref, value } = field;
+
+	const error = fieldState.error;
+	const errorMessage = error?.message;
 	const hasError = Boolean(errorMessage);
+
+	const handleChange = useCallback(
+		(event: React.ChangeEvent<HTMLInputElement>): void => {
+			onChange(event.target.checked);
+		},
+		[onChange],
+	);
 
 	return (
 		<div className="flex flex-col gap-1">
-			<label className="flex items-center gap-2 cursor-pointer select-none has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-50">
+			<label className="flex items-center gap-2 text-text">
 				<input
-					{...field}
-					type="checkbox"
-					checked={Boolean(field.value)}
+					checked={Boolean(value)}
+					className="h-4 w-4 rounded border-border text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
 					disabled={disabled}
-					onChange={(event) => field.onChange(event.target.checked)}
-					className="h-4 w-4 rounded border-gray-300 text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+					name={fieldName}
+					onBlur={onBlur}
+					onChange={handleChange}
+					ref={ref}
+					type="checkbox"
 				/>
-				<span className="text-sm text-gray-700">{label}</span>
+				{label && <span>{label}</span>}
 			</label>
-			{hasError && <span className="text-xs text-red-500">{errorMessage}</span>}
+			{hasError && <span className="text-xs text-error">{errorMessage}</span>}
 		</div>
 	);
 };
