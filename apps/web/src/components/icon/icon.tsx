@@ -587,7 +587,7 @@ const SquarePlaceholderIcon: React.FC<SvgIconProperties> = ({
 	</svg>
 );
 
-const iconMap: Record<IconName, React.FC<SvgIconProperties>> = {
+const iconNameToComponent: Record<IconName, React.FC<SvgIconProperties>> = {
 	"add-knowledge": AddKnowledgeIcon,
 	aperture: ApertureIcon,
 	"aperture-expanded": ApertureExpandedIcon,
