@@ -1,6 +1,6 @@
 import reactLogo from "~/assets/img/react.svg";
 import { Link, RouterOutlet } from "~/components/components.js";
-import Footer from "~/components/footer/footer.js";
+import { Footer } from "~/components/footer/footer.js";
 import {
 	useAppDispatch,
 	useAppSelector,
