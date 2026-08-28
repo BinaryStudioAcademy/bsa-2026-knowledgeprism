@@ -22,11 +22,44 @@ const App: React.FC = () => {
 
 	const isRoot = pathname === AppRoute.ROOT;
 
+	const handleOpenModal = (): void => {
+		setIsModalOpen(true);
+	};
+
+	const handleCloseModal = (): void => {
+		setIsModalOpen(false);
+	};
+
 	useEffect(() => {
 		if (isRoot) {
 			void dispatch(userActions.loadAll());
 		}
 	}, [isRoot, dispatch]);
+
+	const renderUsers = (): React.ReactNode[] =>
+		users.map((user) => <li key={user.id}>{user.email}</li>);
+
+	const openModalButtonProperties = {
+		className: "demo-action-button",
+		onClick: handleOpenModal,
+		variant: "primary" as const,
+	};
+
+	const modalProperties = {
+		isOpen: isModalOpen,
+		onClose: handleCloseModal,
+		title: "Add knowledge",
+	};
+
+	const cancelButtonProperties = {
+		onClick: handleCloseModal,
+		variant: "secondary" as const,
+	};
+
+	const submitButtonProperties = {
+		onClick: handleCloseModal,
+		variant: "primary" as const,
+	};
 
 	return (
 		<>
@@ -50,32 +83,18 @@ const App: React.FC = () => {
 			</div>
 
 			<div className="demo-action-row">
-				<Button
-					className="demo-action-button"
-					onClick={() => setIsModalOpen(true)}
-					variant="primary"
-				>
-					Open modal
-				</Button>
+				<Button {...openModalButtonProperties}>Open modal</Button>
 			</div>
 
-			<Modal
-				isOpen={isModalOpen}
-				onClose={() => setIsModalOpen(false)}
-				title="Add knowledge"
-			>
+			<Modal {...modalProperties}>
 				<p className="modal__description">
 					Add a new knowledge item to the workspace and continue with the
 					validation flow.
 				</p>
 
 				<div className="modal__actions">
-					<Button onClick={() => setIsModalOpen(false)} variant="secondary">
-						Cancel
-					</Button>
-					<Button onClick={() => setIsModalOpen(false)} variant="primary">
-						Add
-					</Button>
+					<Button {...cancelButtonProperties}>Cancel</Button>
+					<Button {...submitButtonProperties}>Add</Button>
 				</div>
 			</Modal>
 
@@ -83,11 +102,7 @@ const App: React.FC = () => {
 				<>
 					<h2>Users:</h2>
 					<h3>Status: {dataStatus}</h3>
-					<ul>
-						{users.map((user) => (
-							<li key={user.id}>{user.email}</li>
-						))}
-					</ul>
+					<ul>{renderUsers()}</ul>
 				</>
 			)}
 		</>

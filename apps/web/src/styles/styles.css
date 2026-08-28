@@ -84,6 +84,8 @@
 	}
 
 	.modal {
+		position: relative;
+		z-index: 1;
 		width: min(400px, calc(100vw - 28px));
 		padding: 28px 28px 20px;
 		background: var(--color-surface);

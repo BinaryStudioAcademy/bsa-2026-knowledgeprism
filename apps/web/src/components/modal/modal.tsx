@@ -1,38 +1,33 @@
 type ModalProperties = {
+	children: React.ReactNode;
 	isOpen: boolean;
 	onClose: () => void;
 	title?: string;
-	children: React.ReactNode;
 };
 
-const Modal: React.FC<ModalProperties> = ({
+const Modal = ({
+	children,
 	isOpen,
 	onClose,
 	title = "Modal",
-	children,
-}): React.JSX.Element | null => {
+}: ModalProperties): null | React.JSX.Element => {
 	if (!isOpen) {
 		return null;
 	}
 
+	const closeButtonProperties = {
+		"aria-label": "Close modal",
+		className: "modal__close-button",
+		onClick: onClose,
+		type: "button" as const,
+	};
+
 	return (
-		<div className="modal-backdrop" onClick={onClose}>
-			<div
-				aria-modal="true"
-				className="modal"
-				onClick={(event) => event.stopPropagation()}
-				role="dialog"
-			>
+		<div className="modal-backdrop">
+			<div aria-modal="true" className="modal" role="dialog">
 				<div className="modal__header">
 					<h2 className="modal__title">{title}</h2>
-					<button
-						aria-label="Close modal"
-						className="modal__close-button"
-						onClick={onClose}
-						type="button"
-					>
-						×
-					</button>
+					<button {...closeButtonProperties}>×</button>
 				</div>
 
 				<div className="modal__body">{children}</div>
