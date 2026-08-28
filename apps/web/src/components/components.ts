@@ -1,6 +1,6 @@
 export { Button } from "./button/button.js";
-export { Header } from "./header/header.js";
 export { Checkbox } from "./checkbox/checkbox.js";
+export { Header } from "./header/header.js";
 export { Input } from "./input/input.js";
 export { Link } from "./link/link.js";
 export { Select } from "./select/select.js";
