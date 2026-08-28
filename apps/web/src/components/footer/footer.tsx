@@ -1,8 +1,9 @@
 function Footer() {
+	const currentYear = new Date().getFullYear();
 	return (
 		<footer className="flex items-center justify-between w-full px-[10%] bg-border">
 			<p className="text-text-faint font-mono font-normal text-sm">
-				© 2026 KnowledgePrism AI. Order from Chaos.
+				© {currentYear} KnowledgePrism AI. Order from Chaos.
 			</p>
 			<ul className="flex items-center gap-6 py-5  ">
 				{/* at this moment i left just li and when we have similar pages after this i will add routes */}
