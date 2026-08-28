@@ -1,4 +1,4 @@
-import { useCallback } from "~/hooks/hooks.js";
+import { type ChangeEvent, type FC, useCallback } from "react";
 
 type Properties = {
 	isChecked: boolean;
@@ -9,7 +9,7 @@ type Properties = {
 	onChange: (isChecked: boolean) => void;
 };
 
-const Toggle: React.FC<Properties> = ({
+const Toggle: FC<Properties> = ({
 	isChecked,
 	isDisabled = false,
 	isLabelVisible = true,
@@ -18,7 +18,7 @@ const Toggle: React.FC<Properties> = ({
 	onChange,
 }: Properties) => {
 	const handleChange = useCallback(
-		(event: React.ChangeEvent<HTMLInputElement>): void => {
+		(event: ChangeEvent<HTMLInputElement>): void => {
 			onChange(event.target.checked);
 		},
 		[onChange],
