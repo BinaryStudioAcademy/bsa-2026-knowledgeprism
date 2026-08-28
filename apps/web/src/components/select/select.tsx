@@ -84,6 +84,7 @@ const Select: React.FC<Properties> = ({
 				</select>
 
 				<svg
+					aria-hidden="true"
 					className="pointer-events-none absolute right-3.5 top-1/2 h-1.5 w-2.5 -translate-y-1/2 text-text-subtle"
 					fill="currentColor"
 					viewBox="0 0 12 7.4"
