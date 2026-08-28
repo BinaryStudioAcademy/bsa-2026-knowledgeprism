@@ -14,10 +14,6 @@ const hasPasswordDigit = (password: string): boolean => {
 	return DIGIT_PATTERN.test(password);
 };
 
-const hasPasswordMinimumLength = (password: string): boolean => {
-	return password.length >= UserValidationRule.PASSWORD_MINIMUM_LENGTH;
-};
-
 const hasPasswordSpecialCharacter = (password: string): boolean => {
 	return SPECIAL_CHARACTER_PATTERN.test(password);
 };
@@ -40,20 +36,12 @@ const userSignUp = z
 		password: z
 			.string()
 			.trim()
-			.min(UserValidationRule.PASSWORD_REQUIRED_LENGTH, {
-				error: UserValidationMessage.PASSWORD_REQUIRE,
+			.min(UserValidationRule.PASSWORD_MINIMUM_LENGTH, {
+				error: UserValidationMessage.PASSWORD_MINIMUM_LENGTH,
 			}),
 	})
 	.required()
 	.superRefine(({ password }, context) => {
-		if (!hasPasswordMinimumLength(password)) {
-			context.addIssue({
-				code: "custom",
-				message: UserValidationMessage.PASSWORD_MINIMUM_LENGTH,
-				path: ["password"],
-			});
-		}
-
 		if (!hasPasswordDigit(password)) {
 			context.addIssue({
 				code: "custom",
