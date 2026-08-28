@@ -1,4 +1,5 @@
 const UserValidationMessage = {
+	ACCEPT_TERMS_REQUIRED: "You must accept the terms",
 	EMAIL_REQUIRE: "Email is required",
 	EMAIL_WRONG: "Email is wrong",
 	PASSWORD_DIGIT_REQUIRE: "Password must contain at least one digit",
