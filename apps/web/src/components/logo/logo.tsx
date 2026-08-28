@@ -1,7 +1,7 @@
 import { type JSX } from "react";
 
 import { Link } from "~/components/link/link.js";
-import { type AppRoute } from "~/lib/enums/enums.js";
+import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
