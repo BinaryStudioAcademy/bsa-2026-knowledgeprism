@@ -2,8 +2,6 @@ import { useCallback, useId } from "react";
 
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
-const SELECT_HELPER_TEXT_CLASS_NAME = "font-sans text-xs";
-
 type Properties = {
 	error?: string;
 	id?: string;
@@ -36,19 +34,6 @@ const Select: React.FC<Properties> = ({
 	const hasError = Boolean(error);
 	const selectId = id ?? name ?? generatedId;
 	const errorId = hasError ? `${selectId}-error` : undefined;
-	const labelClassName = getValidClassNames(SELECT_HELPER_TEXT_CLASS_NAME, {
-		"text-error": hasError,
-		"text-text": !hasError,
-	});
-	const selectClassName = getValidClassNames(
-		"h-10 w-full appearance-none rounded-md border px-3.5 pr-9 font-sans text-sm text-text outline-none transition",
-		"focus:border-accent focus:ring-3 focus:ring-accent/15",
-		"disabled:cursor-not-allowed disabled:border-border-subtle disabled:bg-bg disabled:text-text-faint",
-		{
-			"border-border bg-surface": !hasError,
-			"border-error bg-error-bg": hasError,
-		},
-	);
 	const handleChange = useCallback(
 		(event: React.ChangeEvent<HTMLSelectElement>): void => {
 			onChange(event.target.value);
@@ -58,13 +43,30 @@ const Select: React.FC<Properties> = ({
 
 	return (
 		<label className="flex flex-col gap-1.5">
-			{label && <span className={labelClassName}>{label}</span>}
+			{label && (
+				<span
+					className={getValidClassNames("font-sans text-xs", {
+						"text-error": hasError,
+						"text-text": !hasError,
+					})}
+				>
+					{label}
+				</span>
+			)}
 
 			<div className="relative">
 				<select
 					aria-describedby={errorId}
 					aria-invalid={hasError}
-					className={selectClassName}
+					className={getValidClassNames(
+						"h-10 w-full appearance-none rounded-md border px-3.5 pr-9 font-sans text-sm text-text outline-none transition",
+						"focus:border-accent focus:ring-3 focus:ring-accent/15",
+						"disabled:cursor-not-allowed disabled:border-border-subtle disabled:bg-bg disabled:text-text-faint",
+						{
+							"border-border bg-surface": !hasError,
+							"border-error bg-error-bg": hasError,
+						},
+					)}
 					disabled={isDisabled}
 					id={selectId}
 					name={name}
@@ -95,10 +97,7 @@ const Select: React.FC<Properties> = ({
 
 			{hasError && (
 				<span
-					className={getValidClassNames(
-						SELECT_HELPER_TEXT_CLASS_NAME,
-						"text-error",
-					)}
+					className="font-sans text-xs text-error"
 					id={errorId}
 				>
 					{error}
