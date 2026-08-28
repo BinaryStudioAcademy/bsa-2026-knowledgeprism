@@ -1,12 +1,5 @@
 import { Button } from "~/components/components.js";
-import {
-	AskPrismIcon,
-	GlossaryIcon,
-	HelpIcon,
-	KnowledgeTreeIcon,
-	ProjectIcon,
-	SettingsIcon,
-} from "~/components/icon/icon.js";
+import { Icon } from "~/components/icon/icon.js";
 
 type NavItem = {
 	icon: React.ReactNode;
@@ -15,20 +8,24 @@ type NavItem = {
 };
 
 const primaryNavItems: NavItem[] = [
-	{ icon: <KnowledgeTreeIcon />, label: "Knowledge Tree" },
-	{ icon: <GlossaryIcon />, isActive: true, label: "Glossary" },
-	{ icon: <AskPrismIcon />, label: "Ask Prism" },
+	{ icon: <Icon name="knowledge-tree" />, label: "Knowledge Tree" },
+	{ icon: <Icon name="glossary" />, isActive: true, label: "Glossary" },
+	{ icon: <Icon name="ask-prism" />, label: "Ask Prism" },
 ];
 
 const utilityNavItems: NavItem[] = [
-	{ icon: <HelpIcon />, label: "Help" },
-	{ icon: <SettingsIcon />, label: "Settings" },
+	{ icon: <Icon name="help" />, label: "Help" },
+	{ icon: <Icon name="settings" />, label: "Settings" },
 ];
 
 const mobileNavItems: NavItem[] = [
-	{ icon: <KnowledgeTreeIcon size={16} />, label: "Tree" },
-	{ icon: <GlossaryIcon size={16} />, isActive: true, label: "Glossary" },
-	{ icon: <AskPrismIcon size={16} />, label: "Ask" },
+	{ icon: <Icon name="knowledge-tree" size={16} />, label: "Tree" },
+	{
+		icon: <Icon name="glossary" size={16} />,
+		isActive: true,
+		label: "Glossary",
+	},
+	{ icon: <Icon name="ask-prism" size={16} />, label: "Ask" },
 ];
 
 const NavRow = ({ icon, isActive, label }: NavItem) => (
@@ -41,14 +38,12 @@ const NavRow = ({ icon, isActive, label }: NavItem) => (
 );
 
 const Sidebar: React.FC = () => (
-	<aside className="hidden tablet:flex tablet:w-14 desktop:w-[232px] flex-shrink-0 flex-col gap-5 border-r border-[var(--color-border)] bg-[var(--color-surface)] p-[20px_14px]">
+	<aside className="hidden tablet:flex tablet:w-14 desktop:w-[232px] flex-shrink-0 flex-col gap-5 border-r border-border bg-surface p-[20px_14px]">
 		<div className="hidden desktop:flex items-center gap-[10px] p-2 text-accent">
-			<ProjectIcon size={18} />
+			<Icon name="project" size={18} />
 			<div>
 				<div className="text-[13px] font-medium">Project Alpha</div>
-				<div className="font-mono text-[10px] text-[var(--color-text-faint)]">
-					EDITOR ROLE
-				</div>
+				<div className="font-mono text-[10px] text-text-faint">EDITOR ROLE</div>
 			</div>
 		</div>
 
@@ -58,7 +53,7 @@ const Sidebar: React.FC = () => (
 			))}
 		</nav>
 
-		<div className="hidden desktop:flex mt-auto flex-col gap-[10px] border-t border-[var(--color-border-subtle)] pt-[14px]">
+		<div className="hidden desktop:flex mt-auto flex-col gap-[10px] border-t border-border-subtle pt-[14px]">
 			<Button label="Add Knowledge" />
 			<div className="flex flex-col gap-0.5">
 				{utilityNavItems.map((item) => (
@@ -70,7 +65,7 @@ const Sidebar: React.FC = () => (
 );
 
 const MobileNav: React.FC = () => (
-	<nav className="flex flex-shrink-0 tablet:hidden border-t border-[var(--color-border)] bg-[var(--color-surface)]">
+	<nav className="flex flex-shrink-0 tablet:hidden border-t border-border bg-surface">
 		{mobileNavItems.map(({ icon, isActive, label }) => (
 			<div
 				className={`flex flex-1 flex-col items-center gap-[3px] py-[9px] text-[10px] ${

@@ -10,7 +10,11 @@ const config: KnipConfig = {
 		"apps/api": {
 			entry: ["src/infrastructure/database/migrations/*.ts"],
 		},
-		"apps/web": {},
+		"apps/web": {
+			// Entry point for the common app components.
+			// To check unused components comment out this line.
+			entry: ["src/components/components.ts"],
+		},
 		"apps/worker": {},
 		"packages/config": {
 			includeEntryExports: true,
