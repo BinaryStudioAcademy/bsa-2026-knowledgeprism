@@ -1,15 +1,17 @@
 import { type Entity } from "~/shared/types/types.js";
 
+const ID_REQUIRED_MESSAGE = "User id is required";
+
 class UserEntity implements Entity {
 	private email: string;
 
-	private firstName: null | string;
+	private firstName: string;
 
 	private id: null | number;
 
-	private lastName: null | string;
+	private lastName: string;
 
-	private organisationId: null | number;
+	private organisationId: number;
 
 	private passwordHash: string;
 
@@ -22,10 +24,10 @@ class UserEntity implements Entity {
 		passwordHash,
 	}: {
 		email: string;
-		firstName: null | string;
+		firstName: string;
 		id: null | number;
-		lastName: null | string;
-		organisationId: null | number;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 	}) {
 		this.id = id;
@@ -45,10 +47,10 @@ class UserEntity implements Entity {
 		passwordHash,
 	}: {
 		email: string;
-		firstName: null | string;
+		firstName: string;
 		id: number;
-		lastName: null | string;
-		organisationId: null | number;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 	}): UserEntity {
 		return new UserEntity({
@@ -63,15 +65,15 @@ class UserEntity implements Entity {
 
 	public static initializeNew({
 		email,
-		firstName = null,
-		lastName = null,
-		organisationId = null,
+		firstName,
+		lastName,
+		organisationId,
 		passwordHash,
 	}: {
 		email: string;
-		firstName?: null | string;
-		lastName?: null | string;
-		organisationId?: null | number;
+		firstName: string;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 	}): UserEntity {
 		return new UserEntity({
@@ -84,11 +86,19 @@ class UserEntity implements Entity {
 		});
 	}
 
+	private getId(): number {
+		if (this.id === null) {
+			throw new Error(ID_REQUIRED_MESSAGE);
+		}
+
+		return this.id;
+	}
+
 	public toNewObject(): {
 		email: string;
-		firstName: null | string;
-		lastName: null | string;
-		organisationId: null | number;
+		firstName: string;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 	} {
 		return {
@@ -106,11 +116,11 @@ class UserEntity implements Entity {
 	} {
 		return {
 			email: this.email,
-			id: this.id as number,
+			id: this.getId(),
 		};
 	}
 
-	public toRegisterObject(): {
+	public toSignUpObject(): {
 		email: string;
 		firstName: string;
 		id: number;
@@ -118,9 +128,9 @@ class UserEntity implements Entity {
 	} {
 		return {
 			email: this.email,
-			firstName: this.firstName as string,
-			id: this.id as number,
-			lastName: this.lastName as string,
+			firstName: this.firstName,
+			id: this.getId(),
+			lastName: this.lastName,
 		};
 	}
 }

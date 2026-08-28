@@ -1,12 +1,6 @@
 import { AuthApiPath } from "@knowledgeprism/constants";
-import {
-	registerValidationSchema,
-	userSignUpValidationSchema,
-} from "@knowledgeprism/schemas";
-import {
-	type RegisterRequestDto,
-	type UserSignUpRequestDto,
-} from "@knowledgeprism/types";
+import { userSignUpValidationSchema } from "@knowledgeprism/schemas";
+import { type UserSignUpRequestDto } from "@knowledgeprism/types";
 
 import {
 	type APIHandlerOptions,
@@ -29,20 +23,6 @@ class AuthController extends BaseController {
 
 		this.addRoute({
 			handler: (options) =>
-				this.register(
-					options as APIHandlerOptions<{
-						body: RegisterRequestDto;
-					}>,
-				),
-			method: "POST",
-			path: AuthApiPath.REGISTER,
-			validation: {
-				body: registerValidationSchema,
-			},
-		});
-
-		this.addRoute({
-			handler: (options) =>
 				this.signUp(
 					options as APIHandlerOptions<{
 						body: UserSignUpRequestDto;
@@ -58,7 +38,7 @@ class AuthController extends BaseController {
 
 	/**
 	 * @swagger
-	 * /auth/register:
+	 * /auth/sign-up:
 	 *    post:
 	 *      description: Register organisation and admin user
 	 *      requestBody:
@@ -83,47 +63,6 @@ class AuthController extends BaseController {
 	 *      responses:
 	 *        201:
 	 *          description: Successful operation
-	 */
-	private async register(
-		options: APIHandlerOptions<{
-			body: RegisterRequestDto;
-		}>,
-	): Promise<APIHandlerResponse> {
-		return {
-			payload: await this.authService.register(options.body),
-			status: HTTPCode.CREATED,
-		};
-	}
-
-	/**
-	 * @swagger
-	 * /auth/sign-up:
-	 *    post:
-	 *      description: Sign up user into the system
-	 *      requestBody:
-	 *        description: User auth data
-	 *        required: true
-	 *        content:
-	 *          application/json:
-	 *            schema:
-	 *              type: object
-	 *              properties:
-	 *                email:
-	 *                  type: string
-	 *                  format: email
-	 *                password:
-	 *                  type: string
-	 *      responses:
-	 *        201:
-	 *          description: Successful operation
-	 *          content:
-	 *            application/json:
-	 *              schema:
-	 *                type: object
-	 *                properties:
-	 *                  message:
-	 *                    type: object
-	 *                    $ref: "#/components/schemas/User"
 	 */
 	private async signUp(
 		options: APIHandlerOptions<{

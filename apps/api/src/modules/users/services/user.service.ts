@@ -1,9 +1,7 @@
 import { HTTPCode } from "@knowledgeprism/constants";
 import {
-	type RegisterRequestDto,
 	type UserGetAllResponseDto,
 	type UserSignUpRequestDto,
-	type UserSignUpResponseDto,
 } from "@knowledgeprism/types";
 import argon2 from "argon2";
 import { type Transaction, UniqueViolationError } from "objection";
@@ -22,25 +20,12 @@ class UserService implements Service {
 		this.userRepository = userRepository;
 	}
 
-	public async create(
-		payload: UserSignUpRequestDto,
-	): Promise<UserSignUpResponseDto> {
-		const passwordHash = await argon2.hash(payload.password, {
-			type: argon2.argon2id,
-		});
-
-		const item = await this.userRepository.create(
-			UserEntity.initializeNew({
-				email: payload.email,
-				passwordHash,
-			}),
-		);
-
-		return item.toObject();
+	public create(): ReturnType<Service["create"]> {
+		return Promise.resolve(null);
 	}
 
 	public async createOrganisationAdmin(
-		payload: RegisterRequestDto & {
+		payload: UserSignUpRequestDto & {
 			organisationId: number;
 		},
 		transaction: Transaction,

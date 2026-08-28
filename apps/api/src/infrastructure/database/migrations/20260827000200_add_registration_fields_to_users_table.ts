@@ -22,12 +22,12 @@ function up(knex: Knex): Promise<void> {
 		table
 			.integer(ColumnName.ORGANISATION_ID)
 			.unsigned()
-			.nullable()
+			.notNullable()
 			.references("id")
 			.inTable(ORGANISATIONS_TABLE_NAME)
 			.onDelete("CASCADE");
-		table.string(ColumnName.FIRST_NAME).nullable();
-		table.string(ColumnName.LAST_NAME).nullable();
+		table.string(ColumnName.FIRST_NAME).notNullable();
+		table.string(ColumnName.LAST_NAME).notNullable();
 	});
 }
 

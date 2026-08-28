@@ -1,6 +1,4 @@
 import {
-	type RegisterRequestDto,
-	type RegisterResponseDto,
 	type UserSignUpRequestDto,
 	type UserSignUpResponseDto,
 } from "@knowledgeprism/types";
@@ -26,7 +24,7 @@ class AuthService {
 		this.userService = userService;
 	}
 
-	public register(payload: RegisterRequestDto): Promise<RegisterResponseDto> {
+	public signUp(payload: UserSignUpRequestDto): Promise<UserSignUpResponseDto> {
 		return this.database.transaction(async (transaction) => {
 			const organisation = await this.organisationService.create(
 				{
@@ -45,15 +43,9 @@ class AuthService {
 
 			return {
 				organisation: organisationObject,
-				user: user.toRegisterObject(),
+				user: user.toSignUpObject(),
 			};
 		});
-	}
-
-	public signUp(
-		userRequestDto: UserSignUpRequestDto,
-	): Promise<UserSignUpResponseDto> {
-		return this.userService.create(userRequestDto);
 	}
 }
 

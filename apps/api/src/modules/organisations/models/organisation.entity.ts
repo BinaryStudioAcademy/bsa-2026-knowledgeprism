@@ -1,5 +1,7 @@
 import { type Entity } from "~/shared/types/types.js";
 
+const ID_REQUIRED_MESSAGE = "Organisation id is required";
+
 class OrganisationEntity implements Entity {
 	private id: null | number;
 
@@ -30,6 +32,14 @@ class OrganisationEntity implements Entity {
 		});
 	}
 
+	private getId(): number {
+		if (this.id === null) {
+			throw new Error(ID_REQUIRED_MESSAGE);
+		}
+
+		return this.id;
+	}
+
 	public toNewObject(): {
 		name: string;
 	} {
@@ -43,7 +53,7 @@ class OrganisationEntity implements Entity {
 		name: string;
 	} {
 		return {
-			id: this.id as number,
+			id: this.getId(),
 			name: this.name,
 		};
 	}
