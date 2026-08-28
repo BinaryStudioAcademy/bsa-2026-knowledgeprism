@@ -1,5 +1,6 @@
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 type NavItem = {
 	icon: React.ReactNode;
@@ -30,7 +31,10 @@ const mobileNavItems: NavItem[] = [
 
 const NavRow = ({ icon, isActive, label }: NavItem) => (
 	<div
-		className={`nav-item tablet:h-[34px] tablet:w-[34px] tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-[12px] desktop:py-[10px] ${isActive ? "is-active" : ""}`}
+		className={getValidClassNames(
+			"nav-item tablet:h-[34px] tablet:w-[34px] tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-[12px] desktop:py-[10px]",
+			{ "is-active": isActive },
+		)}
 	>
 		{icon}
 		<span className="hidden desktop:inline">{label}</span>
@@ -68,9 +72,10 @@ const MobileNav: React.FC = () => (
 	<nav className="flex flex-shrink-0 tablet:hidden border-t border-border bg-surface">
 		{mobileNavItems.map(({ icon, isActive, label }) => (
 			<div
-				className={`flex flex-1 flex-col items-center gap-[3px] py-[9px] text-[10px] ${
-					isActive ? "text-accent" : "text-text-muted"
-				}`}
+				className={getValidClassNames(
+					"flex flex-1 flex-col items-center gap-[3px] py-[9px] text-[10px]",
+					{ "text-accent": isActive, "text-text-muted": !isActive },
+				)}
 				key={label}
 			>
 				{icon}
@@ -79,5 +84,4 @@ const MobileNav: React.FC = () => (
 		))}
 	</nav>
 );
-
 export { MobileNav, Sidebar };
