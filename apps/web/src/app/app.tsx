@@ -48,10 +48,10 @@ const App: React.FC = () => {
 			<p>Current path: {pathname}</p>
 
 			<div>
+				<MobileNav />
+				<Sidebar />
 				<RouterOutlet />
 			</div>
-			<MobileNav />
-			<Sidebar />
 			{isRoot && (
 				<>
 					<h2>Users:</h2>
