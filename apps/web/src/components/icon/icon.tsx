@@ -94,7 +94,7 @@ const ProjectIcon: React.FC<SvgIconProperties> = ({
 	</svg>
 );
 
-const iconMap: Record<IconName, React.FC<SvgIconProperties>> = {
+const iconNameToComponent: Record<IconName, React.FC<SvgIconProperties>> = {
 	"ask-prism": AskPrismIcon,
 	glossary: GlossaryIcon,
 	help: HelpIcon,
