@@ -6,6 +6,9 @@ import { z } from "zod";
 
 const userSignUp = z
 	.object({
+		agreeToTerms: z.literal(true, {
+			error: UserValidationMessage.ACCEPT_TERMS_REQUIRED,
+		}),
 		email: z
 			.string()
 			.trim()
