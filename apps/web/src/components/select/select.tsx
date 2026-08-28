@@ -96,10 +96,7 @@ const Select: React.FC<Properties> = ({
 			</div>
 
 			{hasError && (
-				<span
-					className="font-sans text-xs text-error"
-					id={errorId}
-				>
+				<span className="font-sans text-xs text-error" id={errorId}>
 					{error}
 				</span>
 			)}
