@@ -4,21 +4,36 @@ import { type UserSignUpRequestDto } from "@knowledgeprism/types";
 import { Button, Checkbox, Input } from "~/components/components.js";
 import { useAppForm, useCallback } from "~/hooks/hooks.js";
 
-import { DEFAULT_SIGN_UP_PAYLOAD } from "./libs/constants.js";
+import {
+	DEFAULT_SIGN_UP_PAYLOAD,
+	type SignUpFormValues,
+} from "./libs/constants.js";
 
 type Properties = {
 	onSubmit: (payload: UserSignUpRequestDto) => void;
 };
 
+const getSignUpPayload = (payload: SignUpFormValues): UserSignUpRequestDto => {
+	return {
+		email: payload.email,
+		firstName: payload.firstName,
+		lastName: payload.lastName,
+		organisationName: payload.organisationName,
+		password: payload.password,
+	};
+};
+
 const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
-	const { control, errors, handleSubmit } = useAppForm<UserSignUpRequestDto>({
+	const { control, errors, handleSubmit } = useAppForm<SignUpFormValues>({
 		defaultValues: DEFAULT_SIGN_UP_PAYLOAD,
 		validationSchema: userSignUpValidationSchema,
 	});
 
 	const handleFormSubmit = useCallback(
 		(event_: React.BaseSyntheticEvent): void => {
-			void handleSubmit(onSubmit)(event_);
+			void handleSubmit((payload) => {
+				onSubmit(getSignUpPayload(payload));
+			})(event_);
 		},
 		[handleSubmit, onSubmit],
 	);

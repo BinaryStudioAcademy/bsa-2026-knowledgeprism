@@ -1,6 +1,10 @@
 import { type UserSignUpRequestDto } from "@knowledgeprism/types";
 
-const DEFAULT_SIGN_UP_PAYLOAD: UserSignUpRequestDto = {
+type SignUpFormValues = UserSignUpRequestDto & {
+	agreeToTerms: boolean;
+};
+
+const DEFAULT_SIGN_UP_PAYLOAD: SignUpFormValues = {
 	agreeToTerms: false,
 	email: "",
 	firstName: "First name",
@@ -9,4 +13,4 @@ const DEFAULT_SIGN_UP_PAYLOAD: UserSignUpRequestDto = {
 	password: "",
 };
 
-export { DEFAULT_SIGN_UP_PAYLOAD };
+export { type SignUpFormValues, DEFAULT_SIGN_UP_PAYLOAD };
