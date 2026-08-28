@@ -11,6 +11,10 @@ export {
 	type ValueOf,
 } from "./libs/types/types.js";
 export {
+	type RegisterRequestDto,
+	type RegisterResponseDto,
+} from "./modules/auth/auth.js";
+export {
 	type UserGetAllItemResponseDto,
 	type UserGetAllResponseDto,
 	type UserSignUpRequestDto,

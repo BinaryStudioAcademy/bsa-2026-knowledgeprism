@@ -6,7 +6,7 @@ export {
 	HTTPHeader,
 	ServerErrorType,
 } from "./libs/enums/enums.js";
-export { AuthApiPath } from "./modules/auth/auth.js";
+export { AuthApiPath, AuthValidationMessage } from "./modules/auth/auth.js";
 export {
 	UsersApiPath,
 	UserValidationMessage,

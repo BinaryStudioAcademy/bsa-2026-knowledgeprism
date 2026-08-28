@@ -1,6 +1,12 @@
 import { AuthApiPath } from "@knowledgeprism/constants";
-import { userSignUpValidationSchema } from "@knowledgeprism/schemas";
-import { type UserSignUpRequestDto } from "@knowledgeprism/types";
+import {
+	registerValidationSchema,
+	userSignUpValidationSchema,
+} from "@knowledgeprism/schemas";
+import {
+	type RegisterRequestDto,
+	type UserSignUpRequestDto,
+} from "@knowledgeprism/types";
 
 import {
 	type APIHandlerOptions,
@@ -23,6 +29,20 @@ class AuthController extends BaseController {
 
 		this.addRoute({
 			handler: (options) =>
+				this.register(
+					options as APIHandlerOptions<{
+						body: RegisterRequestDto;
+					}>,
+				),
+			method: "POST",
+			path: AuthApiPath.REGISTER,
+			validation: {
+				body: registerValidationSchema,
+			},
+		});
+
+		this.addRoute({
+			handler: (options) =>
 				this.signUp(
 					options as APIHandlerOptions<{
 						body: UserSignUpRequestDto;
@@ -34,6 +54,45 @@ class AuthController extends BaseController {
 				body: userSignUpValidationSchema,
 			},
 		});
+	}
+
+	/**
+	 * @swagger
+	 * /auth/register:
+	 *    post:
+	 *      description: Register organisation and admin user
+	 *      requestBody:
+	 *        description: Organisation and admin user data
+	 *        required: true
+	 *        content:
+	 *          application/json:
+	 *            schema:
+	 *              type: object
+	 *              properties:
+	 *                organisationName:
+	 *                  type: string
+	 *                firstName:
+	 *                  type: string
+	 *                lastName:
+	 *                  type: string
+	 *                email:
+	 *                  type: string
+	 *                  format: email
+	 *                password:
+	 *                  type: string
+	 *      responses:
+	 *        201:
+	 *          description: Successful operation
+	 */
+	private async register(
+		options: APIHandlerOptions<{
+			body: RegisterRequestDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.authService.register(options.body),
+			status: HTTPCode.CREATED,
+		};
 	}
 
 	/**
