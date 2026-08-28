@@ -88,7 +88,7 @@
 	}
 
 	.btn-secondary:disabled {
-		color: var(--color-text-faint);
+		color: var(--color-text-disabled);
 		background-color: var(--color-surface);
 		border-color: var(--color-border-subtle);
 	}
@@ -103,7 +103,7 @@
 	}
 
 	.btn-ghost:disabled {
-		color: var(--color-text-faint);
+		color: var(--color-text-disabled);
 		background-color: transparent;
 	}
 
@@ -121,7 +121,7 @@
 	}
 
 	.btn-destructive:disabled {
-		color: var(--color-text-faint);
+		color: var(--color-error-disabled);
 		background-color: var(--color-error-bg);
 	}
 
@@ -138,6 +138,7 @@
 	}
 
 	.btn-icon:disabled {
+		color: var(--color-text-disabled);
 		border-color: var(--color-border-subtle);
 	}
 

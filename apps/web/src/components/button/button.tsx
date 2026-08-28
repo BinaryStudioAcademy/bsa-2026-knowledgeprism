@@ -10,33 +10,27 @@ const darkSpinnerClassName = "border-text/20 border-t-text";
 const buttonVariants: Record<
 	ButtonVariant,
 	{
-		disabled: string;
 		loading: string;
 		spinner: string;
 	}
 > = {
 	destructive: {
-		disabled: "disabled:text-error-disabled",
 		loading: "opacity-85 disabled:!bg-error disabled:!text-primary-fg",
 		spinner: lightSpinnerClassName,
 	},
 	ghost: {
-		disabled: "disabled:text-text-disabled",
 		loading: "disabled:!bg-transparent disabled:!text-text-muted",
 		spinner: "",
 	},
 	icon: {
-		disabled: "disabled:border-border-subtle disabled:text-text-disabled",
 		loading: "relative disabled:!border-border disabled:!text-text",
 		spinner: darkSpinnerClassName,
 	},
 	primary: {
-		disabled: "disabled:text-text-faint",
 		loading: "opacity-85 disabled:!bg-primary disabled:!text-primary-fg",
 		spinner: lightSpinnerClassName,
 	},
 	secondary: {
-		disabled: "disabled:border-border-subtle disabled:text-text-disabled",
 		loading:
 			"disabled:!bg-surface disabled:!border-border disabled:!text-text-muted",
 		spinner: darkSpinnerClassName,
@@ -64,7 +58,7 @@ const Button = ({
 		`btn-${variant}`,
 		"inline-flex items-center justify-center gap-2 leading-normal transition-colors",
 		variant === "icon" && "border border-border",
-		isLoading ? variantStyles.loading : variantStyles.disabled,
+		isLoading && variantStyles.loading,
 		className,
 	);
 
