@@ -57,17 +57,29 @@ const getLinkClassName = tv({
 	},
 });
 
+type CommonProperties = {
+	children: ReactNode;
+	isDisabled?: boolean;
+	variant?: VariantProps<typeof getLinkClassName>["variant"];
+};
+
+type ExternalLinkProperties = {
+	href: string;
+	to?: never;
+};
+
+type InternalLinkProperties = {
+	href?: never;
+	to: ValueOf<typeof AppRoute>;
+};
+
 type LinkContentProperties = {
 	children: ReactNode;
 	hasArrow: boolean;
 };
 
-type Properties = {
-	children: ReactNode;
-	isDisabled?: boolean;
-	to: ValueOf<typeof AppRoute>;
-	variant?: VariantProps<typeof getLinkClassName>["variant"];
-};
+type Properties = CommonProperties &
+	(ExternalLinkProperties | InternalLinkProperties);
 
 const LinkContent = ({
 	children,
@@ -81,6 +93,7 @@ const LinkContent = ({
 
 const Link = ({
 	children,
+	href,
 	isDisabled = false,
 	to,
 	variant = "inline",
@@ -93,6 +106,14 @@ const Link = ({
 			<span aria-disabled="true" className={className} role="link">
 				<LinkContent hasArrow={hasArrow}>{children}</LinkContent>
 			</span>
+		);
+	}
+
+	if (href !== undefined) {
+		return (
+			<a className={className} href={href}>
+				<LinkContent hasArrow={hasArrow}>{children}</LinkContent>
+			</a>
 		);
 	}
 
