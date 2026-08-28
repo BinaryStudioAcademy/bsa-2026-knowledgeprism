@@ -1,12 +1,20 @@
-import { IconSize } from "@knowledgeprism/constants";
+const DEFAULT_ICON_SIZE = 14;
+
+type IconName =
+	"ask-prism" | "glossary" | "help" | "knowledge-tree" | "project" | "settings";
 
 type IconProperties = {
+	name: IconName;
 	size?: number;
 };
 
-const KnowledgeTreeIcon: React.FC<IconProperties> = ({
-	size = IconSize.DEFAULT,
-}: IconProperties) => (
+type SvgIconProperties = {
+	size: number;
+};
+
+const KnowledgeTreeIcon: React.FC<SvgIconProperties> = ({
+	size,
+}: SvgIconProperties) => (
 	<svg fill="none" height={size} viewBox="0 0 20 20" width={size}>
 		<circle cx="10" cy="4.5" r="2" stroke="currentColor" strokeWidth="1.4" />
 		<circle cx="4" cy="15.5" r="2" stroke="currentColor" strokeWidth="1.4" />
@@ -20,9 +28,9 @@ const KnowledgeTreeIcon: React.FC<IconProperties> = ({
 	</svg>
 );
 
-const GlossaryIcon: React.FC<IconProperties> = ({
-	size = IconSize.DEFAULT,
-}: IconProperties) => (
+const GlossaryIcon: React.FC<SvgIconProperties> = ({
+	size,
+}: SvgIconProperties) => (
 	<svg fill="none" height={size} viewBox="0 0 20 20" width={size}>
 		<path
 			d="M10 6c-1.6-1.2-4-1.7-6.5-1.3v10c2.5-.4 4.9.1 6.5 1.3 1.6-1.2 4-1.7 6.5-1.3v-10C14 4.3 11.6 4.8 10 6z"
@@ -34,9 +42,9 @@ const GlossaryIcon: React.FC<IconProperties> = ({
 	</svg>
 );
 
-const AskPrismIcon: React.FC<IconProperties> = ({
-	size = IconSize.DEFAULT,
-}: IconProperties) => (
+const AskPrismIcon: React.FC<SvgIconProperties> = ({
+	size,
+}: SvgIconProperties) => (
 	<svg fill="none" height={size} viewBox="0 0 20 20" width={size}>
 		<path
 			d="M3.5 5.5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H9.5l-3.5 2.8V13.5h-.5a2 2 0 0 1-2-2z"
@@ -47,9 +55,7 @@ const AskPrismIcon: React.FC<IconProperties> = ({
 	</svg>
 );
 
-const HelpIcon: React.FC<IconProperties> = ({
-	size = IconSize.DEFAULT,
-}: IconProperties) => (
+const HelpIcon: React.FC<SvgIconProperties> = ({ size }: SvgIconProperties) => (
 	<svg fill="none" height={size} viewBox="0 0 20 20" width={size}>
 		<circle cx="10" cy="10" r="7.5" stroke="currentColor" strokeWidth="1.4" />
 		<path
@@ -62,9 +68,9 @@ const HelpIcon: React.FC<IconProperties> = ({
 	</svg>
 );
 
-const SettingsIcon: React.FC<IconProperties> = ({
-	size = IconSize.DEFAULT,
-}: IconProperties) => (
+const SettingsIcon: React.FC<SvgIconProperties> = ({
+	size,
+}: SvgIconProperties) => (
 	<svg fill="none" height={size} viewBox="0 0 20 20" width={size}>
 		<path
 			d="M10 3.3l1.1 1.6 1.9-.5.7 1.9 1.9.7-.5 1.9 1.6 1.1-1.6 1.1.5 1.9-1.9.7-.7 1.9-1.9-.5L10 16.7l-1.1-1.6-1.9.5-.7-1.9-1.9-.7.5-1.9L3.3 10l1.6-1.1-.5-1.9 1.9-.7.7-1.9 1.9.5z"
@@ -76,9 +82,9 @@ const SettingsIcon: React.FC<IconProperties> = ({
 	</svg>
 );
 
-const ProjectIcon: React.FC<IconProperties> = ({
-	size = IconSize.DEFAULT,
-}: IconProperties) => (
+const ProjectIcon: React.FC<SvgIconProperties> = ({
+	size,
+}: SvgIconProperties) => (
 	<svg fill="none" height={size} viewBox="0 0 20 20" width={size}>
 		<path
 			d="M10 2l6 3.5v9L10 18l-6-3.5v-9z"
@@ -88,11 +94,22 @@ const ProjectIcon: React.FC<IconProperties> = ({
 	</svg>
 );
 
-export {
-	AskPrismIcon,
-	GlossaryIcon,
-	HelpIcon,
-	KnowledgeTreeIcon,
-	ProjectIcon,
-	SettingsIcon,
+const iconMap: Record<IconName, React.FC<SvgIconProperties>> = {
+	"ask-prism": AskPrismIcon,
+	glossary: GlossaryIcon,
+	help: HelpIcon,
+	"knowledge-tree": KnowledgeTreeIcon,
+	project: ProjectIcon,
+	settings: SettingsIcon,
 };
+
+const Icon: React.FC<IconProperties> = ({
+	name,
+	size = DEFAULT_ICON_SIZE,
+}: IconProperties) => {
+	const SvgIcon = iconMap[name];
+
+	return <SvgIcon size={size} />;
+};
+
+export { Icon };
