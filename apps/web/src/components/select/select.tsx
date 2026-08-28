@@ -32,6 +32,7 @@ const Select: React.FC<Properties> = ({
 }: Properties) => {
 	const generatedId = useId();
 	const hasError = Boolean(error);
+	const helperTextClassName = "font-sans text-xs";
 	const selectId = id ?? name ?? generatedId;
 	const errorId = hasError ? `${selectId}-error` : undefined;
 	const handleChange = useCallback(
@@ -45,7 +46,7 @@ const Select: React.FC<Properties> = ({
 		<label className="flex flex-col gap-1.5">
 			{label && (
 				<span
-					className={getValidClassNames("font-sans text-xs", {
+					className={getValidClassNames(helperTextClassName, {
 						"text-error": hasError,
 						"text-text": !hasError,
 					})}
@@ -56,7 +57,7 @@ const Select: React.FC<Properties> = ({
 
 			<div className="relative">
 				<select
-					aria-describedby={errorId}
+					{...(errorId && { "aria-describedby": errorId })}
 					aria-invalid={hasError}
 					className={getValidClassNames(
 						"h-10 w-full appearance-none rounded-md border px-3.5 pr-9 font-sans text-sm text-text outline-none transition",
@@ -96,7 +97,10 @@ const Select: React.FC<Properties> = ({
 			</div>
 
 			{hasError && (
-				<span className="font-sans text-xs text-error" id={errorId}>
+				<span
+					className={getValidClassNames(helperTextClassName, "text-error")}
+					id={errorId}
+				>
 					{error}
 				</span>
 			)}
