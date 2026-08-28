@@ -1,5 +1,6 @@
 import "./footer.css";
-export function Footer() {
+
+function Footer() {
 	return (
 		<footer>
 			<p>© 2026 KnowledgePrism AI. Order from Chaos.</p>
@@ -12,3 +13,4 @@ export function Footer() {
 		</footer>
 	);
 }
+export { Footer };
