@@ -9,7 +9,11 @@ type Properties = {
 	to: ValueOf<typeof AppRoute>;
 };
 
-const Link: React.FC<Properties> = ({ children, className, to }: Properties) => (
+const Link: React.FC<Properties> = ({
+	children,
+	className,
+	to,
+}: Properties) => (
 	<NavLink className={className ?? ""} to={to}>
 		{children}
 	</NavLink>

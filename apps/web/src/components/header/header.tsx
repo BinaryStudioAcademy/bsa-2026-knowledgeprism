@@ -2,9 +2,9 @@ import { Link } from "~/components/link/link.js";
 import { useCallback, useEffect, useState } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 
-import styles from "./header.module.css";
 import {
 	HEADER_BRAND_NAME,
+	HEADER_CLASS,
 	HEADER_LABEL,
 	HEADER_LOGO_FILL,
 	HEADER_LOGO_SIZE,
@@ -15,8 +15,6 @@ import {
 	HEADER_NAV_ID,
 	HEADER_SECTION_LINKS,
 } from "./libs/constants.js";
-
-const getStyle = (className: string | undefined): string => className ?? "";
 
 const Header: React.FC = () => {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -48,40 +46,36 @@ const Header: React.FC = () => {
 	}, []);
 
 	const navClassName = isMenuOpen
-		? `${getStyle(styles["nav"])} ${getStyle(styles["nav-open"])}`
-		: getStyle(styles["nav"]);
+		? `${HEADER_CLASS.NAV} ${HEADER_CLASS.NAV_OPEN}`
+		: `${HEADER_CLASS.NAV} ${HEADER_CLASS.NAV_CLOSED}`;
 
 	return (
-		<header className={getStyle(styles["header"])}>
-			<div className={getStyle(styles["bar"])}>
-				<Link className={getStyle(styles["brand"])} to={AppRoute.ROOT}>
+		<header className={HEADER_CLASS.ROOT}>
+			<div className={HEADER_CLASS.BAR}>
+				<Link className={HEADER_CLASS.BRAND} to={AppRoute.ROOT}>
 					<svg
 						aria-hidden="true"
 						height={HEADER_LOGO_SIZE}
 						viewBox="0 0 44 44"
 						width={HEADER_LOGO_SIZE}
 					>
-						<polygon
-							fill={HEADER_LOGO_FILL.DARK}
-							points="22,4 22,40 4,40"
-						/>
-						<polygon
-							fill={HEADER_LOGO_FILL.MEDIUM}
-							points="22,4 40,40 22,40"
-						/>
-						<polygon
-							fill={HEADER_LOGO_FILL.LIGHT}
-							points="22,4 22,22 4,40"
-						/>
+						<polygon fill={HEADER_LOGO_FILL.DARK} points="22,4 22,40 4,40" />
+						<polygon fill={HEADER_LOGO_FILL.MEDIUM} points="22,4 40,40 22,40" />
+						<polygon fill={HEADER_LOGO_FILL.LIGHT} points="22,4 22,22 4,40" />
 					</svg>
-					<span>{HEADER_BRAND_NAME}</span>
+					<span>
+						{HEADER_BRAND_NAME.LEAD}
+						<span className={HEADER_CLASS.BRAND_ACCENT}>
+							{HEADER_BRAND_NAME.ACCENT}
+						</span>
+					</span>
 				</Link>
 
 				<button
 					aria-controls={HEADER_NAV_ID}
 					aria-expanded={isMenuOpen}
 					aria-label={HEADER_LABEL.MENU}
-					className={getStyle(styles["toggle"])}
+					className={HEADER_CLASS.TOGGLE}
 					onClick={handleToggleMenu}
 					type="button"
 				>
@@ -103,7 +97,7 @@ const Header: React.FC = () => {
 				<nav className={navClassName} id={HEADER_NAV_ID}>
 					{HEADER_SECTION_LINKS.map((item) => (
 						<a
-							className={getStyle(styles["link"])}
+							className={HEADER_CLASS.LINK}
 							href={item.href}
 							key={item.href}
 							onClick={handleCloseMenu}
@@ -111,16 +105,10 @@ const Header: React.FC = () => {
 							{item.label}
 						</a>
 					))}
-					<Link
-						className={getStyle(styles["sign-in"])}
-						to={AppRoute.SIGN_IN}
-					>
+					<Link className={HEADER_CLASS.SIGN_IN} to={AppRoute.SIGN_IN}>
 						{HEADER_LABEL.SIGN_IN}
 					</Link>
-					<Link
-						className={getStyle(styles["sign-up"])}
-						to={AppRoute.SIGN_UP}
-					>
+					<Link className={HEADER_CLASS.SIGN_UP} to={AppRoute.SIGN_UP}>
 						{HEADER_LABEL.SIGN_UP}
 					</Link>
 				</nav>
