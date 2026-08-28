@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, JSX, ReactNode } from "react";
 
-import { clsx } from "clsx";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 type ButtonVariant = "destructive" | "ghost" | "icon" | "primary" | "secondary";
 
@@ -53,7 +53,7 @@ const Button = ({
 	...properties
 }: Properties): JSX.Element => {
 	const variantStyles = buttonVariants[variant];
-	const combinedClasses = clsx(
+	const combinedClasses = getValidClassNames(
 		"btn",
 		`btn-${variant}`,
 		"inline-flex items-center justify-center gap-2 leading-normal transition-colors",
@@ -72,14 +72,14 @@ const Button = ({
 		>
 			{isLoading && variant !== "ghost" && (
 				<Spinner
-					className={clsx(
+					className={getValidClassNames(
 						variantStyles.spinner,
 						variant === "icon" && "absolute inset-0 m-auto",
 					)}
 				/>
 			)}
 			<span
-				className={clsx(
+				className={getValidClassNames(
 					isLoading &&
 						(variant === "ghost" || variant === "icon") &&
 						"invisible",
@@ -94,7 +94,7 @@ const Button = ({
 const Spinner = ({ className = "" }: { className?: string }): JSX.Element => (
 	<span
 		aria-hidden="true"
-		className={clsx(
+		className={getValidClassNames(
 			"inline-block size-3.5 animate-spin rounded-full border-2 border-current/20 border-t-current",
 			className,
 		)}
