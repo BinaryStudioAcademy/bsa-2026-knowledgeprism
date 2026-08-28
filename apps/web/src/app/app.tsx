@@ -26,7 +26,7 @@ const App: React.FC = () => {
 
 	return (
 		<>
-			<Logo />
+			<Logo to={AppRoute.ROOT} />
 
 			<ul className="App-navigation-list">
 				<li>

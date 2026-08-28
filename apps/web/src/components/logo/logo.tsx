@@ -1,7 +1,7 @@
 import { type JSX } from "react";
 
-import { Link } from "~/components/components.js";
-import { AppRoute } from "~/lib/enums/enums.js";
+import { Link } from "~/components/link/link.js";
+import { type AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
@@ -76,40 +76,44 @@ const Logo = ({
 	className,
 	hasText = true,
 	size = "md",
-	to = AppRoute.ROOT,
+	to,
 	variant = "default",
 }: Properties): JSX.Element => {
 	const isInverted = variant === "inverted";
 	const styles = sizeToStyle[size];
 
-	return (
-		<Link to={to}>
-			<span
-				className={getValidClassNames(
-					"inline-flex items-center no-underline",
-					styles.container,
-					className,
-				)}
-			>
-				<PrismIcon size={size} variant={variant} />
+	const content = (
+		<span
+			className={getValidClassNames(
+				"inline-flex items-center no-underline",
+				styles.container,
+				className,
+			)}
+		>
+			<PrismIcon size={size} variant={variant} />
 
-				{hasText && (
-					<span
-						className={getValidClassNames(
-							"font-serif leading-none",
-							styles.text,
-							isInverted ? "text-white" : "text-text",
-						)}
-					>
-						Knowledge
-						<span className={isInverted ? "text-white" : "text-accent"}>
-							Prism
-						</span>
+			{hasText && (
+				<span
+					className={getValidClassNames(
+						"font-serif leading-none",
+						styles.text,
+						isInverted ? "text-white" : "text-text",
+					)}
+				>
+					Knowledge
+					<span className={isInverted ? "text-white" : "text-accent"}>
+						Prism
 					</span>
-				)}
-			</span>
-		</Link>
+				</span>
+			)}
+		</span>
 	);
+
+	if (to) {
+		return <Link to={to}>{content}</Link>;
+	}
+
+	return content;
 };
 
 export { Logo };
