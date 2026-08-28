@@ -1,5 +1,7 @@
+import { useState } from "react";
+
 import reactLogo from "~/assets/img/react.svg";
-import { Link, RouterOutlet } from "~/components/components.js";
+import { Button, Link, Modal, RouterOutlet } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -10,6 +12,7 @@ import { AppRoute } from "~/lib/enums/enums.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 const App: React.FC = () => {
+	const [isModalOpen, setIsModalOpen] = useState(false);
 	const { pathname } = useLocation();
 	const dispatch = useAppDispatch();
 	const { dataStatus, users } = useAppSelector(({ users }) => ({
@@ -45,6 +48,37 @@ const App: React.FC = () => {
 			<div>
 				<RouterOutlet />
 			</div>
+
+			<div className="demo-action-row">
+				<Button
+					className="demo-action-button"
+					onClick={() => setIsModalOpen(true)}
+					variant="primary"
+				>
+					Open modal
+				</Button>
+			</div>
+
+			<Modal
+				isOpen={isModalOpen}
+				onClose={() => setIsModalOpen(false)}
+				title="Add knowledge"
+			>
+				<p className="modal__description">
+					Add a new knowledge item to the workspace and continue with the
+					validation flow.
+				</p>
+
+				<div className="modal__actions">
+					<Button onClick={() => setIsModalOpen(false)} variant="secondary">
+						Cancel
+					</Button>
+					<Button onClick={() => setIsModalOpen(false)} variant="primary">
+						Add
+					</Button>
+				</div>
+			</Modal>
+
 			{isRoot && (
 				<>
 					<h2>Users:</h2>
