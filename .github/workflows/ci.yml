@@ -61,11 +61,6 @@ jobs:
             packages/**/build
           key: ci-${{ hashFiles('**/package-lock.json') }}
 
-      - name: Create Env Files
-        run: |
-          cp apps/api/.env.example apps/api/.env
-          cp apps/web/.env.example apps/web/.env || true
-
       - name: Code Linting
         run: |
           npm run lint
@@ -90,11 +85,6 @@ jobs:
             **/node_modules
             packages/**/build
           key: ci-${{ hashFiles('**/package-lock.json') }}
-
-      - name: Create Env Files
-        run: |
-          cp apps/api/.env.example apps/api/.env
-          cp apps/web/.env.example apps/web/.env || true
 
       - name: Code Building
         run: |
