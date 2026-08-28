@@ -111,7 +111,12 @@ const Link = ({
 
 	if (href !== undefined) {
 		return (
-			<a className={className} href={href}>
+			<a
+				className={className}
+				href={href}
+				rel="noopener noreferrer"
+				target="_blank"
+			>
 				<LinkContent hasArrow={hasArrow}>{children}</LinkContent>
 			</a>
 		);
