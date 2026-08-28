@@ -107,7 +107,7 @@ const Icon: React.FC<IconProperties> = ({
 	name,
 	size = DEFAULT_ICON_SIZE,
 }: IconProperties) => {
-	const SvgIcon = iconMap[name];
+	const SvgIcon = iconNameToComponent[name];
 
 	return <SvgIcon size={size} />;
 };
