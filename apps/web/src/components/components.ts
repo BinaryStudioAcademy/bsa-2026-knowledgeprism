@@ -1,7 +1,9 @@
 export { Button } from "./button/button.js";
 export { Checkbox } from "./checkbox/checkbox.js";
+export { Heading } from "./heading/heading.js";
 export { Input } from "./input/input.js";
 export { Link } from "./link/link.js";
+export { Paragraph } from "./paragraph/paragraph.js";
 export { Select } from "./select/select.js";
 export { type SelectOption } from "./select/select.js";
 export { Provider as StoreProvider } from "react-redux";
