@@ -1,6 +1,5 @@
 import {
 	type Control,
-	type FieldErrors,
 	type FieldPath,
 	type FieldValues,
 } from "react-hook-form";
@@ -9,7 +8,6 @@ import { useCallback, useFormController } from "~/hooks/hooks.js";
 
 type Properties<T extends FieldValues = FieldValues> = {
 	control: Control<T, null>;
-	errors: FieldErrors<T>;
 	isDisabled?: boolean;
 	label: string;
 	name: FieldPath<T>;
@@ -18,16 +16,17 @@ type Properties<T extends FieldValues = FieldValues> = {
 
 const Radio = <T extends FieldValues = FieldValues>({
 	control,
-	errors,
 	isDisabled = false,
 	label,
 	name,
 	value,
 }: Properties<T>): React.JSX.Element => {
-	const { field } = useFormController({ control, name });
+	const { field, fieldState } = useFormController({ control, name });
+
 	const isChecked = field.value === value;
-	const error = errors[name]?.message;
-	const hasError = Boolean(error);
+	const error = fieldState.error;
+	const errorMessage = error?.message;
+	const hasError = Boolean(errorMessage);
 
 	const handleChange = useCallback((): void => {
 		field.onChange(value);
@@ -49,9 +48,7 @@ const Radio = <T extends FieldValues = FieldValues>({
 				{label}
 			</label>
 
-			{hasError && (
-				<span className="form-error-message">{error as string}</span>
-			)}
+			{hasError && <span className="form-error-message">{errorMessage}</span>}
 		</div>
 	);
 };
