@@ -32,8 +32,21 @@ class OrganisationRepository implements Repository {
 		return Promise.resolve(true);
 	}
 
-	public find(): ReturnType<Repository["find"]> {
-		return Promise.resolve(null);
+	public async find(id?: number): Promise<null | OrganisationEntity> {
+		if (!id) {
+			return null;
+		}
+
+		const organisation = await this.organisationModel
+			.query()
+			.findById(id)
+			.execute();
+
+		if (!organisation) {
+			return null;
+		}
+
+		return OrganisationEntity.initialize(organisation);
 	}
 
 	public findAll(): ReturnType<Repository["findAll"]> {

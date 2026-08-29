@@ -13,6 +13,8 @@ export {
 export {
 	type UserGetAllItemResponseDto,
 	type UserGetAllResponseDto,
+	type UserSignInRequestDto,
+	type UserSignInResponseDto,
 	type UserSignUpRequestDto,
 	type UserSignUpResponseDto,
 } from "./modules/users/users.js";
