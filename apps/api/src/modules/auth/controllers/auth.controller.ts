@@ -1,6 +1,12 @@
 import { AuthApiPath } from "@knowledgeprism/constants";
-import { userSignUpValidationSchema } from "@knowledgeprism/schemas";
-import { type UserSignUpRequestDto } from "@knowledgeprism/types";
+import {
+	userSignInValidationSchema,
+	userSignUpValidationSchema,
+} from "@knowledgeprism/schemas";
+import {
+	type UserSignInRequestDto,
+	type UserSignUpRequestDto,
+} from "@knowledgeprism/types";
 
 import {
 	type APIHandlerOptions,
@@ -34,6 +40,52 @@ class AuthController extends BaseController {
 				body: userSignUpValidationSchema,
 			},
 		});
+		this.addRoute({
+			handler: (options) =>
+				this.signIn(
+					options as APIHandlerOptions<{
+						body: UserSignInRequestDto;
+					}>,
+				),
+			method: "POST",
+			path: AuthApiPath.SIGN_IN,
+			validation: {
+				body: userSignInValidationSchema,
+			},
+		});
+	}
+
+	/**
+	 * @swagger
+	 * /auth/sign-in:
+	 *    post:
+	 *      description: Sign in to the application
+	 *      requestBody:
+	 *        description: User credentials
+	 *        required: true
+	 *        content:
+	 *          application/json:
+	 *            schema:
+	 *              type: object
+	 *              properties:
+	 *                email:
+	 *                  type: string
+	 *                  format: email
+	 *                password:
+	 *                  type: string
+	 *      responses:
+	 *        200:
+	 *          description: Successful operation
+	 */
+	private async signIn(
+		options: APIHandlerOptions<{
+			body: UserSignInRequestDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.authService.signIn(options.body),
+			status: HTTPCode.OK,
+		};
 	}
 
 	/**
