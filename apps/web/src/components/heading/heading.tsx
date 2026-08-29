@@ -1,6 +1,6 @@
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
-const levelClassName = {
+const levelToClassName = {
 	1: "font-serif text-h1 leading-[1.15] tracking-[-0.3px]",
 	2: "font-serif text-h2 leading-[1.2]",
 	3: "font-serif text-h3 leading-[1.3]",
@@ -9,10 +9,10 @@ const levelClassName = {
 	6: "font-sans text-sm font-medium uppercase tracking-[.06em] text-text-muted",
 } as const;
 
-type HeadingLevel = keyof typeof levelClassName;
+type HeadingLevel = keyof typeof levelToClassName;
 type HeadingTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
-const levelTag: Record<HeadingLevel, HeadingTag> = {
+const levelToTag: Record<HeadingLevel, HeadingTag> = {
 	1: "h1",
 	2: "h2",
 	3: "h3",
@@ -32,10 +32,10 @@ const Heading: React.FC<Properties> = ({
 	className,
 	level,
 }: Properties) => {
-	const Tag = levelTag[level];
+	const Tag = levelToTag[level];
 
 	return (
-		<Tag className={getValidClassNames(levelClassName[level], className)}>
+		<Tag className={getValidClassNames(levelToClassName[level], className)}>
 			{children}
 		</Tag>
 	);
