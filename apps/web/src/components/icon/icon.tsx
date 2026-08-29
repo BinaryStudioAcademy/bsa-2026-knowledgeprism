@@ -141,7 +141,7 @@ const HamburgerIcon: React.FC<SvgIconProperties> = ({
 		<svg
 			fill="none"
 			height={(size * height) / width}
-			viewBox="0 0 18 12"
+			viewBox={`0 0 ${String(width)} ${String(height)}`}
 			width={size}
 		>
 			<path
@@ -317,7 +317,7 @@ const FilterIcon: React.FC<SvgIconProperties> = ({
 		<svg
 			fill="none"
 			height={(size * height) / width}
-			viewBox="0 0 13.5 9"
+			viewBox={`0 0 ${String(width)} ${String(height)}`}
 			width={size}
 		>
 			<path d="M0 0h13.5L8.5 5.5v3h-3v-3z" fill="currentColor" />
@@ -341,7 +341,7 @@ const ChevronFilledDownIcon: React.FC<SvgIconProperties> = ({
 		<svg
 			fill="none"
 			height={(size * height) / width}
-			viewBox="0 0 12 7.4"
+			viewBox={`0 0 ${String(width)} ${String(height)}`}
 			width={size}
 		>
 			<path d="M0 0l6 7.4L12 0z" fill="currentColor" />
@@ -359,7 +359,7 @@ const ChevronFilledUpIcon: React.FC<SvgIconProperties> = ({
 		<svg
 			fill="none"
 			height={(size * height) / width}
-			viewBox="0 0 12 7.4"
+			viewBox={`0 0 ${String(width)} ${String(height)}`}
 			width={size}
 		>
 			<path d="M0 7.4L6 0l6 7.4z" fill="currentColor" />
@@ -377,7 +377,7 @@ const ChevronFilledRightIcon: React.FC<SvgIconProperties> = ({
 		<svg
 			fill="none"
 			height={size}
-			viewBox="0 0 4.317 7"
+			viewBox={`0 0 ${String(width)} ${String(height)}`}
 			width={(size * width) / height}
 		>
 			<path d="M0 0l4.3 3.5L0 7z" fill="currentColor" />
@@ -408,7 +408,7 @@ const ArrowRightLongIcon: React.FC<SvgIconProperties> = ({
 		<svg
 			fill="none"
 			height={(size * height) / width}
-			viewBox="0 0 20 12"
+			viewBox={`0 0 ${String(width)} ${String(height)}`}
 			width={size}
 		>
 			<path
@@ -431,7 +431,7 @@ const FolderIcon: React.FC<SvgIconProperties> = ({
 		<svg
 			fill="none"
 			height={(size * height) / width}
-			viewBox="0 0 16 13"
+			viewBox={`0 0 ${String(width)} ${String(height)}`}
 			width={size}
 		>
 			<path
@@ -466,7 +466,7 @@ const FileSharpIcon: React.FC<SvgIconProperties> = ({
 		<svg
 			fill="none"
 			height={size}
-			viewBox="0 0 14 16"
+			viewBox={`0 0 ${String(width)} ${String(height)}`}
 			width={(size * width) / height}
 		>
 			<path d="M2 1h7l3 3v11H2z" stroke="currentColor" strokeWidth="1.2" />
