@@ -1,19 +1,19 @@
 import { Link } from "~/components/link/link.js";
 import { useCallback, useEffect, useState } from "~/hooks/hooks.js";
-import { AppRoute } from "~/lib/enums/enums.js";
+import { AppRoute, Breakpoint } from "~/lib/enums/enums.js";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 import {
 	HEADER_BRAND_NAME,
-	HEADER_CLASS,
 	HEADER_LABEL,
 	HEADER_LOGO_FILL,
 	HEADER_LOGO_SIZE,
 	HEADER_MENU_ICON_HEIGHT,
 	HEADER_MENU_ICON_STROKE_WIDTH,
 	HEADER_MENU_ICON_WIDTH,
-	HEADER_MOBILE_BREAKPOINT,
 	HEADER_NAV_ID,
 	HEADER_SECTION_LINKS,
+	HeaderClass,
 } from "./libs/constants.js";
 
 const Header: React.FC = () => {
@@ -29,7 +29,7 @@ const Header: React.FC = () => {
 
 	useEffect(() => {
 		const mediaQuery = matchMedia(
-			`(min-width: ${String(HEADER_MOBILE_BREAKPOINT)}px)`,
+			`(min-width: ${String(Breakpoint.TABLET_SMALL)}px)`,
 		);
 
 		const handleViewportChange = (event: MediaQueryListEvent): void => {
@@ -45,14 +45,15 @@ const Header: React.FC = () => {
 		};
 	}, []);
 
-	const navClassName = isMenuOpen
-		? `${HEADER_CLASS.NAV} ${HEADER_CLASS.NAV_OPEN}`
-		: `${HEADER_CLASS.NAV} ${HEADER_CLASS.NAV_CLOSED}`;
+	const navClassName = getValidClassNames(HeaderClass.NAV, {
+		[HeaderClass.NAV_CLOSED]: !isMenuOpen,
+		[HeaderClass.NAV_OPEN]: isMenuOpen,
+	});
 
 	return (
-		<header className={HEADER_CLASS.ROOT}>
-			<div className={HEADER_CLASS.BAR}>
-				<Link className={HEADER_CLASS.BRAND} to={AppRoute.ROOT}>
+		<header className={HeaderClass.ROOT}>
+			<div className={HeaderClass.BAR}>
+				<Link className={HeaderClass.BRAND} to={AppRoute.ROOT}>
 					<svg
 						aria-hidden="true"
 						height={HEADER_LOGO_SIZE}
@@ -65,7 +66,7 @@ const Header: React.FC = () => {
 					</svg>
 					<span>
 						{HEADER_BRAND_NAME.LEAD}
-						<span className={HEADER_CLASS.BRAND_ACCENT}>
+						<span className={HeaderClass.BRAND_ACCENT}>
 							{HEADER_BRAND_NAME.ACCENT}
 						</span>
 					</span>
@@ -75,7 +76,7 @@ const Header: React.FC = () => {
 					aria-controls={HEADER_NAV_ID}
 					aria-expanded={isMenuOpen}
 					aria-label={HEADER_LABEL.MENU}
-					className={HEADER_CLASS.TOGGLE}
+					className={HeaderClass.TOGGLE}
 					onClick={handleToggleMenu}
 					type="button"
 				>
@@ -97,7 +98,7 @@ const Header: React.FC = () => {
 				<nav className={navClassName} id={HEADER_NAV_ID}>
 					{HEADER_SECTION_LINKS.map((item) => (
 						<a
-							className={HEADER_CLASS.LINK}
+							className={HeaderClass.LINK}
 							href={item.href}
 							key={item.href}
 							onClick={handleCloseMenu}
@@ -105,10 +106,10 @@ const Header: React.FC = () => {
 							{item.label}
 						</a>
 					))}
-					<Link className={HEADER_CLASS.SIGN_IN} to={AppRoute.SIGN_IN}>
+					<Link className={HeaderClass.SIGN_IN} to={AppRoute.SIGN_IN}>
 						{HEADER_LABEL.SIGN_IN}
 					</Link>
-					<Link className={HEADER_CLASS.SIGN_UP} to={AppRoute.SIGN_UP}>
+					<Link className={HeaderClass.SIGN_UP} to={AppRoute.SIGN_UP}>
 						{HEADER_LABEL.SIGN_UP}
 					</Link>
 				</nav>
