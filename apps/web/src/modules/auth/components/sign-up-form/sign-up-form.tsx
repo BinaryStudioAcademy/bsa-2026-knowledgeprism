@@ -1,7 +1,7 @@
 import { userSignUpValidationSchema } from "@knowledgeprism/schemas";
 import { type UserSignUpRequestDto } from "@knowledgeprism/types";
 
-import { Button, Input } from "~/components/components.js";
+import { Button, Checkbox, Input } from "~/components/components.js";
 import { useAppForm, useCallback } from "~/hooks/hooks.js";
 
 import { DEFAULT_SIGN_UP_PAYLOAD } from "./libs/constants.js";
@@ -27,7 +27,7 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 		<>
 			<h3>Sign Up</h3>
 			<form onSubmit={handleFormSubmit}>
-				<p>
+				<div>
 					<Input
 						control={control}
 						errors={errors}
@@ -36,8 +36,8 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 						placeholder="Enter your email"
 						type="text"
 					/>
-				</p>
-				<p>
+				</div>
+				<div>
 					<Input
 						control={control}
 						errors={errors}
@@ -46,7 +46,25 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 						placeholder="Enter your password"
 						type="text"
 					/>
-				</p>
+				</div>
+				<div>
+					<Checkbox
+						control={control}
+						label={
+							<span>
+								I agree to the{" "}
+								<a className="underline hover:opacity-80" href="/terms">
+									Terms
+								</a>{" "}
+								and{" "}
+								<a className="underline hover:opacity-80" href="/privacy">
+									Privacy Policy
+								</a>
+							</span>
+						}
+						name="agreeToTerms"
+					/>
+				</div>
 				<Button label="Sign up" type="submit" />
 			</form>
 		</>
