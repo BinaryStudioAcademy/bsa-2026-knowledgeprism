@@ -97,7 +97,11 @@ const Link = ({
 	isDisabled = false,
 	to,
 	variant = "inline",
-}: Properties): JSX.Element => {
+}: Properties): JSX.Element | null => {
+	if (!href && !to) {
+		return null;
+	}
+
 	const className = getLinkClassName({ isDisabled, variant });
 	const hasArrow = variant === "standalone";
 
@@ -109,7 +113,7 @@ const Link = ({
 		);
 	}
 
-	if (href !== undefined) {
+	if (href) {
 		return (
 			<a
 				className={className}
@@ -122,11 +126,15 @@ const Link = ({
 		);
 	}
 
-	return (
-		<RouterLink className={className} to={to}>
-			<LinkContent hasArrow={hasArrow}>{children}</LinkContent>
-		</RouterLink>
-	);
+	if (to) {
+		return (
+			<RouterLink className={className} to={to}>
+				<LinkContent hasArrow={hasArrow}>{children}</LinkContent>
+			</RouterLink>
+		);
+	}
+
+	return null;
 };
 
 export { Link };
