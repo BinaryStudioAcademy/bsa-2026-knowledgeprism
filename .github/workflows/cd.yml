@@ -8,7 +8,7 @@ env:
 on:
   push:
     branches:
-      - development
+      - 100-feat-setup-cd
 
   workflow_dispatch:
 
