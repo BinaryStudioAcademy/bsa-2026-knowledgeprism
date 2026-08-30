@@ -47,10 +47,12 @@ const App: React.FC = () => {
 			</ul>
 			<p>Current path: {pathname}</p>
 
-			<div>
-				<MobileNav />
+			<div className="flex h-screen flex-col tablet:flex-row">
 				<Sidebar />
-				<RouterOutlet />
+				<main className="flex-1 overflow-auto">
+					<RouterOutlet />
+				</main>
+				<MobileNav />
 			</div>
 			{isRoot && (
 				<>
