@@ -1,8 +1,10 @@
 export { Alert } from "./alert/alert.js";
 export { Button } from "./button/button.js";
 export { Checkbox } from "./checkbox/checkbox.js";
+export { Heading } from "./heading/heading.js";
 export { Input } from "./input/input.js";
 export { Link } from "./link/link.js";
+export { Paragraph, ParagraphSize } from "./paragraph/paragraph.js";
 export { Logo } from "./logo/logo.js";
 export { Select } from "./select/select.js";
 export { type SelectOption } from "./select/select.js";
