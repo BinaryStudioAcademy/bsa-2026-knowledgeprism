@@ -30,15 +30,17 @@ const mobileNavItems: NavItem[] = [
 ];
 
 const NavRow = ({ icon, isActive, label }: NavItem) => (
-	<div
+	<button
+		aria-current={isActive ? "page" : undefined}
 		className={getValidClassNames(
 			"nav-item tablet:h-[34px] tablet:w-[34px] tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-[12px] desktop:py-[10px]",
 			{ "is-active": isActive },
 		)}
+		type="button"
 	>
 		{icon}
 		<span className="hidden desktop:inline">{label}</span>
-	</div>
+	</button>
 );
 
 const Sidebar: React.FC = () => (
@@ -58,7 +60,7 @@ const Sidebar: React.FC = () => (
 		</nav>
 
 		<div className="hidden desktop:flex mt-auto flex-col gap-[10px] border-t border-border-subtle pt-[14px]">
-			<Button label="Add Knowledge" />
+<Button>Add Knowledge</Button>
 			<div className="flex flex-col gap-0.5">
 				{utilityNavItems.map((item) => (
 					<NavRow key={item.label} {...item} />
@@ -71,16 +73,18 @@ const Sidebar: React.FC = () => (
 const MobileNav: React.FC = () => (
 	<nav className="flex flex-shrink-0 tablet:hidden border-t border-border bg-surface">
 		{mobileNavItems.map(({ icon, isActive, label }) => (
-			<div
+			<button
+				aria-current={isActive ? "page" : undefined}
 				className={getValidClassNames(
-					"flex flex-1 flex-col items-center gap-[3px] py-[9px] text-[10px]",
+					"flex flex-1 flex-col items-center gap-[3px] py-[9px] text-[10px] border-none bg-transparent cursor-pointer font-sans",
 					{ "text-accent": isActive, "text-text-muted": !isActive },
 				)}
 				key={label}
+				type="button"
 			>
 				{icon}
 				{label}
-			</div>
+			</button>
 		))}
 	</nav>
 );

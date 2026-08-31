@@ -1,6 +1,7 @@
 import reactLogo from "~/assets/img/react.svg";
 import {
 	Link,
+	Logo,
 	MobileNav,
 	RouterOutlet,
 	Sidebar,
@@ -32,7 +33,7 @@ const App: React.FC = () => {
 
 	return (
 		<>
-			<img alt="logo" className="App-logo" src={reactLogo} width="30" />
+			<Logo to={AppRoute.ROOT} />
 
 			<ul className="App-navigation-list">
 				<li>
@@ -47,10 +48,12 @@ const App: React.FC = () => {
 			</ul>
 			<p>Current path: {pathname}</p>
 
-			<div>
-				<MobileNav />
+			<div className="flex h-screen flex-col tablet:flex-row">
 				<Sidebar />
-				<RouterOutlet />
+				<main className="flex-1 overflow-auto">
+					<RouterOutlet />
+				</main>
+				<MobileNav />
 			</div>
 			{isRoot && (
 				<>

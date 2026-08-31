@@ -11,6 +11,7 @@
 	--text-h3: 22px;
 	--text-h4: 18px;
 	--text-body: 15px;
+	--text-control: 14px;
 	--text-sm: 13px;
 	--text-xs: 11px;
 	--color-primary: rgb(45 42 38);
@@ -23,9 +24,11 @@
 	--color-surface: rgb(255 255 255);
 	--color-border: rgb(229 226 219);
 	--color-border-subtle: rgb(242 240 236);
+	--color-control-inactive: rgb(209 205 196);
 	--color-text: rgb(54 51 48);
 	--color-text-muted: rgb(107 102 95);
 	--color-text-faint: rgb(168 162 153);
+	--color-text-disabled: rgb(209 205 196);
 	--color-success: rgb(42 107 90);
 	--color-success-bg: rgb(238 246 243);
 	--color-warning: rgb(201 154 58);
@@ -33,6 +36,7 @@
 	--color-error: rgb(196 67 58);
 	--color-error-hover: rgb(168 57 50);
 	--color-error-bg: rgb(253 240 239);
+	--color-error-disabled: rgb(220 180 176);
 	--color-info: rgb(74 139 194);
 	--color-info-bg: rgb(234 242 249);
 	--radius-sm: 4px;
@@ -42,6 +46,7 @@
 	--shadow-sm: 0 1px 2px rgb(0 0 0 / 4%);
 	--shadow-md: 0 4px 14px rgb(0 0 0 / 6%);
 	--shadow-lg: 0 12px 32px rgb(0 0 0 / 10%);
+	--shadow-control: 0 1px 2px rgb(0 0 0 / 20%);
 	--breakpoint-mobile: 390px;
 	--breakpoint-tablet: 1024px;
 	--breakpoint-desktop: 1440px;
@@ -86,7 +91,7 @@
 	}
 
 	.btn-secondary:disabled {
-		color: var(--color-text-faint);
+		color: var(--color-text-disabled);
 		background-color: var(--color-surface);
 		border-color: var(--color-border-subtle);
 	}
@@ -101,7 +106,7 @@
 	}
 
 	.btn-ghost:disabled {
-		color: var(--color-text-faint);
+		color: var(--color-text-disabled);
 		background-color: transparent;
 	}
 
@@ -119,7 +124,7 @@
 	}
 
 	.btn-destructive:disabled {
-		color: var(--color-text-faint);
+		color: var(--color-error-disabled);
 		background-color: var(--color-error-bg);
 	}
 
@@ -136,6 +141,7 @@
 	}
 
 	.btn-icon:disabled {
+		color: var(--color-text-disabled);
 		border-color: var(--color-border-subtle);
 	}
 
@@ -173,9 +179,14 @@
 		gap: 10px;
 		align-items: center;
 		padding: 10px 12px;
+		font-family: inherit;
 		font-size: 13px;
 		color: var(--color-text-muted);
+		text-align: left;
 		text-decoration: none;
+		cursor: pointer;
+		background: none;
+		border: none;
 		border-radius: var(--radius-md);
 		transition: background-color 0.15s ease;
 	}
