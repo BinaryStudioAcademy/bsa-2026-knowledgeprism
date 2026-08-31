@@ -19,6 +19,8 @@ import { APIPath } from "~/shared/enums/enums.js";
 
 import { type AuthService } from "../services/auth.service.js";
 
+const UNAUTHORIZED_MESSAGE = "Unauthorized";
+
 class AuthController extends BaseController {
 	private authService: AuthService;
 
