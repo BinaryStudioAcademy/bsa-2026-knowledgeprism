@@ -1,7 +1,7 @@
 import { type KnipConfig } from "knip";
 
 const config: KnipConfig = {
-	ignore: ["design/support.js", "apps/web/src/components/icon/icon.tsx"],
+	ignore: ["design/support.js"],
 	ignoreDependencies: ["pg"],
 	prettier: ["./prettier.config.js"],
 	stylelint: ["./stylelint.config.ts"],
