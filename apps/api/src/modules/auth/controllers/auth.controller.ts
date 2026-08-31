@@ -40,15 +40,21 @@ class AuthController extends BaseController {
 	 * @swagger
 	 * /auth/sign-up:
 	 *    post:
-	 *      description: Sign up user into the system
+	 *      description: Register organisation and admin user
 	 *      requestBody:
-	 *        description: User auth data
+	 *        description: Organisation and admin user data
 	 *        required: true
 	 *        content:
 	 *          application/json:
 	 *            schema:
 	 *              type: object
 	 *              properties:
+	 *                organisationName:
+	 *                  type: string
+	 *                firstName:
+	 *                  type: string
+	 *                lastName:
+	 *                  type: string
 	 *                email:
 	 *                  type: string
 	 *                  format: email
@@ -57,14 +63,6 @@ class AuthController extends BaseController {
 	 *      responses:
 	 *        201:
 	 *          description: Successful operation
-	 *          content:
-	 *            application/json:
-	 *              schema:
-	 *                type: object
-	 *                properties:
-	 *                  message:
-	 *                    type: object
-	 *                    $ref: "#/components/schemas/User"
 	 */
 	private async signUp(
 		options: APIHandlerOptions<{

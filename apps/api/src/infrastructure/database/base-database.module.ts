@@ -1,5 +1,5 @@
 import knex, { type Knex } from "knex";
-import { knexSnakeCaseMappers, Model } from "objection";
+import { knexSnakeCaseMappers, Model, type Transaction } from "objection";
 
 import { type Config } from "~/infrastructure/config/config.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
@@ -50,6 +50,12 @@ class BaseDatabase implements Database {
 		this.logger.info("Establish DB connection...");
 
 		Model.knex(knex.default(this.environmentConfig));
+	}
+
+	public transaction<T>(
+		handler: (transaction: Transaction) => Promise<T>,
+	): Promise<T> {
+		return Model.transaction(handler);
 	}
 }
 

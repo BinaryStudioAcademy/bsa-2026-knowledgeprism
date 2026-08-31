@@ -1,62 +1,111 @@
 import { type Entity } from "~/shared/types/types.js";
 
+const ID_REQUIRED_MESSAGE = "User id is required";
+
 class UserEntity implements Entity {
 	private email: string;
 
+	private firstName: string;
+
 	private id: null | number;
+
+	private lastName: string;
+
+	private organisationId: number;
 
 	private passwordHash: string;
 
 	private constructor({
 		email,
+		firstName,
 		id,
+		lastName,
+		organisationId,
 		passwordHash,
 	}: {
 		email: string;
+		firstName: string;
 		id: null | number;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 	}) {
 		this.id = id;
 		this.email = email;
+		this.firstName = firstName;
+		this.lastName = lastName;
+		this.organisationId = organisationId;
 		this.passwordHash = passwordHash;
 	}
 
 	public static initialize({
 		email,
+		firstName,
 		id,
+		lastName,
+		organisationId,
 		passwordHash,
 	}: {
 		email: string;
+		firstName: string;
 		id: number;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 	}): UserEntity {
 		return new UserEntity({
 			email,
+			firstName,
 			id,
+			lastName,
+			organisationId,
 			passwordHash,
 		});
 	}
 
 	public static initializeNew({
 		email,
+		firstName,
+		lastName,
+		organisationId,
 		passwordHash,
 	}: {
 		email: string;
+		firstName: string;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 	}): UserEntity {
 		return new UserEntity({
 			email,
+			firstName,
 			id: null,
+			lastName,
+			organisationId,
 			passwordHash,
 		});
 	}
 
+	private getId(): number {
+		if (this.id === null) {
+			throw new Error(ID_REQUIRED_MESSAGE);
+		}
+
+		return this.id;
+	}
+
 	public toNewObject(): {
 		email: string;
+		firstName: string;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 	} {
 		return {
 			email: this.email,
+			firstName: this.firstName,
+			lastName: this.lastName,
+			organisationId: this.organisationId,
 			passwordHash: this.passwordHash,
 		};
 	}
@@ -67,7 +116,21 @@ class UserEntity implements Entity {
 	} {
 		return {
 			email: this.email,
-			id: this.id as number,
+			id: this.getId(),
+		};
+	}
+
+	public toSignUpObject(): {
+		email: string;
+		firstName: string;
+		id: number;
+		lastName: string;
+	} {
+		return {
+			email: this.email,
+			firstName: this.firstName,
+			id: this.getId(),
+			lastName: this.lastName,
 		};
 	}
 }
