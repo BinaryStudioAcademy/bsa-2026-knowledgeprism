@@ -60,7 +60,7 @@ const Sidebar: React.FC = () => (
 		</nav>
 
 		<div className="hidden desktop:flex mt-auto flex-col gap-[10px] border-t border-border-subtle pt-[14px]">
-			<Button label="Add Knowledge" />
+<Button>Add Knowledge</Button>
 			<div className="flex flex-col gap-0.5">
 				{utilityNavItems.map((item) => (
 					<NavRow key={item.label} {...item} />
