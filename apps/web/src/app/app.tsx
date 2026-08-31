@@ -5,6 +5,7 @@ import {
 	RouterOutlet,
 	Sidebar,
 } from "~/components/components.js";
+import { Link, Logo, RouterOutlet } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -32,7 +33,7 @@ const App: React.FC = () => {
 
 	return (
 		<>
-			<img alt="logo" className="App-logo" src={reactLogo} width="30" />
+			<Logo to={AppRoute.ROOT} />
 
 			<ul className="App-navigation-list">
 				<li>
