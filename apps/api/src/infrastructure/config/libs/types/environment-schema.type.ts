@@ -13,6 +13,9 @@ type EnvironmentSchema = {
 		POOL_MAX: number;
 		POOL_MIN: number;
 	};
+	SESSION: {
+		SECRET: string;
+	};
 };
 
 export { type EnvironmentSchema };

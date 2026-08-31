@@ -18,6 +18,8 @@
 		"start": "node ./src/app/index.js"
 	},
 	"dependencies": {
+		"@fastify/cookie": "11.1.2",
+		"@fastify/session": "11.1.2",
 		"@fastify/static": "10.1.2",
 		"@fastify/swagger": "9.8.1",
 		"@fastify/swagger-ui": "6.1.1",

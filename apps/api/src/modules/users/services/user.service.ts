@@ -90,6 +90,10 @@ class UserService implements Service {
 		return await this.userRepository.findByEmail(email);
 	}
 
+	public async findById(id: number): Promise<null | UserEntity> {
+		return await this.userRepository.findById(id);
+	}
+
 	public update(): ReturnType<Service["update"]> {
 		return Promise.resolve(null);
 	}

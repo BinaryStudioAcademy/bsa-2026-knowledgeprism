@@ -1,4 +1,5 @@
 import {
+	type UserGetCurrentResponseDto,
 	type UserSignInRequestDto,
 	type UserSignInResponseDto,
 	type UserSignUpRequestDto,
@@ -20,6 +21,8 @@ type Constructor = {
 	userService: UserService;
 };
 
+const UNAUTHORIZED_MESSAGE = "Unauthorized";
+
 class AuthService {
 	private database: Database;
 	private encryptService: EncryptService;
@@ -39,6 +42,41 @@ class AuthService {
 		this.organisationService = organisationService;
 		this.tokenService = tokenService;
 		this.userService = userService;
+	}
+
+	public async getCurrentUser(
+		userId: number,
+	): Promise<UserGetCurrentResponseDto> {
+		const user = await this.userService.findById(userId);
+
+		if (!user) {
+			throw new HTTPError({
+				message: UNAUTHORIZED_MESSAGE,
+				status: HTTPCode.UNAUTHORIZED,
+			});
+		}
+
+		const userObject = user.toObject();
+		const organisation = await this.organisationService.find(
+			userObject.organisationId,
+		);
+
+		if (!organisation) {
+			throw new HTTPError({
+				message: UNAUTHORIZED_MESSAGE,
+				status: HTTPCode.UNAUTHORIZED,
+			});
+		}
+
+		return {
+			organisation: organisation.toObject(),
+			user: {
+				email: userObject.email,
+				firstName: userObject.firstName,
+				id: userObject.id,
+				lastName: userObject.lastName,
+			},
+		};
 	}
 
 	public async signIn(
