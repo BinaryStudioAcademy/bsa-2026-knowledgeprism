@@ -4,9 +4,8 @@ import {
 	type FieldErrors,
 	type FieldPath,
 	type FieldValues,
-} from "react-hook-form";
-
-import { useFormController } from "~/hooks/hooks.js";
+	useFormController,
+} from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 type Properties<T extends FieldValues> = {
