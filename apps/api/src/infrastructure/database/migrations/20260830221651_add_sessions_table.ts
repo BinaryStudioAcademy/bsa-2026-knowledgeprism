@@ -11,7 +11,11 @@ const ColumnName = {
 	USER_ID: "user_id",
 } as const;
 
-async function up(knex: Knex): Promise<void> {
+function down(knex: Knex): Promise<void> {
+	return knex.schema.dropTableIfExists(TABLE_NAME);
+}
+
+function up(knex: Knex): Promise<void> {
 	return knex.schema.createTable(TABLE_NAME, (table) => {
 		table.string(ColumnName.ID).primary();
 		table
@@ -22,7 +26,7 @@ async function up(knex: Knex): Promise<void> {
 			.inTable("users")
 			.onDelete("SET NULL");
 		table.jsonb(ColumnName.DATA).notNullable();
-		table.timestamp(ColumnName.EXPIRES_AT).notNullable();
+		table.dateTime(ColumnName.EXPIRES_AT).notNullable();
 		table
 			.dateTime(ColumnName.CREATED_AT)
 			.notNullable()
@@ -32,10 +36,6 @@ async function up(knex: Knex): Promise<void> {
 			.notNullable()
 			.defaultTo(knex.fn.now());
 	});
-}
-
-async function down(knex: Knex): Promise<void> {
-	return knex.schema.dropTableIfExists(TABLE_NAME);
 }
 
 export { down, up };

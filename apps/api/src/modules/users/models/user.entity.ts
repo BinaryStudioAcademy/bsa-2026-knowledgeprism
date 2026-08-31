@@ -1,3 +1,4 @@
+import { type EncryptService } from "~/libs/services/encrypt/encrypt.service.js";
 import { type Entity } from "~/shared/types/types.js";
 
 const ID_REQUIRED_MESSAGE = "User id is required";
@@ -36,10 +37,6 @@ class UserEntity implements Entity {
 		this.lastName = lastName;
 		this.organisationId = organisationId;
 		this._passwordHash = passwordHash;
-	}
-
-	public get passwordHash(): string {
-		return this._passwordHash;
 	}
 
 	public static initialize({
@@ -110,7 +107,7 @@ class UserEntity implements Entity {
 			firstName: this.firstName,
 			lastName: this.lastName,
 			organisationId: this.organisationId,
-			passwordHash: this.passwordHash,
+			passwordHash: this._passwordHash,
 		};
 	}
 
@@ -142,6 +139,16 @@ class UserEntity implements Entity {
 			id: this.getId(),
 			lastName: this.lastName,
 		};
+	}
+
+	public async validatePassword(
+		password: string,
+		encryptService: EncryptService,
+	): Promise<boolean> {
+		return await encryptService.compare({
+			data: password,
+			hash: this._passwordHash,
+		});
 	}
 }
 

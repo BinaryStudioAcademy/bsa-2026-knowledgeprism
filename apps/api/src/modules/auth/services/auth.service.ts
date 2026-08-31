@@ -91,10 +91,10 @@ class AuthService {
 			});
 		}
 
-		const isPasswordValid = await this.encryptService.compare({
-			data: payload.password,
-			hash: user.passwordHash,
-		});
+		const isPasswordValid = await user.validatePassword(
+			payload.password,
+			this.encryptService,
+		);
 
 		if (!isPasswordValid) {
 			throw new HTTPError({

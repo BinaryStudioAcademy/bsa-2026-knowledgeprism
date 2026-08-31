@@ -10,7 +10,8 @@ class EncryptService {
 	}): Promise<boolean> {
 		return await argon2.verify(hash, data);
 	}
-	public async generate(data: string): Promise<string> {
+
+	public async generateHash(data: string): Promise<string> {
 		return await argon2.hash(data);
 	}
 }
