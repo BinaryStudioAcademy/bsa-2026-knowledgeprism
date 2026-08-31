@@ -11,6 +11,7 @@
 	--text-h3: 22px;
 	--text-h4: 18px;
 	--text-body: 15px;
+	--text-control: 14px;
 	--text-sm: 13px;
 	--text-xs: 11px;
 	--color-primary: rgb(45 42 38);
@@ -23,6 +24,7 @@
 	--color-surface: rgb(255 255 255);
 	--color-border: rgb(229 226 219);
 	--color-border-subtle: rgb(242 240 236);
+	--color-control-inactive: rgb(209 205 196);
 	--color-text: rgb(54 51 48);
 	--color-text-muted: rgb(107 102 95);
 	--color-text-faint: rgb(168 162 153);
@@ -42,6 +44,7 @@
 	--shadow-sm: 0 1px 2px rgb(0 0 0 / 4%);
 	--shadow-md: 0 4px 14px rgb(0 0 0 / 6%);
 	--shadow-lg: 0 12px 32px rgb(0 0 0 / 10%);
+	--shadow-control: 0 1px 2px rgb(0 0 0 / 20%);
 	--breakpoint-mobile: 390px;
 	--breakpoint-tablet: 1024px;
 	--breakpoint-desktop: 1440px;
