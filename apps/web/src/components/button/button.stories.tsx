@@ -9,19 +9,49 @@ const meta = {
 
 type Story = StoryObj<typeof meta>;
 
-const Default: Story = {
+const Primary: Story = {
 	args: {
-		label: "Click Me",
-		type: "button",
+		children: "Primary Button",
+		variant: "primary",
 	},
 };
 
-const Submit: Story = {
+const Secondary: Story = {
 	args: {
-		label: "Submit Form",
-		type: "submit",
+		children: "Secondary Button",
+		variant: "secondary",
+	},
+};
+
+const Destructive: Story = {
+	args: {
+		children: "Delete",
+		variant: "destructive",
+	},
+};
+
+const Ghost: Story = {
+	args: {
+		children: "Ghost Button",
+		variant: "ghost",
+	},
+};
+
+const Loading: Story = {
+	args: {
+		children: "Saving...",
+		isLoading: true,
+		variant: "primary",
+	},
+};
+
+const Disabled: Story = {
+	args: {
+		children: "Disabled Button",
+		disabled: true,
+		variant: "primary",
 	},
 };
 
 export default meta;
-export { Default, Submit };
+export { Destructive, Disabled, Ghost, Loading, Primary, Secondary };
