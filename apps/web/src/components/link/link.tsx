@@ -98,7 +98,9 @@ const Link = ({
 	to,
 	variant = "inline",
 }: Properties): JSX.Element | null => {
-	if (!href && !to) {
+	const destination = href ?? to;
+
+	if (!destination) {
 		return null;
 	}
 
@@ -126,15 +128,11 @@ const Link = ({
 		);
 	}
 
-	if (to) {
-		return (
-			<RouterLink className={className} to={to}>
-				<LinkContent hasArrow={hasArrow}>{children}</LinkContent>
-			</RouterLink>
-		);
-	}
-
-	return null;
+	return (
+		<RouterLink className={className} to={destination}>
+			<LinkContent hasArrow={hasArrow}>{children}</LinkContent>
+		</RouterLink>
+	);
 };
 
 export { Link };
