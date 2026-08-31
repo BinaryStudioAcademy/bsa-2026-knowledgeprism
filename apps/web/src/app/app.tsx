@@ -1,4 +1,3 @@
-import reactLogo from "~/assets/img/react.svg";
 import {
 	Link,
 	Logo,
