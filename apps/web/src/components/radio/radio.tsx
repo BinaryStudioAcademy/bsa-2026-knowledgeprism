@@ -2,9 +2,9 @@ import {
 	type Control,
 	type FieldPath,
 	type FieldValues,
-} from "react-hook-form";
-
-import { useCallback, useFormController } from "~/hooks/hooks.js";
+	useCallback,
+	useFormController,
+} from "~/hooks/hooks.js";
 
 type Properties<T extends FieldValues = FieldValues> = {
 	control: Control<T, null>;
