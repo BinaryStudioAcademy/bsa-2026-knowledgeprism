@@ -2,7 +2,7 @@
 	"name": "@knowledgeprism/constants",
 	"version": "1.0.0",
 	"type": "module",
-	"main": "src/constants.ts",
+	"main": "build/constants.js",
 	"types": "src/constants.ts",
 	"engines": {
 		"node": "24.x.x",

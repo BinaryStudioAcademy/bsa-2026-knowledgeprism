@@ -2,7 +2,7 @@
 	"name": "@knowledgeprism/schemas",
 	"version": "1.0.0",
 	"type": "module",
-	"main": "src/schemas.ts",
+	"main": "build/schemas.js",
 	"types": "src/schemas.ts",
 	"engines": {
 		"node": "24.x.x",
