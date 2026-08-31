@@ -72,7 +72,7 @@ class AuthService {
 
 		if (!organisation) {
 			throw new HTTPError({
-				message: "Invalid email or password",
+				message: "No organization was found for user",
 				status: HTTPCode.UNAUTHORIZED,
 			});
 		}
