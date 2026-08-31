@@ -77,7 +77,7 @@ class AuthService {
 			});
 		}
 
-		const token = await this.tokenService.createToken();
+		const token = this.tokenService.createToken();
 
 		return {
 			organisation: organisation.toObject(),
