@@ -1,5 +1,3 @@
-import { AvatarClass } from "./libs/constants.js";
-
 type Properties = {
 	alt: string;
 	initials?: string;
@@ -9,14 +7,14 @@ type Properties = {
 const Avatar: React.FC<Properties> = ({ alt, initials, src }: Properties) => {
 	if (src) {
 		return (
-			<span className={AvatarClass.ROOT}>
-				<img alt={alt} className={AvatarClass.IMAGE} src={src} />
+			<span className="avatar overflow-hidden">
+				<img alt={alt} className="h-full w-full object-cover" src={src} />
 			</span>
 		);
 	}
 
 	return (
-		<span aria-label={alt} className={AvatarClass.ROOT} role="img">
+		<span aria-label={alt} className="avatar overflow-hidden" role="img">
 			{initials}
 		</span>
 	);
