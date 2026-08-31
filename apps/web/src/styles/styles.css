@@ -28,6 +28,7 @@
 	--color-text: rgb(54 51 48);
 	--color-text-muted: rgb(107 102 95);
 	--color-text-faint: rgb(168 162 153);
+	--color-text-disabled: rgb(209 205 196);
 	--color-success: rgb(42 107 90);
 	--color-success-bg: rgb(238 246 243);
 	--color-warning: rgb(201 154 58);
@@ -35,6 +36,7 @@
 	--color-error: rgb(196 67 58);
 	--color-error-hover: rgb(168 57 50);
 	--color-error-bg: rgb(253 240 239);
+	--color-error-disabled: rgb(220 180 176);
 	--color-info: rgb(74 139 194);
 	--color-info-bg: rgb(234 242 249);
 	--radius-sm: 4px;
@@ -89,7 +91,7 @@
 	}
 
 	.btn-secondary:disabled {
-		color: var(--color-text-faint);
+		color: var(--color-text-disabled);
 		background-color: var(--color-surface);
 		border-color: var(--color-border-subtle);
 	}
@@ -104,7 +106,7 @@
 	}
 
 	.btn-ghost:disabled {
-		color: var(--color-text-faint);
+		color: var(--color-text-disabled);
 		background-color: transparent;
 	}
 
@@ -122,7 +124,7 @@
 	}
 
 	.btn-destructive:disabled {
-		color: var(--color-text-faint);
+		color: var(--color-error-disabled);
 		background-color: var(--color-error-bg);
 	}
 
@@ -139,6 +141,7 @@
 	}
 
 	.btn-icon:disabled {
+		color: var(--color-text-disabled);
 		border-color: var(--color-border-subtle);
 	}
 
