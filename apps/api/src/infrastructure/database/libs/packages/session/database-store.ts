@@ -28,13 +28,17 @@ const isCustomSession = (value: unknown): value is CustomSession => {
 };
 
 const parseSessionData = (data: SessionRow["data"]): CustomSession => {
-	const parsed: unknown = typeof data === "string" ? JSON.parse(data) : data;
+	try {
+		const parsed: unknown = typeof data === "string" ? JSON.parse(data) : data;
 
-	if (!isCustomSession(parsed)) {
-		throw new Error("Invalid session data");
+		if (!isCustomSession(parsed)) {
+			throw new Error("Invalid session data");
+		}
+
+		return parsed;
+	} catch (error) {
+		throw toError(error);
 	}
-
-	return parsed;
 };
 
 const toError = (error: unknown): Error => {
