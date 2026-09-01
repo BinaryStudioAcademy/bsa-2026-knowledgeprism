@@ -1,104 +1,124 @@
-import type { ButtonHTMLAttributes, JSX, ReactNode } from "react";
+import { type ButtonHTMLAttributes, type JSX, type ReactNode } from "react";
+import { tv, type VariantProps } from "tailwind-variants";
 
-import { getValidClassNames } from "~/lib/helpers/helpers.js";
+const buttonStyles = tv({
+	slots: {
+		base: "btn inline-flex items-center justify-center gap-2 leading-normal transition-colors",
+		spinner:
+			"inline-block size-3.5 animate-spin rounded-full border-2 border-current/20 border-t-current",
+		content: "",
+	},
+	variants: {
+		variant: {
+			destructive: {
+				base: "btn-destructive",
+				spinner: "border-white/35 border-t-white",
+			},
+			ghost: {
+				base: "btn-ghost",
+			},
+			icon: {
+				base: "btn-icon border border-border",
+				spinner: "border-text/20 border-t-text absolute inset-0 m-auto",
+			},
+			primary: {
+				base: "btn-primary",
+				spinner: "border-white/35 border-t-white",
+			},
+			secondary: {
+				base: "btn-secondary",
+				spinner: "border-text/20 border-t-text",
+			},
+		},
+		isLoading: {
+			true: {},
+			false: {},
+		},
+	},
+	compoundVariants: [
+		{
+			class: {
+				base: "opacity-85 disabled:!bg-error disabled:!text-primary-fg",
+			},
+			isLoading: true,
+			variant: "destructive",
+		},
+		{
+			class: {
+				base: "disabled:!bg-transparent disabled:!text-text-muted",
+			},
+			isLoading: true,
+			variant: "ghost",
+		},
+		{
+			class: {
+				base: "relative disabled:!border-border disabled:!text-text",
+			},
+			isLoading: true,
+			variant: "icon",
+		},
+		{
+			class: {
+				base: "opacity-85 disabled:!bg-primary disabled:!text-primary-fg",
+			},
+			isLoading: true,
+			variant: "primary",
+		},
+		{
+			class: {
+				base: "disabled:!bg-surface disabled:!border-border disabled:!text-text-muted",
+			},
+			isLoading: true,
+			variant: "secondary",
+		},
+		{
+			class: {
+				content: "invisible",
+			},
+			isLoading: true,
+			variant: ["ghost", "icon"],
+		},
+	],
+	defaultVariants: {
+		isLoading: false,
+		variant: "primary",
+	},
+});
 
-type ButtonVariant = "destructive" | "ghost" | "icon" | "primary" | "secondary";
-
-const lightSpinnerClassName = "border-white/35 border-t-white";
-const darkSpinnerClassName = "border-text/20 border-t-text";
-
-const buttonVariants: Record<
-	ButtonVariant,
-	{
-		loading: string;
-		spinner: string;
-	}
-> = {
-	destructive: {
-		loading: "opacity-85 disabled:!bg-error disabled:!text-primary-fg",
-		spinner: lightSpinnerClassName,
-	},
-	ghost: {
-		loading: "disabled:!bg-transparent disabled:!text-text-muted",
-		spinner: "",
-	},
-	icon: {
-		loading: "relative disabled:!border-border disabled:!text-text",
-		spinner: darkSpinnerClassName,
-	},
-	primary: {
-		loading: "opacity-85 disabled:!bg-primary disabled:!text-primary-fg",
-		spinner: lightSpinnerClassName,
-	},
-	secondary: {
-		loading:
-			"disabled:!bg-surface disabled:!border-border disabled:!text-text-muted",
-		spinner: darkSpinnerClassName,
-	},
-};
-
-type Properties = ButtonHTMLAttributes<HTMLButtonElement> & {
-	children: ReactNode;
-	isLoading?: boolean;
-	variant?: ButtonVariant;
-};
+type Properties = ButtonHTMLAttributes<HTMLButtonElement> &
+	VariantProps<typeof buttonStyles> & {
+		children: ReactNode;
+		isLoading?: boolean;
+	};
 
 const Button = ({
 	children,
-	className = "",
+	className,
 	disabled = false,
 	isLoading = false,
 	type = "button",
 	variant = "primary",
 	...properties
 }: Properties): JSX.Element => {
-	const variantStyles = buttonVariants[variant];
-	const combinedClasses = getValidClassNames(
-		"btn",
-		`btn-${variant}`,
-		"inline-flex items-center justify-center gap-2 leading-normal transition-colors",
-		variant === "icon" && "border border-border",
-		isLoading && variantStyles.loading,
-		className,
-	);
+	const { base, content, spinner } = buttonStyles({
+		isLoading,
+		variant,
+	});
 
 	return (
 		<button
 			aria-busy={isLoading}
-			className={combinedClasses}
+			className={base({ className })}
 			disabled={disabled || isLoading}
 			type={type}
 			{...properties}
 		>
 			{isLoading && variant !== "ghost" && (
-				<Spinner
-					className={getValidClassNames(
-						variantStyles.spinner,
-						variant === "icon" && "absolute inset-0 m-auto",
-					)}
-				/>
+				<span aria-hidden="true" className={spinner()} />
 			)}
-			<span
-				className={getValidClassNames(
-					isLoading &&
-						(variant === "ghost" || variant === "icon") &&
-						"invisible",
-				)}
-			>
-				{children}
-			</span>
+			<span className={content()}>{children}</span>
 		</button>
 	);
 };
-
-const Spinner = ({ className = "" }: { className?: string }): JSX.Element => (
-	<span
-		aria-hidden="true"
-		className={getValidClassNames(
-			"inline-block size-3.5 animate-spin rounded-full border-2 border-current/20 border-t-current",
-			className,
-		)}
-	/>
-);
 
 export { Button };
