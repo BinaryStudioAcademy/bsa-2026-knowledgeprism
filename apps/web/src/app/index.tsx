@@ -29,6 +29,10 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								element: <AuthPage />,
 								path: AppRoute.SIGN_UP,
 							},
+							{
+								element: "Organisation Workspace",
+								path: AppRoute.WORKSPACE,
+							},
 						],
 						element: <App />,
 						path: AppRoute.ROOT,

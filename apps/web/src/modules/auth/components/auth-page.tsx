@@ -5,6 +5,7 @@ import {
 	useAppSelector,
 	useCallback,
 	useLocation,
+	useNavigate,
 } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { actions as authActions } from "~/modules/auth/auth.js";
@@ -13,10 +14,11 @@ import { SignInForm, SignUpForm } from "./components.js";
 
 const AuthPage: React.FC = () => {
 	const dispatch = useAppDispatch();
-	const { dataStatus } = useAppSelector(({ auth }) => ({
-		dataStatus: auth.dataStatus,
+	const { error } = useAppSelector(({ auth }) => ({
+		error: auth.error,
 	}));
 	const { pathname } = useLocation();
+	const navigate = useNavigate();
 
 	const handleSignInSubmit = useCallback((): void => {
 		// handle sign in
@@ -24,9 +26,15 @@ const AuthPage: React.FC = () => {
 
 	const handleSignUpSubmit = useCallback(
 		(payload: UserSignUpRequestDto): void => {
-			void dispatch(authActions.signUp(payload));
+			void (async (): Promise<void> => {
+				const action = await dispatch(authActions.signUp(payload));
+
+				if (authActions.signUp.fulfilled.match(action)) {
+					await navigate(AppRoute.WORKSPACE);
+				}
+			})();
 		},
-		[dispatch],
+		[dispatch, navigate],
 	);
 
 	const getScreen = (screen: string): React.JSX.Element => {
@@ -38,10 +46,10 @@ const AuthPage: React.FC = () => {
 	};
 
 	return (
-		<>
-			state: {dataStatus}
+		<div className="mx-auto flex w-full max-w-[380px] flex-col gap-4 px-6 py-16">
+			{error && <span className="font-sans text-sm text-error">{error}</span>}
 			{getScreen(pathname)}
-		</>
+		</div>
 	);
 };
 

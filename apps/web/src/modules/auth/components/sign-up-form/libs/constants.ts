@@ -1,10 +1,12 @@
-import { type UserSignUpRequestDto } from "@knowledgeprism/types";
+import { type SignUpFormValues } from "./types.js";
 
-const DEFAULT_SIGN_UP_PAYLOAD: UserSignUpRequestDto = {
+const DEFAULT_SIGN_UP_PAYLOAD: SignUpFormValues = {
+	agreeToTerms: false,
+	confirmPassword: "",
 	email: "",
-	firstName: "First name",
-	lastName: "Last name",
-	organisationName: "Organisation",
+	firstName: "",
+	lastName: "",
+	organisationName: "",
 	password: "",
 };
 
