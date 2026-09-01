@@ -1,22 +1,30 @@
-import { Link } from "~/components/link/link.js";
+import { Link as RouterLink, useNavigate } from "react-router-dom";
+
+import { Button } from "~/components/button/button.js";
+import { Logo } from "~/components/logo/logo.js";
 import { useCallback, useEffect, useState } from "~/hooks/hooks.js";
 import { AppRoute, Breakpoint } from "~/lib/enums/enums.js";
-import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
-import {
-	HEADER_BRAND_NAME,
-	HEADER_LABEL,
-	HEADER_LOGO_FILL,
-	HEADER_LOGO_SIZE,
-	HEADER_MENU_ICON_HEIGHT,
-	HEADER_MENU_ICON_STROKE_WIDTH,
-	HEADER_MENU_ICON_WIDTH,
-	HEADER_NAV_ID,
-	HEADER_SECTION_LINKS,
-	HeaderClass,
-} from "./libs/constants.js";
+const HEADER_LABEL = {
+	MENU: "Menu",
+	SIGN_IN: "Sign in",
+	SIGN_UP: "Sign up",
+} as const;
+
+const HEADER_MENU_ICON_HEIGHT = 14;
+const HEADER_MENU_ICON_STROKE_WIDTH = 1.6;
+const HEADER_MENU_ICON_WIDTH = 20;
+
+const HEADER_NAV_ID = "header-nav";
+
+const HEADER_SECTION_LINKS = [
+	{ href: "#what", label: "Product" },
+	{ href: "#how", label: "How it works" },
+	{ href: "#features", label: "Features" },
+] as const;
 
 const Header: React.FC = () => {
+	const navigate = useNavigate();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 
 	const handleToggleMenu = useCallback((): void => {
@@ -26,6 +34,16 @@ const Header: React.FC = () => {
 	const handleCloseMenu = useCallback((): void => {
 		setIsMenuOpen(false);
 	}, []);
+
+	const handleSignIn = useCallback((): void => {
+		handleCloseMenu();
+		void navigate(AppRoute.SIGN_IN);
+	}, [handleCloseMenu, navigate]);
+
+	const handleSignUp = useCallback((): void => {
+		handleCloseMenu();
+		void navigate(AppRoute.SIGN_UP);
+	}, [handleCloseMenu, navigate]);
 
 	useEffect(() => {
 		const mediaQuery = matchMedia(
@@ -45,38 +63,49 @@ const Header: React.FC = () => {
 		};
 	}, []);
 
-	const navClassName = getValidClassNames(HeaderClass.NAV, {
-		[HeaderClass.NAV_CLOSED]: !isMenuOpen,
-		[HeaderClass.NAV_OPEN]: isMenuOpen,
-	});
-
 	return (
-		<header className={HeaderClass.ROOT}>
-			<div className={HeaderClass.BAR}>
-				<Link className={HeaderClass.BRAND} to={AppRoute.ROOT}>
-					<svg
-						aria-hidden="true"
-						height={HEADER_LOGO_SIZE}
-						viewBox="0 0 44 44"
-						width={HEADER_LOGO_SIZE}
-					>
-						<polygon fill={HEADER_LOGO_FILL.DARK} points="22,4 22,40 4,40" />
-						<polygon fill={HEADER_LOGO_FILL.MEDIUM} points="22,4 40,40 22,40" />
-						<polygon fill={HEADER_LOGO_FILL.LIGHT} points="22,4 22,22 4,40" />
-					</svg>
-					<span>
-						{HEADER_BRAND_NAME.LEAD}
-						<span className={HeaderClass.BRAND_ACCENT}>
-							{HEADER_BRAND_NAME.ACCENT}
-						</span>
-					</span>
-				</Link>
+		<header className="sticky top-0 z-30 border-b border-border bg-bg/92 backdrop-blur-[6px]">
+			<div className="mx-auto flex h-[72px] max-w-[1240px] items-center justify-between px-[clamp(20px,5vw,40px)]">
+				<RouterLink
+					className="text-text no-underline hover:text-text hover:no-underline"
+					to={AppRoute.ROOT}
+				>
+					<Logo />
+				</RouterLink>
+
+				<nav className="hidden items-center gap-8 tablet-small:flex">
+					{HEADER_SECTION_LINKS.map((item) => (
+						<a
+							className="text-control text-text-muted no-underline hover:text-text hover:no-underline"
+							href={item.href}
+							key={item.href}
+						>
+							{item.label}
+						</a>
+					))}
+					<div className="flex items-center gap-2.5">
+						<Button
+							className="px-3.5 py-[9px]"
+							onClick={handleSignIn}
+							variant="ghost"
+						>
+							{HEADER_LABEL.SIGN_IN}
+						</Button>
+						<Button
+							className="px-[18px] py-[9px]"
+							onClick={handleSignUp}
+							variant="primary"
+						>
+							{HEADER_LABEL.SIGN_UP}
+						</Button>
+					</div>
+				</nav>
 
 				<button
 					aria-controls={HEADER_NAV_ID}
 					aria-expanded={isMenuOpen}
 					aria-label={HEADER_LABEL.MENU}
-					className={HeaderClass.TOGGLE}
+					className="cursor-pointer border-0 bg-transparent p-2 text-text tablet-small:hidden"
 					onClick={handleToggleMenu}
 					type="button"
 				>
@@ -94,11 +123,16 @@ const Header: React.FC = () => {
 						/>
 					</svg>
 				</button>
+			</div>
 
-				<nav className={navClassName} id={HEADER_NAV_ID}>
+			{isMenuOpen && (
+				<nav
+					className="flex flex-col gap-3.5 border-t border-border bg-bg px-[clamp(20px,5vw,40px)] pb-6 pt-4 tablet-small:hidden"
+					id={HEADER_NAV_ID}
+				>
 					{HEADER_SECTION_LINKS.map((item) => (
 						<a
-							className={HeaderClass.LINK}
+							className="text-body text-text no-underline hover:text-text hover:no-underline"
 							href={item.href}
 							key={item.href}
 							onClick={handleCloseMenu}
@@ -106,14 +140,24 @@ const Header: React.FC = () => {
 							{item.label}
 						</a>
 					))}
-					<Link className={HeaderClass.SIGN_IN} to={AppRoute.SIGN_IN}>
-						{HEADER_LABEL.SIGN_IN}
-					</Link>
-					<Link className={HeaderClass.SIGN_UP} to={AppRoute.SIGN_UP}>
-						{HEADER_LABEL.SIGN_UP}
-					</Link>
+					<div className="mt-1.5 flex gap-2.5">
+						<Button
+							className="flex-1 border border-border py-2.5"
+							onClick={handleSignIn}
+							variant="ghost"
+						>
+							{HEADER_LABEL.SIGN_IN}
+						</Button>
+						<Button
+							className="flex-1 py-2.5"
+							onClick={handleSignUp}
+							variant="primary"
+						>
+							{HEADER_LABEL.SIGN_UP}
+						</Button>
+					</div>
 				</nav>
-			</div>
+			)}
 		</header>
 	);
 };
