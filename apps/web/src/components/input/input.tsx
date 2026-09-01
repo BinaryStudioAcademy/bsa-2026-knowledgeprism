@@ -34,7 +34,7 @@ const Input = <T extends FieldValues>({
 	const hasError = Boolean(error);
 
 	return (
-		<div className="flex w-full flex-col gap-1.5">
+		<div className="w-full">
 			<label
 				className={getValidClassNames("form-label", hasError && "is-error")}
 				htmlFor={id}
