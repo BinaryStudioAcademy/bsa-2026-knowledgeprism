@@ -6,19 +6,15 @@ import {
 	PlusIcon,
 	SearchIcon,
 	SendIcon,
-} from "./libs/icons/action.icons.js";
+} from "./icons/action.icons.js";
 import {
 	ArrowRightLongIcon,
 	ChevronDownIcon,
 	ChevronFilledDownIcon,
 	ChevronFilledRightIcon,
 	ChevronFilledUpIcon,
-} from "./libs/icons/chevron.icons.js";
-import {
-	DesktopIcon,
-	PhoneIcon,
-	TabletIcon,
-} from "./libs/icons/device.icons.js";
+} from "./icons/chevron.icons.js";
+import { DesktopIcon, PhoneIcon, TabletIcon } from "./icons/device.icons.js";
 import {
 	AddKnowledgeIcon,
 	FileIcon,
@@ -27,7 +23,7 @@ import {
 	FolderIcon,
 	PasteTextIcon,
 	UploadIcon,
-} from "./libs/icons/file.icons.js";
+} from "./icons/file.icons.js";
 import {
 	AskPrismIcon,
 	GlossaryIcon,
@@ -35,7 +31,7 @@ import {
 	KnowledgeTreeIcon,
 	ProjectIcon,
 	SettingsIcon,
-} from "./libs/icons/navigation.icons.js";
+} from "./icons/navigation.icons.js";
 import {
 	ApertureExpandedIcon,
 	ApertureIcon,
@@ -43,14 +39,14 @@ import {
 	HexagonNodeIcon,
 	ParagraphIcon,
 	SquarePlaceholderIcon,
-} from "./libs/icons/shape.icons.js";
+} from "./icons/shape.icons.js";
 import {
 	BellIcon,
 	CheckboxTickIcon,
 	ShieldIcon,
 	ToastCheckIcon,
-} from "./libs/icons/status.icons.js";
-import { type SvgIconProperties } from "./libs/types.js";
+} from "./icons/status.icons.js";
+import { type SvgIconProperties } from "./types.js";
 
 const DEFAULT_ICON_SIZE = 14;
 
