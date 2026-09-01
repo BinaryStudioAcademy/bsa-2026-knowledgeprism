@@ -141,12 +141,12 @@ class AuthController extends BaseController {
 			body: UserSignInRequestDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const result = await this.authService.signIn(options.body);
-		options.session.userId = result.user.id;
+		const authResult = await this.authService.signIn(options.body);
+		options.session.userId = authResult.user.id;
 		await options.session.regenerate(["userId"]);
 
 		return {
-			payload: result,
+			payload: authResult,
 			status: HTTPCode.OK,
 		};
 	}
@@ -184,12 +184,12 @@ class AuthController extends BaseController {
 			body: UserSignUpRequestDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const result = await this.authService.signUp(options.body);
-		options.session.userId = result.user.id;
+		const authResult = await this.authService.signUp(options.body);
+		options.session.userId = authResult.user.id;
 		await options.session.regenerate(["userId"]);
 
 		return {
-			payload: result,
+			payload: authResult,
 			status: HTTPCode.CREATED,
 		};
 	}
