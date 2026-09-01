@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { type ComponentProps } from "react";
 import { MemoryRouter } from "react-router-dom";
 
 import { AppRoute } from "~/lib/enums/enums.js";
@@ -18,7 +19,8 @@ const meta = {
 	title: "Components/Navigation/Link",
 } satisfies Meta<typeof Link>;
 
-type Story = StoryObj<typeof meta>;
+type LinkProperties = ComponentProps<typeof Link>;
+type Story = StoryObj<LinkProperties>;
 
 const Default: Story = {
 	args: {

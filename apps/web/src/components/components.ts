@@ -9,6 +9,7 @@ export { Logo } from "./logo/logo.js";
 export { Paragraph, ParagraphSize } from "./paragraph/paragraph.js";
 export { Select } from "./select/select.js";
 export { type SelectOption } from "./select/select.js";
+export { Textarea } from "./textarea/textarea.js";
 export { Toggle } from "./toggle/toggle.js";
 export { Provider as StoreProvider } from "react-redux";
 export { Outlet as RouterOutlet } from "react-router-dom";
