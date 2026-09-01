@@ -179,11 +179,21 @@
 		gap: 10px;
 		align-items: center;
 		padding: 10px 12px;
+		font-family: inherit;
 		font-size: 13px;
 		color: var(--color-text-muted);
+		text-align: left;
 		text-decoration: none;
+		cursor: pointer;
+		background: none;
+		border: none;
 		border-radius: var(--radius-md);
 		transition: background-color 0.15s ease;
+	}
+
+	.nav-item:hover {
+		color: var(--color-text);
+		background-color: var(--color-secondary);
 	}
 
 	.nav-item.is-active {

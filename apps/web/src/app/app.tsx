@@ -1,4 +1,10 @@
-import { Link, Logo, RouterOutlet } from "~/components/components.js";
+import {
+	Link,
+	Logo,
+	MobileNav,
+	RouterOutlet,
+	Sidebar,
+} from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -41,8 +47,12 @@ const App: React.FC = () => {
 			</ul>
 			<p>Current path: {pathname}</p>
 
-			<div>
-				<RouterOutlet />
+			<div className="flex h-screen flex-col tablet:flex-row">
+				<Sidebar />
+				<main className="flex-1 overflow-auto">
+					<RouterOutlet />
+				</main>
+				<MobileNav />
 			</div>
 			{isRoot && (
 				<>
