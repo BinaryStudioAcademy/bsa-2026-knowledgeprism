@@ -47,7 +47,7 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 						type="text"
 					/>
 				</div>
-				<Button label="Sign up" type="submit" />
+				<Button type="submit">Sign up</Button>
 			</form>
 		</>
 	);
