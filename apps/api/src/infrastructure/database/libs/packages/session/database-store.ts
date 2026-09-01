@@ -15,27 +15,20 @@ type SessionStoreGetCallback = (
 	session?: CustomSession | null,
 ) => void;
 
-type SessionWriteRow = {
-	data: string;
-	expires_at: string;
-	id: string;
-	updated_at?: string;
-	user_id: null | number;
-};
-
-const isCustomSession = (value: unknown): value is CustomSession => {
+const isValidSession = (value: unknown): value is CustomSession => {
 	return typeof value === "object" && value !== null && "cookie" in value;
 };
 
 const parseSessionData = (data: SessionRow["data"]): CustomSession => {
 	try {
-		const parsed: unknown = typeof data === "string" ? JSON.parse(data) : data;
+		const parsedData: unknown =
+			typeof data === "string" ? JSON.parse(data) : data;
 
-		if (!isCustomSession(parsed)) {
+		if (!isValidSession(parsedData)) {
 			throw new Error("Invalid session data");
 		}
 
-		return parsed;
+		return parsedData;
 	} catch (error) {
 		throw toError(error);
 	}
@@ -95,14 +88,14 @@ class DatabaseStore implements SessionStore {
 			? new Date(session.cookie.expires)
 			: new Date(Date.now() + TimeMs.DAY);
 		const userId = session.userId ?? null;
-		const sessionRow: SessionWriteRow = {
+		const sessionRow: SessionRow = {
 			data: JSON.stringify(session),
 			expires_at: expiresAt.toISOString(),
 			id: sessionId,
 			user_id: userId,
 		};
 
-		void this.database<SessionWriteRow>(DatabaseTableName.SESSIONS)
+		void this.database<SessionRow>(DatabaseTableName.SESSIONS)
 			.insert(sessionRow)
 			.onConflict("id")
 			.merge({

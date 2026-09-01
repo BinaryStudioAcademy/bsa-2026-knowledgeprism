@@ -135,7 +135,7 @@ class BaseServerApplication implements ServerApplication {
 				httpOnly: true,
 				maxAge: TimeMs.DAY,
 				sameSite: "lax",
-				secure: this.config.ENV.APP.ENVIRONMENT === AppEnvironment.PRODUCTION,
+				secure: "auto",
 			},
 			saveUninitialized: false,
 			secret: this.config.ENV.SESSION.SECRET,
