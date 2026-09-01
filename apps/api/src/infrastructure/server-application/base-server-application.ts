@@ -134,8 +134,10 @@ class BaseServerApplication implements ServerApplication {
 			cookie: {
 				httpOnly: true,
 				maxAge: TimeMs.DAY,
+				sameSite: "lax",
 				secure: this.config.ENV.APP.ENVIRONMENT === AppEnvironment.PRODUCTION,
 			},
+			saveUninitialized: false,
 			secret: this.config.ENV.SESSION.SECRET,
 			store: new DatabaseStore(this.database.client),
 		});

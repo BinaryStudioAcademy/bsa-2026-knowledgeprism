@@ -144,8 +144,8 @@ class AuthController extends BaseController {
 		}>,
 	): Promise<APIHandlerResponse> {
 		const result = await this.authService.signIn(options.body);
-
 		options.session.userId = result.user.id;
+		await options.session.regenerate(["userId"]);
 
 		return {
 			payload: result,
@@ -187,8 +187,8 @@ class AuthController extends BaseController {
 		}>,
 	): Promise<APIHandlerResponse> {
 		const result = await this.authService.signUp(options.body);
-
 		options.session.userId = result.user.id;
+		await options.session.regenerate(["userId"]);
 
 		return {
 			payload: result,

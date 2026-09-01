@@ -71,8 +71,11 @@ class DatabaseStore implements SessionStore {
 
 					return;
 				}
-
-				callback(null, parseSessionData(row.data));
+				try {
+					callback(null, parseSessionData(row.data));
+				} catch (error) {
+					callback(toError(error));
+				}
 			})
 			.catch((error: unknown) => {
 				callback(toError(error));
@@ -84,6 +87,9 @@ class DatabaseStore implements SessionStore {
 		session: CustomSession,
 		callback: SessionStoreCallback,
 	): void {
+		console.log("SESSION IN SET:", session);
+		console.log("USER ID IN SET:", session.userId);
+		console.log("SESSION JSON:", JSON.stringify(session));
 		const expiresAt = session.cookie.expires
 			? new Date(session.cookie.expires)
 			: new Date(Date.now() + TimeMs.DAY);
