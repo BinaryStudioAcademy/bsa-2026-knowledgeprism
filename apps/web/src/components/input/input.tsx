@@ -1,4 +1,4 @@
-import React, { useId } from "react";
+import React from "react";
 import {
 	type Control,
 	type FieldErrors,
@@ -28,27 +28,26 @@ const Input = <T extends FieldValues>({
 	type = "text",
 }: Properties<T>): React.JSX.Element => {
 	const { field } = useFormController({ control, name });
-	const id = useId();
 
 	const error = errors[name]?.message;
 	const hasError = Boolean(error);
 
 	return (
 		<div className="w-full">
-			<label
-				className={getValidClassNames("form-label", hasError && "is-error")}
-				htmlFor={id}
-			>
-				{label}
+			<label className="block">
+				<span
+					className={getValidClassNames("form-label", hasError && "is-error")}
+				>
+					{label}
+				</span>
+				<input
+					{...field}
+					className={getValidClassNames("form-input", hasError && "is-error")}
+					disabled={disabled}
+					placeholder={placeholder}
+					type={type}
+				/>
 			</label>
-			<input
-				{...field}
-				className={getValidClassNames("form-input", hasError && "is-error")}
-				disabled={disabled}
-				id={id}
-				placeholder={placeholder}
-				type={type}
-			/>
 			{hasError && (
 				<span className="form-error-message">{error as string}</span>
 			)}
