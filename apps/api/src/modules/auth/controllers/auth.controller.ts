@@ -1,4 +1,4 @@
-import { AuthApiPath } from "@knowledgeprism/constants";
+import { AuthApiPath, AuthValidationMessage } from "@knowledgeprism/constants";
 import {
 	userSignInValidationSchema,
 	userSignUpValidationSchema,
@@ -18,8 +18,6 @@ import { type Logger } from "~/infrastructure/logger/logger.js";
 import { APIPath } from "~/shared/enums/enums.js";
 
 import { type AuthService } from "../services/auth.service.js";
-
-const UNAUTHORIZED_MESSAGE = "Unauthorized";
 
 class AuthController extends BaseController {
 	private authService: AuthService;
@@ -85,7 +83,7 @@ class AuthController extends BaseController {
 
 		if (!userId) {
 			throw new HTTPError({
-				message: UNAUTHORIZED_MESSAGE,
+				message: AuthValidationMessage.UNAUTHORIZED,
 				status: HTTPCode.UNAUTHORIZED,
 			});
 		}

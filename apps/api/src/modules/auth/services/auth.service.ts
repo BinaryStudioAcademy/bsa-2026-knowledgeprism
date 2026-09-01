@@ -1,3 +1,4 @@
+import { AuthValidationMessage } from "@knowledgeprism/constants";
 import {
 	type UserGetCurrentResponseDto,
 	type UserSignInRequestDto,
@@ -20,8 +21,6 @@ type Constructor = {
 	tokenService: TokenService;
 	userService: UserService;
 };
-
-const UNAUTHORIZED_MESSAGE = "Unauthorized";
 
 class AuthService {
 	private database: Database;
@@ -51,7 +50,7 @@ class AuthService {
 
 		if (!user) {
 			throw new HTTPError({
-				message: UNAUTHORIZED_MESSAGE,
+				message: AuthValidationMessage.UNAUTHORIZED,
 				status: HTTPCode.UNAUTHORIZED,
 			});
 		}
@@ -63,7 +62,7 @@ class AuthService {
 
 		if (!organisation) {
 			throw new HTTPError({
-				message: UNAUTHORIZED_MESSAGE,
+				message: AuthValidationMessage.UNAUTHORIZED,
 				status: HTTPCode.UNAUTHORIZED,
 			});
 		}

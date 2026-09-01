@@ -4,6 +4,7 @@ const AuthValidationMessage = {
 	ORGANISATION_NAME_REQUIRE: "Organisation name is required",
 	TOKEN_MINIMUM_LENGTH: "Token must be at least 1 character long",
 	TOKEN_REQUIRE: "Token is required",
+	UNAUTHORIZED: "Unauthorized",
 } as const;
 
 export { AuthValidationMessage };
