@@ -4,6 +4,7 @@ import { Button } from "~/components/button/button.js";
 import { Logo } from "~/components/logo/logo.js";
 import { useCallback, useEffect, useState } from "~/hooks/hooks.js";
 import { AppRoute, Breakpoint } from "~/lib/enums/enums.js";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 const HEADER_LABEL = {
 	MENU: "Menu",
@@ -64,35 +65,56 @@ const Header: React.FC = () => {
 	}, []);
 
 	return (
-		<header className="sticky top-0 z-30 border-b border-border bg-bg/92 backdrop-blur-[6px]">
-			<div className="mx-auto flex h-[72px] max-w-[1240px] items-center justify-between px-[clamp(20px,5vw,40px)]">
+		<header
+			className={getValidClassNames(
+				"sticky top-0 z-30",
+				"border-b border-border bg-bg/92 backdrop-blur-[6px]",
+			)}
+		>
+			<div
+				className={getValidClassNames(
+					"mx-auto flex h-[72px] max-w-[1240px] items-center justify-between",
+					"px-[clamp(20px,5vw,40px)]",
+				)}
+			>
 				<RouterLink
-					className="text-text no-underline hover:text-text hover:no-underline"
+					className={getValidClassNames(
+						"text-text no-underline",
+						"hover:text-text hover:no-underline",
+					)}
 					to={AppRoute.ROOT}
 				>
 					<Logo />
 				</RouterLink>
 
-				<nav className="hidden items-center gap-8 tablet-small:flex">
+				<nav
+					className={getValidClassNames(
+						"hidden items-center gap-8",
+						"tablet-small:flex",
+					)}
+				>
 					{HEADER_SECTION_LINKS.map((item) => (
 						<a
-							className="text-control text-text-muted no-underline hover:text-text hover:no-underline"
+							className={getValidClassNames(
+								"text-control text-text-muted no-underline",
+								"hover:text-text hover:no-underline",
+							)}
 							href={item.href}
 							key={item.href}
 						>
 							{item.label}
 						</a>
 					))}
-					<div className="flex items-center gap-2.5">
+					<div className={getValidClassNames("flex items-center gap-2.5")}>
 						<Button
-							className="px-3.5 py-[9px]"
+							className={getValidClassNames("px-3.5 py-[9px]")}
 							onClick={handleSignIn}
 							variant="ghost"
 						>
 							{HEADER_LABEL.SIGN_IN}
 						</Button>
 						<Button
-							className="px-[18px] py-[9px]"
+							className={getValidClassNames("px-[18px] py-[9px]")}
 							onClick={handleSignUp}
 							variant="primary"
 						>
@@ -105,7 +127,10 @@ const Header: React.FC = () => {
 					aria-controls={HEADER_NAV_ID}
 					aria-expanded={isMenuOpen}
 					aria-label={HEADER_LABEL.MENU}
-					className="cursor-pointer border-0 bg-transparent p-2 text-text tablet-small:hidden"
+					className={getValidClassNames(
+						"cursor-pointer border-0 bg-transparent p-2 text-text",
+						"tablet-small:hidden",
+					)}
 					onClick={handleToggleMenu}
 					type="button"
 				>
@@ -127,12 +152,19 @@ const Header: React.FC = () => {
 
 			{isMenuOpen && (
 				<nav
-					className="flex flex-col gap-3.5 border-t border-border bg-bg px-[clamp(20px,5vw,40px)] pb-6 pt-4 tablet-small:hidden"
+					className={getValidClassNames(
+						"flex flex-col gap-3.5 border-t border-border bg-bg",
+						"px-[clamp(20px,5vw,40px)] pb-6 pt-4",
+						"tablet-small:hidden",
+					)}
 					id={HEADER_NAV_ID}
 				>
 					{HEADER_SECTION_LINKS.map((item) => (
 						<a
-							className="text-body text-text no-underline hover:text-text hover:no-underline"
+							className={getValidClassNames(
+								"text-body text-text no-underline",
+								"hover:text-text hover:no-underline",
+							)}
 							href={item.href}
 							key={item.href}
 							onClick={handleCloseMenu}
@@ -140,16 +172,20 @@ const Header: React.FC = () => {
 							{item.label}
 						</a>
 					))}
-					<div className="mt-1.5 flex gap-2.5">
+					<div className={getValidClassNames("mt-1.5 flex gap-2.5")}>
 						<Button
-							className="flex-1 border border-border py-2.5"
+							className={getValidClassNames(
+								"flex-1",
+								"border border-border",
+								"py-2.5",
+							)}
 							onClick={handleSignIn}
 							variant="ghost"
 						>
 							{HEADER_LABEL.SIGN_IN}
 						</Button>
 						<Button
-							className="flex-1 py-2.5"
+							className={getValidClassNames("flex-1 py-2.5")}
 							onClick={handleSignUp}
 							variant="primary"
 						>
