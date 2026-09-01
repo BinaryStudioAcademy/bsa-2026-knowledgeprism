@@ -65,7 +65,7 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 						name="agreeToTerms"
 					/>
 				</div>
-				<Button label="Sign up" type="submit" />
+				<Button type="submit">Sign up</Button>
 			</form>
 		</>
 	);

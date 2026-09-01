@@ -1,5 +1,4 @@
-import reactLogo from "~/assets/img/react.svg";
-import { Link, RouterOutlet } from "~/components/components.js";
+import { Link, Logo, RouterOutlet } from "~/components/components.js";
 import { Footer } from "~/components/footer/footer.js";
 import {
 	useAppDispatch,
@@ -28,7 +27,7 @@ const App: React.FC = () => {
 
 	return (
 		<>
-			<img alt="logo" className="App-logo" src={reactLogo} width="30" />
+			<Logo to={AppRoute.ROOT} />
 
 			<ul className="App-navigation-list">
 				<li>
