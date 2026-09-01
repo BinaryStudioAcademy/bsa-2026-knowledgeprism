@@ -7,14 +7,18 @@ type Properties = {
 const Avatar: React.FC<Properties> = ({ alt, initials, src }: Properties) => {
 	if (src) {
 		return (
-			<span className="avatar overflow-hidden">
+			<span className="inline-flex size-8 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-medium text-primary-fg">
 				<img alt={alt} className="h-full w-full object-cover" src={src} />
 			</span>
 		);
 	}
 
 	return (
-		<span aria-label={alt} className="avatar overflow-hidden" role="img">
+		<span
+			aria-label={alt}
+			className="inline-flex size-8 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-medium text-primary-fg"
+			role="img"
+		>
 			{initials}
 		</span>
 	);

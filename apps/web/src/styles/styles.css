@@ -317,25 +317,6 @@
 		background: var(--color-error-bg);
 	}
 
-	.avatar {
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
-		width: 32px;
-		height: 32px;
-		font-size: 12px;
-		font-weight: 500;
-		color: var(--color-primary-fg);
-		background: var(--color-primary);
-		border-radius: var(--radius-full);
-	}
-
-	.avatar--outline {
-		color: var(--color-accent);
-		background: var(--color-success-bg);
-		border: 1px solid var(--color-accent);
-	}
-
 	.alert {
 		display: flex;
 		gap: 10px;
