@@ -57,6 +57,14 @@ class BaseConfig implements Config {
 					format: Number,
 				},
 			},
+			AWS: {
+				REGION: {
+					default: null,
+					doc: "AWS region for Bedrock Runtime",
+					env: "AWS_REGION",
+					format: String,
+				},
+			},
 			DB: {
 				CONNECTION_STRING: {
 					default: null,
