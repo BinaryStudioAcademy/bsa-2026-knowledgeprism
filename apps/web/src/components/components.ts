@@ -5,6 +5,7 @@ export { Checkbox } from "./checkbox/checkbox.js";
 export { Heading } from "./heading/heading.js";
 export { Input } from "./input/input.js";
 export { Link } from "./link/link.js";
+export { Loader } from "./loader/loader.js";
 export { Logo } from "./logo/logo.js";
 export { Paragraph, ParagraphSize } from "./paragraph/paragraph.js";
 export { Select } from "./select/select.js";
