@@ -2,7 +2,7 @@
 	"name": "@knowledgeprism/types",
 	"version": "1.0.0",
 	"type": "module",
-	"main": "build/types.js",
+	"main": "src/types.ts",
 	"types": "src/types.ts",
 	"engines": {
 		"node": "24.x.x",

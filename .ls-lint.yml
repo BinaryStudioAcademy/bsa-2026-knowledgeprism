@@ -11,6 +11,7 @@ ignore:
   - .github
   - node_modules
   - build
+  - apps/build
   - packages/types/build
   - packages/types/node_modules
   - packages/schemas/build
