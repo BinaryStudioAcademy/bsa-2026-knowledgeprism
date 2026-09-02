@@ -8,7 +8,6 @@ import { z } from "zod";
 import { email } from "./email.validation-schema.js";
 
 const DIGIT_PATTERN = /\d/u;
-const NAME_DIGIT_PATTERN = /\d/u;
 const SPECIAL_CHARACTER_PATTERN = /[^A-Za-z0-9]/u;
 
 const createRequiredNameField = (
@@ -27,7 +26,7 @@ const createRequiredNameField = (
 };
 
 const hasNameDigit = (name: string): boolean => {
-	return NAME_DIGIT_PATTERN.test(name);
+	return DIGIT_PATTERN.test(name);
 };
 
 const hasPasswordDigit = (password: string): boolean => {

@@ -63,6 +63,30 @@ class AuthController extends BaseController {
 	 *      responses:
 	 *        201:
 	 *          description: Successful operation
+	 *          content:
+	 *            application/json:
+	 *              schema:
+	 *                type: object
+	 *                properties:
+	 *                  organisation:
+	 *                    type: object
+	 *                    properties:
+	 *                      id:
+	 *                        type: number
+	 *                      name:
+	 *                        type: string
+	 *                  user:
+	 *                    type: object
+	 *                    properties:
+	 *                      email:
+	 *                        type: string
+	 *                        format: email
+	 *                      firstName:
+	 *                        type: string
+	 *                      id:
+	 *                        type: number
+	 *                      lastName:
+	 *                        type: string
 	 */
 	private async signUp(
 		options: APIHandlerOptions<{
