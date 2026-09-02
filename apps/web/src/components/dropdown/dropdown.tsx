@@ -1,5 +1,5 @@
 import { Button } from "~/components/button/button.js";
-import { useCallback, useState } from "~/hooks/hooks.js";
+import { useCallback, useEffect, useRef, useState } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 type DropdownItem = {
@@ -18,8 +18,11 @@ type Properties = {
 	label: string;
 };
 
+const escapeKey = "Escape";
+
 const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 	const [isOpen, setIsOpen] = useState(false);
+	const containerReference = useRef<HTMLDivElement>(null);
 
 	const handleToggle = useCallback((): void => {
 		setIsOpen((previous) => !previous);
@@ -29,9 +32,53 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 		setIsOpen(false);
 	}, []);
 
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		const handleClickOutside = (event: MouseEvent): void => {
+			const { target } = event;
+
+			if (
+				containerReference.current &&
+				target instanceof Node &&
+				!containerReference.current.contains(target)
+			) {
+				handleClose();
+			}
+		};
+
+		document.addEventListener("mousedown", handleClickOutside);
+
+		return (): void => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, [isOpen, handleClose]);
+
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		const handleKeyDown = (event: KeyboardEvent): void => {
+			if (event.key === escapeKey) {
+				handleClose();
+			}
+		};
+
+		document.addEventListener("keydown", handleKeyDown);
+
+		return (): void => {
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [isOpen, handleClose]);
+
 	return (
-		<div className="relative">
+		<div className="relative" ref={containerReference}>
 			<Button
+				aria-expanded={isOpen}
+				aria-haspopup="menu"
 				className="cursor-pointer"
 				onClick={handleToggle}
 				type="button"
@@ -40,7 +87,7 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 				{label}
 			</Button>
 			{isOpen && (
-				<div className="dropdown-menu flex flex-col ">
+				<div className="dropdown-menu flex flex-col" role="menu">
 					{items.map((item) => {
 						return (
 							<MenuItem item={item} key={item.label} onClose={handleClose} />
@@ -65,6 +112,7 @@ const MenuItem = ({ item, onClose }: MenuItemProperties): React.JSX.Element => {
 				item.isDanger && "is-danger",
 			)}
 			onClick={handleClick}
+			role="menuitem"
 			type="button"
 		>
 			{item.label}
