@@ -2,7 +2,6 @@ import React from "react";
 
 import {
 	type Control,
-	type FieldErrors,
 	type FieldPath,
 	type FieldValues,
 	useFormController,
@@ -12,7 +11,6 @@ import { getValidClassNames } from "~/lib/helpers/helpers.js";
 type Properties<T extends FieldValues> = {
 	control: Control<T, null>;
 	disabled?: boolean;
-	errors: FieldErrors<T>;
 	label: string;
 	name: FieldPath<T>;
 	placeholder?: string;
@@ -22,16 +20,16 @@ type Properties<T extends FieldValues> = {
 const Input = <T extends FieldValues>({
 	control,
 	disabled = false,
-	errors,
 	label,
 	name,
 	placeholder = "",
 	type = "text",
 }: Properties<T>): React.JSX.Element => {
-	const { field } = useFormController({ control, name });
+	const { field, fieldState } = useFormController({ control, name });
 
-	const error = errors[name]?.message;
-	const hasError = Boolean(error);
+	const error = fieldState.error;
+	const errorMessage = error?.message;
+	const hasError = Boolean(errorMessage);
 
 	return (
 		<div className="w-full">
@@ -50,7 +48,7 @@ const Input = <T extends FieldValues>({
 				/>
 			</label>
 			{hasError && (
-				<span className="form-error-message">{error as string}</span>
+				<span className="form-error-message">{errorMessage as string}</span>
 			)}
 		</div>
 	);
