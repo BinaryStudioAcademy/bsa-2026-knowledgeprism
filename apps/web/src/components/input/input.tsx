@@ -1,4 +1,5 @@
 import React from "react";
+import { tv } from "tailwind-variants";
 
 import {
 	type Control,
@@ -6,7 +7,24 @@ import {
 	type FieldValues,
 	useFormController,
 } from "~/hooks/hooks.js";
-import { getValidClassNames } from "~/lib/helpers/helpers.js";
+
+const inputStyles = tv({
+	slots: {
+		error: "form-error-message",
+		input: "form-input",
+		label: "form-label",
+		labelWrapper: "block",
+		wrapper: "w-full",
+	},
+	variants: {
+		hasError: {
+			true: {
+				input: "is-error",
+				label: "is-error",
+			},
+		},
+	},
+});
 
 type Properties<T extends FieldValues> = {
 	control: Control<T, null>;
@@ -31,24 +49,28 @@ const Input = <T extends FieldValues>({
 	const errorMessage = error?.message;
 	const hasError = Boolean(errorMessage);
 
+	const {
+		error: errorStyle,
+		input,
+		label: labelStyle,
+		labelWrapper,
+		wrapper,
+	} = inputStyles({ hasError });
+
 	return (
-		<div className="w-full">
-			<label className="block">
-				<span
-					className={getValidClassNames("form-label", hasError && "is-error")}
-				>
-					{label}
-				</span>
+		<div className={wrapper()}>
+			<label className={labelWrapper()}>
+				<span className={labelStyle()}>{label}</span>
 				<input
 					{...field}
-					className={getValidClassNames("form-input", hasError && "is-error")}
+					className={input()}
 					disabled={disabled}
 					placeholder={placeholder}
 					type={type}
 				/>
 			</label>
 			{hasError && (
-				<span className="form-error-message">{errorMessage as string}</span>
+				<span className={errorStyle()}>{errorMessage as string}</span>
 			)}
 		</div>
 	);
