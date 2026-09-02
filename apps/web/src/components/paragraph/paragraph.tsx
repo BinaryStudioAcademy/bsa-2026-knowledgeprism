@@ -1,33 +1,31 @@
-import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import { type ValueOf } from "~/lib/types/types.js";
+import { type JSX, type ReactNode } from "react";
+import { tv, type VariantProps } from "tailwind-variants";
 
 const ParagraphSize = {
 	BODY: "body",
 	BODY_SMALL: "body-small",
 } as const;
 
-type ParagraphSizeValue = ValueOf<typeof ParagraphSize>;
+const paragraphStyles = tv({
+	base: "font-sans",
+	variants: {
+		size: {
+			[ParagraphSize.BODY]: "text-body leading-[1.6]",
+			[ParagraphSize.BODY_SMALL]: "text-sm leading-[1.55] text-text-muted",
+		},
+	},
+	defaultVariants: {
+		size: ParagraphSize.BODY,
+	},
+});
 
-type Properties = {
-	children: React.ReactNode;
+type Properties = VariantProps<typeof paragraphStyles> & {
+	children: ReactNode;
 	className?: string;
-	size?: ParagraphSizeValue;
 };
 
-const sizeToClassName: Record<ParagraphSizeValue, string> = {
-	[ParagraphSize.BODY]: "font-sans text-body leading-[1.6]",
-	[ParagraphSize.BODY_SMALL]:
-		"font-sans text-sm leading-[1.55] text-text-muted",
-};
-
-const Paragraph: React.FC<Properties> = ({
-	children,
-	className,
-	size = ParagraphSize.BODY,
-}: Properties) => (
-	<p className={getValidClassNames(sizeToClassName[size], className)}>
-		{children}
-	</p>
+const Paragraph = ({ children, className, size }: Properties): JSX.Element => (
+	<p className={paragraphStyles({ className, size })}>{children}</p>
 );
 
 export { Paragraph, ParagraphSize };
