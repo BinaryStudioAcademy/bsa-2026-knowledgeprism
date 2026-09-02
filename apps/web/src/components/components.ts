@@ -1,4 +1,5 @@
 export { Alert } from "./alert/alert.js";
+export { Avatar } from "./avatar/avatar.js";
 export { Button } from "./button/button.js";
 export { Checkbox } from "./checkbox/checkbox.js";
 export { Heading } from "./heading/heading.js";
