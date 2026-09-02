@@ -1,5 +1,4 @@
-import { Link, Logo, RouterOutlet } from "~/components/components.js";
-import { Footer } from "~/components/footer/footer.js";
+import { Link, Logo, RouterOutlet, Footer } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,

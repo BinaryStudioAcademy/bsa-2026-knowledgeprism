@@ -11,3 +11,4 @@ export { type SelectOption } from "./select/select.js";
 export { Toggle } from "./toggle/toggle.js";
 export { Provider as StoreProvider } from "react-redux";
 export { Outlet as RouterOutlet } from "react-router-dom";
+export { Footer } from "./footer/footer.js";
