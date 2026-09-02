@@ -20,6 +20,7 @@
 	"dependencies": {
 		"@fastify/cookie": "11.1.2",
 		"@fastify/session": "11.1.2",
+		"@aws-sdk/client-bedrock-runtime": "3.1120.0",
 		"@fastify/static": "10.1.2",
 		"@fastify/swagger": "9.8.1",
 		"@fastify/swagger-ui": "6.1.1",

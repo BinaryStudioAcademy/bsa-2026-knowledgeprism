@@ -7,6 +7,9 @@ type EnvironmentSchema = {
 		HOST: string;
 		PORT: number;
 	};
+	AWS: {
+		REGION: string;
+	};
 	DB: {
 		CONNECTION_STRING: string;
 		DIALECT: string;
