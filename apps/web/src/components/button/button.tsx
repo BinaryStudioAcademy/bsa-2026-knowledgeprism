@@ -1,4 +1,4 @@
-import { type ButtonHTMLAttributes, type JSX, type ReactNode } from "react";
+import { type ComponentPropsWithRef, type JSX, type ReactNode } from "react";
 import { tv, type VariantProps } from "tailwind-variants";
 
 const buttonStyles = tv({
@@ -85,7 +85,7 @@ const buttonStyles = tv({
 	},
 });
 
-type Properties = ButtonHTMLAttributes<HTMLButtonElement> &
+type Properties = ComponentPropsWithRef<"button"> &
 	VariantProps<typeof buttonStyles> & {
 		children: ReactNode;
 		isLoading?: boolean;
