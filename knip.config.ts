@@ -8,7 +8,10 @@ const config: KnipConfig = {
 	workspaces: {
 		".": {},
 		"apps/api": {
-			entry: ["src/infrastructure/database/migrations/*.ts"],
+			entry: [
+				"src/infrastructure/bedrock/bedrock.ts",
+				"src/infrastructure/database/migrations/*.ts",
+			],
 		},
 		"apps/web": {
 			// Entry point for the common app components.
