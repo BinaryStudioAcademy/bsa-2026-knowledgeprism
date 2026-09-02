@@ -1,51 +1,41 @@
-import {
-	CloseIcon,
-	FilterIcon,
-	HamburgerIcon,
-	LinkIcon,
-	PlusIcon,
-	SearchIcon,
-	SendIcon,
-} from "./icons/action.icons.js";
-import {
-	ArrowRightLongIcon,
-	ChevronDownIcon,
-	ChevronFilledDownIcon,
-	ChevronFilledRightIcon,
-	ChevronFilledUpIcon,
-} from "./icons/chevron.icons.js";
-import { DesktopIcon, PhoneIcon, TabletIcon } from "./icons/device.icons.js";
-import {
-	AddKnowledgeIcon,
-	FileIcon,
-	FileRoundedIcon,
-	FileSharpIcon,
-	FolderIcon,
-	PasteTextIcon,
-	UploadIcon,
-} from "./icons/file.icons.js";
-import {
-	AskPrismIcon,
-	GlossaryIcon,
-	HelpIcon,
-	KnowledgeTreeIcon,
-	ProjectIcon,
-	SettingsIcon,
-} from "./icons/navigation.icons.js";
-import {
-	ApertureExpandedIcon,
-	ApertureIcon,
-	BulletPointIcon,
-	HexagonNodeIcon,
-	ParagraphIcon,
-	SquarePlaceholderIcon,
-} from "./icons/shape.icons.js";
-import {
-	BellIcon,
-	CheckboxTickIcon,
-	ShieldIcon,
-	ToastCheckIcon,
-} from "./icons/status.icons.js";
+import { AddKnowledgeIcon } from "./icons/add-knowledge.icon.js";
+import { ApertureExpandedIcon } from "./icons/aperture-expanded.icon.js";
+import { ApertureIcon } from "./icons/aperture.icon.js";
+import { ArrowRightLongIcon } from "./icons/arrow-right-long.icon.js";
+import { AskPrismIcon } from "./icons/ask-prism.icon.js";
+import { BellIcon } from "./icons/bell.icon.js";
+import { BulletPointIcon } from "./icons/bullet-point.icon.js";
+import { CheckboxTickIcon } from "./icons/checkbox-tick.icon.js";
+import { ChevronDownIcon } from "./icons/chevron-down.icon.js";
+import { ChevronFilledDownIcon } from "./icons/chevron-filled-down.icon.js";
+import { ChevronFilledRightIcon } from "./icons/chevron-filled-right.icon.js";
+import { ChevronFilledUpIcon } from "./icons/chevron-filled-up.icon.js";
+import { CloseIcon } from "./icons/close.icon.js";
+import { DesktopIcon } from "./icons/desktop.icon.js";
+import { FileRoundedIcon } from "./icons/file-rounded.icon.js";
+import { FileSharpIcon } from "./icons/file-sharp.icon.js";
+import { FileIcon } from "./icons/file.icon.js";
+import { FilterIcon } from "./icons/filter.icon.js";
+import { FolderIcon } from "./icons/folder.icon.js";
+import { GlossaryIcon } from "./icons/glossary.icon.js";
+import { HamburgerIcon } from "./icons/hamburger.icon.js";
+import { HelpIcon } from "./icons/help.icon.js";
+import { HexagonNodeIcon } from "./icons/hexagon-node.icon.js";
+import { KnowledgeTreeIcon } from "./icons/knowledge-tree.icon.js";
+import { LinkIcon } from "./icons/link.icon.js";
+import { ParagraphIcon } from "./icons/paragraph.icon.js";
+import { PasteTextIcon } from "./icons/paste-text.icon.js";
+import { PhoneIcon } from "./icons/phone.icon.js";
+import { PlusIcon } from "./icons/plus.icon.js";
+import { ProjectIcon } from "./icons/project.icon.js";
+import { SearchIcon } from "./icons/search.icon.js";
+import { SendIcon } from "./icons/send.icon.js";
+import { SettingsIcon } from "./icons/settings.icon.js";
+import { ShieldIcon } from "./icons/shield.icon.js";
+import { SquarePlaceholderIcon } from "./icons/square-placeholder.icon.js";
+import { TabletIcon } from "./icons/tablet.icon.js";
+import { ToastCheckIcon } from "./icons/toast-check.icon.js";
+import { UploadIcon } from "./icons/upload.icon.js";
 import { type SvgIconProperties } from "./types.js";
 
 const DEFAULT_ICON_SIZE = 14;
