@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 import reactLogo from "~/assets/img/react.svg";
 import { Button, Link, Modal, RouterOutlet } from "~/components/components.js";
 import {
@@ -7,59 +5,52 @@ import {
 	useAppSelector,
 	useEffect,
 	useLocation,
+	useNavigate,
 } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 const App: React.FC = () => {
-	const [isModalOpen, setIsModalOpen] = useState(false);
-	const { pathname } = useLocation();
+	const { pathname, search } = useLocation();
+	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
+
 	const { dataStatus, users } = useAppSelector(({ users }) => ({
 		dataStatus: users.dataStatus,
 		users: users.users,
 	}));
 
 	const isRoot = pathname === AppRoute.ROOT;
+	const isModalOpen = new URLSearchParams(search).get("modal") === "true";
 
-	const handleOpenModal = (): void => {
-		setIsModalOpen(true);
-	};
+	const handleModal = (): void => {
+		const nextSearchParams = new URLSearchParams(search);
 
-	const handleCloseModal = (): void => {
-		setIsModalOpen(false);
+		if (isModalOpen) {
+			nextSearchParams.delete("modal");
+		} else {
+			nextSearchParams.set("modal", "true");
+		}
+
+		const nextSearch = nextSearchParams.toString();
+
+		void navigate(
+			{
+				pathname,
+				search: nextSearch ? `?${nextSearch}` : "",
+			},
+			{ replace: true },
+		);
 	};
 
 	useEffect(() => {
 		if (isRoot) {
 			void dispatch(userActions.loadAll());
 		}
-	}, [isRoot, dispatch]);
+	}, [dispatch, isRoot]);
 
 	const renderUsers = (): React.ReactNode[] =>
 		users.map((user) => <li key={user.id}>{user.email}</li>);
-
-	const openModalButtonProperties = {
-		className: "demo-action-button",
-		onClick: handleOpenModal,
-		variant: "primary" as const,
-	};
-
-	const modalProperties = {
-		isOpen: isModalOpen,
-		onClose: handleCloseModal,
-		title: "Add knowledge",
-	};
-
-	const cancelButtonProperties = {
-		onClick: handleCloseModal,
-		variant: "secondary" as const,
-	};
-
-	const submitButtonProperties = {
-		onClick: handleCloseModal,
-		variant: "primary" as const,
-	};
 
 	return (
 		<>
@@ -76,25 +67,33 @@ const App: React.FC = () => {
 					<Link to={AppRoute.SIGN_UP}>Sign up</Link>
 				</li>
 			</ul>
+
 			<p>Current path: {pathname}</p>
 
 			<div>
 				<RouterOutlet />
 			</div>
-
-			<div className="demo-action-row">
-				<Button {...openModalButtonProperties}>Open modal</Button>
+			<div
+				style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}
+			>
+				<Button onClick={handleModal} variant="primary">
+					Open modal
+				</Button>
 			</div>
 
-			<Modal {...modalProperties}>
+			<Modal isOpen={isModalOpen} onClose={handleModal} title="Add knowledge">
 				<p className="modal__description">
 					Add a new knowledge item to the workspace and continue with the
 					validation flow.
 				</p>
 
 				<div className="modal__actions">
-					<Button {...cancelButtonProperties}>Cancel</Button>
-					<Button {...submitButtonProperties}>Add</Button>
+					<Button onClick={handleModal} variant="secondary">
+						Cancel
+					</Button>
+					<Button onClick={handleModal} variant="primary">
+						Add
+					</Button>
 				</div>
 			</Modal>
 

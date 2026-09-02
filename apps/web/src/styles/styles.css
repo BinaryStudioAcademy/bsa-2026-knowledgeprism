@@ -50,29 +50,6 @@
 }
 
 @layer components {
-	.demo-action-row {
-		display: flex;
-		justify-content: center;
-		padding-inline: 0;
-		margin-top: 10px;
-	}
-
-	.demo-action-button {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		width: 107.19px;
-		height: 38px;
-		padding: 11px 18px;
-		font-size: 15px;
-		font-weight: 500;
-		line-height: 1;
-		letter-spacing: -0.15px;
-		white-space: nowrap;
-		border-radius: 8px;
-		box-shadow: 0 8px 16px rgb(31 27 25 / 10%);
-	}
-
 	.modal-backdrop {
 		position: fixed;
 		inset: 0;
