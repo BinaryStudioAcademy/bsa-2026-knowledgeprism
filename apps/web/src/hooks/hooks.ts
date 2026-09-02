@@ -3,10 +3,10 @@ export { useAppForm } from "./use-app-form/use-app-form.hook.js";
 export { useAppSelector } from "./use-app-selector/use-app-selector.hook.js";
 export { useCallback, useEffect } from "react";
 export { useController as useFormController } from "react-hook-form";
-export { useLocation } from "react-router-dom";
-export {
-	type Control,
-	type FieldErrors,
-	type FieldPath,
-	type FieldValues,
+export type {
+	Control,
+	FieldErrors,
+	FieldPath,
+	FieldValues,
 } from "react-hook-form";
+export { useLocation } from "react-router-dom";
