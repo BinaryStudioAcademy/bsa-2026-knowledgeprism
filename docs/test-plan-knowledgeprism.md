@@ -1,4 +1,4 @@
-**Test Plan** 
+**Test Plan**
 
 **KnowledgePrism**
 
@@ -142,7 +142,7 @@ API testing is in scope because the application contains role-based access and m
 Integration testing is in scope because several important KnowledgePrism workflows depend on multiple system components working together.  
 Authentication and Organisation Access. Verification that successful registration creates an Organisation, an Admin account, an authenticated session, and access to the Organisation Workspace.  
 User Assignment and Project Access. Verification that a user created by an Admin can log in, that assigned projects are available and unassigned projects are not, and that the assigned Editor or Viewer role affects available functionality.  
-Add Knowledge Flow. Verification of the complete flow: Knowledge Input \- Processing \- Integration Preview \- Manual Structure Adjustment \- Approval \- Knowledge Base update.   
+Add Knowledge Flow. Verification of the complete flow: Knowledge Input \- Processing \- Integration Preview \- Manual Structure Adjustment \- Approval \- Knowledge Base update.  
 Ask Prism and Knowledge Base. Verification that Ask Prism retrieves only from the selected project’s Knowledge Base, that source references lead to the relevant Knowledge Base section, and that content added through the Add Knowledge flow becomes retrievable by Ask Prism.
 
 **5\. UI Testing – In Scope**  
@@ -210,4 +210,3 @@ Exit criteria: all planned high-priority test cases are executed; no open critic
 High. Authentication; authorization; role-based access control; organisation and project isolation; Knowledge Base data integrity; Add Knowledge processing and approval; Ask Prism grounding and source traceability.  
 Medium. Validation messages; navigation; project cards and metadata; Knowledge Base search; UI layout and role-based element visibility; empty and loading states; basic accessibility.  
 Low. Visual appearance details not defined in the specification; edge cases without defined expected behaviour.
-
