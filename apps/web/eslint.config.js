@@ -39,7 +39,7 @@ const reactConfig = {
 	},
 	settings: {
 		react: {
-			version: "detect",
+			version: "19.2",
 		},
 	},
 };
@@ -65,7 +65,7 @@ const jsxA11yConfig = {
 /** @type {Config[]} */
 const overridesConfigs = [
 	{
-		files: ["vite.config.ts"],
+		files: ["vite.config.ts", ".storybook/**/*.ts", "**/*.stories.tsx"],
 		rules: {
 			"import-x/no-default-export": ["off"],
 		},
