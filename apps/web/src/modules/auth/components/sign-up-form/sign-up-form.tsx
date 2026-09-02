@@ -46,45 +46,71 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 
 	return (
 		<>
-			<h3>Sign Up</h3>
-			<form onSubmit={handleFormSubmit}>
-				<div>
-					<Input
-						control={control}
-						label="Email"
-						name="email"
-						placeholder="Enter your email"
-						type="text"
-					/>
-				</div>
-				<div>
-					<Input
-						control={control}
-						label="Password"
-						name="password"
-						placeholder="Enter your password"
-						type="text"
-					/>
-				</div>
-				<div>
-					<Checkbox
-						control={control}
-						label={
-							<span>
-								I agree to the{" "}
-								<a className="underline hover:opacity-80" href="/terms">
-									Terms
-								</a>{" "}
-								and{" "}
-								<a className="underline hover:opacity-80" href="/privacy">
-									Privacy Policy
-								</a>
-							</span>
-						}
-						name="agreeToTerms"
-					/>
-				</div>
-				<Button type="submit">Sign up</Button>
+			<div className="flex flex-col gap-2">
+				<Heading level={2}>Create your account</Heading>
+				<Paragraph size={ParagraphSize.BODY_SMALL}>
+					Start building your knowledge graph.
+				</Paragraph>
+			</div>
+			<form className="flex flex-col gap-4" onSubmit={handleFormSubmit}>
+				<Input
+					control={control}
+					label="Organisation name"
+					name="organisationName"
+					placeholder="Acme Inc."
+				/>
+				<Input
+					control={control}
+					label="First name"
+					name="firstName"
+					placeholder="Sarah"
+				/>
+				<Input
+					control={control}
+					label="Last name"
+					name="lastName"
+					placeholder="Johnson"
+				/>
+				<Input
+					control={control}
+					label="Email"
+					name="email"
+					placeholder="you@company.com"
+					type="email"
+				/>
+				<Input
+					control={control}
+					label="Password"
+					name="password"
+					placeholder="At least 8 characters"
+					type="password"
+				/>
+				<Input
+					control={control}
+					label="Confirm password"
+					name="confirmPassword"
+					placeholder="Repeat your password"
+					type="password"
+				/>
+				<Checkbox
+					control={control}
+					label={
+						<span>
+							I agree to the{" "}
+							<a className="underline" href="/terms">
+								Terms
+							</a>{" "}
+							and{" "}
+							<a className="underline" href="/privacy">
+								Privacy Policy
+							</a>
+						</span>
+					}
+					name="agreeToTerms"
+				/>
+				<Button className="w-full" type="submit">
+					Create Account
+				</Button>
 			</form>
 		</>
 	);
