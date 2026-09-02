@@ -12,17 +12,11 @@ const HEADER_LABEL = {
 	SIGN_UP: "Sign up",
 } as const;
 
-const HEADER_MENU_ICON_HEIGHT = 14;
-const HEADER_MENU_ICON_STROKE_WIDTH = 1.6;
-const HEADER_MENU_ICON_WIDTH = 20;
+const HEADER_MENU_ICON_HEIGHT = 12;
+const HEADER_MENU_ICON_STROKE_WIDTH = 1.4;
+const HEADER_MENU_ICON_WIDTH = 18;
 
 const HEADER_NAV_ID = "header-nav";
-
-const HEADER_SECTION_LINKS = [
-	{ href: "#what", label: "Product" },
-	{ href: "#how", label: "How it works" },
-	{ href: "#features", label: "Features" },
-] as const;
 
 const Header: React.FC = () => {
 	const navigate = useNavigate();
@@ -67,14 +61,16 @@ const Header: React.FC = () => {
 	return (
 		<header
 			className={getValidClassNames(
-				"sticky top-0 z-30",
-				"border-b border-border bg-bg/92 backdrop-blur-[6px]",
+				"sticky top-0 z-30 bg-surface",
+				"border-b border-border",
 			)}
 		>
 			<div
 				className={getValidClassNames(
-					"mx-auto flex h-[72px] max-w-[1240px] items-center justify-between",
-					"px-[clamp(20px,5vw,40px)]",
+					"flex items-center justify-between",
+					"px-5 py-3.5",
+					"tablet-small:px-6 tablet-small:py-4",
+					"tablet:px-8",
 				)}
 			>
 				<RouterLink
@@ -84,43 +80,31 @@ const Header: React.FC = () => {
 					)}
 					to={AppRoute.ROOT}
 				>
-					<Logo />
+					<Logo size="sm" />
 				</RouterLink>
 
 				<nav
 					className={getValidClassNames(
-						"hidden items-center gap-8",
+						"hidden items-center gap-6",
 						"tablet-small:flex",
 					)}
 				>
-					{HEADER_SECTION_LINKS.map((item) => (
-						<a
-							className={getValidClassNames(
-								"text-control text-text-muted no-underline",
-								"hover:text-text hover:no-underline",
-							)}
-							href={item.href}
-							key={item.href}
-						>
-							{item.label}
-						</a>
-					))}
-					<div className={getValidClassNames("flex items-center gap-2.5")}>
-						<Button
-							className={getValidClassNames("px-3.5 py-[9px]")}
-							onClick={handleSignIn}
-							variant="ghost"
-						>
-							{HEADER_LABEL.SIGN_IN}
-						</Button>
-						<Button
-							className={getValidClassNames("px-[18px] py-[9px]")}
-							onClick={handleSignUp}
-							variant="primary"
-						>
-							{HEADER_LABEL.SIGN_UP}
-						</Button>
-					</div>
+					<RouterLink
+						className={getValidClassNames(
+							"text-sm text-text-muted no-underline",
+							"hover:text-text hover:no-underline",
+						)}
+						to={AppRoute.SIGN_IN}
+					>
+						{HEADER_LABEL.SIGN_IN}
+					</RouterLink>
+					<Button
+						className={getValidClassNames("px-4 py-2")}
+						onClick={handleSignUp}
+						variant="primary"
+					>
+						{HEADER_LABEL.SIGN_UP}
+					</Button>
 				</nav>
 
 				<button
@@ -128,7 +112,7 @@ const Header: React.FC = () => {
 					aria-expanded={isMenuOpen}
 					aria-label={HEADER_LABEL.MENU}
 					className={getValidClassNames(
-						"cursor-pointer border-0 bg-transparent p-2 text-text",
+						"cursor-pointer border-0 bg-transparent p-0 text-text",
 						"tablet-small:hidden",
 					)}
 					onClick={handleToggleMenu}
@@ -138,11 +122,11 @@ const Header: React.FC = () => {
 						aria-hidden="true"
 						fill="none"
 						height={HEADER_MENU_ICON_HEIGHT}
-						viewBox="0 0 20 14"
+						viewBox="0 0 18 12"
 						width={HEADER_MENU_ICON_WIDTH}
 					>
 						<path
-							d="M0 1h20M0 7h20M0 13h20"
+							d="M0 1h18M0 6h18M0 11h18"
 							stroke="currentColor"
 							strokeWidth={HEADER_MENU_ICON_STROKE_WIDTH}
 						/>
@@ -153,45 +137,26 @@ const Header: React.FC = () => {
 			{isMenuOpen && (
 				<nav
 					className={getValidClassNames(
-						"flex flex-col gap-3.5 border-t border-border bg-bg",
-						"px-[clamp(20px,5vw,40px)] pb-6 pt-4",
+						"flex flex-col gap-3.5 bg-surface",
+						"border-t border-border-subtle px-5 py-4",
 						"tablet-small:hidden",
 					)}
 					id={HEADER_NAV_ID}
 				>
-					{HEADER_SECTION_LINKS.map((item) => (
-						<a
-							className={getValidClassNames(
-								"text-body text-text no-underline",
-								"hover:text-text hover:no-underline",
-							)}
-							href={item.href}
-							key={item.href}
-							onClick={handleCloseMenu}
-						>
-							{item.label}
-						</a>
-					))}
-					<div className={getValidClassNames("mt-1.5 flex gap-2.5")}>
-						<Button
-							className={getValidClassNames(
-								"flex-1",
-								"border border-border",
-								"py-2.5",
-							)}
-							onClick={handleSignIn}
-							variant="ghost"
-						>
-							{HEADER_LABEL.SIGN_IN}
-						</Button>
-						<Button
-							className={getValidClassNames("flex-1 py-2.5")}
-							onClick={handleSignUp}
-							variant="primary"
-						>
-							{HEADER_LABEL.SIGN_UP}
-						</Button>
-					</div>
+					<Button
+						className={getValidClassNames("w-full")}
+						onClick={handleSignIn}
+						variant="ghost"
+					>
+						{HEADER_LABEL.SIGN_IN}
+					</Button>
+					<Button
+						className={getValidClassNames("w-full")}
+						onClick={handleSignUp}
+						variant="primary"
+					>
+						{HEADER_LABEL.SIGN_UP}
+					</Button>
 				</nav>
 			)}
 		</header>
