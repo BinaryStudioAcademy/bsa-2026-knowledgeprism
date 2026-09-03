@@ -3,9 +3,9 @@ import { type ProjectAssignmentDto } from "./project-assignment-dto.type.js";
 type UserGetAllItemResponseDto = {
 	assignedProjects: ProjectAssignmentDto[];
 	email: string;
-	firstName: string | null;
+	firstName: null | string;
 	id: number;
-	lastName: string | null;
+	lastName: null | string;
 	status: "active" | "inactive";
 };
 
