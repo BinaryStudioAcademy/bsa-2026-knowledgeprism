@@ -12,13 +12,14 @@ import { Icon } from "../icon/icon.js";
 const checkboxStyles = tv({
 	slots: {
 		box: [
-			"flex size-[18px] shrink-0 items-center justify-center rounded border bg-surface transition-colors duration-150",
+			"flex size-4.5 shrink-0 items-center justify-center rounded border bg-surface transition-colors duration-150",
 			"peer-focus-visible:outline-none peer-focus-visible:ring-2",
-			"peer-disabled:cursor-not-allowed peer-disabled:opacity-50",
+			"peer-disabled:opacity-50",
 		],
 		errorMessageStyle: "text-xs text-error",
 		icon: "text-primary-fg transition-opacity duration-150",
 		input: "peer sr-only",
+		labelText: "",
 		labelWrapper:
 			"flex select-none items-center gap-2.5 font-sans text-sm text-text",
 		wrapper: "flex flex-col gap-1",
@@ -39,9 +40,13 @@ const checkboxStyles = tv({
 		},
 		isDisabled: {
 			false: {
+				box: "cursor-pointer",
+				labelText: "cursor-pointer",
 				labelWrapper: "cursor-pointer",
 			},
 			true: {
+				box: "cursor-not-allowed",
+				labelText: "cursor-not-allowed",
 				labelWrapper: "cursor-not-allowed",
 			},
 		},
@@ -105,12 +110,19 @@ const Checkbox = <T extends FieldValues = FieldValues>({
 		[onChange],
 	);
 
-	const { box, errorMessageStyle, icon, input, labelWrapper, wrapper } =
-		checkboxStyles({ hasError, isChecked, isDisabled: disabled });
+	const {
+		box,
+		errorMessageStyle,
+		icon,
+		input,
+		labelText,
+		labelWrapper,
+		wrapper,
+	} = checkboxStyles({ hasError, isChecked, isDisabled: disabled });
 
 	return (
 		<div className={wrapper()}>
-			<label className={labelWrapper()}>
+			<div className={labelWrapper()}>
 				<input
 					aria-describedby={errorId}
 					aria-invalid={hasError}
@@ -124,13 +136,17 @@ const Checkbox = <T extends FieldValues = FieldValues>({
 					ref={ref}
 					type="checkbox"
 				/>
-				<div aria-hidden="true" className={box()}>
+				<label aria-hidden="true" className={box()} htmlFor={checkboxId}>
 					<div className={icon()}>
 						<Icon name="checkbox-tick" size={10} />
 					</div>
-				</div>
-				{label && <span>{label}</span>}
-			</label>
+				</label>
+				{label && (
+					<label htmlFor={checkboxId} className={labelText()}>
+						{label}
+					</label>
+				)}
+			</div>
 			{hasError && !isChecked && (
 				<span className={errorMessageStyle()} id={errorId}>
 					{errorMessage}
