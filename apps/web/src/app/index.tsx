@@ -9,6 +9,7 @@ import { AuthPage } from "~/modules/auth/components/auth-page.js";
 
 import { App } from "./app.js";
 import { RouterProvider } from "./router-provider.js";
+import { LandingPage } from "~/modules/landing/components/landing-page.js";
 
 createRoot(document.querySelector("#root") as HTMLElement).render(
 	<StrictMode>
@@ -16,11 +17,11 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 			<RouterProvider
 				routes={[
 					{
+						element: <LandingPage />,
+						path: AppRoute.ROOT,
+					},
+					{
 						children: [
-							{
-								element: "Root",
-								path: AppRoute.ROOT,
-							},
 							{
 								element: <AuthPage />,
 								path: AppRoute.SIGN_IN,
@@ -31,7 +32,6 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 							},
 						],
 						element: <App />,
-						path: AppRoute.ROOT,
 					},
 				]}
 			/>
