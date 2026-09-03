@@ -1,4 +1,8 @@
+export { type ProjectAssignmentDto } from "./project-assignment-dto.type.js";
+export { type UserCreateRequestDto } from "./user-create-request-dto.type.js";
+export { type UserDetailsResponseDto } from "./user-details-response-dto.type.js";
 export { type UserGetAllItemResponseDto } from "./user-get-all-item-response-dto.type.js";
 export { type UserGetAllResponseDto } from "./user-get-all-response-dto.type.js";
 export { type UserSignUpRequestDto } from "./user-sign-up-request-dto.type.js";
 export { type UserSignUpResponseDto } from "./user-sign-up-response-dto.type.js";
+export { type UserUpdateRequestDto } from "./user-update-request-dto.type.js";
