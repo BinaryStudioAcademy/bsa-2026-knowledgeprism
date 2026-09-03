@@ -48,7 +48,7 @@ jobs:
             -x '.git/*' '.github/*' 'design/*' '.eslintrc*' '.prettierrc*' 'tsconfig*.json' 'eslint.config.js'
 
       - name: Deploy To Beanstalk
-        uses: einaregilsson/beanstalk-deploy@v21
+        uses: einaregilsson/beanstalk-deploy@v23
         with:
           aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
