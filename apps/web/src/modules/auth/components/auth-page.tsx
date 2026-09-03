@@ -1,5 +1,6 @@
 import { type UserSignUpRequestDto } from "@knowledgeprism/types";
 
+import { Logo } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -46,9 +47,33 @@ const AuthPage: React.FC = () => {
 	};
 
 	return (
-		<div className="mx-auto flex w-full max-w-[380px] flex-col gap-4 px-6 py-16">
-			{error && <span className="font-sans text-sm text-error">{error}</span>}
-			{getScreen(pathname)}
+		<div className="flex min-h-screen flex-col tablet:flex-row">
+			<aside className="flex flex-shrink-0 flex-col justify-between gap-2.5 bg-primary px-6 py-7 text-primary-fg tablet:flex-[0.8] tablet:p-11 desktop:flex-1 desktop:p-16">
+				<Logo variant="inverted" />
+
+				<div className="max-w-95">
+					<p className="font-serif text-h3 leading-tight desktop:text-h2">
+						Order from Chaos.
+					</p>
+					<p className="mt-3.5 hidden text-body leading-relaxed text-white/65 desktop:block">
+						Turn scattered documents into one queryable knowledge graph — with
+						every answer traced back to its source.
+					</p>
+				</div>
+
+				<span className="hidden font-mono text-xs text-white/40 tablet:block">
+					© 2026 KnowledgePrism AI
+				</span>
+			</aside>
+
+			<main className="flex flex-1 items-center justify-center px-5.5 py-7 tablet:p-11 desktop:p-16">
+				<div className="flex w-full max-w-85 flex-col gap-4 desktop:max-w-95">
+					{error && (
+						<span className="font-sans text-sm text-error">{error}</span>
+					)}
+					{getScreen(pathname)}
+				</div>
+			</main>
 		</div>
 	);
 };
