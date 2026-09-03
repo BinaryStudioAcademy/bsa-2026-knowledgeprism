@@ -86,13 +86,12 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 				aria-haspopup="menu"
 				className="cursor-pointer"
 				onClick={handleToggle}
-				type="button"
 				variant="secondary"
 			>
 				{label}
 			</Button>
 			{isOpen && (
-				<div className="dropdown-menu flex flex-col" role="menu">
+				<div className="dropdown-menu" role="menu">
 					{items.map((item) => {
 						return (
 							<MenuItem item={item} key={item.label} onClose={handleDismiss} />
