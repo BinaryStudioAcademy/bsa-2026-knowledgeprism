@@ -4,4 +4,5 @@ export { useAppSelector } from "./use-app-selector/use-app-selector.hook.js";
 export { useCallback, useEffect } from "react";
 export type { Control, FieldPath, FieldValues } from "react-hook-form";
 export { useController as useFormController } from "react-hook-form";
+export type { Control, FieldPath, FieldValues } from "react-hook-form";
 export { useLocation } from "react-router-dom";
