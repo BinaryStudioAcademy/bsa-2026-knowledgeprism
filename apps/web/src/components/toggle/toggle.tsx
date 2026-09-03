@@ -2,6 +2,9 @@ import { type ChangeEvent, type FC, useCallback } from "react";
 import { tv } from "tailwind-variants";
 
 const toggleStyles = tv({
+	defaultVariants: {
+		isDisabled: false,
+	},
 	slots: {
 		input: "peer sr-only",
 		labelStyle: "font-sans text-control text-text",
@@ -23,9 +26,6 @@ const toggleStyles = tv({
 				wrapper: "cursor-not-allowed",
 			},
 		},
-	},
-	defaultVariants: {
-		isDisabled: false,
 	},
 });
 

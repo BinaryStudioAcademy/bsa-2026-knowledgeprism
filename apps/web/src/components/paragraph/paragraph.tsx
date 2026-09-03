@@ -8,14 +8,14 @@ const ParagraphSize = {
 
 const paragraphStyles = tv({
 	base: "font-sans",
+	defaultVariants: {
+		size: ParagraphSize.BODY,
+	},
 	variants: {
 		size: {
 			[ParagraphSize.BODY]: "text-body leading-[1.6]",
 			[ParagraphSize.BODY_SMALL]: "text-sm leading-[1.55] text-text-muted",
 		},
-	},
-	defaultVariants: {
-		size: ParagraphSize.BODY,
 	},
 });
 

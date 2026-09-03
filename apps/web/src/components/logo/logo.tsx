@@ -1,11 +1,15 @@
 import { type JSX } from "react";
-import { type VariantProps, tv } from "tailwind-variants";
+import { tv, type VariantProps } from "tailwind-variants";
 
 import { Link } from "~/components/link/link.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
 const logoStyles = tv({
+	defaultVariants: {
+		size: "md",
+		variant: "default",
+	},
 	slots: {
 		container: "inline-flex items-center no-underline",
 		facetHighlight: "",
@@ -50,15 +54,9 @@ const logoStyles = tv({
 			},
 		},
 	},
-	defaultVariants: {
-		size: "md",
-		variant: "default",
-	},
 });
 
 type LogoVariants = VariantProps<typeof logoStyles>;
-
-type IconProperties = LogoVariants;
 
 type Properties = LogoVariants & {
 	className?: string;
@@ -66,7 +64,7 @@ type Properties = LogoVariants & {
 	to?: ValueOf<typeof AppRoute>;
 };
 
-const PrismIcon = ({ size, variant }: IconProperties): JSX.Element => {
+const PrismIcon = ({ size, variant }: LogoVariants): JSX.Element => {
 	const { facetHighlight, facetLeft, facetRight, icon } = logoStyles({
 		size,
 		variant,

@@ -7,9 +7,31 @@ import {
 import { tv } from "tailwind-variants";
 
 import { useFormController } from "~/hooks/hooks.js";
+
 import { Icon } from "../icon/icon.js";
 
 const checkboxStyles = tv({
+	compoundVariants: [
+		{
+			class: {
+				box: "border-error peer-focus-visible:ring-error",
+			},
+			hasError: true,
+			isChecked: false,
+		},
+		{
+			class: {
+				box: "border-border peer-focus-visible:ring-accent",
+			},
+			hasError: false,
+			isChecked: false,
+		},
+	],
+	defaultVariants: {
+		hasError: false,
+		isChecked: false,
+		isDisabled: false,
+	},
 	slots: {
 		box: [
 			"flex size-4.5 shrink-0 items-center justify-center rounded border bg-surface transition-colors duration-150",
@@ -50,27 +72,6 @@ const checkboxStyles = tv({
 				labelWrapper: "cursor-not-allowed",
 			},
 		},
-	},
-	compoundVariants: [
-		{
-			class: {
-				box: "border-error peer-focus-visible:ring-error",
-			},
-			hasError: true,
-			isChecked: false,
-		},
-		{
-			class: {
-				box: "border-border peer-focus-visible:ring-accent",
-			},
-			hasError: false,
-			isChecked: false,
-		},
-	],
-	defaultVariants: {
-		hasError: false,
-		isChecked: false,
-		isDisabled: false,
 	},
 });
 
@@ -142,7 +143,7 @@ const Checkbox = <T extends FieldValues = FieldValues>({
 					</div>
 				</label>
 				{label && (
-					<label htmlFor={checkboxId} className={labelText()}>
+					<label className={labelText()} htmlFor={checkboxId}>
 						{label}
 					</label>
 				)}
