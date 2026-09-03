@@ -3,7 +3,7 @@ name: Continuous Delivery
 env:
   AWS_REGION: eu-west-3
   EBS_APPLICATION_NAME: knowledgeprism
-  EBS_ENVIRONMENT_NAME: knowledgeprism-development
+  EBS_ENVIRONMENT_NAME: development
 
 on:
   push:
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: deploy
-      url: http://knowledgeprism.eu-west-3.elasticbeanstalk.com/
+      url: http://knowledgeprism-app.eu-west-3.elasticbeanstalk.com/
 
     steps:
       - name: Code Checkout
@@ -38,9 +38,6 @@ jobs:
 
       - name: Build application
         run: npm run build
-
-      - name: Prune dev dependencies
-        run: npm prune --omit=dev --ignore-scripts
 
       - name: Prepare Deployment Package
         run: |
