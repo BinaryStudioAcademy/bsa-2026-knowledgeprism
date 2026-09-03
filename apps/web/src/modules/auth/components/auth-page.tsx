@@ -62,7 +62,7 @@ const AuthPage: React.FC = () => {
 				</div>
 
 				<span className="hidden font-mono text-xs text-white/40 tablet:block">
-					© 2026 KnowledgePrism AI
+					© {new Date().getFullYear()} KnowledgePrism AI
 				</span>
 			</aside>
 
