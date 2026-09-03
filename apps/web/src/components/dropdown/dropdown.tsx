@@ -32,6 +32,11 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 		setIsOpen(false);
 	}, []);
 
+	const handleDismiss = useCallback((): void => {
+		handleClose();
+		containerReference.current?.querySelector("button")?.focus();
+	}, [handleClose]);
+
 	useEffect(() => {
 		if (!isOpen) {
 			return;
@@ -63,7 +68,7 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 
 		const handleKeyDown = (event: KeyboardEvent): void => {
 			if (event.key === escapeKey) {
-				handleClose();
+				handleDismiss();
 			}
 		};
 
@@ -72,7 +77,7 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 		return (): void => {
 			document.removeEventListener("keydown", handleKeyDown);
 		};
-	}, [isOpen, handleClose]);
+	}, [isOpen, handleDismiss]);
 
 	return (
 		<div className="relative" ref={containerReference}>
@@ -90,7 +95,7 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 				<div className="dropdown-menu flex flex-col" role="menu">
 					{items.map((item) => {
 						return (
-							<MenuItem item={item} key={item.label} onClose={handleClose} />
+							<MenuItem item={item} key={item.label} onClose={handleDismiss} />
 						);
 					})}
 				</div>
