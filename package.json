@@ -32,7 +32,6 @@
 		"format": "prettier --write \"**/*.{ts,tsx,json,md,css,html}\"",
 		"lint": "concurrently \"npm:lint:*\" && npm run lint --workspaces",
 		"ci:prepare": "simple-git-hooks",
-		"prestart": "npm install --include=dev && npm run build && npm prune --omit=dev --ignore-scripts",
 		"start": "cd apps/build/api && npm run start"
 	},
 	"devDependencies": {
