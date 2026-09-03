@@ -30,7 +30,7 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								path: AppRoute.SIGN_UP,
 							},
 							{
-								element: "Organisation Workspace",
+								element: <p>Organisation Workspace</p>,
 								path: AppRoute.WORKSPACE,
 							},
 						],
