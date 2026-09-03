@@ -2,7 +2,7 @@
 	"name": "@knowledgeprism/config",
 	"version": "1.0.0",
 	"type": "module",
-	"main": "src/config.ts",
+	"main": "build/config.js",
 	"types": "src/config.ts",
 	"engines": {
 		"node": "24.x.x",

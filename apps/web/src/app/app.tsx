@@ -39,7 +39,7 @@ const App: React.FC = () => {
 					<Link to={AppRoute.SIGN_UP}>Sign up</Link>
 				</li>
 			</ul>
-			<p>Current path: {pathname}</p>
+			<p>Current pathname: {pathname}</p>
 
 			<div>
 				<RouterOutlet />

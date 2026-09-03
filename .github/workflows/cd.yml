@@ -1,0 +1,57 @@
+name: Continuous Delivery
+
+env:
+  AWS_REGION: eu-west-3
+  EBS_APPLICATION_NAME: knowledgeprism
+  EBS_ENVIRONMENT_NAME: development
+
+on:
+  push:
+    branches:
+      - 100-feat-setup-cd
+  workflow_dispatch:
+
+concurrency:
+  group: cd-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment:
+      name: deploy
+      url: http://knowledgeprism-app.eu-west-3.elasticbeanstalk.com/
+
+    steps:
+      - name: Code Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install all dependencies (including dev)
+        run: npm install
+
+      - name: Build application
+        run: npm run build
+
+      - name: Prepare Deployment Package
+        run: |
+          zip -r build.zip . \
+            -x '.git/*' '.github/*' 'design/*' '.eslintrc*' '.prettierrc*' 'tsconfig*.json' 'eslint.config.js'
+
+      - name: Deploy To Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v23
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          region: ${{ env.AWS_REGION }}
+          application_name: ${{ env.EBS_APPLICATION_NAME }}
+          environment_name: ${{ env.EBS_ENVIRONMENT_NAME }}
+          version_label: ${{ github.sha }}-${{ github.run_number }}
+          deployment_package: build.zip
+          wait_for_environment_recovery: 300

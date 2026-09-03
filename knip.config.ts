@@ -19,18 +19,10 @@ const config: KnipConfig = {
 			entry: ["src/components/components.ts"],
 		},
 		"apps/worker": {},
-		"packages/config": {
-			includeEntryExports: true,
-		},
-		"packages/constants": {
-			includeEntryExports: true,
-		},
-		"packages/schemas": {
-			includeEntryExports: true,
-		},
-		"packages/types": {
-			includeEntryExports: true,
-		},
+		"packages/config": {},
+		"packages/constants": {},
+		"packages/schemas": {},
+		"packages/types": {},
 	},
 };
 

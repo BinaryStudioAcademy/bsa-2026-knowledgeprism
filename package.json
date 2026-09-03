@@ -21,7 +21,8 @@
 		"build:api": "npm run build -w apps/api",
 		"build:worker": "npm run build -w apps/worker",
 		"build:web": "npm run build -w apps/web",
-		"build": "npm run build:packages && npm run build:api && npm run build:worker && npm run build:web",
+		"build": "npm run build:packages && npm run build:api && npm run build:worker && npm run build:web && npm run prepare-build",
+		"prepare-build": "sh ./prepare-build.sh",
 		"lint:editor": "editorconfig-checker",
 		"lint:fs": "ls-lint",
 		"lint:type": "npx tsc --noEmit",
@@ -30,7 +31,8 @@
 		"lint:trash": "knip",
 		"format": "prettier --write \"**/*.{ts,tsx,json,md,css,html}\"",
 		"lint": "concurrently \"npm:lint:*\" && npm run lint --workspaces",
-		"ci:prepare": "simple-git-hooks"
+		"ci:prepare": "simple-git-hooks",
+		"start": "cd apps/build/api && npm run start"
 	},
 	"devDependencies": {
 		"@commitlint/cli": "21.2.1",
