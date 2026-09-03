@@ -11,6 +11,8 @@ import { type Database } from "./libs/types/types.js";
 class BaseDatabase implements Database {
 	private appConfig: Config;
 
+	private knexInstance!: Knex;
+
 	private logger: Logger;
 
 	public constructor(config: Config, logger: Logger) {
@@ -39,6 +41,10 @@ class BaseDatabase implements Database {
 		};
 	}
 
+	public get client(): Knex {
+		return this.knexInstance;
+	}
+
 	public get environmentsConfig(): Database["environmentsConfig"] {
 		return {
 			[AppEnvironment.DEVELOPMENT]: this.initialConfig,
@@ -49,7 +55,8 @@ class BaseDatabase implements Database {
 	public connect(): ReturnType<Database["connect"]> {
 		this.logger.info("Establish DB connection...");
 
-		Model.knex(knex.default(this.environmentConfig));
+		this.knexInstance = knex.default(this.environmentConfig);
+		Model.knex(this.knexInstance);
 	}
 
 	public transaction<T>(

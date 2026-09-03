@@ -1,4 +1,4 @@
-import { AuthApiPath } from "@knowledgeprism/constants";
+import { AuthApiPath, AuthValidationMessage } from "@knowledgeprism/constants";
 import {
 	userSignInValidationSchema,
 	userSignUpValidationSchema,
@@ -13,7 +13,7 @@ import {
 	type APIHandlerResponse,
 	BaseController,
 } from "~/infrastructure/controller/controller.js";
-import { HTTPCode } from "~/infrastructure/http/http.js";
+import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { APIPath } from "~/shared/enums/enums.js";
 
@@ -28,17 +28,14 @@ class AuthController extends BaseController {
 		this.authService = authService;
 
 		this.addRoute({
-			handler: (options) =>
-				this.signUp(
-					options as APIHandlerOptions<{
-						body: UserSignUpRequestDto;
-					}>,
-				),
+			handler: (options) => this.getCurrentUser(options),
+			method: "GET",
+			path: AuthApiPath.ME,
+		});
+		this.addRoute({
+			handler: (options) => this.logOut(options),
 			method: "POST",
-			path: AuthApiPath.SIGN_UP,
-			validation: {
-				body: userSignUpValidationSchema,
-			},
+			path: AuthApiPath.LOG_OUT,
 		});
 		this.addRoute({
 			handler: (options) =>
@@ -53,6 +50,68 @@ class AuthController extends BaseController {
 				body: userSignInValidationSchema,
 			},
 		});
+		this.addRoute({
+			handler: (options) =>
+				this.signUp(
+					options as APIHandlerOptions<{
+						body: UserSignUpRequestDto;
+					}>,
+				),
+			method: "POST",
+			path: AuthApiPath.SIGN_UP,
+			validation: {
+				body: userSignUpValidationSchema,
+			},
+		});
+	}
+
+	/**
+	 * @swagger
+	 * /auth/me:
+	 *    get:
+	 *      description: Get currently authenticated user
+	 *      responses:
+	 *        200:
+	 *          description: Successful operation
+	 *        401:
+	 *          description: Not authenticated
+	 */
+	private async getCurrentUser(
+		options: APIHandlerOptions,
+	): Promise<APIHandlerResponse> {
+		const userId = options.session.userId;
+
+		if (!userId) {
+			throw new HTTPError({
+				message: AuthValidationMessage.UNAUTHORIZED,
+				status: HTTPCode.UNAUTHORIZED,
+			});
+		}
+
+		return {
+			payload: await this.authService.getCurrentUser(userId),
+			status: HTTPCode.OK,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /auth/logout:
+	 *    post:
+	 *      description: Log out current user, destroying the session
+	 *      responses:
+	 *        200:
+	 *          description: Successful operation
+	 */
+	private async logOut(
+		options: APIHandlerOptions,
+	): Promise<APIHandlerResponse> {
+		await options.session.destroy();
+
+		return {
+			payload: { message: "Logged out successfully" },
+			status: HTTPCode.OK,
+		};
 	}
 
 	/**
@@ -82,8 +141,12 @@ class AuthController extends BaseController {
 			body: UserSignInRequestDto;
 		}>,
 	): Promise<APIHandlerResponse> {
+		const authResult = await this.authService.signIn(options.body);
+		options.session.userId = authResult.user.id;
+		await options.session.regenerate(["userId"]);
+
 		return {
-			payload: await this.authService.signIn(options.body),
+			payload: authResult,
 			status: HTTPCode.OK,
 		};
 	}
@@ -145,8 +208,12 @@ class AuthController extends BaseController {
 			body: UserSignUpRequestDto;
 		}>,
 	): Promise<APIHandlerResponse> {
+		const authResult = await this.authService.signUp(options.body);
+		options.session.userId = authResult.user.id;
+		await options.session.regenerate(["userId"]);
+
 		return {
-			payload: await this.authService.signUp(options.body),
+			payload: authResult,
 			status: HTTPCode.CREATED,
 		};
 	}
