@@ -2,10 +2,12 @@ name: Deploy Frontend
 
 on:
   push:
-    branches: [1-setup-deployment]
+    branches: [development]
     paths:
       - 'apps/web/**'
       - 'packages/**'
+
+  workflow_dispatch:
 
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
