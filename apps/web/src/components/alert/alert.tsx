@@ -3,21 +3,21 @@ import { tv, type VariantProps } from "tailwind-variants";
 
 const alertStyles = tv({
 	slots: {
-		base: "alert",
+		base: "flex items-start gap-2.5 rounded-md px-4 py-3.5",
 		indicator: "mt-0.5 size-4 shrink-0 rounded-full",
 	},
 	variants: {
 		variant: {
 			error: {
-				base: "alert--error",
+				base: "border border-error/25 bg-error-bg",
 				indicator: "bg-error",
 			},
 			success: {
-				base: "alert--success",
+				base: "border border-success/25 bg-success-bg",
 				indicator: "bg-success",
 			},
 			warning: {
-				base: "alert--warning",
+				base: "border border-warning/30 bg-warning-bg",
 				indicator: "bg-warning",
 			},
 		},
