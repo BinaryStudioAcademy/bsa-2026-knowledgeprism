@@ -13,7 +13,7 @@ import { type Database } from "~/infrastructure/database/database.js";
 import { DatabaseStore } from "~/infrastructure/database/libs/packages/session/database-store.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
-import { AppEnvironment, ServerErrorType } from "~/shared/enums/enums.js";
+import { ServerErrorType } from "~/shared/enums/enums.js";
 import { type ValidationError } from "~/shared/exceptions/exceptions.js";
 import {
 	type ServerCommonErrorResponse,
