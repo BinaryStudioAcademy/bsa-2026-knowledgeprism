@@ -45,7 +45,7 @@ jobs:
       - name: Prepare Deployment Package
         run: |
           zip -r build.zip . \
-            -x '.git/*' '.github/*' 'node_modules/*' '**/node_modules/*' 'design/*' '.eslintrc*' '.prettierrc*' 'tsconfig*.json' 'eslint.config.js'
+            -x '.git/*' '.github/*' 'design/*' '.eslintrc*' '.prettierrc*' 'tsconfig*.json' 'eslint.config.js'
 
       - name: Deploy To Beanstalk
         uses: einaregilsson/beanstalk-deploy@v21
