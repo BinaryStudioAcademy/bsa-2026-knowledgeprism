@@ -126,3 +126,4 @@ const MenuItem = ({ item, onClose }: MenuItemProperties): React.JSX.Element => {
 };
 
 export { Dropdown };
+export { type DropdownItem };

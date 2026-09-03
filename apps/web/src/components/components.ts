@@ -3,6 +3,7 @@ export { Avatar } from "./avatar/avatar.js";
 export { Button } from "./button/button.js";
 export { Checkbox } from "./checkbox/checkbox.js";
 export { Dropdown } from "./dropdown/dropdown.js";
+export { type DropdownItem } from "./dropdown/dropdown.js";
 export { Heading } from "./heading/heading.js";
 export { Input } from "./input/input.js";
 export { Link } from "./link/link.js";
