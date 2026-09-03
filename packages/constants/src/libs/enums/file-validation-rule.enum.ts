@@ -1,0 +1,10 @@
+const BYTES_IN_KILOBYTE = 1024;
+const MAXIMUM_SIZE_MEGABYTES = 25;
+
+const FileValidationRule = {
+	MAXIMUM_SIZE_BYTES:
+		MAXIMUM_SIZE_MEGABYTES * BYTES_IN_KILOBYTE * BYTES_IN_KILOBYTE,
+	MAXIMUM_SIZE_MEGABYTES,
+} as const;
+
+export { FileValidationRule };

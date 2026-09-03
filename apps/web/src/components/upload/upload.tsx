@@ -1,3 +1,4 @@
+import { FileValidationRule } from "@knowledgeprism/constants";
 import React, { useCallback, useRef, useState } from "react";
 
 import { Icon } from "~/components/icon/icon.js";
@@ -23,7 +24,7 @@ type UploadFileStatusValue = ValueOf<typeof UploadFileStatus>;
 
 const DEFAULT_UPLOAD_PROGRESS = 0;
 
-const statusLabel: Record<UploadFileStatusValue, string> = {
+const statusToLabel: Record<UploadFileStatusValue, string> = {
 	[UploadFileStatus.DONE]: "Ready",
 	[UploadFileStatus.ERROR]: "Failed",
 	[UploadFileStatus.UPLOADING]: "Uploading…",
@@ -107,7 +108,8 @@ const Upload: React.FC<Properties> = ({
 					</button>
 				</div>
 				<div className="text-xs text-text-faint">
-					PDF, DOCX, TXT, MD, CSV · up to 25MB each
+					PDF, DOCX, TXT, MD, CSV · up to{" "}
+					{FileValidationRule.MAXIMUM_SIZE_MEGABYTES}MB each
 				</div>
 				<input
 					className="hidden"
@@ -133,7 +135,7 @@ const Upload: React.FC<Properties> = ({
 							<div className="min-w-0 flex-1">
 								<div className="truncate text-sm font-medium">{file.name}</div>
 								<div className="mt-0.5 text-xs text-text-faint">
-									{file.sizeLabel} · {statusLabel[file.status]}
+									{file.sizeLabel} · {statusToLabel[file.status]}
 								</div>
 								{file.status === UploadFileStatus.UPLOADING && (
 									<div className="mt-1.5 h-[3px] overflow-hidden rounded-full bg-border-subtle">
