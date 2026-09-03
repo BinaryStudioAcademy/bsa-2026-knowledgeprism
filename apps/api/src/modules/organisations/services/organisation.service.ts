@@ -27,8 +27,12 @@ class OrganisationService implements Service {
 		return Promise.resolve(true);
 	}
 
-	public find(): ReturnType<Service["find"]> {
-		return Promise.resolve(null);
+	public async find(id?: number): Promise<null | OrganisationEntity> {
+		if (!id) {
+			return null;
+		}
+
+		return await this.organisationRepository.find(id);
 	}
 
 	public findAll(): ReturnType<Service["findAll"]> {

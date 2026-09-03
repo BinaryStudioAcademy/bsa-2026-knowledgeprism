@@ -3,10 +3,10 @@ import {
 	type UserGetAllResponseDto,
 	type UserSignUpRequestDto,
 } from "@knowledgeprism/types";
-import argon2 from "argon2";
 import { type Transaction, UniqueViolationError } from "objection";
 
 import { HTTPError } from "~/infrastructure/http/http.js";
+import { type EncryptService } from "~/libs/services/encrypt/encrypt.service.js";
 import { UserEntity } from "~/modules/users/models/user.entity.js";
 import { type UserRepository } from "~/modules/users/repositories/user.repository.js";
 import { type Service } from "~/shared/types/types.js";
@@ -14,9 +14,15 @@ import { type Service } from "~/shared/types/types.js";
 const EMAIL_ALREADY_EXISTS_MESSAGE = "Email already exists";
 
 class UserService implements Service {
+	private encryptService: EncryptService;
+
 	private userRepository: UserRepository;
 
-	public constructor(userRepository: UserRepository) {
+	public constructor(
+		encryptService: EncryptService,
+		userRepository: UserRepository,
+	) {
+		this.encryptService = encryptService;
 		this.userRepository = userRepository;
 	}
 
@@ -42,9 +48,9 @@ class UserService implements Service {
 			});
 		}
 
-		const passwordHash = await argon2.hash(payload.password, {
-			type: argon2.argon2id,
-		});
+		const passwordHash = await this.encryptService.generateHash(
+			payload.password,
+		);
 
 		try {
 			return await this.userRepository.create(
@@ -84,6 +90,10 @@ class UserService implements Service {
 		return {
 			items: items.map((item) => item.toObject()),
 		};
+	}
+
+	public async findByEmail(email: string): Promise<null | UserEntity> {
+		return await this.userRepository.findByEmail(email);
 	}
 
 	public update(): ReturnType<Service["update"]> {
