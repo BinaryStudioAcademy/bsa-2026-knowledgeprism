@@ -40,7 +40,7 @@ jobs:
         run: npm run build
 
       - name: Prune dev dependencies
-        run: npm prune --omit=dev
+        run: npm prune --omit=dev --ignore-scripts
 
       - name: Prepare Deployment Package
         run: |
