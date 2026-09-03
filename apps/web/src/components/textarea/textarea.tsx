@@ -9,12 +9,16 @@ import { tv } from "tailwind-variants";
 import { useFormController } from "~/hooks/hooks.js";
 
 const textareaStyles = tv({
+	defaultVariants: {
+		hasError: false,
+		isDisabled: false,
+	},
 	slots: {
 		container: "w-full",
 		errorWrapper: "mt-1 block font-sans text-xs text-error",
-		labelWrapper: "mb-1.5 block font-sans text-xs font-medium text-text",
+		labelWrapper: "mb-1.5 block font-sans text-sm font-medium text-text",
 		textarea: [
-			"block w-full appearance-none rounded-md border px-3.5 py-2.5 font-sans text-sm text-text outline-none transition",
+			"block w-full appearance-none rounded-lg border px-3.5 py-2.5 font-sans text-sm text-text outline-none transition",
 			"focus:border-accent focus:ring-3 focus:ring-accent/15",
 			"disabled:cursor-not-allowed disabled:border-border-subtle disabled:bg-bg disabled:text-text-faint",
 			"resize-y",
@@ -27,7 +31,8 @@ const textareaStyles = tv({
 			},
 			true: {
 				labelWrapper: "text-error",
-				textarea: "border-error bg-error-bg",
+				textarea:
+					"border-error bg-error-bg focus:border-error focus:ring-error/15",
 			},
 		},
 		isDisabled: {
@@ -35,10 +40,6 @@ const textareaStyles = tv({
 				labelWrapper: "text-text-faint",
 			},
 		},
-	},
-	defaultVariants: {
-		hasError: false,
-		isDisabled: false,
 	},
 });
 

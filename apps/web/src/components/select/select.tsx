@@ -2,17 +2,21 @@ import { type ChangeEvent, type JSX, useCallback, useId } from "react";
 import { tv } from "tailwind-variants";
 
 const selectStyles = tv({
+	defaultVariants: {
+		hasError: false,
+		isDisabled: false,
+	},
 	slots: {
 		container: "relative",
-		errorWrapper: "font-sans text-xs text-error",
+		errorWrapper: "mt-1 block font-sans text-xs text-error",
 		icon: "pointer-events-none absolute right-3.5 top-1/2 h-1.5 w-2.5 -translate-y-1/2 text-text-subtle",
-		labelWrapper: "flex flex-col gap-1.5",
-		labelText: "font-sans text-xs text-text",
+		labelWrapper: "mb-1.5 block font-sans text-sm font-medium text-text",
 		select: [
-			"h-10 w-full appearance-none rounded-md border px-3.5 pr-9 font-sans text-sm text-text outline-none transition",
+			"block h-11 w-full appearance-none rounded-lg border px-3.5 pr-9 font-sans text-sm text-text outline-none transition",
 			"focus:border-accent focus:ring-3 focus:ring-accent/15",
 			"disabled:cursor-not-allowed disabled:border-border-subtle disabled:bg-bg disabled:text-text-faint",
 		],
+		wrapper: "w-full",
 	},
 	variants: {
 		hasError: {
@@ -20,20 +24,18 @@ const selectStyles = tv({
 				select: "border-border bg-surface",
 			},
 			true: {
-				labelText: "text-error",
-				select: "border-error bg-error-bg",
+				labelWrapper: "text-error",
+				select:
+					"border-error bg-error-bg focus:border-error focus:ring-error/15",
+			},
+		},
+		isDisabled: {
+			true: {
+				labelWrapper: "text-text-faint",
 			},
 		},
 	},
-	defaultVariants: {
-		hasError: false,
-	},
 });
-
-type SelectOption = {
-	label: string;
-	value: string;
-};
 
 type Properties = {
 	error?: string;
@@ -44,6 +46,11 @@ type Properties = {
 	onChange: (value: string) => void;
 	options: SelectOption[];
 	placeholder?: string;
+	value: string;
+};
+
+type SelectOption = {
+	label: string;
 	value: string;
 };
 
@@ -63,8 +70,8 @@ const Select = ({
 	const selectId = id ?? name ?? generatedId;
 	const errorId = hasError ? `${selectId}-error` : undefined;
 
-	const { container, errorWrapper, icon, labelText, labelWrapper, select } =
-		selectStyles({ hasError });
+	const { container, errorWrapper, icon, labelWrapper, select, wrapper } =
+		selectStyles({ hasError, isDisabled });
 
 	const handleChange = useCallback(
 		(event: ChangeEvent<HTMLSelectElement>): void => {
@@ -74,8 +81,12 @@ const Select = ({
 	);
 
 	return (
-		<label className={labelWrapper()}>
-			{label && <span className={labelText()}>{label}</span>}
+		<div className={wrapper()}>
+			{label && (
+				<label className={labelWrapper()} htmlFor={selectId}>
+					{label}
+				</label>
+			)}
 
 			<div className={container()}>
 				<select
@@ -115,7 +126,7 @@ const Select = ({
 					{error}
 				</span>
 			)}
-		</label>
+		</div>
 	);
 };
 
