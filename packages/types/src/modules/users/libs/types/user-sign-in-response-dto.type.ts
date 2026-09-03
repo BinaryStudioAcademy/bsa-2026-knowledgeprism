@@ -3,7 +3,6 @@ type UserSignInResponseDto = {
 		id: number;
 		name: string;
 	};
-	token: string;
 	user: {
 		email: string;
 		firstName: string;
