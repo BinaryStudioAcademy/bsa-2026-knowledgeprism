@@ -1,0 +1,133 @@
+name: Deploy Frontend
+
+on:
+  push:
+    branches: [development]
+    paths:
+      - 'apps/web/**'
+      - 'packages/**'
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  S3_BUCKET: ${{ vars.S3_BUCKET }}
+  CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+  FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: frontend
+      url: ${{ env.FRONTEND_URL }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Create GitHub Deployment
+        id: create_deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const res = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: "frontend",
+              auto_merge: false,
+              required_contexts: []
+            });
+            core.setOutput("deployment_id", String(res.data.id));
+
+      - name: Mark deployment in progress
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: Number("${{ steps.create_deployment.outputs.deployment_id }}"),
+              state: "in_progress",
+              environment_url: process.env.FRONTEND_URL || undefined,
+              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install NodeJS
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build shared packages
+        run: npm run build:packages
+
+      - name: Build frontend
+        env:
+          VITE_APP_NODE_ENV: production
+          VITE_APP_API_ORIGIN_URL: ${{ vars.VITE_APP_API_ORIGIN_URL }}
+        run: npm run build:web
+
+      - name: Deploy to S3
+        run: |
+          aws s3 sync apps/web/build/ s3://$S3_BUCKET \
+            --delete \
+            --cache-control max-age=31536000
+
+      - name: Invalidate CloudFront cache
+        id: invalidate
+        run: |
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
+            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+            --paths "/*" \
+            --query "Invalidation.Id" \
+            --output text)
+          echo "invalidation_id=$INVALIDATION_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for CloudFront invalidation to complete
+        run: |
+          aws cloudfront wait invalidation-completed \
+            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+            --id ${{ steps.invalidate.outputs.invalidation_id }}
+
+      - name: Mark deployment success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: Number("${{ steps.create_deployment.outputs.deployment_id }}"),
+              state: "success",
+              environment_url: process.env.FRONTEND_URL || undefined,
+              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+
+      - name: Mark deployment failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: Number("${{ steps.create_deployment.outputs.deployment_id }}"),
+              state: "failure",
+              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+
