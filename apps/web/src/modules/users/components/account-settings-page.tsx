@@ -93,7 +93,7 @@ const AccountSettingsPage: React.FC = () => {
 	);
 
 	const handleCancelClick = useCallback((): void => {
-		void navigate(AppRoute.WORKSPACE);
+		void navigate(AppRoute.ROOT);
 	}, [navigate]);
 
 	const handleDeleteAccountClick = useCallback((): void => {
