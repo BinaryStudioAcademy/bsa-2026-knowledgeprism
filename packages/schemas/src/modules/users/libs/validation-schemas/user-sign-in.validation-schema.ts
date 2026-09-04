@@ -1,5 +1,6 @@
 import { UserValidationRule } from "@knowledgeprism/constants";
 import { z } from "zod";
+
 import { email } from "./email.validation-schema.js";
 
 const userSignIn = z.object({
