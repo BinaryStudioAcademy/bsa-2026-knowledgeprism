@@ -1,23 +1,19 @@
 import { Heading, Paragraph, ParagraphSize } from "~/components/components.js";
 
+import { type AccountPreferences } from "../libs/types.js";
 import { PreferenceRow } from "../preference-row/preference-row.js";
 
 type Properties = {
-	isDocumentUpdatesEnabled: boolean;
-	isMentionsEnabled: boolean;
-	isWeeklyDigestEnabled: boolean;
-	onDocumentUpdatesChange: (isChecked: boolean) => void;
-	onMentionsChange: (isChecked: boolean) => void;
-	onWeeklyDigestChange: (isChecked: boolean) => void;
+	onPreferenceChange: (
+		key: keyof AccountPreferences,
+		isChecked: boolean,
+	) => void;
+	preferences: AccountPreferences;
 };
 
 const NotificationsSection: React.FC<Properties> = ({
-	isDocumentUpdatesEnabled,
-	isMentionsEnabled,
-	isWeeklyDigestEnabled,
-	onDocumentUpdatesChange,
-	onMentionsChange,
-	onWeeklyDigestChange,
+	onPreferenceChange,
+	preferences,
 }: Properties) => (
 	<section className="card hidden desktop:block">
 		<Heading className="mb-1" level={3}>
@@ -29,19 +25,22 @@ const NotificationsSection: React.FC<Properties> = ({
 
 		<div className="flex flex-col gap-3.5">
 			<PreferenceRow
-				isChecked={isDocumentUpdatesEnabled}
+				id="documentUpdates"
+				isChecked={preferences.documentUpdates}
 				label="Document updates in my projects"
-				onChange={onDocumentUpdatesChange}
+				onChange={onPreferenceChange}
 			/>
 			<PreferenceRow
-				isChecked={isWeeklyDigestEnabled}
+				id="weeklyDigest"
+				isChecked={preferences.weeklyDigest}
 				label="Weekly knowledge base digest"
-				onChange={onWeeklyDigestChange}
+				onChange={onPreferenceChange}
 			/>
 			<PreferenceRow
-				isChecked={isMentionsEnabled}
+				id="mentions"
+				isChecked={preferences.mentions}
 				label="Mentions in comments"
-				onChange={onMentionsChange}
+				onChange={onPreferenceChange}
 			/>
 		</div>
 	</section>

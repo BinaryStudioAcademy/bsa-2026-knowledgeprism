@@ -1,19 +1,25 @@
 import { Heading, Input } from "~/components/components.js";
 import { type Control } from "~/hooks/hooks.js";
 
-import { type AccountSettingsFormValues } from "../libs/types.js";
+import {
+	type AccountPreferences,
+	type AccountSettingsFormValues,
+} from "../libs/types.js";
 import { PreferenceRow } from "../preference-row/preference-row.js";
 
 type Properties = {
 	control: Control<AccountSettingsFormValues, null>;
-	isTwoFactorAuthEnabled: boolean;
-	onTwoFactorAuthChange: (isChecked: boolean) => void;
+	onPreferenceChange: (
+		key: keyof AccountPreferences,
+		isChecked: boolean,
+	) => void;
+	preferences: AccountPreferences;
 };
 
 const SecuritySection: React.FC<Properties> = ({
 	control,
-	isTwoFactorAuthEnabled,
-	onTwoFactorAuthChange,
+	onPreferenceChange,
+	preferences,
 }: Properties) => (
 	<section className="card hidden desktop:block">
 		<Heading className="mb-4.5" level={3}>
@@ -39,9 +45,10 @@ const SecuritySection: React.FC<Properties> = ({
 		<div className="border-t border-border-subtle pt-4">
 			<PreferenceRow
 				description="Add an extra layer of security to your account."
-				isChecked={isTwoFactorAuthEnabled}
+				id="twoFactorAuth"
+				isChecked={preferences.twoFactorAuth}
 				label="Two-factor authentication"
-				onChange={onTwoFactorAuthChange}
+				onChange={onPreferenceChange}
 			/>
 		</div>
 	</section>

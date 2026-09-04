@@ -59,27 +59,12 @@ const AccountSettingsPage: React.FC = () => {
 		};
 	}, [isToastVisible]);
 
-	const handleTwoFactorAuthChange = useCallback((isChecked: boolean): void => {
-		setPreferences((previous) => ({ ...previous, twoFactorAuth: isChecked }));
-	}, []);
-
-	const handleDocumentUpdatesChange = useCallback(
-		(isChecked: boolean): void => {
-			setPreferences((previous) => ({
-				...previous,
-				documentUpdates: isChecked,
-			}));
+	const handlePreferenceChange = useCallback(
+		(key: keyof AccountPreferences, isChecked: boolean): void => {
+			setPreferences((previous) => ({ ...previous, [key]: isChecked }));
 		},
 		[],
 	);
-
-	const handleWeeklyDigestChange = useCallback((isChecked: boolean): void => {
-		setPreferences((previous) => ({ ...previous, weeklyDigest: isChecked }));
-	}, []);
-
-	const handleMentionsChange = useCallback((isChecked: boolean): void => {
-		setPreferences((previous) => ({ ...previous, mentions: isChecked }));
-	}, []);
 
 	const handleValidSubmit = useCallback((): void => {
 		setIsToastVisible(true);
@@ -103,7 +88,11 @@ const AccountSettingsPage: React.FC = () => {
 	return (
 		<div className="relative flex flex-1 justify-center overflow-auto p-4 tablet:p-7 desktop:px-11 desktop:py-10">
 			{isToastVisible && (
-				<div className="absolute right-8 top-4.5 z-20 flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 font-sans text-sm font-medium text-primary-fg shadow-lg">
+				<div
+					aria-live="polite"
+					className="absolute right-8 top-4.5 z-20 flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 font-sans text-sm font-medium text-primary-fg shadow-lg"
+					role="status"
+				>
 					<Icon name="toast-check" size={TOAST_ICON_SIZE} />
 					Changes saved
 				</div>
@@ -128,24 +117,18 @@ const AccountSettingsPage: React.FC = () => {
 
 				<SecuritySection
 					control={control}
-					isTwoFactorAuthEnabled={preferences.twoFactorAuth}
-					onTwoFactorAuthChange={handleTwoFactorAuthChange}
+					onPreferenceChange={handlePreferenceChange}
+					preferences={preferences}
 				/>
 
 				<NotificationsSection
-					isDocumentUpdatesEnabled={preferences.documentUpdates}
-					isMentionsEnabled={preferences.mentions}
-					isWeeklyDigestEnabled={preferences.weeklyDigest}
-					onDocumentUpdatesChange={handleDocumentUpdatesChange}
-					onMentionsChange={handleMentionsChange}
-					onWeeklyDigestChange={handleWeeklyDigestChange}
+					onPreferenceChange={handlePreferenceChange}
+					preferences={preferences}
 				/>
 
 				<MobilePreferences
-					isTwoFactorAuthEnabled={preferences.twoFactorAuth}
-					isWeeklyDigestEnabled={preferences.weeklyDigest}
-					onTwoFactorAuthChange={handleTwoFactorAuthChange}
-					onWeeklyDigestChange={handleWeeklyDigestChange}
+					onPreferenceChange={handlePreferenceChange}
+					preferences={preferences}
 				/>
 
 				<DangerZoneSection onDeleteAccountClick={handleDeleteAccountClick} />
