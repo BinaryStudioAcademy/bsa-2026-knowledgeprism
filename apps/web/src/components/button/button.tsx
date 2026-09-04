@@ -54,7 +54,7 @@ const buttonStyles = tv({
 		base: [
 			"inline-flex items-center justify-center gap-2 px-5 py-2.5 font-sans text-[13px] font-medium leading-normal transition-colors rounded-md",
 			"focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35",
-			"disabled:cursor-not-allowed",
+			"cursor-pointer disabled:cursor-not-allowed",
 		],
 		content: "",
 		spinner:

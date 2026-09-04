@@ -14,7 +14,7 @@ const selectStyles = tv({
 		select: [
 			"block h-11 w-full appearance-none rounded-lg border px-3.5 pr-9 font-sans text-sm text-text outline-none transition",
 			"focus:border-accent focus:ring-3 focus:ring-accent/15",
-			"disabled:cursor-not-allowed disabled:border-border-subtle disabled:bg-bg disabled:text-text-faint",
+			"cursor-pointer disabled:cursor-not-allowed disabled:border-border-subtle disabled:bg-bg disabled:text-text-faint",
 		],
 		wrapper: "w-full",
 	},
