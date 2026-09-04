@@ -14,7 +14,7 @@ const HERO_SECTION_CLASS = {
 	COPY: "min-w-[340px] flex-1",
 	HEADING:
 		"mb-5 font-serif text-[clamp(34px,5vw,54px)] font-normal leading-[1.08] tracking-[-0.5px] text-text",
-	ROOT: `${LANDING_SECTION_CONTAINER_CLASS} flex flex-wrap items-center gap-14 py-[clamp(48px,8vw,96px)]`,
+	ROOT: `${LANDING_SECTION_CONTAINER_CLASS} flex flex-wrap items-center gap-x-14 gap-y-7 py-[clamp(48px,8vw,96px)]`,
 } as const;
 
 const HERO_DEMO_PANEL = {
