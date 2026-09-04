@@ -10,6 +10,8 @@ import { AppEnvironment } from "~/lib/enums/enums.js";
 import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
 import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
 
+import { errorMiddleware } from "./error.middleware.js";
+
 type ExtraArguments = {
 	authApi: typeof authApi;
 	userApi: typeof userApi;
@@ -37,7 +39,7 @@ class Store {
 					thunk: {
 						extraArgument: this.extraArguments,
 					},
-				});
+				}).concat(errorMiddleware);
 			},
 			reducer: {
 				auth: authReducer,
