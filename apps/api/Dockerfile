@@ -13,7 +13,6 @@
 
 FROM node:24-slim AS base
 WORKDIR /app
-ENV NODE_ENV=production
 
 FROM base AS deps
 # Root manifest and TS project files (packages/*/tsconfig.build.json extend
@@ -23,9 +22,10 @@ COPY package.json package-lock.json .npmrc .nvmrc tsconfig.json packages.d.ts ./
 # package has a "postinstall" script that compiles it with tsc.
 COPY packages ./packages
 COPY apps/api/package.json ./apps/api/package.json
-RUN npm ci --include-workspace-root -w apps/api
+RUN npm ci
 
 FROM base AS runner
+ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/packages ./packages
