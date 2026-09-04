@@ -3,6 +3,7 @@ import { HowItWorksSection } from "./how-it-works-section/how-it-works-section.j
 import { LandingHeader } from "./landing-header/landing-header.js";
 import { SocialProofSection } from "./social-proof-section/social-proof-section.js";
 import { WhatItIsSection } from "./what-it-is-section/what-it-is-section.js";
+import { FeaturesSection } from "./features-section/features-section.js";
 
 const LandingPage: React.FC = () => {
 	return (
@@ -12,6 +13,7 @@ const LandingPage: React.FC = () => {
 			<SocialProofSection />
 			<WhatItIsSection />
 			<HowItWorksSection />
+			<FeaturesSection />
 		</>
 	);
 };
