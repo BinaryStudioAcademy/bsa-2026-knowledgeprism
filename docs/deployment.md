@@ -104,7 +104,7 @@ Currently configured (see repository Settings → Variables):
 | `AWS_REGION`                 | `eu-west-3`                           | both                                                    |
 | `AWS_ACCOUNT_ID`             | `632291707800`                        | (available; not directly referenced in either workflow) |
 | `ECR_REPOSITORY`             | `knowledgeprism-backend`              | backend                                                 |
-| `ECS_CLUSTER`                | `knowledgeprism-backend`              | backend                                                 |
+| `ECS_CLUSTER`                | `knowledgeprism-cluster`              | backend                                                 |
 | `ECS_SERVICE`                | `knowledgeprism-api-service-9rkq453k` | backend                                                 |
 | `S3_BUCKET`                  | `knowledgeprism-frontend`             | frontend                                                |
 | `CLOUDFRONT_DISTRIBUTION_ID` | `E2WX77HO0FCTMV`                      | frontend                                                |

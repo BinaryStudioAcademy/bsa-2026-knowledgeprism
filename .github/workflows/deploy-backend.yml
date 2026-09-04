@@ -9,16 +9,33 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+  deployments: write
+
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
   ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
   ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+  API_URL: ${{ vars.API_URL }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: backend
+      url: ${{ env.API_URL }}
+
     steps:
+      - name: Create Deployment
+        uses: chrnorm/deployment-action@v2
+        id: deployment
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment-url: ${{ env.API_URL }}
+          environment: backend
+
       - name: Checkout code
         uses: actions/checkout@v7
 
@@ -51,3 +68,19 @@ jobs:
             --service $ECS_SERVICE \
             --force-new-deployment \
             --region $AWS_REGION
+
+      - name: Wait for ECS service to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --cluster $ECS_CLUSTER \
+            --services $ECS_SERVICE \
+            --region $AWS_REGION
+
+      - name: Update Deployment Status
+        if: always()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment-url: ${{ steps.deployment.outputs.environment_url }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: ${{ job.status }}

@@ -9,15 +9,32 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+  deployments: write
+
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   S3_BUCKET: ${{ vars.S3_BUCKET }}
   CLOUDFRONT_DISTRIBUTION_ID: ${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}
+  FRONTEND_URL: ${{ vars.FRONTEND_URL }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: frontend
+      url: ${{ env.FRONTEND_URL }}
+
     steps:
+      - name: Create Deployment
+        uses: chrnorm/deployment-action@v2
+        id: deployment
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment-url: ${{ env.FRONTEND_URL }}
+          environment: frontend
+
       - name: Checkout code
         uses: actions/checkout@v7
 
@@ -40,6 +57,9 @@ jobs:
         run: npm run build:packages
 
       - name: Build frontend
+        env:
+          VITE_APP_NODE_ENV: production
+          VITE_APP_API_ORIGIN_URL: ${{ vars.VITE_APP_API_ORIGIN_URL }}
         run: npm run build:web
 
       - name: Deploy to S3
@@ -49,7 +69,26 @@ jobs:
             --cache-control max-age=31536000
 
       - name: Invalidate CloudFront cache
+        id: invalidate
         run: |
-          aws cloudfront create-invalidation \
+          INVALIDATION_ID=$(aws cloudfront create-invalidation \
             --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
-            --paths "/*"
+            --paths "/*" \
+            --query "Invalidation.Id" \
+            --output text)
+          echo "invalidation_id=$INVALIDATION_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for CloudFront invalidation to complete
+        run: |
+          aws cloudfront wait invalidation-completed \
+            --distribution-id $CLOUDFRONT_DISTRIBUTION_ID \
+            --id ${{ steps.invalidate.outputs.invalidation_id }}
+
+      - name: Update Deployment Status
+        if: always()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment-url: ${{ steps.deployment.outputs.environment_url }}
+          deployment-id: ${{ steps.deployment.outputs.deployment_id }}
+          state: ${{ job.status }}
