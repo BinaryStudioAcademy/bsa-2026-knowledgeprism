@@ -10,7 +10,7 @@ let Config;
 
 /** @type {Config} */
 const ignoresConfig = {
-	ignores: ["build"],
+ignores: ["build", "storybook-static"], // 👈 Add "storybook-static" here!
 };
 
 /** @type {Config} */

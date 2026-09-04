@@ -11,6 +11,7 @@ ignore:
   - .github
   - node_modules
   - build
+  - storybook-static
   - packages/types/build
   - packages/types/node_modules
   - packages/schemas/build
@@ -21,6 +22,7 @@ ignore:
   - packages/constants/node_modules
   - apps/web/build
   - apps/web/node_modules
+  - apps/web/storybook-static
   - apps/api/build
   - apps/api/node_modules
   - apps/worker/build

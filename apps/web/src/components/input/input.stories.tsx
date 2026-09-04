@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
 import { Input } from "./input.js";
@@ -9,23 +10,37 @@ type FormValues = {
 };
 
 const InputWrapper = ({
+	disabled = false,
+	hasError = false,
 	label = "Email Address",
 	placeholder = "Enter your email",
 	type = "text",
 }: {
+	disabled?: boolean;
+	hasError?: boolean;
 	label?: string;
 	placeholder?: string;
-	type?: "email" | "text";
+	type?: "email" | "password" | "text";
 }): React.JSX.Element => {
-	const { control } = useForm<FormValues>({
+	const { control, setError } = useForm<FormValues>({
 		defaultValues: {
 			email: "",
 		},
 	});
 
+	useEffect(() => {
+		if (hasError) {
+			setError("email", {
+				message: "Please enter a valid value.",
+				type: "manual",
+			});
+		}
+	}, [hasError, setError]);
+
 	return (
 		<Input
 			control={control}
+			disabled={disabled}
 			label={label}
 			name="email"
 			placeholder={placeholder}
@@ -57,5 +72,31 @@ const Email: Story = {
 	},
 };
 
+const Password: Story = {
+	args: {
+		label: "Password",
+		placeholder: "Enter your password",
+		type: "password",
+	},
+};
+
+const Disabled: Story = {
+	args: {
+		disabled: true,
+		label: "Disabled Input",
+		placeholder: "This input is disabled",
+		type: "text",
+	},
+};
+
+const WithError: Story = {
+	args: {
+		hasError: true,
+		label: "Username",
+		placeholder: "Enter username",
+		type: "text",
+	},
+};
+
 export default meta;
-export { Default, Email };
+export { Default, Disabled, Email, Password, WithError };
