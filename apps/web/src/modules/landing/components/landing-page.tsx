@@ -6,6 +6,7 @@ import { WhatItIsSection } from "./what-it-is-section/what-it-is-section.js";
 import { FeaturesSection } from "./features-section/features-section.js";
 import { AudienceSection } from "./audience-section/audience-section.js";
 import { CtaSection } from "./cta-section/cta-section.js";
+import { LandingFooter } from "./landing-footer/landing-footer.js";
 
 const LandingPage: React.FC = () => {
 	return (
@@ -18,6 +19,7 @@ const LandingPage: React.FC = () => {
 			<FeaturesSection />
 			<AudienceSection />
 			<CtaSection />
+			<LandingFooter />
 		</>
 	);
 };
