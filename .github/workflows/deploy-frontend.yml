@@ -77,6 +77,9 @@ jobs:
         run: npm run build:packages
 
       - name: Build frontend
+        env:
+          VITE_APP_NODE_ENV: production
+          VITE_APP_API_ORIGIN_URL: ${{ vars.VITE_APP_API_ORIGIN_URL }}
         run: npm run build:web
 
       - name: Deploy to S3
