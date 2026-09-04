@@ -62,6 +62,8 @@ jobs:
           key: ci-${{ hashFiles('**/package-lock.json') }}
 
       - name: Code Linting
+        env:
+          EC_VERSION: v3.11.2
         run: |
           npm run lint
   build:
