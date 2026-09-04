@@ -62,12 +62,7 @@ const LandingHeader: React.FC = () => {
 				"border-b border-border bg-bg/92 backdrop-blur-[6px]",
 			)}
 		>
-			<div
-				className={getValidClassNames(
-					"mx-auto flex h-[72px] max-w-[1240px] items-center justify-between",
-					"px-[clamp(20px,5vw,40px)]",
-				)}
-			>
+			<div className={LANDING_HEADER_CLASS.INNER}>
 				<RouterLink
 					className={getValidClassNames(
 						"text-text no-underline",
@@ -148,11 +143,7 @@ const LandingHeader: React.FC = () => {
 			{isMenuOpen && (
 				<nav
 					aria-label={HEADER_LABEL.MOBILE_NAV}
-					className={getValidClassNames(
-						"flex flex-col gap-3.5 border-t border-border bg-bg",
-						"px-[clamp(20px,5vw,40px)] pb-6 pt-4",
-						"tablet:hidden",
-					)}
+					className={LANDING_HEADER_CLASS.MOBILE_NAV}
 					id={HEADER_NAV_ID}
 				>
 					{HEADER_SECTION_LINKS.map((item) => (
