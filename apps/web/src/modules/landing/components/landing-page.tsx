@@ -4,6 +4,7 @@ import { LandingHeader } from "./landing-header/landing-header.js";
 import { SocialProofSection } from "./social-proof-section/social-proof-section.js";
 import { WhatItIsSection } from "./what-it-is-section/what-it-is-section.js";
 import { FeaturesSection } from "./features-section/features-section.js";
+import { AudienceSection } from "./audience-section/audience-section.js";
 
 const LandingPage: React.FC = () => {
 	return (
@@ -14,6 +15,7 @@ const LandingPage: React.FC = () => {
 			<WhatItIsSection />
 			<HowItWorksSection />
 			<FeaturesSection />
+			<AudienceSection />
 		</>
 	);
 };
