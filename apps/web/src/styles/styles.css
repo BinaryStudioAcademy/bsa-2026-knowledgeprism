@@ -20,6 +20,7 @@
 	--color-secondary: rgb(242 240 236);
 	--color-accent: rgb(42 107 90);
 	--color-accent-hover: rgb(30 80 68);
+	--color-accent-light: rgb(58 139 116);
 	--color-bg: rgb(250 249 247);
 	--color-surface: rgb(255 255 255);
 	--color-border: rgb(229 226 219);
@@ -53,102 +54,6 @@
 }
 
 @layer components {
-	.btn {
-		padding: 10px 20px;
-		font-family: var(--font-sans);
-		font-size: 13px;
-		font-weight: 500;
-		border-radius: var(--radius-md);
-	}
-
-	.btn:focus-visible {
-		outline: none;
-		box-shadow: 0 0 0 3px rgb(42 107 90 / 35%);
-	}
-
-	.btn:disabled {
-		cursor: not-allowed;
-	}
-
-	.btn-primary {
-		color: var(--color-primary-fg);
-		background-color: var(--color-primary);
-	}
-
-	.btn-primary:disabled {
-		color: var(--color-text-faint);
-		background-color: var(--color-border-subtle);
-	}
-
-	.btn-primary:hover:not(:disabled) {
-		background-color: var(--color-primary-hover);
-	}
-
-	.btn-secondary {
-		color: var(--color-text);
-		background-color: var(--color-surface);
-		border: 1px solid var(--color-border);
-	}
-
-	.btn-secondary:disabled {
-		color: var(--color-text-disabled);
-		background-color: var(--color-surface);
-		border-color: var(--color-border-subtle);
-	}
-
-	.btn-secondary:hover:not(:disabled) {
-		background-color: var(--color-border-subtle);
-	}
-
-	.btn-ghost {
-		color: var(--color-text);
-		background-color: transparent;
-	}
-
-	.btn-ghost:disabled {
-		color: var(--color-text-disabled);
-		background-color: transparent;
-	}
-
-	.btn-ghost:hover:not(:disabled) {
-		background-color: var(--color-border-subtle);
-	}
-
-	.btn-destructive {
-		color: var(--color-primary-fg);
-		background-color: var(--color-error);
-	}
-
-	.btn-destructive:focus-visible {
-		box-shadow: 0 0 0 3px rgb(196 67 58 / 30%);
-	}
-
-	.btn-destructive:disabled {
-		color: var(--color-error-disabled);
-		background-color: var(--color-error-bg);
-	}
-
-	.btn-destructive:hover:not(:disabled) {
-		background-color: var(--color-error-hover);
-	}
-
-	.btn-icon {
-		width: 36px;
-		height: 36px;
-		padding: 0;
-		background-color: transparent;
-		border: 1px solid var(--color-border);
-	}
-
-	.btn-icon:disabled {
-		color: var(--color-text-disabled);
-		border-color: var(--color-border-subtle);
-	}
-
-	.btn-icon:hover:not(:disabled) {
-		background-color: var(--color-border-subtle);
-	}
-
 	.ds-nav-link {
 		display: flex;
 		align-items: center;
@@ -209,74 +114,6 @@
 		border-bottom-color: var(--color-accent);
 	}
 
-	.form-label {
-		display: block;
-		margin-bottom: 6px;
-		font-family: var(--font-sans);
-		font-size: 12px;
-		font-weight: 500;
-		color: var(--color-text);
-	}
-
-	.form-label.is-error {
-		color: var(--color-error);
-	}
-
-	.form-input,
-	.form-textarea,
-	.form-select {
-		width: 100%;
-		padding: 0 14px;
-		font-family: var(--font-sans);
-		font-size: 14px;
-		color: var(--color-text);
-		background-color: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		transition:
-			border-color 0.15s ease,
-			box-shadow 0.15s ease;
-	}
-
-	.form-input,
-	.form-select {
-		height: 40px;
-	}
-
-	.form-textarea {
-		padding-top: 10px;
-		padding-bottom: 10px;
-		resize: vertical;
-	}
-
-	.form-input:focus,
-	.form-textarea:focus,
-	.form-select:focus {
-		outline: none;
-		border-color: var(--color-accent);
-		box-shadow: 0 0 0 3px rgb(42 107 90 / 15%);
-	}
-
-	.form-input.is-error,
-	.form-textarea.is-error {
-		background-color: var(--color-error-bg);
-		border-color: var(--color-error);
-	}
-
-	.form-error-message {
-		margin-top: 4px;
-		font-size: 12px;
-		color: var(--color-error);
-	}
-
-	.form-input:disabled,
-	.form-textarea:disabled {
-		color: var(--color-text-faint);
-		cursor: not-allowed;
-		background-color: var(--color-bg);
-		border-color: var(--color-border-subtle);
-	}
-
 	.card {
 		padding: 24px;
 		overflow: hidden;
@@ -321,29 +158,6 @@
 	.badge--error {
 		color: var(--color-error);
 		background: var(--color-error-bg);
-	}
-
-	.alert {
-		display: flex;
-		gap: 10px;
-		align-items: flex-start;
-		padding: 14px 16px;
-		border-radius: var(--radius-md);
-	}
-
-	.alert--success {
-		background: var(--color-success-bg);
-		border: 1px solid rgb(42 107 90 / 25%);
-	}
-
-	.alert--warning {
-		background: var(--color-warning-bg);
-		border: 1px solid rgb(201 154 58 / 30%);
-	}
-
-	.alert--error {
-		background: var(--color-error-bg);
-		border: 1px solid rgb(196 67 58 / 25%);
 	}
 
 	.empty-state {

@@ -1,46 +1,47 @@
 import { type JSX } from "react";
+import { tv, type VariantProps } from "tailwind-variants";
 
-import { getValidClassNames } from "~/lib/helpers/helpers.js";
+const loaderStyles = tv({
+	defaultVariants: {
+		size: "sm",
+	},
+	slots: {
+		overlay:
+			"bg-bg/80 absolute inset-0 z-50 flex items-center justify-center backdrop-blur-xs",
+		spinner:
+			"inline-block animate-spin rounded-full border-solid border-accent border-t-transparent",
+	},
+	variants: {
+		size: {
+			lg: { spinner: "size-10 border-4" },
+			md: { spinner: "size-6 border-3" },
+			sm: { spinner: "size-3.5 border-2" },
+		},
+	},
+});
 
-type Properties = {
+type LoaderVariants = VariantProps<typeof loaderStyles>;
+
+type Properties = LoaderVariants & {
 	hasOverlay?: boolean;
-	size?: Size;
 };
 
-type Size = "lg" | "md" | "sm";
+const Spinner = ({ size }: LoaderVariants): JSX.Element => {
+	const { spinner } = loaderStyles({ size });
 
-type SpinnerProperties = {
-	size?: Size;
-};
-
-const sizeToStyle = {
-	lg: "size-10 border-4",
-	md: "size-6 border-3",
-	sm: "size-3.5 border-2",
-} as const;
-
-const Spinner = ({ size = "sm" }: SpinnerProperties): JSX.Element => {
 	return (
-		<span
-			aria-label="Loading"
-			className={getValidClassNames(
-				"inline-block animate-spin rounded-full border-solid border-accent border-t-transparent",
-				sizeToStyle[size],
-			)}
-			role="status"
-		>
+		<span aria-label="Loading" className={spinner()} role="status">
 			<span className="sr-only">Loading...</span>
 		</span>
 	);
 };
 
-const Loader = ({
-	hasOverlay = false,
-	size = "sm",
-}: Properties): JSX.Element => {
+const Loader = ({ hasOverlay = false, size }: Properties): JSX.Element => {
 	if (hasOverlay) {
+		const { overlay } = loaderStyles({ size });
+
 		return (
-			<div className="bg-bg/80 absolute inset-0 z-50 flex items-center justify-center backdrop-blur-xs">
+			<div className={overlay()}>
 				<Spinner size={size} />
 			</div>
 		);
