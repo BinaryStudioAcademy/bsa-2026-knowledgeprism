@@ -39,16 +39,16 @@ const logoStyles = tv({
 		},
 		variant: {
 			default: {
-				facetHighlight: "fill-[rgb(58,139,116)]",
-				facetLeft: "fill-[rgb(30,80,68)]",
-				facetRight: "fill-[rgb(42,107,90)]",
+				facetHighlight: "fill-accent-light",
+				facetLeft: "fill-accent-hover",
+				facetRight: "fill-accent",
 				prismText: "text-accent",
 				text: "text-text",
 			},
 			inverted: {
-				facetHighlight: "fill-[rgba(255,255,255,0.85)]",
-				facetLeft: "fill-[rgba(255,255,255,0.55)]",
-				facetRight: "fill-[#ffffff]",
+				facetHighlight: "fill-white/85",
+				facetLeft: "fill-white/55",
+				facetRight: "fill-white",
 				prismText: "text-white",
 				text: "text-white",
 			},
