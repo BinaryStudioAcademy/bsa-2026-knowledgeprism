@@ -5,6 +5,7 @@ import { SocialProofSection } from "./social-proof-section/social-proof-section.
 import { WhatItIsSection } from "./what-it-is-section/what-it-is-section.js";
 import { FeaturesSection } from "./features-section/features-section.js";
 import { AudienceSection } from "./audience-section/audience-section.js";
+import { CtaSection } from "./cta-section/cta-section.js";
 
 const LandingPage: React.FC = () => {
 	return (
@@ -16,6 +17,7 @@ const LandingPage: React.FC = () => {
 			<HowItWorksSection />
 			<FeaturesSection />
 			<AudienceSection />
+			<CtaSection />
 		</>
 	);
 };
