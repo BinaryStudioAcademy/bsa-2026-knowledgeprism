@@ -1,4 +1,10 @@
-import { Link, Logo, RouterOutlet } from "~/components/components.js";
+import {
+	Link,
+	Logo,
+	MobileNav,
+	RouterOutlet,
+	Sidebar,
+} from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -7,6 +13,9 @@ import {
 } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { actions as userActions } from "~/modules/users/users.js";
+
+const PLACEHOLDER_PROJECT_NAME = "Project Alpha";
+const PLACEHOLDER_ROLE = "EDITOR";
 
 const App: React.FC = () => {
 	const { pathname } = useLocation();
@@ -41,8 +50,15 @@ const App: React.FC = () => {
 			</ul>
 			<p>Current path: {pathname}</p>
 
-			<div>
-				<RouterOutlet />
+			<div className="flex h-screen flex-col tablet:flex-row">
+				<Sidebar
+					projectName={PLACEHOLDER_PROJECT_NAME}
+					role={PLACEHOLDER_ROLE}
+				/>
+				<main className="flex-1 overflow-auto">
+					<RouterOutlet />
+				</main>
+				<MobileNav />
 			</div>
 			{isRoot && (
 				<>
