@@ -28,6 +28,8 @@ FROM base AS runner
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
+COPY --from=deps /app/tsconfig.json ./tsconfig.json
+COPY --from=deps /app/packages.d.ts ./packages.d.ts
 COPY --from=deps /app/packages ./packages
 COPY apps/api ./apps/api
 
