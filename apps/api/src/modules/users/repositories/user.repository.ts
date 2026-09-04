@@ -63,7 +63,7 @@ class UserRepository implements Repository {
 
 	public async createOrgUser(
 		entity: UserEntity,
-		assignedProjects: ProjectAssignmentDto[],
+		assignedProjects?: ProjectAssignmentDto[],
 	): Promise<UserEntity> {
 		const { email, firstName, lastName, organisationId, passwordHash, status } =
 			entity.toNewObject();
@@ -83,7 +83,7 @@ class UserRepository implements Repository {
 				.returning("*")
 				.execute();
 
-			if (assignedProjects.length > EMPTY_LENGTH) {
+			if (assignedProjects && assignedProjects.length > EMPTY_LENGTH) {
 				const projectMembersToInsert = assignedProjects.map((project) => ({
 					projectId: project.projectId,
 					role: project.role,

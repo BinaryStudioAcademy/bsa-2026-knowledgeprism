@@ -39,10 +39,22 @@ class BaseController implements Controller {
 	private mapRequest(request: FastifyRequest): APIHandlerOptions {
 		const { body, params, query } = request;
 
+		// TODO: Remove this mock when the session management and registration flow
+		// are merged into development. This mock is temporarily needed because our current
+		// branch does not have the fastify session plugin implemented yet, but our endpoints
+		// require `userId` and `organisationId` to test and enforce tenant isolation locally.
+		const session = (
+			request as FastifyRequest & { session?: APIHandlerOptions["session"] }
+		).session ?? {
+			organisationId: 1,
+			userId: 1,
+		};
+
 		return {
 			body,
 			params,
 			query,
+			session,
 		};
 	}
 
