@@ -1,1 +1,5 @@
-export { userSignUpValidationSchema } from "./modules/users/users.js";
+export {
+	userCreateValidationSchema,
+	userSignUpValidationSchema,
+	userUpdateValidationSchema,
+} from "./modules/users/users.js";

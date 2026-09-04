@@ -1,6 +1,6 @@
 import { type ProjectAssignmentDto } from "./project-assignment-dto.type.js";
 
-type UserGetAllItemResponseDto = {
+type UserDetailsResponseDto = {
 	assignedProjects: ProjectAssignmentDto[];
 	email: string;
 	firstName: null | string;
@@ -9,4 +9,4 @@ type UserGetAllItemResponseDto = {
 	status: "active" | "inactive";
 };
 
-export { type UserGetAllItemResponseDto };
+export { type UserDetailsResponseDto };
