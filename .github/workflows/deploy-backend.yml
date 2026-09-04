@@ -9,18 +9,55 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+  deployments: write
+
 env:
   AWS_REGION: ${{ vars.AWS_REGION }}
   ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
   ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
   ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+  API_URL: ${{ vars.API_URL }}
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: backend
+      url: ${{ env.API_URL }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+
+      - name: Create GitHub Deployment
+        id: create_deployment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const res = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: "backend",
+              auto_merge: false,
+              required_contexts: []
+            });
+            core.setOutput("deployment_id", String(res.data.id));
+
+      - name: Mark deployment in progress
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: Number("${{ steps.create_deployment.outputs.deployment_id }}"),
+              state: "in_progress",
+              environment_url: process.env.API_URL || undefined,
+              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v6
@@ -51,3 +88,31 @@ jobs:
             --service $ECS_SERVICE \
             --force-new-deployment \
             --region $AWS_REGION
+
+      - name: Mark deployment success
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: Number("${{ steps.create_deployment.outputs.deployment_id }}"),
+              state: "success",
+              environment_url: process.env.API_URL || undefined,
+              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+
+      - name: Mark deployment failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: Number("${{ steps.create_deployment.outputs.deployment_id }}"),
+              state: "failure",
+              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+            });
+
