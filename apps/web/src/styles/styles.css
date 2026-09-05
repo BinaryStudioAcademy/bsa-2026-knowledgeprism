@@ -48,6 +48,7 @@
 	--shadow-lg: 0 12px 32px rgb(0 0 0 / 10%);
 	--shadow-control: 0 1px 2px rgb(0 0 0 / 20%);
 	--breakpoint-mobile: 390px;
+	--breakpoint-tablet-small: 860px;
 	--breakpoint-tablet: 1024px;
 	--breakpoint-desktop: 1440px;
 }

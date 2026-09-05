@@ -1,4 +1,4 @@
-import { Link, Logo, RouterOutlet } from "~/components/components.js";
+import { Header, RouterOutlet } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -26,21 +26,7 @@ const App: React.FC = () => {
 
 	return (
 		<>
-			<Logo to={AppRoute.ROOT} />
-
-			<ul className="App-navigation-list">
-				<li>
-					<Link to={AppRoute.ROOT}>Root</Link>
-				</li>
-				<li>
-					<Link to={AppRoute.SIGN_IN}>Sign in</Link>
-				</li>
-				<li>
-					<Link to={AppRoute.SIGN_UP}>Sign up</Link>
-				</li>
-			</ul>
-			<p>Current path: {pathname}</p>
-
+			{isRoot && <Header />}
 			<div>
 				<RouterOutlet />
 			</div>
