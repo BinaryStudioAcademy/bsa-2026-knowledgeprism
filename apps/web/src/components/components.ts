@@ -2,6 +2,8 @@ export { Alert } from "./alert/alert.js";
 export { Avatar } from "./avatar/avatar.js";
 export { Button } from "./button/button.js";
 export { Checkbox } from "./checkbox/checkbox.js";
+export { Dropdown } from "./dropdown/dropdown.js";
+export { type DropdownItem } from "./dropdown/dropdown.js";
 export { Heading } from "./heading/heading.js";
 export { Icon } from "./icon/icon.js";
 export { Input } from "./input/input.js";
