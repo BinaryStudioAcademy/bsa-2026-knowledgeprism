@@ -1,5 +1,5 @@
 import knex, { type Knex } from "knex";
-import { knexSnakeCaseMappers, Model } from "objection";
+import { knexSnakeCaseMappers, Model, type Transaction } from "objection";
 
 import { type Config } from "~/infrastructure/config/config.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
@@ -10,6 +10,8 @@ import { type Database } from "./libs/types/types.js";
 
 class BaseDatabase implements Database {
 	private appConfig: Config;
+
+	private knexInstance!: Knex;
 
 	private logger: Logger;
 
@@ -39,6 +41,10 @@ class BaseDatabase implements Database {
 		};
 	}
 
+	public get client(): Knex {
+		return this.knexInstance;
+	}
+
 	public get environmentsConfig(): Database["environmentsConfig"] {
 		return {
 			[AppEnvironment.DEVELOPMENT]: this.initialConfig,
@@ -49,7 +55,14 @@ class BaseDatabase implements Database {
 	public connect(): ReturnType<Database["connect"]> {
 		this.logger.info("Establish DB connection...");
 
-		Model.knex(knex.default(this.environmentConfig));
+		this.knexInstance = knex.default(this.environmentConfig);
+		Model.knex(this.knexInstance);
+	}
+
+	public transaction<T>(
+		handler: (transaction: Transaction) => Promise<T>,
+	): Promise<T> {
+		return Model.transaction(handler);
 	}
 }
 
