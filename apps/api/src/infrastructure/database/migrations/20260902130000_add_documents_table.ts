@@ -23,7 +23,7 @@ function down(knex: Knex): Promise<void> {
 function up(knex: Knex): Promise<void> {
 	return knex.schema.createTable(TABLE_NAME, (table) => {
 		table.increments(ColumnName.ID).primary();
-		table.string(ColumnName.PROJECT_ID).notNullable();
+		table.string(ColumnName.PROJECT_ID).notNullable().index();
 		table.string(ColumnName.NAME).notNullable();
 		table.string(ColumnName.MIME_TYPE).notNullable();
 		table.integer(ColumnName.SIZE_IN_BYTES).nullable();
