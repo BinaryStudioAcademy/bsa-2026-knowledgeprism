@@ -20,16 +20,15 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 			<RouterProvider
 				routes={[
 					{
-						element: <PublicLayout />,
 						children: [
 							{
 								element: <App />,
 								path: AppRoute.ROOT,
 							},
 						],
+						element: <PublicLayout />,
 					},
 					{
-						element: <AuthLayout />,
 						children: [
 							{
 								element: <AuthPage />,
@@ -40,15 +39,16 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								path: AppRoute.SIGN_UP,
 							},
 						],
+						element: <AuthLayout />,
 					},
 					{
-						element: <AppLayout />,
 						children: [
 							{
-								element: <SidebarLayout />,
 								children: [],
+								element: <SidebarLayout />,
 							},
 						],
+						element: <AppLayout />,
 					},
 				]}
 			/>
