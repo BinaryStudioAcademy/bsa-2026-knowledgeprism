@@ -1,13 +1,17 @@
 export { Alert } from "./alert/alert.js";
+export { Avatar } from "./avatar/avatar.js";
 export { Button } from "./button/button.js";
 export { Checkbox } from "./checkbox/checkbox.js";
 export { Heading } from "./heading/heading.js";
+export { Icon } from "./icon/icon.js";
 export { Input } from "./input/input.js";
 export { Link } from "./link/link.js";
+export { Loader } from "./loader/loader.js";
 export { Logo } from "./logo/logo.js";
 export { Paragraph, ParagraphSize } from "./paragraph/paragraph.js";
 export { Select } from "./select/select.js";
 export { type SelectOption } from "./select/select.js";
+export { Textarea } from "./textarea/textarea.js";
 export { Toggle } from "./toggle/toggle.js";
 export { Provider as StoreProvider } from "react-redux";
 export { Outlet as RouterOutlet } from "react-router-dom";

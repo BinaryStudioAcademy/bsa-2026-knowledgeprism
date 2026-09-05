@@ -17,10 +17,7 @@ const InputWrapper = ({
 	placeholder?: string;
 	type?: "email" | "text";
 }): React.JSX.Element => {
-	const {
-		control,
-		formState: { errors },
-	} = useForm<FormValues>({
+	const { control } = useForm<FormValues>({
 		defaultValues: {
 			email: "",
 		},
@@ -29,7 +26,6 @@ const InputWrapper = ({
 	return (
 		<Input
 			control={control}
-			errors={errors}
 			label={label}
 			name="email"
 			placeholder={placeholder}
