@@ -5,6 +5,7 @@ import { Logo } from "~/components/logo/logo.js";
 import { useCallback, useEffect, useState } from "~/hooks/hooks.js";
 import { AppRoute, Breakpoint } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+
 import {
 	HEADER_LABEL,
 	HEADER_MENU_ICON_HEIGHT,

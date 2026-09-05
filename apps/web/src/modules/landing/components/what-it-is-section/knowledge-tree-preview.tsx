@@ -1,4 +1,5 @@
 import { Icon } from "~/components/icon/icon.js";
+
 import {
 	FOLDER_ICON_SIZE,
 	KNOWLEDGE_TREE_CLASS,

@@ -1,5 +1,6 @@
 import { useState } from "~/hooks/hooks.js";
 import { type ValueOf } from "~/lib/types/types.js";
+
 import { SectionEyebrow } from "../section-eyebrow/section-eyebrow.js";
 import { FeaturePreview } from "./feature-preview.js";
 import { FeatureTab } from "./feature-tab.js";
@@ -25,11 +26,11 @@ const FeaturesSection: React.FC = () => {
 			</div>
 			<div className={FEATURES_SECTION_CLASS.PANEL}>
 				<div className={FEATURES_SECTION_CLASS.TABS}>
-					{FEATURES_LIST.map((feature, index) => (
+					{FEATURES_LIST.map((feature) => (
 						<FeatureTab
 							feature={feature}
 							isActive={feature.id === activeFeature}
-							isLast={index === FEATURES_LIST.length - 1}
+							isLast={feature.id === FeatureId.SECURITY}
 							key={feature.id}
 							onSelect={setActiveFeature}
 						/>

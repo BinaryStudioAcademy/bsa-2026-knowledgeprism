@@ -1,9 +1,9 @@
 import { LANDING_SECTION_CONTAINER_CLASS } from "~/modules/landing/libs/constants.js";
 
 const WHAT_IT_IS_SECTION_COPY = {
+	body: "Every document you add becomes a node in a shared graph — automatically filed into a Knowledge Tree, cross-linked to a project-wide Glossary, and searchable by meaning, not just keywords. No manual tagging, no folder archaeology.",
 	eyebrow: "What it is",
 	heading: "A knowledge base that organizes itself.",
-	body: "Every document you add becomes a node in a shared graph — automatically filed into a Knowledge Tree, cross-linked to a project-wide Glossary, and searchable by meaning, not just keywords. No manual tagging, no folder archaeology.",
 } as const;
 
 const KNOWLEDGE_TREE_PREVIEW = {

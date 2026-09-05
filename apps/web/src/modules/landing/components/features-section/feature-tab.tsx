@@ -2,6 +2,7 @@ import { Icon } from "~/components/icon/icon.js";
 import { useCallback } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
+
 import {
 	FEATURE_TAB_CLASS,
 	FEATURE_TAB_ICON_SIZE,

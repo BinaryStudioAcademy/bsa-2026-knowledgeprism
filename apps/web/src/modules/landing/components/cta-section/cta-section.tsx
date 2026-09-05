@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "~/components/button/button.js";
 import { useCallback } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
+
 import { FloatingMark } from "../floating-mark/floating-mark.js";
 import { CTA_SECTION_CLASS, CTA_SECTION_COPY } from "./libs/constants.js";
 

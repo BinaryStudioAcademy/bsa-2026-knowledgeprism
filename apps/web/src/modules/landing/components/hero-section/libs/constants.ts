@@ -1,9 +1,9 @@
 import { LANDING_SECTION_CONTAINER_CLASS } from "~/modules/landing/libs/constants.js";
 
 const HERO_SECTION_COPY = {
+	body: "KnowledgePrism ingests your PDFs, specs and docs, extracts entities and relationships automatically, and lets your team ask questions in plain language — every answer traced back to its source.",
 	eyebrow: "Order from chaos",
 	heading: "Turn scattered documents into one queryable knowledge graph.",
-	body: "KnowledgePrism ingests your PDFs, specs and docs, extracts entities and relationships automatically, and lets your team ask questions in plain language — every answer traced back to its source.",
 	primaryCTA: "Start Building",
 	secondaryCTA: "View Documentation",
 } as const;

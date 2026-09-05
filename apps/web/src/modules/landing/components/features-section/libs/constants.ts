@@ -1,4 +1,5 @@
 import { LANDING_SECTION_CONTAINER_CLASS } from "~/modules/landing/libs/constants.js";
+
 import { FeatureId } from "./enums/feature-id.enum.js";
 
 const FEATURES_SECTION_COPY = {
@@ -125,12 +126,12 @@ const FEATURE_PREVIEW_CLASS = {
 	SEARCH: {
 		BAR: "mb-4 flex items-center gap-2.5 rounded-[10px] border border-border bg-surface px-4 py-3.5 text-accent",
 		QUERY: "text-[13.5px] text-text",
-		RESULTS: "flex flex-col gap-2",
 		RESULT_ACTIVE: "rounded-md border border-border bg-surface px-3 py-2.5",
 		RESULT_DIMMED:
 			"rounded-md border border-border bg-surface px-3 py-2.5 opacity-60",
 		RESULT_SUBTITLE: "mt-0.5 text-[11.5px] text-text-faint",
 		RESULT_TITLE: "text-[12.5px] font-medium text-text",
+		RESULTS: "flex flex-col gap-2",
 		ROOT: "w-full max-w-[340px]",
 	},
 	SECURITY: {
