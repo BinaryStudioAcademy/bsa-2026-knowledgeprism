@@ -9,6 +9,7 @@ export { Link } from "./link/link.js";
 export { Loader } from "./loader/loader.js";
 export { Logo } from "./logo/logo.js";
 export { Paragraph, ParagraphSize } from "./paragraph/paragraph.js";
+export { Radio } from "./radio/radio.js";
 export { Select } from "./select/select.js";
 export { type SelectOption } from "./select/select.js";
 export { Textarea } from "./textarea/textarea.js";
