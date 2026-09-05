@@ -15,3 +15,4 @@ export { Textarea } from "./textarea/textarea.js";
 export { Toggle } from "./toggle/toggle.js";
 export { Provider as StoreProvider } from "react-redux";
 export { Outlet as RouterOutlet } from "react-router-dom";
+export { Header } from "./header/header.js";
