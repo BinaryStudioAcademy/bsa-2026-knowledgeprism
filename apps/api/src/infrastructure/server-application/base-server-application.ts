@@ -1,12 +1,16 @@
+import { fastifyCookie } from "@fastify/cookie";
+import fastifySession from "@fastify/session";
 import fastifyStatic from "@fastify/static";
 import swagger, { type StaticDocumentSpec } from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
+import { TimeMs } from "@knowledgeprism/constants";
 import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { type Config } from "~/infrastructure/config/config.js";
 import { type Database } from "~/infrastructure/database/database.js";
+import { DatabaseStore } from "~/infrastructure/database/libs/packages/session/database-store.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { ServerErrorType } from "~/shared/enums/enums.js";
@@ -129,6 +133,22 @@ class BaseServerApplication implements ServerApplication {
 		});
 	}
 
+	private async initSession(): Promise<void> {
+		await this.app.register(fastifyCookie);
+
+		await this.app.register(fastifySession, {
+			cookie: {
+				httpOnly: true,
+				maxAge: TimeMs.DAY,
+				sameSite: "lax",
+				secure: "auto",
+			},
+			saveUninitialized: false,
+			secret: this.config.ENV.SESSION.SECRET,
+			store: new DatabaseStore(this.database.client),
+		});
+	}
+
 	private initValidationCompiler(): void {
 		this.app.setValidatorCompiler<ValidationSchema>(({ schema }) => {
 			return <T, R = ReturnType<ValidationSchema["parse"]>>(data: T): R => {
@@ -161,7 +181,11 @@ class BaseServerApplication implements ServerApplication {
 	public async init(): Promise<void> {
 		this.logger.info("Application initialization…");
 
+		this.database.connect();
+
 		await this.initServe();
+
+		await this.initSession();
 
 		await this.initMiddlewares();
 
@@ -170,8 +194,6 @@ class BaseServerApplication implements ServerApplication {
 		this.initErrorHandler();
 
 		this.initRoutes();
-
-		this.database.connect();
 
 		try {
 			await this.app.listen({
