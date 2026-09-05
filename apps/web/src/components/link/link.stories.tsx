@@ -7,6 +7,11 @@ import { AppRoute } from "~/lib/enums/enums.js";
 
 import { Link } from "./link.js";
 
+type InternalLinkProperties = Extract<
+	ComponentProps<typeof Link>,
+	{ to: unknown }
+>;
+
 const meta = {
 	component: Link,
 	decorators: [
@@ -17,10 +22,9 @@ const meta = {
 		),
 	],
 	title: "Components/Navigation/Link",
-} satisfies Meta<typeof Link>;
+} satisfies Meta<InternalLinkProperties>;
 
-type LinkProperties = ComponentProps<typeof Link>;
-type Story = StoryObj<LinkProperties>;
+type Story = StoryObj<InternalLinkProperties>;
 
 const Default: Story = {
 	args: {
