@@ -127,6 +127,12 @@ class BaseServerApplication implements ServerApplication {
 		);
 	}
 
+	private initHealthCheck(): void {
+		this.app.get("/health", async (_request, reply) => {
+			return await reply.status(HTTPCode.OK).send({ status: "ok" });
+		});
+	}
+
 	private async initServe(): Promise<void> {
 		const staticPath = path.join(
 			path.dirname(fileURLToPath(import.meta.url)),
@@ -235,6 +241,8 @@ class BaseServerApplication implements ServerApplication {
 	}
 
 	public initRoutes(): void {
+		this.initHealthCheck();
+
 		const routers = this.apis.flatMap((api) => api.routes);
 
 		this.addRoutes(routers);
