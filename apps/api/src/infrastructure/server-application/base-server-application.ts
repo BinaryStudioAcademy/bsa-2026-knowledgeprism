@@ -1,3 +1,4 @@
+import { type S3Client } from "@aws-sdk/client-s3";
 import fastifyStatic from "@fastify/static";
 import swagger, { type StaticDocumentSpec } from "@fastify/swagger";
 import swaggerUi from "@fastify/swagger-ui";
@@ -28,8 +29,15 @@ type Constructor = {
 	config: Config;
 	database: Database;
 	logger: Logger;
+	s3Client: S3Client;
 	title: string;
 };
+
+declare module "fastify" {
+	interface FastifyInstance {
+		s3: S3Client;
+	}
+}
 
 class BaseServerApplication implements ServerApplication {
 	private apis: ServerApplicationApi[];
@@ -42,13 +50,23 @@ class BaseServerApplication implements ServerApplication {
 
 	private logger: Logger;
 
+	private s3Client: S3Client;
+
 	private title: string;
 
-	public constructor({ apis, config, database, logger, title }: Constructor) {
+	public constructor({
+		apis,
+		config,
+		database,
+		logger,
+		s3Client,
+		title,
+	}: Constructor) {
 		this.title = title;
 		this.config = config;
 		this.logger = logger;
 		this.database = database;
+		this.s3Client = s3Client;
 		this.apis = apis;
 
 		this.initApp();
@@ -58,6 +76,8 @@ class BaseServerApplication implements ServerApplication {
 		this.app = Fastify({
 			ignoreTrailingSlash: true,
 		});
+
+		this.app.decorate("s3", this.s3Client);
 	}
 
 	private initErrorHandler(): void {
@@ -145,6 +165,7 @@ class BaseServerApplication implements ServerApplication {
 			method,
 			schema: {
 				body: validation?.body,
+				params: validation?.params,
 			},
 			url: path,
 		});
