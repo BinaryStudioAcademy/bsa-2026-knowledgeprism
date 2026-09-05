@@ -1,6 +1,6 @@
 import {
-	type UserSignInResponseDto,
 	type UserSignInRequestDto,
+	type UserSignInResponseDto,
 	type UserSignUpRequestDto,
 	type UserSignUpResponseDto,
 } from "@knowledgeprism/types";
@@ -30,4 +30,4 @@ const signUp = createAsyncThunk<
 	return authApi.signUp(registerPayload);
 });
 
-export { signUp, signIn };
+export { signIn, signUp };
