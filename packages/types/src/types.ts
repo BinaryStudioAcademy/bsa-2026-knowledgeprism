@@ -11,6 +11,11 @@ export {
 	type ValueOf,
 } from "./libs/types/types.js";
 export {
+	type AskPrismRequestDto,
+	type AskPrismResponseDto,
+	type AskPrismSourceDto,
+} from "./modules/ask-prism/ask-prism.js";
+export {
 	type UserGetAllItemResponseDto,
 	type UserGetAllResponseDto,
 	type UserSignUpRequestDto,

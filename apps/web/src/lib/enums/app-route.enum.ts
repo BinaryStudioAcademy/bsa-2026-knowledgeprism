@@ -1,4 +1,5 @@
 const AppRoute = {
+	ASK_PRISM: "/ask-prism",
 	ROOT: "/",
 	SIGN_IN: "/sign-in",
 	SIGN_UP: "/sign-up",
