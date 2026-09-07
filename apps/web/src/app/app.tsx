@@ -12,33 +12,41 @@ import {
 	useLocation,
 } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
-import { useAppDispatch, useAppSelector, useEffect } from "~/hooks/hooks.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 const PLACEHOLDER_PROJECT_NAME = "Project Alpha";
 const PLACEHOLDER_ROLE = "EDITOR";
 
 const App: React.FC = () => {
+	const { pathname } = useLocation();
 	const dispatch = useAppDispatch();
-
 	const { dataStatus, users } = useAppSelector(({ users }) => ({
 		dataStatus: users.dataStatus,
 		users: users.users,
 	}));
 
+	const isRoot = pathname === AppRoute.ROOT;
+
 	useEffect(() => {
-		void dispatch(userActions.loadAll());
-	}, [dispatch]);
+		if (isRoot) {
+			void dispatch(userActions.loadAll());
+		}
+	}, [isRoot, dispatch]);
 
 	return (
 		<>
-			<h2>Users:</h2>
-			<h3>Status: {dataStatus}</h3>
+			<Logo to={AppRoute.ROOT} />
 
-			<ul>
-				{users.map((user) => (
-					<li key={user.id}>{user.email}</li>
-				))}
+			<ul className="App-navigation-list">
+				<li>
+					<Link to={AppRoute.ROOT}>Root</Link>
+				</li>
+				<li>
+					<Link to={AppRoute.SIGN_IN}>Sign in</Link>
+				</li>
+				<li>
+					<Link to={AppRoute.SIGN_UP}>Sign up</Link>
+				</li>
 			</ul>
 			<p>Current path: {pathname}</p>
 
