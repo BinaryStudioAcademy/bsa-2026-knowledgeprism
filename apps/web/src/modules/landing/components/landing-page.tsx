@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 import { AudienceSection } from "./audience-section/audience-section.js";
 import { CtaSection } from "./cta-section/cta-section.js";
 import { FeaturesSection } from "./features-section/features-section.js";
@@ -9,6 +11,14 @@ import { SocialProofSection } from "./social-proof-section/social-proof-section.
 import { WhatItIsSection } from "./what-it-is-section/what-it-is-section.js";
 
 const LandingPage: React.FC = () => {
+	useEffect(() => {
+		const root = document.documentElement;
+		root.classList.add("scroll-smooth");
+		return (): void => {
+			root.classList.remove("scroll-smooth");
+		};
+	}, []);
+
 	return (
 		<>
 			<LandingHeader />
