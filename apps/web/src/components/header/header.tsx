@@ -1,10 +1,10 @@
 import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { tv } from "tailwind-variants";
 
 import { Button } from "~/components/button/button.js";
 import { Logo } from "~/components/logo/logo.js";
 import { useCallback, useEffect, useState } from "~/hooks/hooks.js";
 import { AppRoute, Breakpoint } from "~/lib/enums/enums.js";
-import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 const HEADER_LABEL = {
 	MENU: "Menu",
@@ -18,9 +18,37 @@ const HEADER_MENU_ICON_WIDTH = 18;
 
 const HEADER_NAV_ID = "header-nav";
 
-const Header: React.FC = () => {
+const getHeaderClassName = tv({
+	slots: {
+		bar: "mx-auto flex min-h-[72px] w-full max-w-[1240px] items-center justify-between px-5 tablet-small:px-6 tablet:px-10",
+		brand: "text-text no-underline hover:text-text hover:no-underline",
+		desktopNav: "hidden items-center gap-8 tablet-small:flex",
+		mobileNav:
+			"flex flex-col gap-3.5 border-t border-border bg-bg px-5 py-4 tablet-small:hidden",
+		root: "sticky top-0 z-30 shrink-0 border-b border-border bg-bg/92 backdrop-blur-[6px]",
+		signIn:
+			"rounded-md px-3.5 py-2 text-control font-medium text-text no-underline hover:bg-secondary hover:text-text hover:no-underline",
+		toggle:
+			"cursor-pointer border-0 bg-transparent p-2 text-text tablet-small:hidden focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35",
+	},
+});
+
+type Properties = {
+	children?: React.ReactNode;
+};
+
+const Header: React.FC<Properties> = () => {
 	const navigate = useNavigate();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const {
+		bar,
+		brand,
+		desktopNav,
+		mobileNav,
+		root,
+		signIn,
+		toggle,
+	} = getHeaderClassName();
 
 	const handleToggleMenu = useCallback((): void => {
 		setIsMenuOpen((isOpen) => !isOpen);
@@ -59,47 +87,18 @@ const Header: React.FC = () => {
 	}, []);
 
 	return (
-		<header
-			className={getValidClassNames(
-				"sticky top-0 z-30 bg-surface",
-				"border-b border-border",
-			)}
-		>
-			<div
-				className={getValidClassNames(
-					"flex items-center justify-between",
-					"px-5 py-3.5",
-					"tablet-small:px-6 tablet-small:py-4",
-					"tablet:px-8",
-				)}
-			>
-				<RouterLink
-					className={getValidClassNames(
-						"text-text no-underline",
-						"hover:text-text hover:no-underline",
-					)}
-					to={AppRoute.ROOT}
-				>
+		<header className={root()}>
+			<div className={bar()}>
+				<RouterLink className={brand()} to={AppRoute.ROOT}>
 					<Logo size="sm" />
 				</RouterLink>
 
-				<nav
-					className={getValidClassNames(
-						"hidden items-center gap-6",
-						"tablet-small:flex",
-					)}
-				>
-					<RouterLink
-						className={getValidClassNames(
-							"text-sm text-text-muted no-underline",
-							"hover:text-text hover:no-underline",
-						)}
-						to={AppRoute.SIGN_IN}
-					>
+				<nav className={desktopNav()}>
+					<RouterLink className={signIn()} to={AppRoute.SIGN_IN}>
 						{HEADER_LABEL.SIGN_IN}
 					</RouterLink>
 					<Button
-						className={getValidClassNames("px-4 py-2")}
+						className="px-4 py-2"
 						onClick={handleSignUp}
 						variant="primary"
 					>
@@ -111,10 +110,7 @@ const Header: React.FC = () => {
 					aria-controls={HEADER_NAV_ID}
 					aria-expanded={isMenuOpen}
 					aria-label={HEADER_LABEL.MENU}
-					className={getValidClassNames(
-						"cursor-pointer border-0 bg-transparent p-0 text-text",
-						"tablet-small:hidden",
-					)}
+					className={toggle()}
 					onClick={handleToggleMenu}
 					type="button"
 				>
@@ -135,23 +131,12 @@ const Header: React.FC = () => {
 			</div>
 
 			{isMenuOpen && (
-				<nav
-					className={getValidClassNames(
-						"flex flex-col gap-3.5 bg-surface",
-						"border-t border-border-subtle px-5 py-4",
-						"tablet-small:hidden",
-					)}
-					id={HEADER_NAV_ID}
-				>
-					<Button
-						className={getValidClassNames("w-full")}
-						onClick={handleSignIn}
-						variant="ghost"
-					>
+				<nav className={mobileNav()} id={HEADER_NAV_ID}>
+					<Button className="w-full" onClick={handleSignIn} variant="ghost">
 						{HEADER_LABEL.SIGN_IN}
 					</Button>
 					<Button
-						className={getValidClassNames("w-full")}
+						className="w-full"
 						onClick={handleSignUp}
 						variant="primary"
 					>
