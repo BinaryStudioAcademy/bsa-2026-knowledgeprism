@@ -3,11 +3,11 @@ import { createRoot } from "react-dom/client";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
-import "~/styles/styles.css";
 import { StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { type AppDispatch, type RootState, store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
+import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
 import { WorkspacesApi } from "~/modules/workspaces/api/workspaces-api.js";
 import {
 	ProjectDetailsPage,
@@ -17,7 +17,7 @@ import {
 	fetchProjects,
 	fetchRecentDocuments,
 } from "~/modules/workspaces/state/workspaces.slice.js";
-import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
+import "~/styles/styles.css";
 
 import { App } from "./app.js";
 import { AppLayout } from "./layouts/app-layout.js";
@@ -60,12 +60,18 @@ const WorkspaceContainer = () => {
 		handleFetchData();
 	}, [handleFetchData]);
 
-	const handleCreateProject = useCallback(() => {}, []);
-	const handleLogOut = useCallback(() => {}, []);
-	const handleOpenSettings = useCallback(() => {}, []);
-
-	const handleSelectDocument = useCallback(() => {}, []);
-
+	const handleCreateProject = useCallback(() => {
+		// TODO: Implement create project modal trigger
+	}, []);
+	const handleLogOut = useCallback(() => {
+		// TODO: Implement user logout logic
+	}, []);
+	const handleOpenSettings = useCallback(() => {
+		// TODO: Implement settings navigation
+	}, []);
+	const handleSelectDocument = useCallback(() => {
+		// TODO: Implement document selection logic
+	}, []);
 	const handleSelectProject = useCallback(
 		(id: string) => {
 			void navigate(`${AppRoute.WORKSPACES}/${id}`);
@@ -77,7 +83,7 @@ const WorkspaceContainer = () => {
 		return (
 			<div className="flex items-center justify-center min-h-screen">
 				<div className="text-center">
-					<p className="text-sm text-[#8C8880]">Loading workspace...</p>
+					<p className="text-sm text-text-muted">Loading workspace...</p>
 				</div>
 			</div>
 		);
@@ -86,12 +92,12 @@ const WorkspaceContainer = () => {
 	if (error) {
 		return (
 			<div className="flex items-center justify-center min-h-screen">
-				<div className="p-6 text-center rounded-lg border border-red-200 bg-red-50">
-					<p className="text-sm font-medium text-red-600">
+				<div className="p-6 text-center rounded-lg border border-error-disabled bg-error-bg">
+					<p className="text-sm font-medium text-error">
 						Data fetching error: {error}
 					</p>
 					<button
-						className="mt-4 text-xs font-semibold text-red-700 underline"
+						className="mt-4 text-xs font-semibold text-error hover:text-error-hover underline cursor-pointer"
 						onClick={handleFetchData}
 						type="button"
 					>

@@ -5,9 +5,10 @@ import {
 	type WorkspacesApi,
 } from "../api/workspaces-api.js";
 import {
-	type DocumentItem,
-	type ProjectItem,
-} from "../components/workspace-page.js";
+	MOCK_DOCUMENTS,
+	MOCK_PROJECTS,
+} from "../libs/constants/mock-data.constants.js";
+import { type DocumentItem, type ProjectItem } from "../types/types.js";
 
 interface WorkspacesState {
 	documents: DocumentItem[];
@@ -16,47 +17,11 @@ interface WorkspacesState {
 	projects: ProjectItem[];
 }
 
-const mockProjects: ProjectItem[] = [
-	{
-		description:
-			"Hardware specifications, thermal management protocols, and display calibration data for next-gen.",
-		id: "1",
-		members: ["/avatars/avatar-5c4764.jpg", "/avatars/avatar-7fd8ac.jpg"],
-		name: "iPhone Engineering",
-		role: "ADMIN",
-		updatedAt: "2h ago",
-	},
-	{
-		description:
-			"Window tiling documentation, Continuity features, and kernel extension deprecation notices.",
-		id: "2",
-		members: ["/avatars/avatar-8d39d3.jpg"],
-		name: "macOS Sequoia",
-		role: "VIEWER",
-		updatedAt: "3 days ago",
-	},
-	{
-		description:
-			"Human Interface Guidelines, dynamic island animations, and widget state management.",
-		id: "3",
-		members: ["/avatars/avatar-744eba.jpg", "/avatars/avatar-24253a.jpg"],
-		name: "iOS UI Kit",
-		role: "EDITOR",
-		updatedAt: "1 week ago",
-	},
-];
-
-const mockDocuments: DocumentItem[] = [
-	{ id: "1", title: "Camera system", updatedAt: "2h ago" },
-	{ id: "2", title: "Processor architecture", updatedAt: "1d ago" },
-	{ id: "3", title: "System Architecture V2", updatedAt: "Just now" },
-];
-
 const initialState: WorkspacesState = {
-	documents: mockDocuments,
+	documents: MOCK_DOCUMENTS,
 	error: null,
 	isLoading: false,
-	projects: mockProjects,
+	projects: MOCK_PROJECTS,
 };
 
 const fetchProjects = createAsyncThunk(
@@ -65,7 +30,7 @@ const fetchProjects = createAsyncThunk(
 		try {
 			return await api.getProjects();
 		} catch {
-			return mockProjects;
+			return MOCK_PROJECTS;
 		}
 	},
 );
@@ -76,7 +41,7 @@ const fetchRecentDocuments = createAsyncThunk(
 		try {
 			return await api.getRecentDocuments();
 		} catch {
-			return mockDocuments;
+			return MOCK_DOCUMENTS;
 		}
 	},
 );
@@ -102,7 +67,7 @@ const createProject = createAsyncThunk<
 			return {
 				description: payload.description ?? "",
 				id: `proj-${String(Date.now())}`,
-				members: ["/avatars/avatar-5c4764.jpg"],
+				members: ["/avatars/avatar-1.png"],
 				name: payload.name,
 				role: "ADMIN",
 				updatedAt: "JUST NOW",
@@ -124,13 +89,13 @@ const workspacesSlice = createSlice({
 			})
 			.addCase(fetchProjects.rejected, (state) => {
 				state.isLoading = false;
-				state.projects = mockProjects;
+				state.projects = MOCK_PROJECTS;
 			})
 			.addCase(fetchRecentDocuments.fulfilled, (state, action) => {
 				state.documents = action.payload;
 			})
 			.addCase(fetchRecentDocuments.rejected, (state) => {
-				state.documents = mockDocuments;
+				state.documents = MOCK_DOCUMENTS;
 			})
 			.addCase(createProject.fulfilled, (state, action) => {
 				state.projects.unshift(action.payload);
@@ -140,7 +105,7 @@ const workspacesSlice = createSlice({
 				state.projects.unshift({
 					description: payload.description ?? "",
 					id: `proj-${String(Date.now())}`,
-					members: ["/avatars/avatar-5c4764.jpg"],
+					members: ["/avatars/avatar-1.png"],
 					name: payload.name,
 					role: "ADMIN",
 					updatedAt: "JUST NOW",

@@ -2,11 +2,12 @@ import React, { useCallback } from "react";
 
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
+import { type ProjectRole } from "../types/types.js";
+
 interface AvatarProperties {
 	alt?: string;
 	className?: string;
 	index?: number;
-	src?: string;
 	url?: string;
 }
 
@@ -15,15 +16,14 @@ interface ProjectCardProperties {
 	id: string;
 	members?: string[];
 	name: string;
-	onDelete?: (id: string) => void;
-	onEdit?: (id: string) => void;
+	onDelete?: () => void;
+	onEdit?: () => void;
 	onSelect?: (id: string) => void;
 	role: ProjectRole;
 	updatedAt: string;
 }
 
-type ProjectRole = "ADMIN" | "EDITOR" | "VIEWER";
-
+const DEFAULT_INDEX = 0;
 const EMPTY_ARRAY_LENGTH = 0;
 const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
@@ -70,13 +70,13 @@ const formatRelativeTime = (dateString: string): string => {
 const roleConfig: Record<
 	ProjectRole,
 	{
-		bgGradient: string;
+		bgStyle: string;
 		icon: React.ReactNode;
 		iconColor: string;
 	}
 > = {
 	ADMIN: {
-		bgGradient: "bg-gradient-to-br from-[#EEF6F3] to-[#DCECE7]",
+		bgStyle: "bg-success-bg",
 		icon: (
 			<svg fill="none" height="22" viewBox="0 0 24 24" width="22">
 				<rect
@@ -91,10 +91,10 @@ const roleConfig: Record<
 				<circle cx="12" cy="18" fill="currentColor" r="1" />
 			</svg>
 		),
-		iconColor: "text-[#2A6B5A]",
+		iconColor: "text-success",
 	},
 	EDITOR: {
-		bgGradient: "bg-gradient-to-br from-[#FDF0EF] to-[#FFE6E3]",
+		bgStyle: "bg-error-bg",
 		icon: (
 			<svg fill="none" height="22" viewBox="0 0 24 24" width="22">
 				<rect
@@ -109,10 +109,10 @@ const roleConfig: Record<
 				<circle cx="12" cy="18" fill="currentColor" r="1" />
 			</svg>
 		),
-		iconColor: "text-[#C4433A]",
+		iconColor: "text-error",
 	},
 	VIEWER: {
-		bgGradient: "bg-gradient-to-br from-[#F2F0EC] to-[#E5E2DB]",
+		bgStyle: "bg-secondary",
 		icon: (
 			<svg fill="none" height="22" viewBox="0 0 24 24" width="22">
 				<rect
@@ -127,34 +127,34 @@ const roleConfig: Record<
 				<path d="M8 20h8" stroke="currentColor" strokeWidth="1.4" />
 			</svg>
 		),
-		iconColor: "text-[#6B665F]",
+		iconColor: "text-text-muted",
 	},
 };
 
 const Avatar: React.FC<AvatarProperties> = ({
 	alt,
 	className,
-	index = 0,
-	src,
+	index = DEFAULT_INDEX,
 	url,
 }) => {
-	const avatarSrc = src || url || DEFAULT_AVATAR;
+	const avatarSource = url || DEFAULT_AVATAR;
 
-	const handleImageError = (
-		event: React.SyntheticEvent<HTMLImageElement>,
-	): void => {
-		event.currentTarget.src = DEFAULT_AVATAR;
-	};
+	const handleImageError = useCallback(
+		(event: React.SyntheticEvent<HTMLImageElement>): void => {
+			event.currentTarget.src = DEFAULT_AVATAR;
+		},
+		[],
+	);
 
 	return (
 		<img
 			alt={alt ?? `Member ${String(index + INDEX_OFFSET)}`}
 			className={getValidClassNames(
-				"h-6 w-6 rounded-full border-2 border-white object-cover bg-[#EBE8E1] shrink-0",
+				"h-6 w-6 rounded-full border-2 border-surface bg-border object-cover shrink-0",
 				className,
 			)}
 			onError={handleImageError}
-			src={avatarSrc}
+			src={avatarSource}
 		/>
 	);
 };
@@ -189,17 +189,17 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 	const handleEdit = useCallback(
 		(event_: React.MouseEvent) => {
 			event_.stopPropagation();
-			onEdit?.(id);
+			onEdit?.();
 		},
-		[id, onEdit],
+		[onEdit],
 	);
 
 	const handleDelete = useCallback(
 		(event_: React.MouseEvent) => {
 			event_.stopPropagation();
-			onDelete?.(id);
+			onDelete?.();
 		},
-		[id, onDelete],
+		[onDelete],
 	);
 
 	const canEdit = Boolean(onEdit);
@@ -208,9 +208,7 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 
 	return (
 		<div
-			className={getValidClassNames(
-				"group flex flex-col w-full text-left overflow-hidden rounded-xl border border-[#EBE8E1] bg-white transition-all hover:shadow-md cursor-pointer relative",
-			)}
+			className="group relative flex w-full flex-col overflow-hidden rounded-lg border border-border bg-surface text-left shadow-sm transition-all hover:shadow-md cursor-pointer"
 			onClick={handleClick}
 			onKeyDown={handleKeyDown}
 			role="button"
@@ -218,8 +216,8 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 		>
 			<div
 				className={getValidClassNames(
-					"flex h-24 items-start justify-between p-3.5",
-					roleConfig[role].bgGradient,
+					"flex h-24 items-start justify-between p-4",
+					roleConfig[role].bgStyle,
 				)}
 			>
 				<div className={roleConfig[role].iconColor}>
@@ -228,10 +226,10 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 
 				<div className="flex items-center gap-1.5">
 					{shouldShowActions && (
-						<div className="flex items-center gap-1 rounded-md bg-white/80 p-0.5 backdrop-blur-xs">
+						<div className="flex items-center gap-1 rounded-sm bg-surface/80 p-0.5 backdrop-blur-xs">
 							{canEdit && (
 								<button
-									className="p-1 text-[#6B665F] hover:bg-black/5 hover:text-[#1C1A17] rounded transition-colors cursor-pointer"
+									className="rounded p-1 text-text-muted hover:bg-secondary hover:text-text transition-colors cursor-pointer"
 									onClick={handleEdit}
 									title="Edit Project"
 									type="button"
@@ -256,7 +254,7 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 							)}
 							{canDelete && (
 								<button
-									className="p-1 text-[#C4433A] hover:bg-[#FFE6E3] rounded transition-colors cursor-pointer"
+									className="rounded p-1 text-error hover:bg-error-bg hover:text-error-hover transition-colors cursor-pointer"
 									onClick={handleDelete}
 									title="Delete Project"
 									type="button"
@@ -275,25 +273,25 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 						</div>
 					)}
 
-					<span className="rounded bg-[#F2F0EC]/80 px-2 py-0.5 font-mono text-[9.5px] font-medium tracking-wider text-[#6B665F]">
+					<span className="rounded bg-secondary/80 px-2 py-0.5 font-mono text-xs font-medium tracking-wider text-text-muted">
 						{role}
 					</span>
 				</div>
 			</div>
 
-			<div className="flex flex-1 flex-col gap-2.5 p-[16px_18px_18px]">
-				<h3 className="font-serif text-lg font-normal text-[#1C1A17] leading-snug">
+			<div className="flex flex-1 flex-col gap-2.5 p-4 pt-4">
+				<h3 className="font-serif text-h4 font-normal leading-snug text-text">
 					{name}
 				</h3>
 
 				{description && (
-					<p className="flex-1 text-[12.5px] leading-relaxed text-[#706E6B]">
+					<p className="flex-1 text-sm leading-relaxed text-text-muted">
 						{description}
 					</p>
 				)}
 
-				<div className="mt-1 flex items-center justify-between border-t border-[#F2F0EC] pt-3">
-					<span className="font-mono text-[10px] text-[#A8A299]">
+				<div className="mt-1 flex items-center justify-between border-t border-border-subtle pt-3">
+					<span className="font-mono text-xs text-text-faint">
 						UPDATED {formatRelativeTime(updatedAt)}
 					</span>
 
@@ -314,4 +312,4 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 	);
 };
 
-export { type ProjectRole, ProjectCard };
+export { ProjectCard };

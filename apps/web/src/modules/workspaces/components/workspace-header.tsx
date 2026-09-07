@@ -91,11 +91,11 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	}, []);
 
 	return (
-		<header className="flex w-full items-center justify-between border-b border-[#EBE8E1] bg-white px-4 py-3 sm:px-6 md:px-8 md:py-4">
+		<header className="flex w-full items-center justify-between border-b border-border bg-surface px-4 py-3 sm:px-6 md:px-8 md:py-4">
 			<div className="flex items-center gap-3 min-w-0">
 				<Logo to={AppRoute.ROOT} />
 				{shouldShowOrgName && (
-					<span className="hidden md:inline-block border-l border-[#EBE8E1] pl-3 text-sm font-medium text-[#1C1A17] truncate max-w-xs">
+					<span className="hidden md:inline-block border-l border-border pl-3 text-sm font-medium text-text truncate max-w-xs">
 						{trimmedOrgName}
 					</span>
 				)}
@@ -104,12 +104,12 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 			<div className="flex items-center gap-2.5 sm:gap-3">
 				<button
 					aria-label="Toggle theme"
-					className="cursor-pointer p-1.5 sm:p-2 rounded-lg border border-[#EBE8E1] text-[#706E6B] hover:bg-[#F2F0EC] hover:text-[#1C1A17] transition-colors"
+					className="cursor-pointer p-1.5 sm:p-2 rounded-lg border border-border text-text-muted hover:bg-secondary hover:text-text transition-colors"
 					onClick={handleToggleTheme}
 					type="button"
 				>
 					<svg
-						className={`h-4 w-4 sm:h-5 sm:w-5 ${isDark ? "text-amber-500" : ""}`}
+						className={`h-4 w-4 sm:h-5 sm:w-5 ${isDark ? "text-warning" : ""}`}
 						fill="none"
 						stroke="currentColor"
 						viewBox="0 0 24 24"
@@ -128,7 +128,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 						aria-expanded={isUserMenuOpen}
 						aria-haspopup="true"
 						aria-label="User Profile"
-						className="flex items-center gap-2 cursor-pointer rounded-full transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#1C1A17]"
+						className="flex items-center gap-2 cursor-pointer rounded-full transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
 						onClick={handleToggleUserMenu}
 						type="button"
 					>
@@ -137,31 +137,31 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 							src={avatarUrl || DEFAULT_AVATAR}
 						/>
 						{fullName && (
-							<span className="hidden sm:inline-block text-sm font-medium text-[#1C1A17] max-w-28 truncate">
+							<span className="hidden sm:inline-block text-sm font-medium text-text max-w-28 truncate">
 								{fullName}
 							</span>
 						)}
 					</button>
 
 					{isUserMenuOpen && (
-						<div className="absolute right-0 mt-2 w-52 rounded-2xl border border-[#EBE8E1] bg-white p-3 shadow-xl z-50">
+						<div className="absolute right-0 mt-2 w-52 rounded-2xl border border-border bg-surface p-3 shadow-xl z-50">
 							<div className="px-2 py-1">
 								{fullName && (
-									<p className="text-sm font-semibold text-[#1C1A17] truncate">
+									<p className="text-sm font-semibold text-text truncate">
 										{fullName}
 									</p>
 								)}
 								{trimmedOrgName && (
-									<p className="text-xs text-[#706E6B] truncate">
+									<p className="text-xs text-text-muted truncate">
 										{trimmedOrgName}
 									</p>
 								)}
 							</div>
 
-							<hr className="my-2 border-[#EBE8E1]" />
+							<hr className="my-2 border-border" />
 
 							<button
-								className="w-full text-left px-2 py-1.5 text-sm font-medium text-[#1C1A17] hover:bg-[#F2F0EC] rounded-lg transition-colors cursor-pointer"
+								className="w-full text-left px-2 py-1.5 text-sm font-medium text-text hover:bg-secondary rounded-lg transition-colors cursor-pointer"
 								onClick={handleOpenSettings}
 								type="button"
 							>
@@ -169,7 +169,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 							</button>
 
 							<button
-								className="w-full text-left px-2 py-1.5 text-sm font-medium text-[#C4433A] hover:bg-[#F2F0EC] rounded-lg transition-colors cursor-pointer"
+								className="w-full text-left px-2 py-1.5 text-sm font-medium text-error hover:bg-secondary rounded-lg transition-colors cursor-pointer"
 								onClick={handleLogOut}
 								type="button"
 							>

@@ -1,39 +1,16 @@
 import React, { useCallback, useMemo, useState } from "react";
 
-import { ProjectCard, ProjectRole } from "./project-card.js";
-import { RecentDocuments } from "./recent-documents.js";
-import { WorkspaceHeader } from "./workspace-header.js";
+import { FILTER_ROLE_OPTIONS } from "../libs/constants/mock-data.constants.js";
+import {
+	type DocumentItem,
+	type ProjectItem,
+	type ProjectRole,
+} from "../types/types.js";
+import { ProjectCard, RecentDocuments, WorkspaceHeader } from "./components.js";
 
-interface DocumentItem {
-	id: string;
-	title: string;
-	updatedAt: string;
-}
-
-interface ProjectItem {
-	description?: string;
-	id: string;
-	members?: string[];
-	name: string;
-	role: ProjectRole;
-	updatedAt: string;
-}
-
-interface WorkspacePageProperties {
-	documents?: DocumentItem[];
-	firstName: string;
-	isOrgAdmin?: boolean;
-	lastName: string;
-	onCreateProject?: () => void;
-	onDeleteProject?: (id: string) => void;
-	onEditProject?: (project: ProjectItem) => void;
-	onLogOut: () => void;
-	onOpenSettings: () => void;
-	onSelectDocument?: (id: string) => void;
-	onSelectProject: (id: string) => void;
-	organizationName: string;
-	projects: ProjectItem[];
-}
+const EMPTY_LENGTH = 0;
+const INDEX_OFFSET = 1;
+const EVEN_MODULO = 2;
 
 interface CreateProjectModalProperties {
 	isOpen: boolean;
@@ -58,6 +35,22 @@ interface ProjectItemCardProperties {
 	totalCount: number;
 }
 
+interface WorkspacePageProperties {
+	documents?: DocumentItem[];
+	firstName: string;
+	isOrgAdmin?: boolean;
+	lastName: string;
+	onCreateProject?: () => void;
+	onDeleteProject?: (id: string) => void;
+	onEditProject?: (project: ProjectItem) => void;
+	onLogOut: () => void;
+	onOpenSettings: () => void;
+	onSelectDocument?: (id: string) => void;
+	onSelectProject: (id: string) => void;
+	organizationName: string;
+	projects: ProjectItem[];
+}
+
 const CreateProjectModal: React.FC<CreateProjectModalProperties> = () => null;
 const EditProjectModal: React.FC<EditProjectModalProperties> = () => null;
 
@@ -70,7 +63,9 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	project,
 	totalCount,
 }) => {
-	const isLastOdd = index === totalCount - 1 && totalCount % 2 !== 0;
+	const isLastOdd =
+		index === totalCount - INDEX_OFFSET &&
+		totalCount % EVEN_MODULO !== EMPTY_LENGTH;
 
 	const handleDelete = useCallback((): void => {
 		onDelete(project.id);
@@ -116,17 +111,17 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	organizationName,
 	projects: initialProjects,
 }) => {
-	const [prevProjects, setPrevProjects] =
-		useState<ProjectItem[]>(initialProjects);
 	const [localProjects, setLocalProjects] =
 		useState<ProjectItem[]>(initialProjects);
+	const [previousInitialProjects, setPreviousInitialProjects] =
+		useState<ProjectItem[]>(initialProjects);
 
-	if (prevProjects !== initialProjects) {
-		setPrevProjects(initialProjects);
+	if (initialProjects !== previousInitialProjects) {
+		setPreviousInitialProjects(initialProjects);
 		setLocalProjects(initialProjects);
 	}
 
-	const [selectedRole, setSelectedRole] = useState<ProjectRole | "ALL">("ALL");
+	const [selectedRole, setSelectedRole] = useState<"ALL" | ProjectRole>("ALL");
 	const [isFilterOpen, setIsFilterOpen] = useState(false);
 
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -154,7 +149,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 	const handleSelectRole = useCallback(
 		(event: React.MouseEvent<HTMLButtonElement>): void => {
-			const role = event.currentTarget.dataset["role"] as ProjectRole | "ALL";
+			const role = event.currentTarget.dataset["role"] as "ALL" | ProjectRole;
 			setSelectedRole(role);
 			setIsFilterOpen(false);
 		},
@@ -250,7 +245,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 					<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
 						{isOrgAdmin && (
 							<button
-								className="order-1 sm:order-2 inline-flex items-center justify-center gap-1.5 rounded-lg bg-[#2D2A26] px-3.5 sm:px-4.5 py-2.5 sm:py-2 text-xs font-medium text-white shadow-sm hover:bg-black transition-colors cursor-pointer w-full sm:w-auto"
+								className="order-1 sm:order-2 inline-flex items-center justify-center gap-1.5 rounded-lg bg-text px-3.5 sm:px-4.5 py-2.5 sm:py-2 text-xs font-medium text-white shadow-sm hover:bg-black transition-colors cursor-pointer w-full sm:w-auto"
 								onClick={handleOpenCreateModal}
 								type="button"
 							>
@@ -299,25 +294,23 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 										className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-full sm:w-40 rounded-lg border border-border bg-white p-1.5 shadow-xl z-30"
 										role="menu"
 									>
-										{(["ALL", "ADMIN", "EDITOR", "VIEWER"] as const).map(
-											(role) => (
-												<button
-													key={role}
-													aria-selected={selectedRole === role}
-													className={`w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors ${
-														selectedRole === role
-															? "bg-[#2D2A26] text-white font-medium"
-															: "hover:bg-surface text-text"
-													}`}
-													data-role={role}
-													onClick={handleSelectRole}
-													role="menuitem"
-													type="button"
-												>
-													{role === "ALL" ? "All Roles" : role}
-												</button>
-											),
-										)}
+										{FILTER_ROLE_OPTIONS.map((role) => (
+											<button
+												aria-checked={selectedRole === role}
+												className={`w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors ${
+													selectedRole === role
+														? "bg-text text-white font-medium"
+														: "hover:bg-surface text-text"
+												}`}
+												data-role={role}
+												key={role}
+												onClick={handleSelectRole}
+												role="menuitemradio"
+												type="button"
+											>
+												{role === "ALL" ? "All Roles" : role}
+											</button>
+										))}
 									</div>
 								</>
 							)}
@@ -328,9 +321,9 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
 					{filteredProjects.map((project, index) => (
 						<ProjectItemCard
-							key={project.id}
 							index={index}
 							isOrgAdmin={isOrgAdmin}
+							key={project.id}
 							onDelete={handleSetDeletingProjectId}
 							onEdit={handleSetEditingProject}
 							onSelect={onSelectProject}
@@ -340,13 +333,13 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 					))}
 				</div>
 
-				{filteredProjects.length === 0 && (
+				{filteredProjects.length === EMPTY_LENGTH && (
 					<div className="py-12 text-center text-sm text-text-muted">
 						No projects found for the selected filter.
 					</div>
 				)}
 
-				{localProjects.length > 0 && (
+				{localProjects.length > EMPTY_LENGTH && (
 					<RecentDocuments
 						documents={documents}
 						onSelect={handleSelectDocument}
@@ -374,8 +367,8 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 			{deletingProjectId && (
 				<div
 					aria-modal="true"
-					role="dialog"
 					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+					role="dialog"
 				>
 					<div className="w-full max-w-sm rounded-xl bg-white p-5 sm:p-6 shadow-xl border border-border text-center">
 						<h2 className="font-serif text-lg sm:text-xl font-normal text-text mb-2">
@@ -393,7 +386,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 								Cancel
 							</button>
 							<button
-								className="rounded-lg bg-[#C4433A] px-4 py-2 text-xs font-medium text-white hover:bg-[#a83830] transition-colors cursor-pointer"
+								className="rounded-lg px-4 py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition-colors cursor-pointer"
 								onClick={handleDeleteProjectConfirm}
 								type="button"
 							>
@@ -407,4 +400,4 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	);
 };
 
-export { type DocumentItem, type ProjectItem, WorkspacePage };
+export { WorkspacePage };

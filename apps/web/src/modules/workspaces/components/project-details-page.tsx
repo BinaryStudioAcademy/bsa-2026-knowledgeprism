@@ -14,16 +14,14 @@ const ProjectDetailsPage: React.FC = () => {
 	return (
 		<div className="mx-auto max-w-7xl px-8 py-8">
 			<button
-				className="mb-4 text-sm font-medium text-[#8C8880] transition-colors hover:text-[#1C1A17]"
+				className="mb-4 text-sm font-medium text-text-muted transition-colors hover:text-text cursor-pointer"
 				onClick={handleBackToWorkspaces}
 				type="button"
 			>
 				← Back to Workspaces
 			</button>
-			<h1 className="font-serif text-3xl text-[#1C1A17]">
-				Project Details: {id}
-			</h1>
-			<p className="mt-2 text-sm text-[#8C8880]">
+			<h1 className="font-serif text-3xl text-text">Project Details: {id}</h1>
+			<p className="mt-2 text-sm text-text-muted">
 				Temporary placeholder page for project specs and documentation.
 			</p>
 		</div>
