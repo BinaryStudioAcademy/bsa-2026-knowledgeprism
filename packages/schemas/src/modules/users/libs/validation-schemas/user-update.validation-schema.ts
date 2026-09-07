@@ -56,8 +56,8 @@ const userUpdate = z.object({
 		.max(UserValidationRule.PASSWORD_MAXIMUM_LENGTH, {
 			error: UserValidationMessage.PASSWORD_REQUIRE,
 		})
-		.regex(/\d/, {
-			error: UserValidationMessage.PASSWORD_NUMBER,
+		.regex(/[0-9]/, {
+			message: UserValidationMessage.PASSWORD_DIGIT_REQUIRE,
 		})
 		.regex(/[!@#$%^&*(),.?":{}|<>]/, {
 			error: UserValidationMessage.PASSWORD_SPECIAL_CHARACTER,

@@ -9,10 +9,10 @@ import { type Repository } from "~/shared/types/types.js";
 
 type UserDatabaseRow = {
 	email: string;
-	firstName: null | string;
+	firstName: string;
 	id: number;
-	lastName: null | string;
-	organisationId: null | number;
+	lastName: string;
+	organisationId: number;
 	passwordHash: string;
 	projectMembers?: ProjectMemberModel[];
 	status: "active" | "inactive";
@@ -55,12 +55,15 @@ class UserRepository implements Repository {
 		});
 	}
 
-	public async create(entity: UserEntity): Promise<UserEntity> {
+	public async create(
+		entity: UserEntity,
+		transaction?: Transaction,
+	): Promise<UserEntity> {
 		const { email, firstName, lastName, organisationId, passwordHash, status } =
 			entity.toNewObject();
 
 		const user = await this.userModel
-			.query()
+			.query(transaction)
 			.insert({
 				email,
 				firstName,
@@ -158,20 +161,6 @@ class UserRepository implements Repository {
 		return users.map((user) => this.mapToEntity(user));
 	}
 
-	public async findByEmail(email: string): Promise<null | UserEntity> {
-		const user = await this.userModel
-			.query()
-			.findOne({ email })
-			.withGraphFetched("projectMembers")
-			.execute();
-
-		if (!user) {
-			return null;
-		}
-
-		return this.mapToEntity(user);
-	}
-
 	public async findDetailsById(
 		id: number,
 		organisationId: number,
@@ -187,6 +176,32 @@ class UserRepository implements Repository {
 		}
 
 		return this.mapToEntity(user);
+	}
+
+	public async findByEmail(
+		email: string,
+		transaction?: Transaction,
+	): Promise<null | UserEntity> {
+		const user = await this.userModel
+			.query(transaction)
+			.findOne({ email })
+			.withGraphFetched("projectMembers")
+			.execute();
+
+		if (!user) {
+			return null;
+		}
+
+		return this.mapToEntity(user);
+	}
+
+	public async findById(
+		id: number,
+		transaction?: Transaction,
+	): Promise<null | UserEntity> {
+		const user = await this.userModel.query(transaction).findById(id).execute();
+
+		return user ? UserEntity.initialize(user) : null;
 	}
 
 	public update(): ReturnType<Repository["update"]> {

@@ -1,11 +1,16 @@
 import { type Knex } from "knex";
+import { type Transaction } from "objection";
 
 import { type AppEnvironment } from "~/shared/enums/enums.js";
 import { type ValueOf } from "~/shared/types/types.js";
 
 type Database = {
+	client: Knex;
 	connect: () => void;
 	environmentsConfig: Record<ValueOf<typeof AppEnvironment>, Knex.Config>;
+	transaction: <T>(
+		handler: (transaction: Transaction) => Promise<T>,
+	) => Promise<T>;
 };
 
 export { type Database };

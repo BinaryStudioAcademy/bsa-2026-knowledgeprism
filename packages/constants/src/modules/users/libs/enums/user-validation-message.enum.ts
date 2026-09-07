@@ -5,10 +5,13 @@ const UserValidationMessage = {
 	EMAIL_WRONG: "Email is wrong",
 	FIRST_NAME_REQUIRE: "First name is required",
 	LAST_NAME_REQUIRE: "Last name is required",
+	PASSWORD_DIGIT_REQUIRE: "Password must contain at least one digit",
+	PASSWORD_MAXIMUM_LENGTH: "Password must be at most 32 characters long",
 	PASSWORD_MINIMUM_LENGTH: "Password must be at least 8 characters long",
-	PASSWORD_NUMBER: "Password must contain at least one number",
 	PASSWORD_REQUIRE: "Password is required",
 	PASSWORD_SPECIAL_CHARACTER:
+		"Password must contain at least one special character",
+	PASSWORD_SPECIAL_CHARACTER_REQUIRE:
 		"Password must contain at least one special character",
 	PROJECT_ROLE_REQUIRE: "Project role is required",
 	PROJECT_ROLE_WRONG: "Project role is invalid",

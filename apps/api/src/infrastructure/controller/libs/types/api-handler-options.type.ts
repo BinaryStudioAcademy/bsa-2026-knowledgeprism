@@ -1,3 +1,5 @@
+import { CustomSession } from "~/infrastructure/database/libs/types/session.type.js";
+
 type APIHandlerOptions<
 	T extends DefaultApiHandlerOptions = DefaultApiHandlerOptions,
 > = {
@@ -5,11 +7,6 @@ type APIHandlerOptions<
 	params: T["params"];
 	query: T["query"];
 	session: CustomSession;
-};
-
-type CustomSession = {
-	organisationId: number;
-	userId: number;
 };
 
 type DefaultApiHandlerOptions = {

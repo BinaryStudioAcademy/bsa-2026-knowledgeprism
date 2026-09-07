@@ -11,13 +11,13 @@ import { ProjectModel } from "~/modules/projects/models/project.model.js";
 class UserModel extends AbstractModel {
 	public email!: string;
 
-	public firstName!: null | string;
+	public firstName!: string;
 
-	public lastName!: null | string;
+	public lastName!: string;
 
 	public organisation?: OrganisationModel;
 
-	public organisationId!: null | number;
+	public organisationId!: number;
 
 	public passwordHash!: string;
 

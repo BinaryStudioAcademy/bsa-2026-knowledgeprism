@@ -1,21 +1,24 @@
 import { type ProjectAssignmentDto } from "@knowledgeprism/types";
 
+import { type EncryptService } from "~/libs/services/encrypt/encrypt.service.js";
 import { type Entity } from "~/shared/types/types.js";
 
+const ID_REQUIRED_MESSAGE = "User id is required";
+
 class UserEntity implements Entity {
+	private _passwordHash: string;
+
 	private assignedProjects: ProjectAssignmentDto[];
 
 	private email: string;
 
-	private firstName: null | string;
+	private firstName: string;
 
 	private id: null | number;
 
-	private lastName: null | string;
+	private lastName: string;
 
-	private organisationId: null | number;
-
-	private passwordHash: string;
+	private organisationId: number;
 
 	private status: "active" | "inactive";
 
@@ -31,10 +34,10 @@ class UserEntity implements Entity {
 	}: {
 		assignedProjects?: ProjectAssignmentDto[];
 		email: string;
-		firstName: null | string;
+		firstName: string;
 		id: null | number;
-		lastName: null | string;
-		organisationId: null | number;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 		status: "active" | "inactive";
 	}) {
@@ -44,7 +47,7 @@ class UserEntity implements Entity {
 		this.id = id;
 		this.lastName = lastName;
 		this.organisationId = organisationId;
-		this.passwordHash = passwordHash;
+		this._passwordHash = passwordHash;
 		this.status = status;
 	}
 
@@ -60,10 +63,10 @@ class UserEntity implements Entity {
 	}: {
 		assignedProjects?: ProjectAssignmentDto[];
 		email: string;
-		firstName: null | string;
+		firstName: string;
 		id: number;
-		lastName: null | string;
-		organisationId: null | number;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 		status: "active" | "inactive";
 	}): UserEntity {
@@ -90,9 +93,9 @@ class UserEntity implements Entity {
 	}: {
 		assignedProjects?: ProjectAssignmentDto[];
 		email: string;
-		firstName: null | string;
-		lastName: null | string;
-		organisationId: null | number;
+		firstName: string;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 		status: "active" | "inactive";
 	}): UserEntity {
@@ -108,11 +111,19 @@ class UserEntity implements Entity {
 		});
 	}
 
+	private getId(): number {
+		if (this.id === null) {
+			throw new Error(ID_REQUIRED_MESSAGE);
+		}
+
+		return this.id;
+	}
+
 	public toNewObject(): {
 		email: string;
-		firstName: null | string;
-		lastName: null | string;
-		organisationId: null | number;
+		firstName: string;
+		lastName: string;
+		organisationId: number;
 		passwordHash: string;
 		status: "active" | "inactive";
 	} {
@@ -121,7 +132,7 @@ class UserEntity implements Entity {
 			firstName: this.firstName,
 			lastName: this.lastName,
 			organisationId: this.organisationId,
-			passwordHash: this.passwordHash,
+			passwordHash: this._passwordHash,
 			status: this.status,
 		};
 	}
@@ -129,21 +140,45 @@ class UserEntity implements Entity {
 	public toObject(): {
 		assignedProjects: ProjectAssignmentDto[];
 		email: string;
-		firstName: null | string;
+		firstName: string;
 		id: number;
-		lastName: null | string;
-		organisationId: null | number;
+		lastName: string;
+		organisationId: number;
 		status: "active" | "inactive";
 	} {
 		return {
 			assignedProjects: this.assignedProjects,
 			email: this.email,
 			firstName: this.firstName,
-			id: this.id as number,
+			id: this.getId(),
 			lastName: this.lastName,
 			organisationId: this.organisationId,
 			status: this.status,
 		};
+	}
+
+	public toSignUpObject(): {
+		email: string;
+		firstName: string;
+		id: number;
+		lastName: string;
+	} {
+		return {
+			email: this.email,
+			firstName: this.firstName,
+			id: this.getId(),
+			lastName: this.lastName,
+		};
+	}
+
+	public async validatePassword(
+		password: string,
+		encryptService: EncryptService,
+	): Promise<boolean> {
+		return await encryptService.compare({
+			data: password,
+			hash: this._passwordHash,
+		});
 	}
 }
 
