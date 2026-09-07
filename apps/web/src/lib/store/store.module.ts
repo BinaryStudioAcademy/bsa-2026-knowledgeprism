@@ -9,6 +9,7 @@ import { type Config } from "~/lib/config/config.js";
 import { AppEnvironment } from "~/lib/enums/enums.js";
 import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
 import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
+import { workspacesReducer } from "~/modules/workspaces/state/workspaces.slice.js";
 
 type ExtraArguments = {
 	authApi: typeof authApi;
@@ -18,6 +19,7 @@ type ExtraArguments = {
 type RootReducer = {
 	auth: ReturnType<typeof authReducer>;
 	users: ReturnType<typeof usersReducer>;
+	workspaces: ReturnType<typeof workspacesReducer>;
 };
 
 class Store {
@@ -42,6 +44,7 @@ class Store {
 			reducer: {
 				auth: authReducer,
 				users: usersReducer,
+				workspaces: workspacesReducer,
 			},
 		});
 	}

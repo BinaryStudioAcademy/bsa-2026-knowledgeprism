@@ -11,10 +11,8 @@ import { actions as userActions } from "~/modules/users/users.js";
 const App: React.FC = () => {
 	const { pathname } = useLocation();
 	const dispatch = useAppDispatch();
-	const { dataStatus, users } = useAppSelector(({ users }) => ({
-		dataStatus: users.dataStatus,
-		users: users.users,
-	}));
+	const dataStatus = useAppSelector((state) => state.users.dataStatus);
+	const users = useAppSelector((state) => state.users.users);
 
 	const isRoot = pathname === AppRoute.ROOT;
 
