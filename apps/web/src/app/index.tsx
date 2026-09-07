@@ -17,8 +17,13 @@ import {
 	fetchProjects,
 	fetchRecentDocuments,
 } from "~/modules/workspaces/state/workspaces.slice.js";
+import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
 
 import { App } from "./app.js";
+import { AppLayout } from "./layouts/app-layout.js";
+import { AuthLayout } from "./layouts/auth-layout.js";
+import { PublicLayout } from "./layouts/public-layout.js";
+import { SidebarLayout } from "./layouts/sidebar-layout.js";
 import { RouterProvider } from "./router-provider.js";
 
 type LocalAuthState = {
@@ -59,9 +64,7 @@ const WorkspaceContainer = () => {
 	const handleLogOut = useCallback(() => {}, []);
 	const handleOpenSettings = useCallback(() => {}, []);
 
-	const handleSelectDocument = useCallback((id: string) => {
-		alert(`Selected document: ${id}`);
-	}, []);
+	const handleSelectDocument = useCallback(() => {}, []);
 
 	const handleSelectProject = useCallback(
 		(id: string) => {
@@ -124,9 +127,14 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 					{
 						children: [
 							{
-								element: "Root",
+								element: <App />,
 								path: AppRoute.ROOT,
 							},
+						],
+						element: <PublicLayout />,
+					},
+					{
+						children: [
 							{
 								element: <AuthPage />,
 								path: AppRoute.SIGN_IN,
@@ -144,8 +152,20 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								path: AppRoute.WORKSPACE_DETAILS,
 							},
 						],
-						element: <App />,
-						path: AppRoute.ROOT,
+						element: <AuthLayout />,
+					},
+					{
+						children: [
+							{
+								children: [],
+								element: <SidebarLayout />,
+							},
+						],
+						element: <AppLayout />,
+					},
+					{
+						element: <NotFoundPage />,
+						path: "*",
 					},
 				]}
 			/>

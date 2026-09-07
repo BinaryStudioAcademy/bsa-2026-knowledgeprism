@@ -1,9 +1,12 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 interface AvatarProperties {
-	index: number;
+	alt?: string;
+	className?: string;
+	index?: number;
+	src?: string;
 	url?: string;
 }
 
@@ -30,17 +33,8 @@ const DAYS_PER_WEEK = 7;
 const SINGLE_UNIT = 1;
 const INDEX_OFFSET = 1;
 
-const AVATAR_LIST = [
-	"/avatars/avatar-5c4764.jpg",
-	"/avatars/avatar-7fd8ac.jpg",
-	"/avatars/avatar-8d39d3.jpg",
-	"/avatars/avatar-744eba.jpg",
-	"/avatars/avatar-24253a.jpg",
-	"/avatars/avatar-aa06d3.jpg",
-	"/avatars/avatar-b7c172.jpg",
-];
-
-const DEFAULT_AVATAR = "/avatars/avatar-user-6f7f8b.jpg";
+const DEFAULT_AVATAR =
+	"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23A8A299'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-3.8-1.04-4.84-2.6.03-1.61 3.22-2.5 4.84-2.5 1.61 0 4.81.89 4.84 2.5-1.04 1.56-2.81 2.6-4.84 2.6z'/></svg>";
 
 const formatRelativeTime = (dateString: string): string => {
 	if (!dateString) {
@@ -137,22 +131,30 @@ const roleConfig: Record<
 	},
 };
 
-const Avatar: React.FC<AvatarProperties> = ({ index, url }) => {
-	const avatarSource =
-		url || AVATAR_LIST[index % AVATAR_LIST.length] || DEFAULT_AVATAR;
+const Avatar: React.FC<AvatarProperties> = ({
+	alt,
+	className,
+	index = 0,
+	src,
+	url,
+}) => {
+	const avatarSrc = src || url || DEFAULT_AVATAR;
 
-	const [imageSource, setImageSource] = useState(avatarSource);
-
-	const handleError = useCallback(() => {
-		setImageSource(DEFAULT_AVATAR);
-	}, []);
+	const handleImageError = (
+		event: React.SyntheticEvent<HTMLImageElement>,
+	): void => {
+		event.currentTarget.src = DEFAULT_AVATAR;
+	};
 
 	return (
 		<img
-			alt={`Member ${String(index + INDEX_OFFSET)}`}
-			className="h-6 w-6 rounded-full border-2 border-white object-cover bg-[#EBE8E1]"
-			onError={handleError}
-			src={imageSource}
+			alt={alt ?? `Member ${String(index + INDEX_OFFSET)}`}
+			className={getValidClassNames(
+				"h-6 w-6 rounded-full border-2 border-white object-cover bg-[#EBE8E1] shrink-0",
+				className,
+			)}
+			onError={handleImageError}
+			src={avatarSrc}
 		/>
 	);
 };
@@ -202,7 +204,7 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 
 	const canEdit = Boolean(onEdit);
 	const canDelete = Boolean(onDelete);
-	const shouldShowActions = Boolean(onEdit) || Boolean(onDelete);
+	const shouldShowActions = canEdit || canDelete;
 
 	return (
 		<div
@@ -298,20 +300,13 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 					<div className="flex -space-x-1.5 overflow-hidden">
 						{members &&
 							members.length > EMPTY_ARRAY_LENGTH &&
-							members.map((url, index) => {
-								const avatarSource =
-									url ||
-									AVATAR_LIST[index % AVATAR_LIST.length] ||
-									DEFAULT_AVATAR;
-
-								return (
-									<Avatar
-										index={index}
-										key={`${avatarSource}-${String(index)}`}
-										url={url}
-									/>
-								);
-							})}
+							members.map((memberUrl, index) => (
+								<Avatar
+									index={index}
+									key={`${memberUrl || "avatar"}-${String(index)}`}
+									url={memberUrl}
+								/>
+							))}
 					</div>
 				</div>
 			</div>

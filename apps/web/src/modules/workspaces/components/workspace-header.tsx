@@ -14,8 +14,10 @@ interface WorkspaceHeaderProperties {
 	organizationName?: null | string;
 }
 
-const DEFAULT_AVATAR = "/avatars/avatar-user-6f7f8b.jpg";
 const APP_BRAND_NAME = "KnowledgePrism";
+
+const DEFAULT_AVATAR =
+	"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23A8A299'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-3.8-1.04-4.84-2.6.03-1.61 3.22-2.5 4.84-2.5 1.61 0 4.81.89 4.84 2.5-1.04 1.56-2.81 2.6-4.84 2.6z'/></svg>";
 
 const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	avatarUrl,
@@ -35,7 +37,6 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	const safeFirstName = firstName ?? "";
 	const safeLastName = lastName ?? "";
 	const fullName = `${safeFirstName} ${safeLastName}`.trim();
-	const safeAvatarUrl = avatarUrl || DEFAULT_AVATAR;
 
 	const trimmedOrgName = organizationName?.trim();
 	const shouldShowOrgName =
@@ -51,9 +52,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	}, []);
 
 	const handleToggleUserMenu = useCallback((): void => {
-		setIsUserMenuOpen((previous) => {
-			return !previous;
-		});
+		setIsUserMenuOpen((previous) => !previous);
 	}, []);
 
 	const handleOpenSettings = useCallback((): void => {
@@ -133,7 +132,10 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 						onClick={handleToggleUserMenu}
 						type="button"
 					>
-						<Avatar alt={fullName || "User Avatar"} src={safeAvatarUrl} />
+						<Avatar
+							alt={fullName || "User Avatar"}
+							src={avatarUrl || DEFAULT_AVATAR}
+						/>
 						{fullName && (
 							<span className="hidden sm:inline-block text-sm font-medium text-[#1C1A17] max-w-28 truncate">
 								{fullName}
