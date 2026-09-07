@@ -89,6 +89,10 @@ async function up(knex: Knex): Promise<void> {
 			.dateTime(ColumnName.CREATED_AT)
 			.notNullable()
 			.defaultTo(knex.fn.now());
+		table
+			.dateTime(ColumnName.UPDATED_AT)
+			.notNullable()
+			.defaultTo(knex.fn.now());
 	});
 
 	await knex.schema.alterTable(TableName.USERS, (table) => {

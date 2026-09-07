@@ -1,24 +1,17 @@
-import { Model } from "objection";
+import {
+	AbstractModel,
+	DatabaseTableName,
+} from "~/infrastructure/database/database.js";
 
-import { DatabaseTableName } from "~/infrastructure/database/database.js";
-
-class ProjectMemberModel extends Model {
-	public createdAt!: Date | string;
-
-	public id!: number;
-
+class ProjectMemberModel extends AbstractModel {
 	public projectId!: number;
 
-	public role!: "EDITOR" | "VIEWER";
+	public role!: "ADMIN" | "EDITOR" | "VIEWER";
 
 	public userId!: number;
 
 	public static override get tableName(): string {
 		return DatabaseTableName.PROJECT_MEMBERS;
-	}
-
-	public override $beforeInsert(): void {
-		this.createdAt = new Date().toISOString();
 	}
 }
 
