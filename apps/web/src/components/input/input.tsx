@@ -1,41 +1,56 @@
 import React from "react";
+
 import {
 	type Control,
-	type FieldErrors,
 	type FieldPath,
 	type FieldValues,
-} from "react-hook-form";
-
-import { useFormController } from "~/hooks/hooks.js";
+	useFormController,
+} from "~/hooks/hooks.js";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 type Properties<T extends FieldValues> = {
 	control: Control<T, null>;
-	errors: FieldErrors<T>;
+	disabled?: boolean;
 	label: string;
 	name: FieldPath<T>;
 	placeholder?: string;
-	type?: "email" | "text";
+	type?: "email" | "password" | "text";
 };
 
 const Input = <T extends FieldValues>({
 	control,
-	errors,
+	disabled = false,
 	label,
 	name,
 	placeholder = "",
 	type = "text",
 }: Properties<T>): React.JSX.Element => {
-	const { field } = useFormController({ control, name });
+	const { field, fieldState } = useFormController({ control, name });
 
-	const error = errors[name]?.message;
-	const hasError = Boolean(error);
+	const error = fieldState.error;
+	const errorMessage = error?.message;
+	const hasError = Boolean(errorMessage);
 
 	return (
-		<label>
-			<span>{label}</span>
-			<input {...field} placeholder={placeholder} type={type} />
-			{hasError && <span>{error as string}</span>}
-		</label>
+		<div className="w-full">
+			<label className="block">
+				<span
+					className={getValidClassNames("form-label", hasError && "is-error")}
+				>
+					{label}
+				</span>
+				<input
+					{...field}
+					className={getValidClassNames("form-input", hasError && "is-error")}
+					disabled={disabled}
+					placeholder={placeholder}
+					type={type}
+				/>
+			</label>
+			{hasError && (
+				<span className="form-error-message">{errorMessage as string}</span>
+			)}
+		</div>
 	);
 };
 

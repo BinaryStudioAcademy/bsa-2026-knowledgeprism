@@ -91,6 +91,14 @@ class BaseConfig implements Config {
 					format: Number,
 				},
 			},
+			SESSION: {
+				SECRET: {
+					default: null,
+					doc: "Session secret key",
+					env: "SESSION_SECRET",
+					format: String,
+				},
+			},
 		});
 	}
 }

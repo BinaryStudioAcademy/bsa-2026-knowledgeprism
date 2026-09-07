@@ -1,0 +1,16 @@
+node_modules
+**/node_modules
+build
+**/build
+.git
+.github
+.storybook
+**/.storybook
+storybook-static
+**/storybook-static
+.env
+**/.env
+*.log
+.DS_Store
+docs
+design
