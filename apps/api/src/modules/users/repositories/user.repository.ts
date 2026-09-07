@@ -1,6 +1,8 @@
 import { type ProjectAssignmentDto } from "@knowledgeprism/types";
+import { type Transaction } from "objection";
 
 import { ProjectMemberModel } from "~/modules/projects/models/project-member.model.js";
+import { ProjectModel } from "~/modules/projects/models/project.model.js";
 import { UserEntity } from "~/modules/users/models/user.entity.js";
 import { type UserModel } from "~/modules/users/models/user.model.js";
 import { type Repository } from "~/shared/types/types.js";
@@ -21,6 +23,23 @@ class UserRepository implements Repository {
 
 	public constructor(userModel: typeof UserModel) {
 		this.userModel = userModel;
+	}
+
+	private async assertProjectsBelongToOrganisation(
+		projectIds: number[],
+		organisationId: number,
+		trx: Transaction,
+	): Promise<void> {
+		const validProjects = await ProjectModel.query(trx)
+			.whereIn("id", projectIds)
+			.andWhere({ organisationId })
+			.execute();
+
+		if (validProjects.length !== projectIds.length) {
+			throw new Error(
+				"One or more project IDs do not belong to the user's organisation.",
+			);
+		}
 	}
 
 	private mapToEntity(row: unknown): UserEntity {
@@ -84,6 +103,13 @@ class UserRepository implements Repository {
 				.execute();
 
 			if (assignedProjects && assignedProjects.length > EMPTY_LENGTH) {
+				const projectIds = assignedProjects.map((p) => p.projectId);
+				await this.assertProjectsBelongToOrganisation(
+					projectIds,
+					organisationId as number,
+					trx,
+				);
+
 				const projectMembersToInsert = assignedProjects.map((project) => ({
 					projectId: project.projectId,
 					role: project.role,
@@ -191,6 +217,13 @@ class UserRepository implements Repository {
 				await ProjectMemberModel.query(trx).delete().where({ userId: id });
 
 				if (assignedProjects.length > EMPTY_LENGTH) {
+					const projectIds = assignedProjects.map((p) => p.projectId);
+					await this.assertProjectsBelongToOrganisation(
+						projectIds,
+						organisationId,
+						trx,
+					);
+
 					const projectMembersToInsert = assignedProjects.map((project) => ({
 						projectId: project.projectId,
 						role: project.role,
