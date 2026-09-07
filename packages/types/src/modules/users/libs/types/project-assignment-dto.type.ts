@@ -1,6 +1,6 @@
 type ProjectAssignmentDto = {
 	projectId: number;
-	role: "EDITOR" | "VIEWER";
+	role: "ADMIN" | "EDITOR" | "VIEWER";
 };
 
 export { type ProjectAssignmentDto };

@@ -1,21 +1,18 @@
-import { z } from "zod";
-
 import {
 	UserValidationMessage,
 	UserValidationRule,
 } from "@knowledgeprism/constants";
+import { z } from "zod";
+
+const projectAssignment = z.object({
+	projectId: z.number().int().positive(),
+	role: z.enum(["EDITOR", "VIEWER"], {
+		error: UserValidationMessage.PROJECT_ROLE_WRONG,
+	}),
+});
 
 const userUpdate = z.object({
-	assignedProjects: z
-		.array(
-			z.object({
-				projectId: z.number().int().positive(),
-				role: z.enum(["EDITOR", "VIEWER"], {
-					error: UserValidationMessage.PROJECT_ROLE_WRONG,
-				}),
-			}),
-		)
-		.optional(),
+	assignedProjects: z.array(projectAssignment).optional(),
 	email: z
 		.string()
 		.trim()
