@@ -43,7 +43,7 @@ class BaseController implements Controller {
 			body,
 			params,
 			query,
-			session: session as APIHandlerOptions["session"],
+			session,
 		};
 	}
 

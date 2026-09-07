@@ -109,7 +109,7 @@ class UserRepository implements Repository {
 				const projectIds = assignedProjects.map((p) => p.projectId);
 				await this.assertProjectsBelongToOrganisation(
 					projectIds,
-					organisationId as number,
+					organisationId,
 					trx,
 				);
 
@@ -161,23 +161,6 @@ class UserRepository implements Repository {
 		return users.map((user) => this.mapToEntity(user));
 	}
 
-	public async findDetailsById(
-		id: number,
-		organisationId: number,
-	): Promise<null | UserEntity> {
-		const user = await this.userModel
-			.query()
-			.findOne({ id, organisationId })
-			.withGraphFetched("projectMembers")
-			.execute();
-
-		if (!user) {
-			return null;
-		}
-
-		return this.mapToEntity(user);
-	}
-
 	public async findByEmail(
 		email: string,
 		transaction?: Transaction,
@@ -202,6 +185,23 @@ class UserRepository implements Repository {
 		const user = await this.userModel.query(transaction).findById(id).execute();
 
 		return user ? UserEntity.initialize(user) : null;
+	}
+
+	public async findDetailsById(
+		id: number,
+		organisationId: number,
+	): Promise<null | UserEntity> {
+		const user = await this.userModel
+			.query()
+			.findOne({ id, organisationId })
+			.withGraphFetched("projectMembers")
+			.execute();
+
+		if (!user) {
+			return null;
+		}
+
+		return this.mapToEntity(user);
 	}
 
 	public update(): ReturnType<Repository["update"]> {

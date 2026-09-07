@@ -5,7 +5,6 @@ import {
 	type UserGetAllItemResponseDto,
 	type UserGetAllResponseDto,
 	type UserSignUpRequestDto,
-	type UserSignUpResponseDto,
 	type UserUpdateRequestDto,
 } from "@knowledgeprism/types";
 import { type Transaction, UniqueViolationError } from "objection";
@@ -171,6 +170,14 @@ class UserService implements Service {
 		};
 	}
 
+	public async findByEmail(email: string): Promise<null | UserEntity> {
+		return await this.userRepository.findByEmail(email);
+	}
+
+	public async findById(id: number): Promise<null | UserEntity> {
+		return await this.userRepository.findById(id);
+	}
+
 	public async findDetailsById(
 		id: number,
 		organisationId: number,
@@ -185,14 +192,6 @@ class UserService implements Service {
 		}
 
 		return item.toObject();
-	}
-
-	public async findByEmail(email: string): Promise<null | UserEntity> {
-		return await this.userRepository.findByEmail(email);
-	}
-
-	public async findById(id: number): Promise<null | UserEntity> {
-		return await this.userRepository.findById(id);
 	}
 
 	public update(): ReturnType<Service["update"]> {
