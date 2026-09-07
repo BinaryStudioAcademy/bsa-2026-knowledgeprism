@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "~/components/button/button.js";
 import { useCallback } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { LANDING_PLACEHOLDER_HREF } from "~/modules/landing/libs/constants.js";
 
 import { FloatingMark } from "../floating-mark/floating-mark.js";
 import { CTA_SECTION_CLASS, CTA_SECTION_COPY } from "./libs/constants.js";
@@ -30,13 +32,15 @@ const CtaSection: React.FC = () => {
 					>
 						{CTA_SECTION_COPY.primaryCTA}
 					</Button>
-					<Button
-						className={CTA_SECTION_CLASS.SECONDARY_BUTTON}
-						type="button"
-						variant="secondary"
+					<a
+						className={getValidClassNames(
+							"btn btn-secondary",
+							CTA_SECTION_CLASS.SECONDARY_BUTTON,
+						)}
+						href={LANDING_PLACEHOLDER_HREF}
 					>
 						{CTA_SECTION_COPY.secondaryCTA}
-					</Button>
+					</a>
 				</div>
 			</div>
 		</section>

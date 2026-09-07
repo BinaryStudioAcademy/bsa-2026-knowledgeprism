@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "~/components/button/button.js";
 import { useCallback } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
+import { LANDING_PLACEHOLDER_HREF } from "~/modules/landing/libs/constants.js";
 
 import { SectionEyebrow } from "../section-eyebrow/section-eyebrow.js";
 import { HeroPreview } from "./hero-preview.js";
@@ -30,9 +31,9 @@ const HeroSection: React.FC = () => {
 					<Button onClick={handleSignUp} variant="primary">
 						{HERO_SECTION_COPY.primaryCTA}
 					</Button>
-					<Button type="button" variant="secondary">
+					<a className="btn btn-secondary" href={LANDING_PLACEHOLDER_HREF}>
 						{HERO_SECTION_COPY.secondaryCTA}
-					</Button>
+					</a>
 				</div>
 			</div>
 

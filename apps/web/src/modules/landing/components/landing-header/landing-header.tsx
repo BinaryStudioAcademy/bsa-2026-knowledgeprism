@@ -39,6 +39,9 @@ const LandingHeader: React.FC = () => {
 	}, [handleCloseMenu, navigate]);
 
 	useEffect(() => {
+		if (typeof matchMedia !== "function") {
+			return;
+		}
 		const mediaQuery = matchMedia(
 			`(min-width: ${String(Breakpoint.TABLET)}px)`,
 		);
@@ -55,7 +58,6 @@ const LandingHeader: React.FC = () => {
 			mediaQuery.removeEventListener("change", handleViewportChange);
 		};
 	}, []);
-
 	return (
 		<header
 			className={getValidClassNames(
