@@ -5,6 +5,7 @@ import { Logo } from "~/components/logo/logo.js";
 import { useCallback, useEffect, useState } from "~/hooks/hooks.js";
 import { AppRoute, Breakpoint } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { LANDING_SECTION_CONTAINER_CLASS } from "~/modules/landing/libs/constants.js";
 
 import {
 	HEADER_LABEL,
@@ -13,8 +14,15 @@ import {
 	HEADER_MENU_ICON_WIDTH,
 	HEADER_NAV_ID,
 	HEADER_SECTION_LINKS,
-	LANDING_HEADER_CLASS,
 } from "./libs/constants.js";
+
+const HEADER_FOCUS_RING =
+	"focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35";
+
+const LANDING_HEADER_CLASS = {
+	INNER: `${LANDING_SECTION_CONTAINER_CLASS} flex h-[72px] items-center justify-between`,
+	MOBILE_NAV: `${LANDING_SECTION_CONTAINER_CLASS} flex flex-col gap-3.5 border-t border-border bg-bg pb-6 pt-4 tablet:hidden`,
+} as const;
 
 const LandingHeader: React.FC = () => {
 	const navigate = useNavigate();
@@ -42,6 +50,7 @@ const LandingHeader: React.FC = () => {
 		if (typeof matchMedia !== "function") {
 			return;
 		}
+
 		const mediaQuery = matchMedia(
 			`(min-width: ${String(Breakpoint.TABLET)}px)`,
 		);
@@ -58,6 +67,7 @@ const LandingHeader: React.FC = () => {
 			mediaQuery.removeEventListener("change", handleViewportChange);
 		};
 	}, []);
+
 	return (
 		<header
 			className={getValidClassNames(
@@ -70,7 +80,7 @@ const LandingHeader: React.FC = () => {
 					className={getValidClassNames(
 						"text-text no-underline",
 						"hover:text-text hover:no-underline",
-						LANDING_HEADER_CLASS.FOCUS_RING,
+						HEADER_FOCUS_RING,
 					)}
 					to={AppRoute.ROOT}
 				>
@@ -89,7 +99,7 @@ const LandingHeader: React.FC = () => {
 							className={getValidClassNames(
 								"text-control text-text-muted no-underline",
 								"hover:text-text hover:no-underline",
-								LANDING_HEADER_CLASS.FOCUS_RING,
+								HEADER_FOCUS_RING,
 							)}
 							href={item.href}
 							key={item.href}
@@ -122,7 +132,7 @@ const LandingHeader: React.FC = () => {
 					className={getValidClassNames(
 						"cursor-pointer border-0 bg-transparent p-2 text-text",
 						"tablet:hidden",
-						LANDING_HEADER_CLASS.FOCUS_RING,
+						HEADER_FOCUS_RING,
 					)}
 					onClick={handleToggleMenu}
 					type="button"
@@ -154,7 +164,7 @@ const LandingHeader: React.FC = () => {
 							className={getValidClassNames(
 								"text-body text-text no-underline",
 								"hover:text-text hover:no-underline",
-								LANDING_HEADER_CLASS.FOCUS_RING,
+								HEADER_FOCUS_RING,
 							)}
 							href={item.href}
 							key={item.href}

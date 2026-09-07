@@ -2,9 +2,17 @@ import {
 	SOCIAL_PROOF_LOGO_HEIGHT,
 	SOCIAL_PROOF_LOGO_VIEW_BOX,
 	SOCIAL_PROOF_LOGO_WIDTH,
-	SOCIAL_PROOF_SECTION_CLASS,
 	SOCIAL_PROOF_SECTION_COPY,
 } from "./libs/constants.js";
+
+const SOCIAL_PROOF_SECTION_CLASS = {
+	INNER: "mx-auto max-w-[1100px] px-[clamp(20px,5vw,40px)] py-10",
+	LABEL:
+		"mb-6 text-center text-[12px] font-medium uppercase tracking-[0.07em] text-text-faint",
+	LOGO: "text-text-faint opacity-50",
+	LOGO_ROW: "flex flex-wrap items-center justify-center gap-6",
+	ROOT: "border-y border-border bg-secondary",
+} as const;
 
 type LogoProperties = {
 	children: React.ReactNode;
