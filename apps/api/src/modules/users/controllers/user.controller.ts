@@ -160,7 +160,7 @@ class UserController extends BaseController {
 		return {
 			payload: await this.userService.createOrgUser(
 				options.body,
-				options.session.organisationId,
+				options.session.organisationId as number,
 			),
 			status: HTTPCode.CREATED,
 		};
@@ -189,7 +189,7 @@ class UserController extends BaseController {
 	): Promise<APIHandlerResponse> {
 		return {
 			payload: await this.userService.findAllByOrgId(
-				options.session.organisationId,
+				options.session.organisationId as number,
 			),
 			status: HTTPCode.OK,
 		};
@@ -224,7 +224,7 @@ class UserController extends BaseController {
 		return {
 			payload: await this.userService.findDetailsById(
 				Number(options.params.id),
-				options.session.organisationId,
+				options.session.organisationId as number,
 			),
 			status: HTTPCode.OK,
 		};
@@ -269,9 +269,9 @@ class UserController extends BaseController {
 	): Promise<APIHandlerResponse> {
 		return {
 			payload: await this.userService.updateOrgUser({
-				currentUserId: options.session.userId,
+				currentUserId: options.session.userId as number,
 				id: Number(options.params.id),
-				organisationId: options.session.organisationId,
+				organisationId: options.session.organisationId as number,
 				payload: options.body,
 			}),
 			status: HTTPCode.OK,
