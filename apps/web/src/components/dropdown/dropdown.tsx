@@ -1,5 +1,11 @@
 import { Button } from "~/components/button/button.js";
-import { useCallback, useEffect, useRef, useState } from "~/hooks/hooks.js";
+import {
+	useCallback,
+	useEffect,
+	useOnClickOutside,
+	useRef,
+	useState,
+} from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 type DropdownItem = {
@@ -37,29 +43,7 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 		containerReference.current?.querySelector("button")?.focus();
 	}, [handleClose]);
 
-	useEffect(() => {
-		if (!isOpen) {
-			return;
-		}
-
-		const handleClickOutside = (event: MouseEvent): void => {
-			const { target } = event;
-
-			if (
-				containerReference.current &&
-				target instanceof Node &&
-				!containerReference.current.contains(target)
-			) {
-				handleClose();
-			}
-		};
-
-		document.addEventListener("mousedown", handleClickOutside);
-
-		return (): void => {
-			document.removeEventListener("mousedown", handleClickOutside);
-		};
-	}, [isOpen, handleClose]);
+	useOnClickOutside(containerReference, handleClose, isOpen);
 
 	useEffect(() => {
 		if (!isOpen) {
