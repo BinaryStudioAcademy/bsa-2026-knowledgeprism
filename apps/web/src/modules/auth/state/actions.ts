@@ -4,7 +4,6 @@ import {
 } from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
-import { StorageKey } from "~/lib/storage/storage.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
 import { name as sliceName } from "./auth.slice.js";
@@ -22,9 +21,9 @@ const signUp = createAsyncThunk<
 const logout = createAsyncThunk<null, undefined, AsyncThunkConfig>(
 	`${sliceName}/logout`,
 	async (_, { extra }) => {
-		const { storage } = extra;
+		const { authApi } = extra;
 
-		await storage.drop(StorageKey.TOKEN);
+		await authApi.logout();
 
 		return null;
 	},
