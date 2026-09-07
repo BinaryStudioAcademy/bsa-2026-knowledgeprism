@@ -18,6 +18,10 @@
 		"start": "node ./src/app/index.js"
 	},
 	"dependencies": {
+		"@fastify/cookie": "11.1.2",
+		"@fastify/session": "11.1.2",
+		"@fastify/cookie": "11.1.2",
+		"@fastify/session": "11.1.2",
 		"@aws-sdk/client-bedrock-runtime": "3.1120.0",
 		"@aws-sdk/client-s3": "3.1124.0",
 		"@aws-sdk/s3-request-presigner": "3.1124.0",

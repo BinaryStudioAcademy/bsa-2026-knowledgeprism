@@ -6,8 +6,9 @@ export {
 	HTTPHeader,
 	S3PresignedUrlRule,
 	ServerErrorType,
+	TimeMs,
 } from "./libs/enums/enums.js";
-export { AuthApiPath } from "./modules/auth/auth.js";
+export { AuthApiPath, AuthValidationMessage } from "./modules/auth/auth.js";
 export {
 	DocumentsApiPath,
 	DocumentStatus,
