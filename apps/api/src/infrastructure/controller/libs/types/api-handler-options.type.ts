@@ -1,9 +1,12 @@
+import { type RequestSession } from "./request-session.type.js";
+
 type APIHandlerOptions<
 	T extends DefaultApiHandlerOptions = DefaultApiHandlerOptions,
 > = {
 	body: T["body"];
 	params: T["params"];
 	query: T["query"];
+	session: RequestSession;
 };
 
 type DefaultApiHandlerOptions = {
