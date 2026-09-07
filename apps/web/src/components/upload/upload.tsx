@@ -109,7 +109,7 @@ const Upload: React.FC<Properties> = ({
 				</div>
 				<div className="text-xs text-text-faint">
 					PDF, DOCX, TXT, MD, CSV · up to{" "}
-					{FileValidationRule.MAXIMUM_SIZE_MEGABYTES}MB each
+					{FileValidationRule.MAXIMUM_FILE_SIZE_IN_MB}MB each
 				</div>
 				<input
 					className="hidden"

@@ -1,10 +1,14 @@
-const BYTES_IN_KILOBYTE = 1024;
-const MAXIMUM_SIZE_MEGABYTES = 25;
+const FileSizeRule = {
+	BYTES_IN_KB: 1024,
+	MAXIMUM_SIZE_IN_MB: 25,
+} as const;
 
 const FileValidationRule = {
-	MAXIMUM_SIZE_BYTES:
-		MAXIMUM_SIZE_MEGABYTES * BYTES_IN_KILOBYTE * BYTES_IN_KILOBYTE,
-	MAXIMUM_SIZE_MEGABYTES,
+	MAXIMUM_FILE_SIZE_IN_BYTES:
+		FileSizeRule.MAXIMUM_SIZE_IN_MB *
+		FileSizeRule.BYTES_IN_KB *
+		FileSizeRule.BYTES_IN_KB,
+	MAXIMUM_FILE_SIZE_IN_MB: FileSizeRule.MAXIMUM_SIZE_IN_MB,
 } as const;
 
 export { FileValidationRule };
