@@ -53,6 +53,10 @@
 	--breakpoint-desktop: 1440px;
 }
 
+body:has(dialog:modal) {
+	overflow: hidden;
+}
+
 @layer components {
 	.ds-nav-link {
 		display: flex;
