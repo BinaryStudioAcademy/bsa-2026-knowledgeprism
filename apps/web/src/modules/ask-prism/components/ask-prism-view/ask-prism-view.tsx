@@ -123,7 +123,7 @@ const AskPrismView = (): JSX.Element => {
 					</span>
 					{SAMPLE_PROMPTS.map((prompt) => (
 						<button
-							className="max-w-[220px] cursor-pointer truncate rounded-md border border-border bg-surface px-2.5 py-1 font-sans text-xs text-text-mutedshadow-2xs transition-all duration-200 hover:scale-[1.02] hover:border-accent hover:bg-success-bg/40 hover:text-accent active:scale-95"
+							className="max-w-[220px] cursor-pointer truncate rounded-md border border-border bg-surface px-2.5 py-1 font-sans text-xs text-text-muted shadow-2xs transition-all duration-200 hover:scale-[1.02] hover:border-accent hover:bg-success-bg/40 hover:text-accent active:scale-95"
 							data-prompt={prompt}
 							key={prompt}
 							onClick={handlePromptClick}
@@ -136,9 +136,7 @@ const AskPrismView = (): JSX.Element => {
 
 				{/* Input box with focus ring transition */}
 				<form
-					className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface p-2 shadow-xs transition-all duration-200 focus-within:border-accent
-focus-
-within:ring-2 focus-within:ring-accent/15"
+					className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface p-2 shadow-xs transition-all duration-200 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15"
 					onSubmit={handleSubmit}
 				>
 					<span className="ml-2 text-text-faint transition-colors duration-200">
@@ -153,9 +151,7 @@ within:ring-2 focus-within:ring-accent/15"
 						value={query}
 					/>
 					<button
-						className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-accent text-white shadow-2xs transition-all duration-200
-hover:scale-105
-hover:bg-accent-hover active:scale-95 disabled:scale-100 disabled:opacity-40"
+						className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-accent text-white shadow-2xs transition-all duration-200 hover:scale-105 hover:bg-accent-hover active:scale-95 disabled:scale-100 disabled:opacity-40"
 						disabled={!query.trim() || isLoading}
 						title="Send question"
 						type="submit"
