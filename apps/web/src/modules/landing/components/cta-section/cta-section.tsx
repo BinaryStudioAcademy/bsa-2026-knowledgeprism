@@ -3,7 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "~/components/button/button.js";
 import { useCallback } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
-import { LANDING_PLACEHOLDER_HREF } from "~/modules/landing/libs/constants.js";
+import {
+	LANDING_FOCUS_RING,
+	LANDING_PLACEHOLDER_HREF,
+} from "~/modules/landing/libs/constants.js";
 
 import { FloatingMark } from "../floating-mark/floating-mark.js";
 import { CTA_SECTION_COPY } from "./libs/constants.js";
@@ -18,8 +21,7 @@ const CTA_SECTION_CLASS = {
 	MARK: "pointer-events-none absolute left-[8%] top-[14%] size-[30px] text-primary-fg/[0.15]",
 	PRIMARY_BUTTON: "bg-primary-fg text-primary hover:bg-success-bg",
 	ROOT: "relative overflow-hidden bg-primary",
-	SECONDARY_BUTTON:
-		"inline-flex items-center justify-center gap-2 rounded-md border border-primary-fg/30 bg-transparent px-5 py-2.5 text-[13px] font-medium leading-normal text-primary-fg no-underline transition-colors hover:bg-primary-fg/[0.08] hover:no-underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35",
+	SECONDARY_BUTTON: `inline-flex items-center justify-center gap-2 rounded-md border border-primary-fg/30 bg-transparent px-5 py-2.5 text-[13px] font-medium leading-normal text-primary-fg no-underline transition-colors hover:bg-primary-fg/[0.08] hover:no-underline ${LANDING_FOCUS_RING}`,
 } as const;
 
 const CtaSection: React.FC = () => {

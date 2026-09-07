@@ -2,6 +2,7 @@ import { Icon } from "~/components/icon/icon.js";
 import { useCallback } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
+import { LANDING_FOCUS_RING } from "~/modules/landing/libs/constants.js";
 
 import { FEATURE_TAB_ICON_SIZE, FEATURES_LIST } from "./libs/constants.js";
 import { FeatureId } from "./libs/enums/feature-id.enum.js";
@@ -12,8 +13,6 @@ const FEATURE_TAB_TITLE_CLASS = "mb-1 text-[15px] font-medium";
 const FEATURE_TAB_CLASS = {
 	BODY: "text-[12.5px] leading-[1.55] text-text-muted",
 	DIVIDER: "border-b border-border-subtle",
-	FOCUS_RING:
-		"focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35",
 	ICON: {
 		active: `${FEATURE_TAB_ICON_CLASS} text-accent`,
 		default: `${FEATURE_TAB_ICON_CLASS} text-text-faint`,
@@ -63,7 +62,7 @@ const FeatureTab: React.FC<Properties> = ({
 			aria-pressed={isActive}
 			className={getValidClassNames(
 				FEATURE_TAB_CLASS.ROOT,
-				FEATURE_TAB_CLASS.FOCUS_RING,
+				LANDING_FOCUS_RING,
 				state,
 				!isLast && FEATURE_TAB_CLASS.DIVIDER,
 			)}

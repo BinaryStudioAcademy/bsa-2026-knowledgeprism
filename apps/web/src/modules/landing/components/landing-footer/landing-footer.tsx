@@ -1,5 +1,8 @@
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import { LANDING_SECTION_CONTAINER_CLASS } from "~/modules/landing/libs/constants.js";
+import {
+	LANDING_FOCUS_RING,
+	LANDING_SECTION_CONTAINER_CLASS,
+} from "~/modules/landing/libs/constants.js";
 
 import { LANDING_FOOTER_COPY } from "./libs/constants.js";
 
@@ -17,7 +20,10 @@ const LandingFooter: React.FC = () => (
 			<nav aria-label="Footer" className="flex gap-6">
 				{LANDING_FOOTER_COPY.links.map((link) => (
 					<a
-						className="rounded-sm text-[12.5px] text-text-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35"
+						className={getValidClassNames(
+							"rounded-sm text-[12.5px] text-text-muted",
+							LANDING_FOCUS_RING,
+						)}
 						href={link.href}
 						key={link.label}
 					>
