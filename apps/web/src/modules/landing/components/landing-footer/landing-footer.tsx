@@ -1,3 +1,4 @@
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { LANDING_SECTION_CONTAINER_CLASS } from "~/modules/landing/libs/constants.js";
 
 import { LANDING_FOOTER_COPY } from "./libs/constants.js";
@@ -5,7 +6,10 @@ import { LANDING_FOOTER_COPY } from "./libs/constants.js";
 const LandingFooter: React.FC = () => (
 	<footer className="border-t border-border">
 		<div
-			className={`${LANDING_SECTION_CONTAINER_CLASS} flex flex-wrap items-center justify-between gap-3 py-7`}
+			className={getValidClassNames(
+				LANDING_SECTION_CONTAINER_CLASS,
+				"flex flex-wrap items-center justify-between gap-3 py-7",
+			)}
 		>
 			<span className="font-mono text-[12px] text-text-faint">
 				{LANDING_FOOTER_COPY.copyright}

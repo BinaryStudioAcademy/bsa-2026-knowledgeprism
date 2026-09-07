@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "~/components/button/button.js";
 import { useCallback } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
-import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { LANDING_PLACEHOLDER_HREF } from "~/modules/landing/libs/constants.js";
 
 import { FloatingMark } from "../floating-mark/floating-mark.js";
@@ -20,7 +19,7 @@ const CTA_SECTION_CLASS = {
 	PRIMARY_BUTTON: "bg-primary-fg text-primary hover:bg-success-bg",
 	ROOT: "relative overflow-hidden bg-primary",
 	SECONDARY_BUTTON:
-		"border-primary-fg/30 bg-transparent text-primary-fg hover:bg-primary-fg/[0.08]",
+		"inline-flex items-center justify-center gap-2 rounded-md border border-primary-fg/30 bg-transparent px-5 py-2.5 text-[13px] font-medium leading-normal text-primary-fg no-underline transition-colors hover:bg-primary-fg/[0.08] hover:no-underline focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35",
 } as const;
 
 const CtaSection: React.FC = () => {
@@ -47,10 +46,7 @@ const CtaSection: React.FC = () => {
 						{CTA_SECTION_COPY.primaryCTA}
 					</Button>
 					<a
-						className={getValidClassNames(
-							"btn btn-secondary",
-							CTA_SECTION_CLASS.SECONDARY_BUTTON,
-						)}
+						className={CTA_SECTION_CLASS.SECONDARY_BUTTON}
 						href={LANDING_PLACEHOLDER_HREF}
 					>
 						{CTA_SECTION_COPY.secondaryCTA}
