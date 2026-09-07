@@ -64,7 +64,7 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 	}, [isOpen, handleDismiss]);
 
 	return (
-		<div className="relative" ref={containerReference}>
+		<div className="relative w-fit" ref={containerReference}>
 			<Button
 				aria-expanded={isOpen}
 				aria-haspopup="menu"
