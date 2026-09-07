@@ -52,6 +52,10 @@
 	--breakpoint-desktop: 1440px;
 }
 
+body:has(dialog:modal) {
+	overflow: hidden;
+}
+
 @layer components {
 	.btn {
 		padding: 10px 20px;
