@@ -18,4 +18,15 @@ const signUp = createAsyncThunk<
 	return authApi.signUp(registerPayload);
 });
 
-export { signUp };
+const logout = createAsyncThunk<null, undefined, AsyncThunkConfig>(
+	`${sliceName}/logout`,
+	async (_, { extra }) => {
+		const { authApi } = extra;
+
+		await authApi.logout();
+
+		return null;
+	},
+);
+
+export { logout, signUp };
