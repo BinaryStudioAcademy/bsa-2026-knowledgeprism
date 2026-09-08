@@ -1,5 +1,6 @@
 import { MobileNav, RouterOutlet, Sidebar } from "~/components/components.js";
 
+// TODO: replace with the real project name/role once the projects API lands
 const PROJECT_NAME = "Project Alpha";
 const PROJECT_ROLE = "EDITOR";
 
