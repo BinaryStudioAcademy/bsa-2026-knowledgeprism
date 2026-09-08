@@ -6,8 +6,13 @@ import { StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
+import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
 
 import { App } from "./app.js";
+import { AppLayout } from "./layouts/app-layout.js";
+import { AuthLayout } from "./layouts/auth-layout.js";
+import { PublicLayout } from "./layouts/public-layout.js";
+import { SidebarLayout } from "./layouts/sidebar-layout.js";
 import { RouterProvider } from "./router-provider.js";
 
 createRoot(document.querySelector("#root") as HTMLElement).render(
@@ -18,9 +23,14 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 					{
 						children: [
 							{
-								element: "Root",
+								element: <App />,
 								path: AppRoute.ROOT,
 							},
+						],
+						element: <PublicLayout />,
+					},
+					{
+						children: [
 							{
 								element: <AuthPage />,
 								path: AppRoute.SIGN_IN,
@@ -34,8 +44,20 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								path: AppRoute.WORKSPACE,
 							},
 						],
-						element: <App />,
-						path: AppRoute.ROOT,
+						element: <AuthLayout />,
+					},
+					{
+						children: [
+							{
+								children: [],
+								element: <SidebarLayout />,
+							},
+						],
+						element: <AppLayout />,
+					},
+					{
+						element: <NotFoundPage />,
+						path: "*",
 					},
 				]}
 			/>
