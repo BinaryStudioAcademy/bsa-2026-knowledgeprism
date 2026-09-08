@@ -1,4 +1,3 @@
-import { type S3Client } from "@aws-sdk/client-s3";
 import { DocumentStatus } from "@knowledgeprism/constants";
 import {
 	type DocumentUploadIntentRequestDto,
@@ -6,41 +5,33 @@ import {
 	type DocumentUploadIntentRouteParametersDto,
 } from "@knowledgeprism/types";
 
-import { type Config } from "~/infrastructure/config/config.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
-import {
-	createPresignedUploadUrl,
-	PRESIGNED_URL_EXPIRY_SECONDS,
-} from "~/infrastructure/s3/libs/helpers/helpers.js";
+import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/helpers.js";
+import { type GeneratePresignedUploadUrl } from "~/infrastructure/s3/libs/types/types.js";
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 
 class DocumentService {
-	private config: Config;
-
 	private documentRepository: DocumentRepository;
+
+	private generatePresignedUploadUrl: GeneratePresignedUploadUrl;
 
 	private logger: Logger;
 
-	private s3Client: S3Client;
-
 	public constructor({
-		config,
 		documentRepository,
+		generatePresignedUploadUrl,
 		logger,
-		s3Client,
 	}: {
-		config: Config;
 		documentRepository: DocumentRepository;
+		generatePresignedUploadUrl: GeneratePresignedUploadUrl;
 		logger: Logger;
-		s3Client: S3Client;
 	}) {
-		this.config = config;
 		this.documentRepository = documentRepository;
+		this.generatePresignedUploadUrl = generatePresignedUploadUrl;
 		this.logger = logger;
-		this.s3Client = s3Client;
 	}
 
 	public async createUploadIntent({
@@ -50,7 +41,6 @@ class DocumentService {
 		payload: DocumentUploadIntentRequestDto;
 		routeParameters: DocumentUploadIntentRouteParametersDto;
 	}): Promise<DocumentUploadIntentResponseDto> {
-		const bucketName = this.config.ENV.AWS.S3_BUCKET_NAME;
 		const storageKey = buildDocumentStorageKey({
 			fileName: payload.fileName,
 			projectId: routeParameters.projectId,
@@ -59,11 +49,9 @@ class DocumentService {
 		let uploadUrl: string;
 
 		try {
-			uploadUrl = await createPresignedUploadUrl({
-				bucketName,
+			uploadUrl = await this.generatePresignedUploadUrl({
 				contentType: payload.contentType,
 				key: storageKey,
-				s3Client: this.s3Client,
 			});
 		} catch (error) {
 			this.logger.error("Failed to create S3 presigned upload URL.", {
