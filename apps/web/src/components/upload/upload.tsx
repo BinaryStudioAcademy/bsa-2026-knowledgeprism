@@ -2,9 +2,11 @@ import { FileValidationRule } from "@knowledgeprism/constants";
 import React, { useCallback, useRef, useState } from "react";
 
 import { Icon } from "~/components/icon/icon.js";
-import { UploadFileStatus } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
+
+import { UploadFileStatus } from "./libs/enums.js";
+import { type UploadFile } from "./libs/types.js";
 
 const EMPTY_FILE_COUNT = 0;
 
@@ -13,18 +15,10 @@ type Properties = {
 	onFileRemove: (id: string) => void;
 	onFilesSelected: (fileList: FileList) => void;
 };
-type UploadFile = {
-	id: string;
-	name: string;
-	progress?: number;
-	sizeLabel: string;
-	status: UploadFileStatusValue;
-};
-type UploadFileStatusValue = ValueOf<typeof UploadFileStatus>;
 
 const DEFAULT_UPLOAD_PROGRESS = 0;
 
-const statusToLabel: Record<UploadFileStatusValue, string> = {
+const statusToLabel: Record<ValueOf<typeof UploadFileStatus>, string> = {
 	[UploadFileStatus.DONE]: "Ready",
 	[UploadFileStatus.ERROR]: "Failed",
 	[UploadFileStatus.UPLOADING]: "Uploading…",
@@ -169,4 +163,4 @@ const Upload: React.FC<Properties> = ({
 };
 
 export { Upload };
-export { type UploadFile };
+export { type UploadFile } from "./libs/types.js";
