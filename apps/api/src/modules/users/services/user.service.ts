@@ -223,21 +223,22 @@ class UserService implements Service {
 
 		this.guardSelfModification(id, currentUserId, payload);
 
+		const { assignedProjects, email, firstName, lastName, password, status } =
+			payload;
+
 		const entity: Partial<ReturnType<UserEntity["toNewObject"]>> = {
-			...(payload.email !== undefined && { email: payload.email }),
-			...(payload.firstName !== undefined && { firstName: payload.firstName }),
-			...(payload.lastName !== undefined && { lastName: payload.lastName }),
-			...(payload.status !== undefined && { status: payload.status }),
+			...(email !== undefined && { email }),
+			...(firstName !== undefined && { firstName }),
+			...(lastName !== undefined && { lastName }),
+			...(status !== undefined && { status }),
 		};
 
-		if (payload.password) {
-			entity.passwordHash = await this.encryptService.generateHash(
-				payload.password,
-			);
+		if (password) {
+			entity.passwordHash = await this.encryptService.generateHash(password);
 		}
 
-		if (payload.email && payload.email !== existingUser.toObject().email) {
-			const emailTaken = await this.userRepository.findByEmail(payload.email);
+		if (email && email !== existingUser.toObject().email) {
+			const emailTaken = await this.userRepository.findByEmail(email);
 			if (emailTaken) {
 				throw new HTTPError({
 					message: UserValidationMessage.EMAIL_ALREADY_EXISTS,
@@ -247,8 +248,8 @@ class UserService implements Service {
 		}
 
 		const updatedUser = await this.userRepository.updateOrgUser({
-			...(payload.assignedProjects && {
-				assignedProjects: payload.assignedProjects,
+			...(assignedProjects && {
+				assignedProjects,
 			}),
 			entity,
 			id,
