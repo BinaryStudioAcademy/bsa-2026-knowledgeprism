@@ -1,13 +1,31 @@
-import { useAppDispatch, useAppSelector, useEffect } from "~/hooks/hooks.js";
+import { useCallback } from "react";
+
+import { Link } from "~/components/components.js";
+import {
+	useAppDispatch,
+	useAppSelector,
+	useEffect,
+	useNavigate,
+} from "~/hooks/hooks.js";
+import { AppRoute } from "~/lib/enums/enums.js";
+import { actions as authActions } from "~/modules/auth/auth.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 const App: React.FC = () => {
+	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
-
-	const { dataStatus, users } = useAppSelector(({ users }) => ({
+	const { dataStatus, user, users } = useAppSelector(({ auth, users }) => ({
 		dataStatus: users.dataStatus,
+		user: auth.user,
 		users: users.users,
 	}));
+
+	const hasUser = Boolean(user);
+
+	const handleLogout = useCallback((): void => {
+		void dispatch(authActions.logout());
+		void navigate(AppRoute.ROOT);
+	}, [dispatch, navigate]);
 
 	useEffect(() => {
 		void dispatch(userActions.loadAll());
@@ -15,12 +33,38 @@ const App: React.FC = () => {
 
 	return (
 		<>
+			<ul className="App-navigation-list">
+				<li>
+					<Link to={AppRoute.ROOT}>Root</Link>
+				</li>
+				{hasUser ? (
+					<li>
+						<button
+							className="cursor-pointer font-medium text-red-600 hover:underline"
+							onClick={handleLogout}
+							type="button"
+						>
+							Log out ({user?.user.email})
+						</button>
+					</li>
+				) : (
+					<>
+						<li>
+							<Link to={AppRoute.SIGN_IN}>Sign in</Link>
+						</li>
+						<li>
+							<Link to={AppRoute.SIGN_UP}>Sign up</Link>
+						</li>
+					</>
+				)}
+			</ul>
+
 			<h2>Users:</h2>
 			<h3>Status: {dataStatus}</h3>
 
 			<ul>
-				{users.map((user) => (
-					<li key={user.id}>{user.email}</li>
+				{users.map((userItem) => (
+					<li key={userItem.id}>{userItem.email}</li>
 				))}
 			</ul>
 		</>
