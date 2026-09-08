@@ -1,4 +1,7 @@
-import { type UserSignUpRequestDto } from "@knowledgeprism/types";
+import {
+	UserSignInRequestDto,
+	type UserSignUpRequestDto,
+} from "@knowledgeprism/types";
 
 import { Logo } from "~/components/components.js";
 import {
@@ -21,9 +24,18 @@ const AuthPage: React.FC = () => {
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
 
-	const handleSignInSubmit = useCallback((): void => {
-		// handle sign in
-	}, []);
+	const handleSignInSubmit = useCallback(
+		(payload: UserSignInRequestDto): void => {
+			void (async (): Promise<void> => {
+				const action = await dispatch(authActions.signIn(payload));
+
+				if (authActions.signIn.fulfilled.match(action)) {
+					await navigate(AppRoute.WORKSPACE);
+				}
+			})();
+		},
+		[dispatch, navigate],
+	);
 
 	const handleSignUpSubmit = useCallback(
 		(payload: UserSignUpRequestDto): void => {
