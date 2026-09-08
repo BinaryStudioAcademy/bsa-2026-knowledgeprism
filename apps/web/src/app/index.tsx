@@ -3,12 +3,13 @@ import { createRoot } from "react-dom/client";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
-import { StoreProvider } from "~/components/components.js";
+import { StoreProvider, Loader } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { type AppDispatch, type RootState, store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
 import { WorkspacesApi } from "~/modules/workspaces/api/workspaces-api.js";
+
 import {
 	ProjectDetailsPage,
 	WorkspacePage,
@@ -17,6 +18,7 @@ import {
 	fetchProjects,
 	fetchRecentDocuments,
 } from "~/modules/workspaces/state/workspaces.slice.js";
+import { AccountSettingsPage } from "~/modules/users/components/components.js";
 import "~/styles/styles.css";
 
 import { App } from "./app.js";
@@ -83,7 +85,7 @@ const WorkspaceContainer = () => {
 		return (
 			<div className="flex items-center justify-center min-h-screen">
 				<div className="text-center">
-					<p className="text-sm text-text-muted">Loading workspace...</p>
+					<Loader />
 				</div>
 			</div>
 		);
@@ -163,7 +165,12 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 					{
 						children: [
 							{
-								children: [],
+								children: [
+									{
+										element: <AccountSettingsPage />,
+										path: AppRoute.SETTINGS,
+									},
+								],
 								element: <SidebarLayout />,
 							},
 						],
