@@ -4,18 +4,8 @@ import { tv } from "tailwind-variants";
 import { Button } from "~/components/button/button.js";
 import { Icon } from "~/components/icon/icon.js";
 import { Logo } from "~/components/logo/logo.js";
-import { useCallback, useEffect, useState } from "~/hooks/hooks.js";
-import { AppRoute, Breakpoint } from "~/lib/enums/enums.js";
-
-const HEADER_LABEL = {
-	MENU: "Menu",
-	SIGN_IN: "Sign in",
-	SIGN_UP: "Sign up",
-} as const;
-
-const HEADER_MENU_ICON_SIZE = 18;
-
-const HEADER_NAV_ID = "header-nav";
+import { useCallback, useState } from "~/hooks/hooks.js";
+import { AppRoute } from "~/lib/enums/enums.js";
 
 const getHeaderClassName = tv({
 	slots: {
@@ -32,11 +22,7 @@ const getHeaderClassName = tv({
 	},
 });
 
-type Properties = {
-	children?: React.ReactNode;
-};
-
-const Header: React.FC<Properties> = () => {
+const Header: React.FC = () => {
 	const navigate = useNavigate();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const { bar, brand, desktopNav, mobileNav, root, signIn, toggle } =
@@ -60,24 +46,6 @@ const Header: React.FC<Properties> = () => {
 		void navigate(AppRoute.SIGN_UP);
 	}, [handleCloseMenu, navigate]);
 
-	useEffect(() => {
-		const mediaQuery = matchMedia(
-			`(min-width: ${String(Breakpoint.TABLET_SMALL)}px)`,
-		);
-
-		const handleViewportChange = (event: MediaQueryListEvent): void => {
-			if (event.matches) {
-				setIsMenuOpen(false);
-			}
-		};
-
-		mediaQuery.addEventListener("change", handleViewportChange);
-
-		return (): void => {
-			mediaQuery.removeEventListener("change", handleViewportChange);
-		};
-	}, []);
-
 	return (
 		<header className={root()}>
 			<div className={bar()}>
@@ -87,36 +55,36 @@ const Header: React.FC<Properties> = () => {
 
 				<nav className={desktopNav()}>
 					<RouterLink className={signIn()} to={AppRoute.SIGN_IN}>
-						{HEADER_LABEL.SIGN_IN}
+						Sign in
 					</RouterLink>
 					<Button
 						className="px-4 py-2"
 						onClick={handleSignUp}
 						variant="primary"
 					>
-						{HEADER_LABEL.SIGN_UP}
+						Sign up
 					</Button>
 				</nav>
 
 				<button
-					aria-controls={HEADER_NAV_ID}
+					aria-controls="header-nav"
 					aria-expanded={isMenuOpen}
-					aria-label={HEADER_LABEL.MENU}
+					aria-label="Menu"
 					className={toggle()}
 					onClick={handleToggleMenu}
 					type="button"
 				>
-					<Icon name="hamburger" size={HEADER_MENU_ICON_SIZE} />
+					<Icon name="hamburger" size={18} />
 				</button>
 			</div>
 
 			{isMenuOpen && (
-				<nav className={mobileNav()} id={HEADER_NAV_ID}>
+				<nav className={mobileNav()} id="header-nav">
 					<Button className="w-full" onClick={handleSignIn} variant="ghost">
-						{HEADER_LABEL.SIGN_IN}
+						Sign in
 					</Button>
 					<Button className="w-full" onClick={handleSignUp} variant="primary">
-						{HEADER_LABEL.SIGN_UP}
+						Sign up
 					</Button>
 				</nav>
 			)}
