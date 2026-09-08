@@ -47,7 +47,7 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 	return (
 		<>
 			<div className="flex flex-col gap-2">
-				<Heading level={2}>Create your account</Heading>
+				<Heading level="2">Create your account</Heading>
 				<Paragraph size={ParagraphSize.BODY_SMALL}>
 					Start building your knowledge graph.
 				</Paragraph>
