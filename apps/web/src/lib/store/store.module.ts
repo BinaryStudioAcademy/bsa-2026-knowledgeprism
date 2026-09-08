@@ -8,7 +8,6 @@ import { configureStore } from "@reduxjs/toolkit";
 import { type Config } from "~/lib/config/config.js";
 import { AppEnvironment } from "~/lib/enums/enums.js";
 import { storage } from "~/lib/storage/storage.js";
-
 import {
 	askPrismApi,
 	reducer as askPrismReducer,
