@@ -1,4 +1,6 @@
 import {
+	type UserSignInRequestDto,
+	type UserSignInResponseDto,
 	type UserSignUpRequestDto,
 	type UserSignUpResponseDto,
 } from "@knowledgeprism/types";
@@ -8,6 +10,20 @@ import { serializeError } from "~/lib/helpers/serialize-error.helper.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
 import { name as sliceName } from "./auth.slice.js";
+
+const signIn = createAsyncThunk<
+	UserSignInResponseDto,
+	UserSignInRequestDto,
+	AsyncThunkConfig
+>(
+	`${sliceName}/sign-in`,
+	(loginPayload, { extra }) => {
+		const { authApi } = extra;
+
+		return authApi.signIn(loginPayload);
+	},
+	{ serializeError },
+);
 
 const signUp = createAsyncThunk<
 	UserSignUpResponseDto,
@@ -23,4 +39,16 @@ const signUp = createAsyncThunk<
 	{ serializeError },
 );
 
-export { signUp };
+const logout = createAsyncThunk<null, undefined, AsyncThunkConfig>(
+	`${sliceName}/logout`,
+	async (_, { extra }) => {
+		const { authApi } = extra;
+
+		await authApi.logout();
+
+		return null;
+	},
+	{ serializeError },
+);
+
+export { logout, signIn, signUp };

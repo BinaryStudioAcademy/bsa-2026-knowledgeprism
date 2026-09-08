@@ -7,6 +7,7 @@ import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
+import { AccountSettingsPage } from "~/modules/users/components/account-settings-page.js";
 
 import { App } from "./app.js";
 import { GlobalErrorNotifications } from "./global-error-notifications.js";
@@ -41,13 +42,22 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								element: <AuthPage />,
 								path: AppRoute.SIGN_UP,
 							},
+							{
+								element: <p>Organisation Workspace</p>,
+								path: AppRoute.WORKSPACE,
+							},
 						],
 						element: <AuthLayout />,
 					},
 					{
 						children: [
 							{
-								children: [],
+								children: [
+									{
+										element: <AccountSettingsPage />,
+										path: AppRoute.SETTINGS,
+									},
+								],
 								element: <SidebarLayout />,
 							},
 						],
