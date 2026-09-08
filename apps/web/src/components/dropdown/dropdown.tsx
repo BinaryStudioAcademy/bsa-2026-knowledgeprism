@@ -1,11 +1,8 @@
+import { type RefObject } from "react";
+import { useOnClickOutside } from "usehooks-ts";
+
 import { Button } from "~/components/button/button.js";
-import {
-	useCallback,
-	useEffect,
-	useOnClickOutside,
-	useRef,
-	useState,
-} from "~/hooks/hooks.js";
+import { useCallback, useEffect, useRef, useState } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 type DropdownItem = {
@@ -29,6 +26,7 @@ const escapeKey = "Escape";
 const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 	const [isOpen, setIsOpen] = useState(false);
 	const containerReference = useRef<HTMLDivElement>(null);
+	const outsideReference = containerReference as RefObject<HTMLDivElement>;
 
 	const handleToggle = useCallback((): void => {
 		setIsOpen((previous) => !previous);
@@ -38,12 +36,13 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 		setIsOpen(false);
 	}, []);
 
+	useOnClickOutside(outsideReference, handleClose);
+	useOnClickOutside(outsideReference, handleClose, "touchstart");
+
 	const handleDismiss = useCallback((): void => {
 		handleClose();
 		containerReference.current?.querySelector("button")?.focus();
 	}, [handleClose]);
-
-	useOnClickOutside(containerReference, handleClose, isOpen);
 
 	useEffect(() => {
 		if (!isOpen) {
