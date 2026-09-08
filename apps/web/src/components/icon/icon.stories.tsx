@@ -17,6 +17,8 @@ const ICON_NAMES = [
 	"chevron-filled-up",
 	"close",
 	"desktop",
+	"eye",
+	"eye-off",
 	"file",
 	"file-rounded",
 	"file-sharp",
