@@ -1,4 +1,5 @@
 import { UserSignInRequestDto } from "@knowledgeprism/types";
+import { Link } from "react-router-dom";
 
 import {
 	Button,
@@ -9,16 +10,18 @@ import {
 	ParagraphSize,
 } from "~/components/components.js";
 import { useAppForm, useCallback } from "~/hooks/hooks.js";
+import { AppRoute } from "~/lib/enums/app-route.enum.js";
 
 import { DEFAULT_SIGN_IN_PAYLOAD } from "./libs/constant.js";
 import { SignInFormValues } from "./libs/type.js";
 import { signInFormValidationSchema } from "./libs/validation-schema.js";
 
 type Properties = {
+	isLoading?: boolean;
 	onSubmit: (values: UserSignInRequestDto) => void;
 };
 
-const SignInForm = ({ onSubmit }: Properties) => {
+const SignInForm = ({ isLoading = false, onSubmit }: Properties) => {
 	const { control, handleSubmit } = useAppForm<SignInFormValues>({
 		defaultValues: DEFAULT_SIGN_IN_PAYLOAD,
 		validationSchema: signInFormValidationSchema,
@@ -78,8 +81,20 @@ const SignInForm = ({ onSubmit }: Properties) => {
 						Forgot password?
 					</Paragraph>
 				</div>
-				<Button type="submit">Sign in</Button>
+				<Button isLoading={isLoading} type="submit">
+					Sign in
+				</Button>
 			</form>
+			<Paragraph
+				className="pt-2 w-full text-center"
+				size={ParagraphSize.BODY_SMALL}
+			>
+				Don&apos;t have an account?{" "}
+				<span className="text-accent font-semibold">
+					{" "}
+					<Link to={AppRoute.SIGN_UP}>Sign up</Link>
+				</span>
+			</Paragraph>
 		</>
 	);
 };
