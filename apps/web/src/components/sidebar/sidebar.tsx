@@ -1,5 +1,9 @@
-import { Button } from "~/components/components.js";
+import React, { useCallback } from "react";
+
+import { Button } from "~/components/button/button.js";
 import { Icon } from "~/components/icon/icon.js";
+import { useNavigate } from "~/hooks/hooks.js";
+import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 const PROJECT_ICON_SIZE = 18;
@@ -60,7 +64,10 @@ const NavRow = ({ icon, isActive, label }: NavItem) => (
 	<button
 		aria-current={isActive ? "page" : undefined}
 		className={getValidClassNames(
-			"nav-item tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5",
+			"nav-item tablet:h-8.5 tablet:w-8.5",
+			"tablet:justify-center tablet:p-0",
+			"desktop:h-auto desktop:w-auto",
+			"desktop:justify-start desktop:px-3 desktop:py-2.5",
 			{ "is-active": isActive },
 		)}
 		type="button"
@@ -73,32 +80,50 @@ const NavRow = ({ icon, isActive, label }: NavItem) => (
 const Sidebar: React.FC<SidebarProperties> = ({
 	projectName,
 	role,
-}: SidebarProperties) => (
-	<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
-		<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
-			<Icon name="project" size={PROJECT_ICON_SIZE} />
-			<div>
-				<div className="text-sm font-medium">{projectName}</div>
-				<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
+}: SidebarProperties) => {
+	const navigate = useNavigate();
+
+	const handleAddKnowledgeClick = useCallback((): void => {
+		void navigate(AppRoute.ADD_KNOWLEDGE);
+	}, [navigate]);
+
+	const canAddKnowledge = role !== "VIEWER";
+
+	return (
+		<aside
+			className={getValidClassNames(
+				"hidden tablet:flex tablet:w-14 desktop:w-58",
+				"flex-shrink-0 flex-col gap-5 border-r border-border bg-surface",
+				"px-3.5 py-5",
+			)}
+		>
+			<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
+				<Icon name="project" size={PROJECT_ICON_SIZE} />
+				<div>
+					<div className="text-sm font-medium">{projectName}</div>
+					<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
+				</div>
 			</div>
-		</div>
 
-		<nav className="flex flex-col gap-0.5">
-			{primaryNavItems.map((item) => (
-				<NavRow key={item.id} {...item} />
-			))}
-		</nav>
-
-		<div className="hidden desktop:flex mt-auto flex-col gap-2.5 border-t border-border-subtle pt-3.5">
-			<Button>Add Knowledge</Button>
-			<div className="flex flex-col gap-0.5">
-				{utilityNavItems.map((item) => (
+			<nav className="flex flex-col gap-0.5">
+				{primaryNavItems.map((item) => (
 					<NavRow key={item.id} {...item} />
 				))}
+			</nav>
+
+			<div className="hidden desktop:flex mt-auto flex-col gap-2.5 border-t border-border-subtle pt-3.5">
+				{canAddKnowledge && (
+					<Button onClick={handleAddKnowledgeClick}>Add Knowledge</Button>
+				)}
+				<div className="flex flex-col gap-0.5">
+					{utilityNavItems.map((item) => (
+						<NavRow key={item.id} {...item} />
+					))}
+				</div>
 			</div>
-		</div>
-	</aside>
-);
+		</aside>
+	);
+};
 
 const MobileNav: React.FC = () => (
 	<nav className="flex flex-shrink-0 tablet:hidden border-t border-border bg-surface">
@@ -106,7 +131,8 @@ const MobileNav: React.FC = () => (
 			<button
 				aria-current={isActive ? "page" : undefined}
 				className={getValidClassNames(
-					"flex flex-1 flex-col items-center gap-0.75 py-2.25 text-2xs border-none bg-transparent cursor-pointer font-sans",
+					"flex flex-1 flex-col items-center gap-0.75 py-2.25",
+					"text-2xs border-none bg-transparent cursor-pointer font-sans",
 					{ "text-accent": isActive, "text-text-muted": !isActive },
 				)}
 				key={id}
@@ -118,4 +144,5 @@ const MobileNav: React.FC = () => (
 		))}
 	</nav>
 );
+
 export { MobileNav, Sidebar };
