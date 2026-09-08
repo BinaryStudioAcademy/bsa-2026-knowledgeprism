@@ -13,7 +13,7 @@ import {
 	type APIHandlerResponse,
 	BaseController,
 } from "~/infrastructure/controller/controller.js";
-import { HTTPCode } from "~/infrastructure/http/http.js";
+import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { type UserService } from "~/modules/users/services/user.service.js";
 
@@ -160,7 +160,7 @@ class UserController extends BaseController {
 		return {
 			payload: await this.userService.createOrgUser(
 				options.body,
-				options.session.organisationId as number,
+				this.getSessionOrgId(options),
 			),
 			status: HTTPCode.CREATED,
 		};
@@ -189,7 +189,7 @@ class UserController extends BaseController {
 	): Promise<APIHandlerResponse> {
 		return {
 			payload: await this.userService.findAllByOrgId(
-				options.session.organisationId as number,
+				this.getSessionOrgId(options),
 			),
 			status: HTTPCode.OK,
 		};
@@ -224,10 +224,30 @@ class UserController extends BaseController {
 		return {
 			payload: await this.userService.findDetailsById(
 				Number(options.params.id),
-				options.session.organisationId as number,
+				this.getSessionOrgId(options),
 			),
 			status: HTTPCode.OK,
 		};
+	}
+
+	private getSessionOrgId(options: APIHandlerOptions): number {
+		if (!options.session.organisationId) {
+			throw new HTTPError({
+				message: "Organisation ID is missing from session",
+				status: HTTPCode.UNAUTHORIZED,
+			});
+		}
+		return options.session.organisationId;
+	}
+
+	private getSessionUserId(options: APIHandlerOptions): number {
+		if (!options.session.userId) {
+			throw new HTTPError({
+				message: "User ID is missing from session",
+				status: HTTPCode.UNAUTHORIZED,
+			});
+		}
+		return options.session.userId;
 	}
 
 	/**
@@ -269,9 +289,9 @@ class UserController extends BaseController {
 	): Promise<APIHandlerResponse> {
 		return {
 			payload: await this.userService.updateOrgUser({
-				currentUserId: options.session.userId as number,
+				currentUserId: this.getSessionUserId(options),
 				id: Number(options.params.id),
-				organisationId: options.session.organisationId as number,
+				organisationId: this.getSessionOrgId(options),
 				payload: options.body,
 			}),
 			status: HTTPCode.OK,

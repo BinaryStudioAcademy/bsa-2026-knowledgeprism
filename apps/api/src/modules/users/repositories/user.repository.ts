@@ -1,6 +1,7 @@
 import { type ProjectAssignmentDto } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
+import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { ProjectMemberModel } from "~/modules/projects/models/project-member.model.js";
 import { ProjectModel } from "~/modules/projects/models/project.model.js";
 import { UserEntity } from "~/modules/users/models/user.entity.js";
@@ -36,9 +37,11 @@ class UserRepository implements Repository {
 			.execute();
 
 		if (validProjects.length !== projectIds.length) {
-			throw new Error(
-				"One or more project IDs do not belong to the user's organisation.",
-			);
+			throw new HTTPError({
+				message:
+					"One or more project IDs do not belong to the user's organisation.",
+				status: HTTPCode.BAD_REQUEST,
+			});
 		}
 	}
 
