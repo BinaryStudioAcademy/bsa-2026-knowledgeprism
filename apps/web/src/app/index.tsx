@@ -7,6 +7,7 @@ import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
+import { AccountSettingsPage } from "~/modules/users/components/account-settings-page.js";
 
 import { App } from "./app.js";
 import { AppLayout } from "./layouts/app-layout.js";
@@ -49,7 +50,12 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 					{
 						children: [
 							{
-								children: [],
+								children: [
+									{
+										element: <AccountSettingsPage />,
+										path: AppRoute.SETTINGS,
+									},
+								],
 								element: <SidebarLayout />,
 							},
 						],
