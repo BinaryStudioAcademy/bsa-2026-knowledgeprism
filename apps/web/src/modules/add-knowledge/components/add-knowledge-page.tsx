@@ -110,7 +110,7 @@ const AddKnowledgePage = (): JSX.Element => {
 			>
 				{/* Modal Header */}
 				<div className="flex items-center justify-between px-6.5 pt-5.5">
-					<Heading level={3}>Add Knowledge</Heading>
+					<Heading level="3">Add Knowledge</Heading>
 					<button
 						aria-label="Close dialog"
 						className={getValidClassNames(

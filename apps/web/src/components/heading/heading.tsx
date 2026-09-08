@@ -14,11 +14,10 @@ const headingStyles = tv({
 	},
 });
 
-type HeadingLevelString = "1" | "2" | "3" | "4" | "5" | "6";
-type HeadingLevel = 1 | 2 | 3 | 4 | 5 | 6 | HeadingLevelString;
+type HeadingLevel = "1" | "2" | "3" | "4" | "5" | "6";
 type HeadingTag = "h1" | "h2" | "h3" | "h4" | "h5" | "h6";
 
-const levelToTag: Record<HeadingLevelString, HeadingTag> = {
+const levelToTag: Record<HeadingLevel, HeadingTag> = {
 	"1": "h1",
 	"2": "h2",
 	"3": "h3",
@@ -34,14 +33,9 @@ type Properties = {
 };
 
 const Heading = ({ children, className, level }: Properties): JSX.Element => {
-	const levelKey = String(level) as HeadingLevelString;
-	const Tag = levelToTag[levelKey];
+	const Tag = levelToTag[level];
 
-	return (
-		<Tag className={headingStyles({ className, level: levelKey })}>
-			{children}
-		</Tag>
-	);
+	return <Tag className={headingStyles({ className, level })}>{children}</Tag>;
 };
 
 export { Heading };
