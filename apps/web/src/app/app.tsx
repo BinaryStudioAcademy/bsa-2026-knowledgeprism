@@ -16,7 +16,7 @@ const App: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const dataStatus = useAppSelector((state) => state.users.dataStatus);
 	const users = useAppSelector((state) => state.users.users);
-
+	const [firstUser] = users;
 	const hasUser = Boolean(users);
 
 	const handleLogout = useCallback((): void => {
@@ -41,7 +41,7 @@ const App: React.FC = () => {
 							onClick={handleLogout}
 							type="button"
 						>
-							Log out ({users?.[0]?.email})
+							Log out ({firstUser?.email})
 						</button>
 					</li>
 				) : (

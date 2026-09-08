@@ -3,13 +3,13 @@ import { createRoot } from "react-dom/client";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
-import { StoreProvider, Loader } from "~/components/components.js";
+import { Loader, StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { type AppDispatch, type RootState, store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
+import { AccountSettingsPage } from "~/modules/users/components/components.js";
 import { WorkspacesApi } from "~/modules/workspaces/api/workspaces-api.js";
-
 import {
 	ProjectDetailsPage,
 	WorkspacePage,
@@ -18,7 +18,6 @@ import {
 	fetchProjects,
 	fetchRecentDocuments,
 } from "~/modules/workspaces/state/workspaces.slice.js";
-import { AccountSettingsPage } from "~/modules/users/components/components.js";
 import "~/styles/styles.css";
 
 import { App } from "./app.js";

@@ -1,3 +1,5 @@
+import { useCallback, useEffect, useState } from "react";
+
 import {
 	Button,
 	Heading,
@@ -5,13 +7,7 @@ import {
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
-import {
-	useAppForm,
-	useCallback,
-	useEffect,
-	useNavigate,
-	useState,
-} from "~/hooks/hooks.js";
+import { useAppForm, useNavigate } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 
 import {
@@ -61,7 +57,10 @@ const AccountSettingsPage: React.FC = () => {
 
 	const handlePreferenceChange = useCallback(
 		(key: keyof AccountPreferences, isChecked: boolean): void => {
-			setPreferences((previous) => ({ ...previous, [key]: isChecked }));
+			setPreferences((previous: AccountPreferences) => ({
+				...previous,
+				[key]: isChecked,
+			}));
 		},
 		[],
 	);
