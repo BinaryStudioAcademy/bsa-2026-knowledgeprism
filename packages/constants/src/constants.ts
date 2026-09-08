@@ -2,6 +2,7 @@ export {
 	APIPath,
 	AppEnvironment,
 	ContentType,
+	FileValidationRule,
 	HTTPCode,
 	HTTPHeader,
 	ServerErrorType,
