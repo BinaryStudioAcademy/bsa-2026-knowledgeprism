@@ -8,11 +8,13 @@ import { logout, signUp } from "./actions.js";
 
 type State = {
 	dataStatus: ValueOf<typeof DataStatus>;
+	error: null | string;
 	user: null | UserSignUpResponseDto;
 };
 
 const initialState: State = {
 	dataStatus: DataStatus.IDLE,
+	error: null,
 	user: null,
 };
 
@@ -20,13 +22,16 @@ const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
 		builder.addCase(signUp.pending, (state) => {
 			state.dataStatus = DataStatus.PENDING;
+			state.error = null;
 		});
 		builder.addCase(signUp.fulfilled, (state, action) => {
 			state.dataStatus = DataStatus.FULFILLED;
+			state.error = null;
 			state.user = action.payload;
 		});
-		builder.addCase(signUp.rejected, (state) => {
+		builder.addCase(signUp.rejected, (state, action) => {
 			state.dataStatus = DataStatus.REJECTED;
+			state.error = action.error.message ?? null;
 			state.user = null;
 		});
 		builder.addCase(logout.pending, (state) => {
