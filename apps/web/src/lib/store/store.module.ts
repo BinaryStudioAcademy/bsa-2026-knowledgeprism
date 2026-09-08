@@ -11,7 +11,6 @@ import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
 import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
 
 import { errorMiddleware } from "./error.middleware.js";
-import { reducer as errorReducer } from "./error.slice.js";
 
 type ExtraArguments = {
 	authApi: typeof authApi;
@@ -20,7 +19,6 @@ type ExtraArguments = {
 
 type RootReducer = {
 	auth: ReturnType<typeof authReducer>;
-	error: ReturnType<typeof errorReducer>;
 	users: ReturnType<typeof usersReducer>;
 };
 
@@ -45,7 +43,6 @@ class Store {
 			},
 			reducer: {
 				auth: authReducer,
-				error: errorReducer,
 				users: usersReducer,
 			},
 		});

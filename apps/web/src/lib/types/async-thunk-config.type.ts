@@ -1,11 +1,11 @@
 import { type store } from "~/lib/store/store.js";
 
-import { type AppError } from "./app-error.type.js";
+import { type SerializedAppError } from "./serialized-app-error.type.js";
 
 type AsyncThunkConfig = {
 	dispatch: typeof store.instance.dispatch;
 	extra: typeof store.extraArguments;
-	serializedErrorType: AppError;
+	serializedErrorType: SerializedAppError;
 	state: ReturnType<typeof store.instance.getState>;
 };
 

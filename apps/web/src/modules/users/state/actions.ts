@@ -1,7 +1,7 @@
 import { type UserGetAllResponseDto } from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
-import { normalizeError } from "~/lib/helpers/normalize-error.helper.js";
+import { serializeError } from "~/lib/helpers/serialize-error.helper.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
 import { name as sliceName } from "./users.slice.js";
@@ -17,7 +17,7 @@ const loadAll = createAsyncThunk<
 
 		return userApi.getAll();
 	},
-	{ serializeError: normalizeError },
+	{ serializeError },
 );
 
 export { loadAll };
