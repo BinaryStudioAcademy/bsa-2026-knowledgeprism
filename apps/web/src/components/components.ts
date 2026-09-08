@@ -2,6 +2,7 @@ export { Alert } from "./alert/alert.js";
 export { Avatar } from "./avatar/avatar.js";
 export { Button } from "./button/button.js";
 export { Checkbox } from "./checkbox/checkbox.js";
+export { Footer } from "./footer/footer.js";
 export { Header } from "./header/header.js";
 export { Heading } from "./heading/heading.js";
 export { Icon } from "./icon/icon.js";
