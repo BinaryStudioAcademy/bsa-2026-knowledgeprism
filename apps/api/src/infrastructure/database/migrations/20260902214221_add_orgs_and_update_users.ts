@@ -23,6 +23,14 @@ const ColumnName = {
 } as const;
 
 async function down(knex: Knex): Promise<void> {
+	await knex(TableName.USERS)
+		.whereNull(ColumnName.FIRST_NAME)
+		.update({ [ColumnName.FIRST_NAME]: "" });
+	await knex(TableName.USERS)
+		.whereNull(ColumnName.LAST_NAME)
+		.update({ [ColumnName.LAST_NAME]: "" });
+	await knex(TableName.USERS).whereNull(ColumnName.ORGANISATION_ID).delete();
+
 	await knex.schema.alterTable(TableName.USERS, (table) => {
 		table.dropColumn(ColumnName.STATUS);
 		table.string(ColumnName.FIRST_NAME).notNullable().alter();
