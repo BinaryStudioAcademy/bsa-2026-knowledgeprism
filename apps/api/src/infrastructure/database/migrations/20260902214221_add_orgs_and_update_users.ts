@@ -24,32 +24,17 @@ const ColumnName = {
 
 async function down(knex: Knex): Promise<void> {
 	await knex.schema.alterTable(TableName.USERS, (table) => {
-		table.dropForeign(ColumnName.ORGANISATION_ID);
-		table.dropColumn(ColumnName.ORGANISATION_ID);
-		table.dropColumn(ColumnName.FIRST_NAME);
-		table.dropColumn(ColumnName.LAST_NAME);
 		table.dropColumn(ColumnName.STATUS);
+		table.string(ColumnName.FIRST_NAME).notNullable().alter();
+		table.string(ColumnName.LAST_NAME).notNullable().alter();
+		table.integer(ColumnName.ORGANISATION_ID).notNullable().alter();
 	});
 
 	await knex.schema.dropTableIfExists(TableName.PROJECT_MEMBERS);
 	await knex.schema.dropTableIfExists(TableName.PROJECTS);
-	await knex.schema.dropTableIfExists(TableName.ORGANISATIONS);
 }
 
 async function up(knex: Knex): Promise<void> {
-	await knex.schema.createTable(TableName.ORGANISATIONS, (table) => {
-		table.increments(ColumnName.ID).primary();
-		table.string(ColumnName.NAME).notNullable();
-		table
-			.dateTime(ColumnName.CREATED_AT)
-			.notNullable()
-			.defaultTo(knex.fn.now());
-		table
-			.dateTime(ColumnName.UPDATED_AT)
-			.notNullable()
-			.defaultTo(knex.fn.now());
-	});
-
 	await knex.schema.createTable(TableName.PROJECTS, (table) => {
 		table.increments(ColumnName.ID).primary();
 		table
@@ -96,14 +81,9 @@ async function up(knex: Knex): Promise<void> {
 	});
 
 	await knex.schema.alterTable(TableName.USERS, (table) => {
-		table
-			.integer(ColumnName.ORGANISATION_ID)
-			.references(ColumnName.ID)
-			.inTable(TableName.ORGANISATIONS)
-			.nullable()
-			.onDelete("CASCADE");
-		table.string(ColumnName.FIRST_NAME).nullable();
-		table.string(ColumnName.LAST_NAME).nullable();
+		table.integer(ColumnName.ORGANISATION_ID).nullable().alter();
+		table.string(ColumnName.FIRST_NAME).nullable().alter();
+		table.string(ColumnName.LAST_NAME).nullable().alter();
 		table
 			.enum(ColumnName.STATUS, ["active", "inactive"])
 			.notNullable()
