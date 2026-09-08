@@ -26,6 +26,10 @@ const escapeKey = "Escape";
 const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 	const [isOpen, setIsOpen] = useState(false);
 	const containerReference = useRef<HTMLDivElement>(null);
+	const triggerReference = useRef<HTMLButtonElement>(null);
+
+	// usehooks-ts 3.1.1 types the ref as RefObject<T>, while React 19 gives
+	// RefObject<T | null>. The hook checks `current` at runtime, so this is safe.
 	const outsideReference = containerReference as RefObject<HTMLDivElement>;
 
 	const handleToggle = useCallback((): void => {
@@ -41,7 +45,7 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 
 	const handleDismiss = useCallback((): void => {
 		handleClose();
-		containerReference.current?.querySelector("button")?.focus();
+		triggerReference.current?.focus();
 	}, [handleClose]);
 
 	useEffect(() => {
@@ -69,6 +73,7 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 				aria-haspopup="menu"
 				className="cursor-pointer"
 				onClick={handleToggle}
+				ref={triggerReference}
 				variant="secondary"
 			>
 				{label}
