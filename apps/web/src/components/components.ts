@@ -15,6 +15,7 @@ export { Paragraph, ParagraphSize } from "./paragraph/paragraph.js";
 export { Radio } from "./radio/radio.js";
 export { Select } from "./select/select.js";
 export { type SelectOption } from "./select/select.js";
+export { MobileNav, Sidebar } from "./sidebar/sidebar.js";
 export { Textarea } from "./textarea/textarea.js";
 export { Toggle } from "./toggle/toggle.js";
 export { type UploadFile, Upload } from "./upload/upload.js";

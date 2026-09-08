@@ -1,6 +1,7 @@
 import { type FastifySessionObject } from "@fastify/session";
 
 type CustomSession = FastifySessionObject & {
+	organisationId?: number;
 	userId?: number;
 };
 
