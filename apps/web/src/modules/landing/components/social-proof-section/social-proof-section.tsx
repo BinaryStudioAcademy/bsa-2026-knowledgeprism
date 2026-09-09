@@ -5,15 +5,6 @@ import {
 	SOCIAL_PROOF_SECTION_COPY,
 } from "./libs/constants.js";
 
-const SOCIAL_PROOF_SECTION_CLASS = {
-	INNER: "mx-auto max-w-[1100px] px-[clamp(20px,5vw,40px)] py-10",
-	LABEL:
-		"mb-6 text-center text-[12px] font-medium uppercase tracking-[0.07em] text-text-faint",
-	LOGO: "text-text-faint opacity-50",
-	LOGO_ROW: "flex flex-wrap items-center justify-center gap-6",
-	ROOT: "border-y border-border bg-secondary",
-} as const;
-
 type LogoProperties = {
 	children: React.ReactNode;
 };
@@ -23,7 +14,7 @@ const SocialProofLogo: React.FC<LogoProperties> = ({
 }: LogoProperties) => (
 	<svg
 		aria-hidden="true"
-		className={SOCIAL_PROOF_SECTION_CLASS.LOGO}
+		className="text-text-faint opacity-50"
 		fill="currentColor"
 		height={SOCIAL_PROOF_LOGO_HEIGHT}
 		viewBox={SOCIAL_PROOF_LOGO_VIEW_BOX}
@@ -34,12 +25,12 @@ const SocialProofLogo: React.FC<LogoProperties> = ({
 );
 
 const SocialProofSection: React.FC = () => (
-	<section className={SOCIAL_PROOF_SECTION_CLASS.ROOT}>
-		<div className={SOCIAL_PROOF_SECTION_CLASS.INNER}>
-			<p className={SOCIAL_PROOF_SECTION_CLASS.LABEL}>
+	<section className="border-y border-border bg-secondary">
+		<div className="mx-auto max-w-[1100px] px-[clamp(20px,5vw,40px)] py-10">
+			<p className="mb-6 text-center text-[12px] font-medium uppercase tracking-[0.07em] text-text-faint">
 				{SOCIAL_PROOF_SECTION_COPY.line}
 			</p>
-			<div className={SOCIAL_PROOF_SECTION_CLASS.LOGO_ROW}>
+			<div className="flex flex-wrap items-center justify-center gap-6">
 				<SocialProofLogo>
 					<rect height="8" rx="2" width="24" x="0" y="8" />
 					<rect height="16" rx="3" width="16" x="30" y="4" />

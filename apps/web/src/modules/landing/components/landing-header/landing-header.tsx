@@ -19,11 +19,6 @@ import {
 	HEADER_SECTION_LINKS,
 } from "./libs/constants.js";
 
-const LANDING_HEADER_CLASS = {
-	INNER: `${LANDING_SECTION_CONTAINER_CLASS} flex h-[72px] items-center justify-between`,
-	MOBILE_NAV: `${LANDING_SECTION_CONTAINER_CLASS} flex flex-col gap-3.5 border-t border-border bg-bg pb-6 pt-4 tablet:hidden`,
-} as const;
-
 const LandingHeader: React.FC = () => {
 	const navigate = useNavigate();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -75,7 +70,12 @@ const LandingHeader: React.FC = () => {
 				"border-b border-border bg-bg/92 backdrop-blur-[6px]",
 			)}
 		>
-			<div className={LANDING_HEADER_CLASS.INNER}>
+			<div
+				className={getValidClassNames(
+					LANDING_SECTION_CONTAINER_CLASS,
+					"flex h-[72px] items-center justify-between",
+				)}
+			>
 				<RouterLink
 					className={getValidClassNames(
 						"text-text no-underline",
@@ -156,7 +156,10 @@ const LandingHeader: React.FC = () => {
 			{isMenuOpen && (
 				<nav
 					aria-label={HEADER_LABEL.MOBILE_NAV}
-					className={LANDING_HEADER_CLASS.MOBILE_NAV}
+					className={getValidClassNames(
+						LANDING_SECTION_CONTAINER_CLASS,
+						"flex flex-col gap-3.5 border-t border-border bg-bg pb-6 pt-4 tablet:hidden",
+					)}
 					id={HEADER_NAV_ID}
 				>
 					{HEADER_SECTION_LINKS.map((item) => (
