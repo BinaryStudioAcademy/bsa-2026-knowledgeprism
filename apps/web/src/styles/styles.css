@@ -223,24 +223,6 @@ body:has(dialog:modal) {
 		background: var(--color-error-bg);
 	}
 
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		z-index: 20;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: rgb(45 42 38 / 40%);
-	}
-
-	.modal {
-		width: 400px;
-		padding: 28px;
-		background: var(--color-surface);
-		border-radius: var(--radius-lg);
-		box-shadow: var(--shadow-lg);
-	}
-
 	.drawer-backdrop {
 		position: fixed;
 		inset: 0;
