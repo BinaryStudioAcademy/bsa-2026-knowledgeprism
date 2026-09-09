@@ -1,183 +1,128 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback } from "react";
 
-import { Avatar, Logo } from "~/components/components.js";
+import { Logo } from "~/components/components.js";
+import { useNavigate } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 
 interface WorkspaceHeaderProperties {
 	avatarUrl?: null | string;
 	firstName?: null | string;
+	isLoading?: boolean;
 	isOrgAdmin?: boolean;
 	lastName?: null | string;
 	onLogOut?: () => void;
-	onOpenNotifications?: () => void;
-	onOpenSettings?: () => void;
+	onOpenSettings?: (() => void) | undefined;
 	organizationName?: null | string;
 }
 
-const APP_BRAND_NAME = "KnowledgePrism";
-
-const DEFAULT_AVATAR =
-	"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23A8A299'><path d='M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 4c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm0 14c-2.03 0-3.8-1.04-4.84-2.6.03-1.61 3.22-2.5 4.84-2.5 1.61 0 4.81.89 4.84 2.5-1.04 1.56-2.81 2.6-4.84 2.6z'/></svg>";
-
 const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
-	avatarUrl,
 	firstName,
+	isLoading = false,
 	lastName,
 	onLogOut,
 	onOpenSettings,
 	organizationName,
 }) => {
-	const [isDark, setIsDark] = useState<boolean>(() => {
-		return document.documentElement.classList.contains("dark");
-	});
-
-	const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
-	const menuReference = useRef<HTMLDivElement>(null);
-
-	const safeFirstName = firstName ?? "";
-	const safeLastName = lastName ?? "";
-	const fullName = `${safeFirstName} ${safeLastName}`.trim();
-
-	const trimmedOrgName = organizationName?.trim();
-	const shouldShowOrgName =
-		Boolean(trimmedOrgName) &&
-		trimmedOrgName?.toLowerCase() !== APP_BRAND_NAME.toLowerCase();
-
-	const handleToggleTheme = useCallback((): void => {
-		setIsDark((previous) => {
-			const isNextState = !previous;
-			document.documentElement.classList.toggle("dark", isNextState);
-			return isNextState;
-		});
-	}, []);
-
-	const handleToggleUserMenu = useCallback((): void => {
-		setIsUserMenuOpen((previous) => !previous);
-	}, []);
-
-	const handleOpenSettings = useCallback((): void => {
-		setIsUserMenuOpen(false);
-		onOpenSettings?.();
-	}, [onOpenSettings]);
+	const navigate = useNavigate();
+	const fullName = [firstName, lastName].filter(Boolean).join(" ").trim();
 
 	const handleLogOut = useCallback((): void => {
-		setIsUserMenuOpen(false);
 		onLogOut?.();
 	}, [onLogOut]);
 
-	useEffect(() => {
-		const handleClickOutside = (event: MouseEvent): void => {
-			if (
-				menuReference.current &&
-				!menuReference.current.contains(event.target as Node)
-			) {
-				setIsUserMenuOpen(false);
-			}
-		};
+	const handleOpenSettings = useCallback((): void => {
+		if (onOpenSettings) {
+			onOpenSettings();
 
-		const handleKeyDown = (event: KeyboardEvent): void => {
-			if (event.key === "Escape") {
-				setIsUserMenuOpen(false);
-			}
-		};
+			return;
+		}
 
-		document.addEventListener("mousedown", handleClickOutside);
-		document.addEventListener("keydown", handleKeyDown);
+		void navigate(AppRoute.SETTINGS);
+	}, [navigate, onOpenSettings]);
 
-		return () => {
-			document.removeEventListener("mousedown", handleClickOutside);
-			document.removeEventListener("keydown", handleKeyDown);
-		};
-	}, []);
+	const trimmedOrgName = organizationName?.trim();
 
 	return (
-		<header className="flex w-full items-center justify-between border-b border-border bg-surface px-4 py-3 sm:px-6 md:px-8 md:py-4">
-			<div className="flex items-center gap-3 min-w-0">
+		<header className="flex w-full items-center justify-between border-b border-(--color-border-subtle) bg-(--color-surface) px-4 py-3 sm:px-6 md:px-8 md:py-4">
+			<div className="flex min-w-0 items-center gap-3">
 				<Logo to={AppRoute.ROOT} />
-				{shouldShowOrgName && (
-					<span className="hidden md:inline-block border-l border-border pl-3 text-sm font-medium text-text truncate max-w-xs">
-						{trimmedOrgName}
-					</span>
+				{isLoading ? (
+					<div className="flex items-center gap-3">
+						<span className="text-(length:--text-sm) font-light text-border">
+							|
+						</span>
+						<div className="h-4 w-28 animate-pulse rounded bg-(--color-border-subtle)" />
+					</div>
+				) : (
+					trimmedOrgName && (
+						<div className="flex items-center gap-3">
+							<span className="text-(length:--text-sm) font-light text-border">
+								|
+							</span>
+							<span className="max-w-xs truncate text-(length:--text-sm) font-medium text-text">
+								{trimmedOrgName}
+							</span>
+						</div>
+					)
 				)}
 			</div>
 
-			<div className="flex items-center gap-2.5 sm:gap-3">
+			<div className="flex items-center gap-4 sm:gap-6">
+				{isLoading ? (
+					<div className="h-4 w-32 animate-pulse rounded bg-(--color-border-subtle)" />
+				) : (
+					fullName && (
+						<span className="max-w-40 truncate text-(length:--text-sm) font-medium text-text-muted">
+							{fullName}
+						</span>
+					)
+				)}
+
 				<button
-					aria-label="Toggle theme"
-					className="cursor-pointer p-1.5 sm:p-2 rounded-lg border border-border text-text-muted hover:bg-secondary hover:text-text transition-colors"
-					onClick={handleToggleTheme}
+					className="flex cursor-pointer items-center gap-1.5 text-(length:--text-sm) font-normal text-text-muted transition-colors hover:text-text"
+					onClick={handleOpenSettings}
 					type="button"
 				>
 					<svg
-						className={`h-4 w-4 sm:h-5 sm:w-5 ${isDark ? "text-warning" : ""}`}
+						className="h-4 w-4 stroke-current"
 						fill="none"
-						stroke="currentColor"
 						viewBox="0 0 24 24"
 					>
 						<path
-							d="M12 3v2.25m0 13.5V21m8.966-8.966h-2.25m-13.5 0H3m15.364 6.364l-1.591-1.591M6.758 6.758L5.167 5.167m12.728 0l-1.591 1.591M6.758 17.242l-1.591 1.591M12 18a6 6 0 100-12 6 6 0 000 12z"
+							d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth="1.5"
+						/>
+						<path
+							d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
 							strokeLinecap="round"
 							strokeLinejoin="round"
 							strokeWidth="1.5"
 						/>
 					</svg>
+					<span>Settings</span>
 				</button>
 
-				<div className="relative" ref={menuReference}>
-					<button
-						aria-expanded={isUserMenuOpen}
-						aria-haspopup="true"
-						aria-label="User Profile"
-						className="flex items-center gap-2 cursor-pointer rounded-full transition-opacity hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
-						onClick={handleToggleUserMenu}
-						type="button"
+				<button
+					className="flex cursor-pointer items-center gap-1.5 text-(length:--text-sm) font-normal text-text-muted transition-colors hover:text-text"
+					onClick={handleLogOut}
+					type="button"
+				>
+					<svg
+						className="h-4 w-4 stroke-current"
+						fill="none"
+						viewBox="0 0 24 24"
 					>
-						<Avatar
-							alt={fullName || "User Avatar"}
-							src={avatarUrl || DEFAULT_AVATAR}
+						<path
+							d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l3 3m0 0l-3 3m3-3H2.25"
+							strokeLinecap="round"
+							strokeLinejoin="round"
+							strokeWidth="1.5"
 						/>
-						{fullName && (
-							<span className="hidden sm:inline-block text-sm font-medium text-text max-w-28 truncate">
-								{fullName}
-							</span>
-						)}
-					</button>
-
-					{isUserMenuOpen && (
-						<div className="absolute right-0 mt-2 w-52 rounded-2xl border border-border bg-surface p-3 shadow-xl z-50">
-							<div className="px-2 py-1">
-								{fullName && (
-									<p className="text-sm font-semibold text-text truncate">
-										{fullName}
-									</p>
-								)}
-								{trimmedOrgName && (
-									<p className="text-xs text-text-muted truncate">
-										{trimmedOrgName}
-									</p>
-								)}
-							</div>
-
-							<hr className="my-2 border-border" />
-
-							<button
-								className="w-full text-left px-2 py-1.5 text-sm font-medium text-text hover:bg-secondary rounded-lg transition-colors cursor-pointer"
-								onClick={handleOpenSettings}
-								type="button"
-							>
-								Settings
-							</button>
-
-							<button
-								className="w-full text-left px-2 py-1.5 text-sm font-medium text-error hover:bg-secondary rounded-lg transition-colors cursor-pointer"
-								onClick={handleLogOut}
-								type="button"
-							>
-								Log Out
-							</button>
-						</div>
-					)}
-				</div>
+					</svg>
+					<span>Log out</span>
+				</button>
 			</div>
 		</header>
 	);

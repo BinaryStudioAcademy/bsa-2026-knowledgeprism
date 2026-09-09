@@ -1,16 +1,11 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useState } from "react";
 
-import { FILTER_ROLE_OPTIONS } from "../libs/constants/mock-data.constants.js";
-import {
-	type DocumentItem,
-	type ProjectItem,
-	type ProjectRole,
-} from "../types/types.js";
-import { ProjectCard, RecentDocuments, WorkspaceHeader } from "./components.js";
+import { type ProjectItem } from "../types/types.js";
+import { ProjectCard, WorkspaceHeader } from "./components.js";
 
 const EMPTY_LENGTH = 0;
-const INDEX_OFFSET = 1;
 const EVEN_MODULO = 2;
+const INDEX_OFFSET = 1;
 
 interface CreateProjectModalProperties {
 	isOpen: boolean;
@@ -36,16 +31,15 @@ interface ProjectItemCardProperties {
 }
 
 interface WorkspacePageProperties {
-	documents?: DocumentItem[];
 	firstName: string;
+	isLoading?: boolean;
 	isOrgAdmin?: boolean;
 	lastName: string;
 	onCreateProject?: () => void;
 	onDeleteProject?: (id: string) => void;
 	onEditProject?: (project: ProjectItem) => void;
 	onLogOut: () => void;
-	onOpenSettings: () => void;
-	onSelectDocument?: (id: string) => void;
+	onOpenSettings?: () => void;
 	onSelectProject: (id: string) => void;
 	organizationName: string;
 	projects: ProjectItem[];
@@ -63,9 +57,8 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	project,
 	totalCount,
 }) => {
-	const isLastOdd =
-		index === totalCount - INDEX_OFFSET &&
-		totalCount % EVEN_MODULO !== EMPTY_LENGTH;
+	const canDelete = isOrgAdmin;
+	const canEdit = isOrgAdmin;
 
 	const handleDelete = useCallback((): void => {
 		onDelete(project.id);
@@ -75,30 +68,29 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 		onEdit(project);
 	}, [onEdit, project]);
 
-	const canEdit =
-		isOrgAdmin || project.role === "ADMIN" || project.role === "EDITOR";
-	const canDelete = isOrgAdmin || project.role === "ADMIN";
+	const isLastOdd =
+		index === totalCount - INDEX_OFFSET &&
+		totalCount % EVEN_MODULO !== EMPTY_LENGTH;
 
 	return (
 		<div className={isLastOdd ? "sm:col-span-2 lg:col-span-1" : ""}>
 			<ProjectCard
 				description={project.description ?? ""}
 				id={project.id}
-				members={project.members ?? []}
 				name={project.name}
 				onSelect={onSelect}
 				role={project.role}
 				updatedAt={project.updatedAt}
-				{...(canEdit ? { onEdit: handleEdit } : {})}
 				{...(canDelete ? { onDelete: handleDelete } : {})}
+				{...(canEdit ? { onEdit: handleEdit } : {})}
 			/>
 		</div>
 	);
 };
 
 const WorkspacePage: React.FC<WorkspacePageProperties> = ({
-	documents = [],
 	firstName,
+	isLoading = false,
 	isOrgAdmin = false,
 	lastName,
 	onCreateProject,
@@ -106,11 +98,17 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	onEditProject,
 	onLogOut,
 	onOpenSettings,
-	onSelectDocument,
 	onSelectProject,
 	organizationName,
 	projects: initialProjects,
 }) => {
+	const [deletingProjectId, setDeletingProjectId] = useState<null | string>(
+		null,
+	);
+	const [editingProject, setEditingProject] = useState<null | ProjectItem>(
+		null,
+	);
+	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [localProjects, setLocalProjects] =
 		useState<ProjectItem[]>(initialProjects);
 	const [previousInitialProjects, setPreviousInitialProjects] =
@@ -121,85 +119,16 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		setLocalProjects(initialProjects);
 	}
 
-	const [selectedRole, setSelectedRole] = useState<"ALL" | ProjectRole>("ALL");
-	const [isFilterOpen, setIsFilterOpen] = useState(false);
-
-	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-	const [editingProject, setEditingProject] = useState<null | ProjectItem>(
-		null,
-	);
-	const [deletingProjectId, setDeletingProjectId] = useState<null | string>(
-		null,
-	);
-
-	const filteredProjects = useMemo(() => {
-		if (selectedRole === "ALL") {
-			return localProjects;
-		}
-		return localProjects.filter((project) => project.role === selectedRole);
-	}, [localProjects, selectedRole]);
-
-	const handleToggleFilter = useCallback((): void => {
-		setIsFilterOpen((previous) => !previous);
+	const handleCancelDelete = useCallback((): void => {
+		setDeletingProjectId(null);
 	}, []);
-
-	const handleCloseFilter = useCallback((): void => {
-		setIsFilterOpen(false);
-	}, []);
-
-	const handleSelectRole = useCallback(
-		(event: React.MouseEvent<HTMLButtonElement>): void => {
-			const role = event.currentTarget.dataset["role"] as "ALL" | ProjectRole;
-			setSelectedRole(role);
-			setIsFilterOpen(false);
-		},
-		[],
-	);
-
-	const handleOpenCreateModal = useCallback((): void => {
-		setIsCreateModalOpen(true);
-		onCreateProject?.();
-	}, [onCreateProject]);
 
 	const handleCloseCreateModal = useCallback((): void => {
 		setIsCreateModalOpen(false);
 	}, []);
 
-	const handleSubmitCreateModal = useCallback(
-		(newProject: ProjectItem): void => {
-			setLocalProjects((previous) => [newProject, ...previous]);
-			setIsCreateModalOpen(false);
-		},
-		[],
-	);
-
 	const handleCloseEditModal = useCallback((): void => {
 		setEditingProject(null);
-	}, []);
-
-	const handleSubmitEditModal = useCallback(
-		(updatedProject: ProjectItem): void => {
-			setLocalProjects((previous) =>
-				previous.map((project) =>
-					project.id === updatedProject.id ? updatedProject : project,
-				),
-			);
-			onEditProject?.(updatedProject);
-			setEditingProject(null);
-		},
-		[onEditProject],
-	);
-
-	const handleSetDeletingProjectId = useCallback((id: string): void => {
-		setDeletingProjectId(id);
-	}, []);
-
-	const handleSetEditingProject = useCallback((project: ProjectItem): void => {
-		setEditingProject(project);
-	}, []);
-
-	const handleCancelDelete = useCallback((): void => {
-		setDeletingProjectId(null);
 	}, []);
 
 	const handleDeleteProjectConfirm = useCallback((): void => {
@@ -214,112 +143,82 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		setDeletingProjectId(null);
 	}, [deletingProjectId, onDeleteProject]);
 
-	const handleSelectDocument = useCallback(
-		(id: string): void => {
-			onSelectDocument?.(id);
+	const handleOpenCreateModal = useCallback((): void => {
+		setIsCreateModalOpen(true);
+		onCreateProject?.();
+	}, [onCreateProject]);
+
+	const handleSetDeletingProjectId = useCallback((id: string): void => {
+		setDeletingProjectId(id);
+	}, []);
+
+	const handleSetEditingProject = useCallback((project: ProjectItem): void => {
+		setEditingProject(project);
+	}, []);
+
+	const handleSubmitCreateModal = useCallback(
+		(newProject: ProjectItem): void => {
+			setLocalProjects((previous) => [newProject, ...previous]);
+			setIsCreateModalOpen(false);
 		},
-		[onSelectDocument],
+		[],
+	);
+
+	const handleSubmitEditModal = useCallback(
+		(updatedProject: ProjectItem): void => {
+			setLocalProjects((previous) =>
+				previous.map((project) =>
+					project.id === updatedProject.id ? updatedProject : project,
+				),
+			);
+			onEditProject?.(updatedProject);
+			setEditingProject(null);
+		},
+		[onEditProject],
 	);
 
 	return (
-		<div className="workspace-page relative min-h-screen bg-white">
+		<div className="workspace-page relative min-h-screen bg-bg">
 			<WorkspaceHeader
 				firstName={firstName}
-				isOrgAdmin={isOrgAdmin}
+				isLoading={isLoading}
 				lastName={lastName}
 				onLogOut={onLogOut}
 				onOpenSettings={onOpenSettings}
 				organizationName={organizationName}
 			/>
-			<main className="workspace-content max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-				<div className="mb-6 sm:mb-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+			<main className="workspace-content mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+				<div className="mb-6 flex flex-col justify-between gap-4 sm:mb-7 sm:flex-row sm:items-center">
 					<div>
-						<h1 className="font-serif text-2xl sm:text-3xl font-normal text-text">
-							Your Workspaces
+						<span className="block text-(length:--text-xs) font-semibold uppercase tracking-wider text-text-muted">
+							WORKSPACE
+						</span>
+						<h1 className="mt-0.5 font-serif text-2xl font-normal text-text sm:text-3xl">
+							Your projects
 						</h1>
-						<p className="mt-1 text-xs sm:text-sm text-text-muted">
-							Manage your product documentation and engineering specs.
-						</p>
 					</div>
 
-					<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
-						{isOrgAdmin && (
-							<button
-								className="order-1 sm:order-2 inline-flex items-center justify-center gap-1.5 rounded-lg bg-text px-3.5 sm:px-4.5 py-2.5 sm:py-2 text-xs font-medium text-white shadow-sm hover:bg-black transition-colors cursor-pointer w-full sm:w-auto"
-								onClick={handleOpenCreateModal}
-								type="button"
+					{isOrgAdmin && (
+						<button
+							className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-primary px-3.5 py-2.5 text-(length:--text-xs) font-medium text-(--color-primary-fg) shadow-(--shadow-sm) transition-opacity hover:opacity-90 sm:w-auto sm:px-4.5 sm:py-2"
+							onClick={handleOpenCreateModal}
+							type="button"
+						>
+							<svg
+								fill="currentColor"
+								height="10"
+								viewBox="0 0 10.5 10.5"
+								width="10"
 							>
-								<svg
-									fill="currentColor"
-									height="10"
-									viewBox="0 0 10.5 10.5"
-									width="10"
-								>
-									<path d="M4.5 0h1.5v4.5H10.5v1.5H6v4.5H4.5V6H0V4.5h4.5z" />
-								</svg>
-								New Project
-							</button>
-						)}
-
-						<div className="relative order-2 sm:order-1 w-full sm:w-auto">
-							<button
-								aria-expanded={isFilterOpen}
-								aria-haspopup="true"
-								aria-label="Filter projects by role"
-								className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-3.5 sm:px-4 py-2 text-xs font-medium text-text shadow-sm hover:bg-surface transition-colors cursor-pointer w-full sm:w-auto"
-								onClick={handleToggleFilter}
-								type="button"
-							>
-								<svg
-									aria-hidden="true"
-									className="text-text-muted"
-									fill="currentColor"
-									height="8"
-									viewBox="0 0 13.5 9"
-									width="12"
-								>
-									<path d="M0 0h13.5L8.5 5.5v3h-3v-3z" />
-								</svg>
-								Filter {selectedRole !== "ALL" && `(${selectedRole})`}
-							</button>
-
-							{isFilterOpen && (
-								<>
-									<div
-										aria-hidden="true"
-										className="fixed inset-0 z-20"
-										onClick={handleCloseFilter}
-									/>
-									<div
-										className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-full sm:w-40 rounded-lg border border-border bg-white p-1.5 shadow-xl z-30"
-										role="menu"
-									>
-										{FILTER_ROLE_OPTIONS.map((role) => (
-											<button
-												aria-checked={selectedRole === role}
-												className={`w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors ${
-													selectedRole === role
-														? "bg-text text-white font-medium"
-														: "hover:bg-surface text-text"
-												}`}
-												data-role={role}
-												key={role}
-												onClick={handleSelectRole}
-												role="menuitemradio"
-												type="button"
-											>
-												{role === "ALL" ? "All Roles" : role}
-											</button>
-										))}
-									</div>
-								</>
-							)}
-						</div>
-					</div>
+								<path d="M4.5 0h1.5v4.5H10.5v1.5H6v4.5H4.5V6H0V4.5h4.5z" />
+							</svg>
+							New Project
+						</button>
+					)}
 				</div>
 
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
-					{filteredProjects.map((project, index) => (
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+					{localProjects.map((project, index) => (
 						<ProjectItemCard
 							index={index}
 							isOrgAdmin={isOrgAdmin}
@@ -328,22 +227,15 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 							onEdit={handleSetEditingProject}
 							onSelect={onSelectProject}
 							project={project}
-							totalCount={filteredProjects.length}
+							totalCount={localProjects.length}
 						/>
 					))}
 				</div>
 
-				{filteredProjects.length === EMPTY_LENGTH && (
-					<div className="py-12 text-center text-sm text-text-muted">
-						No projects found for the selected filter.
+				{localProjects.length === EMPTY_LENGTH && (
+					<div className="py-12 text-center text-control text-text-muted">
+						No projects found.
 					</div>
-				)}
-
-				{localProjects.length > EMPTY_LENGTH && (
-					<RecentDocuments
-						documents={documents}
-						onSelect={handleSelectDocument}
-					/>
 				)}
 			</main>
 
@@ -367,26 +259,26 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 			{deletingProjectId && (
 				<div
 					aria-modal="true"
-					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+					className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
 					role="dialog"
 				>
-					<div className="w-full max-w-sm rounded-xl bg-white p-5 sm:p-6 shadow-xl border border-border text-center">
-						<h2 className="font-serif text-lg sm:text-xl font-normal text-text mb-2">
+					<div className="w-full max-w-sm rounded-lg border border-border bg-(--color-surface) p-5 text-center shadow-(--shadow-md) sm:p-6">
+						<h2 className="mb-2 font-serif text-lg font-normal text-text sm:text-xl">
 							Delete Project?
 						</h2>
-						<p className="text-xs text-text-muted mb-6">
+						<p className="mb-6 text-(length:--text-xs) text-text-muted">
 							This action cannot be undone.
 						</p>
 						<div className="flex justify-center gap-2.5">
 							<button
-								className="rounded-lg px-4 py-2 text-xs font-medium text-text hover:bg-surface border border-border transition-colors cursor-pointer"
+								className="cursor-pointer rounded-md border border-border px-4 py-2 text-(length:--text-xs) font-medium text-text transition-colors hover:bg-(--color-secondary)"
 								onClick={handleCancelDelete}
 								type="button"
 							>
 								Cancel
 							</button>
 							<button
-								className="rounded-lg px-4 py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition-colors cursor-pointer"
+								className="cursor-pointer rounded-md bg-red-600 px-4 py-2 text-(length:--text-xs) font-medium text-white transition-colors hover:bg-red-700"
 								onClick={handleDeleteProjectConfirm}
 								type="button"
 							>

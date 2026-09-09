@@ -1,9 +1,3 @@
-type DocumentItem = {
-	id: string;
-	title: string;
-	updatedAt: string;
-};
-
 type ProjectItem = {
 	description?: string;
 	id: string;
@@ -15,4 +9,4 @@ type ProjectItem = {
 
 type ProjectRole = "ADMIN" | "EDITOR" | "VIEWER";
 
-export type { DocumentItem, ProjectItem, ProjectRole };
+export type { ProjectItem, ProjectRole };
