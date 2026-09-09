@@ -9,6 +9,7 @@ type EnvironmentSchema = {
 	};
 	AWS: {
 		REGION: string;
+		S3_BUCKET_NAME: string;
 	};
 	DB: {
 		CONNECTION_STRING: string;
