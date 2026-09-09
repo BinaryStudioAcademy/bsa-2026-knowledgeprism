@@ -1,11 +1,11 @@
 import { UserSignInRequestDto } from "@knowledgeprism/types";
-import { Link } from "react-router-dom";
 
 import {
 	Button,
 	Checkbox,
 	Heading,
 	Input,
+	Link,
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
@@ -90,10 +90,9 @@ const SignInForm = ({ isLoading = false, onSubmit }: Properties) => {
 				size={ParagraphSize.BODY_SMALL}
 			>
 				Don&apos;t have an account?{" "}
-				<span className="text-accent font-semibold">
-					{" "}
-					<Link to={AppRoute.SIGN_UP}>Sign up</Link>
-				</span>
+				<Link to={AppRoute.SIGN_UP} variant="inline">
+					Sign up
+				</Link>
 			</Paragraph>
 		</>
 	);
