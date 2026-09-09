@@ -13,7 +13,7 @@ const DangerZoneSection: React.FC<Properties> = ({
 	onDeleteAccountClick,
 }: Properties) => (
 	<section className="card border-error/30 bg-error-bg p-4.5 tablet:p-6">
-		<Heading className="mb-1.5 text-error" level={3}>
+		<Heading className="mb-1.5 text-error" level="3">
 			Danger zone
 		</Heading>
 		<Paragraph
