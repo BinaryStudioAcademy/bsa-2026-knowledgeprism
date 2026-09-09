@@ -16,6 +16,11 @@ export {
 	type AskPrismSourceDto,
 } from "./modules/ask-prism/ask-prism.js";
 export {
+	type DocumentUploadIntentRequestDto,
+	type DocumentUploadIntentResponseDto,
+	type DocumentUploadIntentRouteParametersDto,
+} from "./modules/documents/documents.js";
+export {
 	type ProjectAssignmentDto,
 	type UserCreateRequestDto,
 	type UserDetailsResponseDto,

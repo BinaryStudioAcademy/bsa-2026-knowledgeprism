@@ -23,10 +23,6 @@ env:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment:
-      name: backend
-      url: ${{ env.API_URL }}
-
     steps:
       - name: Create Deployment
         uses: chrnorm/deployment-action@v2

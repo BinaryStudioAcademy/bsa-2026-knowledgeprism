@@ -96,7 +96,7 @@ const AskPrismView = (): JSX.Element => {
 			<div className="flex flex-col gap-1.5 border-b border-border pb-4">
 				<div className="flex items-center gap-2 text-accent">
 					<Icon name="ask-prism" size={24} />
-					<Heading level={3}>Ask Prism</Heading>
+					<Heading level="3">Ask Prism</Heading>
 				</div>
 				<Paragraph className="text-text-muted">
 					AI-powered semantic search across all knowledge nodes and documents.

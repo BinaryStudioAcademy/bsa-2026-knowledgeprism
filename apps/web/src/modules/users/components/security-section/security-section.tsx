@@ -22,7 +22,7 @@ const SecuritySection: React.FC<Properties> = ({
 	preferences,
 }: Properties) => (
 	<section className="card hidden desktop:block">
-		<Heading className="mb-4.5" level={3}>
+		<Heading className="mb-4.5" level="3">
 			Security
 		</Heading>
 
