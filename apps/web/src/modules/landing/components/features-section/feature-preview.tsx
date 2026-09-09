@@ -1,4 +1,6 @@
+import { Heading } from "~/components/heading/heading.js";
 import { Icon } from "~/components/icon/icon.js";
+import { Paragraph, ParagraphSize } from "~/components/paragraph/paragraph.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
@@ -65,16 +67,14 @@ const ExtractPreview: React.FC = () => (
 const GlossaryPreview: React.FC = () => (
 	<div className="w-full max-w-[340px] rounded-[10px] border border-border bg-surface p-[18px]">
 		<div className="mb-2 flex justify-between">
-			<h4 className="font-serif text-[17px] font-normal text-text">
-				{FEATURE_PREVIEW_CONTENT.GLOSSARY.TITLE}
-			</h4>
+			<Heading level="4">{FEATURE_PREVIEW_CONTENT.GLOSSARY.TITLE}</Heading>
 			<span className="rounded-[5px] bg-border-subtle px-2 py-[3px] font-mono text-[9.5px] font-medium text-text-muted">
 				{FEATURE_PREVIEW_CONTENT.GLOSSARY.TAG}
 			</span>
 		</div>
-		<p className="text-[13px] leading-[1.6] text-text-muted">
+		<Paragraph size={ParagraphSize.BODY_SMALL}>
 			{FEATURE_PREVIEW_CONTENT.GLOSSARY.BODY}
-		</p>
+		</Paragraph>
 	</div>
 );
 
@@ -99,7 +99,7 @@ const SecurityPreview: React.FC = () => (
 	</div>
 );
 
-const previewByFeatureId = {
+const featureIdToPreview = {
 	[FeatureId.EXTRACT]: ExtractPreview,
 	[FeatureId.GLOSSARY]: GlossaryPreview,
 	[FeatureId.SEARCH]: SearchPreview,
@@ -112,7 +112,7 @@ const FeaturePreview: React.FC<Properties> = ({
 	<div className="flex w-full min-w-0 flex-1 items-center justify-center border-t border-border bg-bg p-10 tablet:flex-[1.3] tablet:border-l tablet:border-t-0">
 		<div className="grid w-full justify-items-center">
 			{FEATURES_LIST.map((feature) => {
-				const Preview = previewByFeatureId[feature.id];
+				const Preview = featureIdToPreview[feature.id];
 				const isActive = feature.id === activeFeature;
 
 				return (
