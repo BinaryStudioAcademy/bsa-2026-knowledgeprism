@@ -57,8 +57,9 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	project,
 	totalCount,
 }) => {
-	const canDelete = isOrgAdmin;
-	const canEdit = isOrgAdmin;
+	const canEdit =
+		isOrgAdmin || project.role === "ADMIN" || project.role === "EDITOR";
+	const canDelete = isOrgAdmin || project.role === "ADMIN";
 
 	const handleDelete = useCallback((): void => {
 		onDelete(project.id);
@@ -111,13 +112,6 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [localProjects, setLocalProjects] =
 		useState<ProjectItem[]>(initialProjects);
-	const [previousInitialProjects, setPreviousInitialProjects] =
-		useState<ProjectItem[]>(initialProjects);
-
-	if (initialProjects !== previousInitialProjects) {
-		setPreviousInitialProjects(initialProjects);
-		setLocalProjects(initialProjects);
-	}
 
 	const handleCancelDelete = useCallback((): void => {
 		setDeletingProjectId(null);
