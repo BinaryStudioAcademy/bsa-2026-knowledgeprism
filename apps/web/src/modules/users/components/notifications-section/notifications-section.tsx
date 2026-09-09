@@ -16,7 +16,7 @@ const NotificationsSection: React.FC<Properties> = ({
 	preferences,
 }: Properties) => (
 	<section className="card hidden desktop:block">
-		<Heading className="mb-1" level={3}>
+		<Heading className="mb-1" level="3">
 			Notifications
 		</Heading>
 		<Paragraph className="mb-4 text-text-muted" size={ParagraphSize.BODY_SMALL}>

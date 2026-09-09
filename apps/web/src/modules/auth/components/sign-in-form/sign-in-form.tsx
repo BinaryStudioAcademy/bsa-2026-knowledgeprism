@@ -44,7 +44,7 @@ const SignInForm = ({ onSubmit }: Properties) => {
 	return (
 		<>
 			<div>
-				<Heading level={2}>Welcome back</Heading>
+				<Heading level="2">Welcome back</Heading>
 				<Paragraph className="pt-2" size={ParagraphSize.BODY_SMALL}>
 					Sign in to continue to your workspace.
 				</Paragraph>
