@@ -4,5 +4,6 @@ export { ContentType } from "./content-type.enum.js";
 export { FileValidationRule } from "./file-validation-rule.enum.js";
 export { HTTPCode } from "./http-code.enum.js";
 export { HTTPHeader } from "./http-header.enum.js";
+export { S3PresignedUrlRule } from "./s3-presigned-url-rule.enum.js";
 export { ServerErrorType } from "./server-error-type.enum.js";
 export { TimeMs } from "./time.enum.js";
