@@ -19,6 +19,7 @@ type Properties = ComponentProps<typeof Modal>;
 
 const CLOSE_CALLS_AFTER_BACKDROP = 3;
 const CLOSE_CALLS_AFTER_CANCEL = 2;
+const CLOSE_CALLS_AFTER_CLOSE_BUTTON = 1;
 const CLOSE_CALLS_AFTER_ESCAPE = 1;
 
 const ModalPreview = ({
@@ -64,8 +65,11 @@ const meta = {
 				This can&apos;t be undone. The block will be removed from the document.
 			</p>
 		),
+		hasCloseButton: false,
+		isFullScreenOnMobile: false,
 		isOpen: false,
 		onClose: fn(),
+		size: "small",
 		title: "Delete this block?",
 	},
 	component: Modal,
@@ -75,11 +79,68 @@ const meta = {
 
 type Story = StoryObj<typeof meta>;
 
+const CloseButtonInteraction: Story = {
+	args: {
+		hasCloseButton: true,
+		isOpen: false,
+		onClose: fn(),
+	},
+	play: async ({ args, canvasElement }) => {
+		const canvas = within(canvasElement);
+		const openModalButton = canvas.getByRole("button", {
+			name: "Open modal",
+		});
+
+		await userEvent.click(openModalButton);
+
+		const dialog = await canvas.findByRole("dialog", {
+			name: "Delete this block?",
+		});
+		const modal = within(dialog);
+		const closeButton = modal.getByRole("button", {
+			name: "Close modal",
+		});
+
+		await expect(closeButton).toBeVisible();
+		await userEvent.click(closeButton);
+
+		await waitFor(() => expect(dialog).not.toBeVisible());
+		await expect(args.onClose).toHaveBeenCalledTimes(
+			CLOSE_CALLS_AFTER_CLOSE_BUTTON,
+		);
+		await expect(openModalButton).toHaveFocus();
+	},
+};
+
 const Default: Story = {};
 
-const Open: Story = {
+const FullScreenOnMobile: Story = {
 	args: {
+		children: (
+			<p className="text-sm leading-[1.55] text-text-muted">
+				The modal fills the mobile viewport and returns to a centered dialog
+				from the tablet breakpoint.
+			</p>
+		),
+		hasCloseButton: true,
+		isFullScreenOnMobile: true,
 		isOpen: true,
+		size: "large",
+		title: "Responsive modal",
+	},
+	parameters: {
+		viewport: {
+			defaultViewport: "modal-mobile",
+			viewports: {
+				"modal-mobile": {
+					name: "Mobile 390 × 844",
+					styles: {
+						height: "844px",
+						width: "390px",
+					},
+				},
+			},
+		},
 	},
 };
 
@@ -102,9 +163,6 @@ const InteractionTest: Story = {
 			name: "Delete this block?",
 		});
 		const modal = within(dialog);
-		const backdropButton = modal.getByRole("button", {
-			name: "Close modal",
-		});
 		const cancelButton = modal.getByRole("button", {
 			name: "Cancel",
 		});
@@ -116,6 +174,11 @@ const InteractionTest: Story = {
 		);
 
 		await expect(dialog).toBeVisible();
+		await expect(
+			modal.queryByRole("button", {
+				name: "Close modal",
+			}),
+		).not.toBeInTheDocument();
 		await expect(getComputedStyle(documentBody).overflow).toBe("hidden");
 		await waitFor(() => expect(cancelButton).toHaveFocus());
 
@@ -155,7 +218,13 @@ const InteractionTest: Story = {
 		await userEvent.click(openModalButton);
 		await waitFor(() => expect(dialog).toBeVisible());
 
-		await userEvent.click(backdropButton);
+		const backdrop = dialog.firstElementChild;
+
+		if (!backdrop) {
+			throw new Error("Modal backdrop was not rendered.");
+		}
+
+		await fireEvent.click(backdrop);
 
 		await waitFor(() => expect(dialog).not.toBeVisible());
 		await expect(args.onClose).toHaveBeenCalledTimes(
@@ -168,5 +237,39 @@ const InteractionTest: Story = {
 	},
 };
 
+const Large: Story = {
+	args: {
+		children: (
+			<p className="text-sm leading-[1.55] text-text-muted">
+				A larger modal surface for workflows that need more space.
+			</p>
+		),
+		isOpen: true,
+		size: "large",
+		title: "Large modal",
+	},
+};
+
+const Open: Story = {
+	args: {
+		isOpen: true,
+	},
+};
+
+const WithCloseButton: Story = {
+	args: {
+		hasCloseButton: true,
+		isOpen: true,
+	},
+};
+
 export default meta;
-export { Default, InteractionTest, Open };
+export {
+	CloseButtonInteraction,
+	Default,
+	FullScreenOnMobile,
+	InteractionTest,
+	Large,
+	Open,
+	WithCloseButton,
+};
