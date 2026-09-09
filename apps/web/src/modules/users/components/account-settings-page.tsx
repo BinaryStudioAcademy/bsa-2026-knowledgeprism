@@ -103,7 +103,7 @@ const AccountSettingsPage: React.FC = () => {
 				onSubmit={handleFormSubmit}
 			>
 				<div>
-					<Heading level={2}>Account Settings</Heading>
+					<Heading level="2">Account Settings</Heading>
 					<Paragraph
 						className="mt-1.5 hidden text-text-muted desktop:block"
 						size={ParagraphSize.BODY_SMALL}

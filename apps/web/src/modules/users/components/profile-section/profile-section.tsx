@@ -10,7 +10,7 @@ type Properties = {
 
 const ProfileSection: React.FC<Properties> = ({ control }: Properties) => (
 	<section className="card hidden tablet:block">
-		<Heading className="mb-4.5 hidden desktop:block" level={3}>
+		<Heading className="mb-4.5 hidden desktop:block" level="3">
 			Profile
 		</Heading>
 
