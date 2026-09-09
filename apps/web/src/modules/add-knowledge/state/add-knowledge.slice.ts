@@ -1,16 +1,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
-import { type ValueOf } from "~/lib/types/types.js";
-
-import {
-	DEFAULT_DESTINATION,
-	DocumentValidationMessage,
-} from "../libs/constants/constants.js";
-import {
-	DocumentProcessingStatus,
-	KnowledgeInputTab,
-	KnowledgeStep,
-} from "../libs/enums/enums.js";
+import { DocumentValidationMessage } from "../libs/constants/constants.js";
+import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
 import { type AddKnowledgeState } from "../libs/types/types.js";
 import { processDocument } from "./actions.js";
@@ -18,14 +9,13 @@ import { processDocument } from "./actions.js";
 type State = AddKnowledgeState;
 
 const initialState: State = {
-	currentStep: KnowledgeStep.STEP_1,
-	currentTab: KnowledgeInputTab.UPLOAD,
-	destinationBranch: DEFAULT_DESTINATION.BRANCH,
-	destinationProject: DEFAULT_DESTINATION.PROJECT,
 	errorMessage: null,
 	processingStatus: DocumentProcessingStatus.IDLE,
 	selectedFile: null,
 };
+
+const INITIAL_PROGRESS = 15;
+const IN_PROGRESS_PERCENTAGE = 50;
 
 const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
@@ -35,7 +25,7 @@ const { actions, name, reducer } = createSlice({
 
 			if (state.selectedFile) {
 				state.selectedFile.status = DocumentProcessingStatus.PROCESSING;
-				state.selectedFile.progress = 50;
+				state.selectedFile.progress = IN_PROGRESS_PERCENTAGE;
 			}
 		});
 		builder.addCase(processDocument.fulfilled, (state, action) => {
@@ -67,24 +57,6 @@ const { actions, name, reducer } = createSlice({
 		resetState() {
 			return initialState;
 		},
-		setCurrentStep(
-			state,
-			action: PayloadAction<ValueOf<typeof KnowledgeStep>>,
-		) {
-			state.currentStep = action.payload;
-		},
-		setCurrentTab(
-			state,
-			action: PayloadAction<ValueOf<typeof KnowledgeInputTab>>,
-		) {
-			state.currentTab = action.payload;
-		},
-		setDestinationBranch(state, action: PayloadAction<string>) {
-			state.destinationBranch = action.payload;
-		},
-		setDestinationProject(state, action: PayloadAction<string>) {
-			state.destinationProject = action.payload;
-		},
 		setError(state, action: PayloadAction<string>) {
 			state.errorMessage = action.payload;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
@@ -101,7 +73,7 @@ const { actions, name, reducer } = createSlice({
 			state.selectedFile = {
 				id,
 				name,
-				progress: 15,
+				progress: INITIAL_PROGRESS,
 				size,
 				sizeLabel: formatFileSize(size),
 				status: DocumentProcessingStatus.PROCESSING,

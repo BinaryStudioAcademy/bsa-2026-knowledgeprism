@@ -9,15 +9,9 @@ const DocumentValidationMessage = {
 		"Unsupported file format. Please upload a PDF or TXT file.",
 } as const;
 
-const DEFAULT_DESTINATION = {
-	BRANCH: "Hardware specs",
-	PROJECT: "Project Alpha",
-} as const;
-
 const MOCK_PROCESSING_DELAY_MS = 1400;
 
 export {
-	DEFAULT_DESTINATION,
 	DocumentValidationMessage,
 	MOCK_PROCESSING_DELAY_MS,
 	SUPPORTED_FILE_EXTENSIONS,
