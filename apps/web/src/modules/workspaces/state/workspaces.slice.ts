@@ -95,4 +95,5 @@ const workspacesSlice = createSlice({
 
 const workspacesReducer = workspacesSlice.reducer;
 
-export { fetchProjects, workspacesReducer };
+/** @public */
+export { createProject, fetchProjects, workspacesReducer };

@@ -8,7 +8,6 @@ interface WorkspaceHeaderProperties {
 	avatarUrl?: null | string;
 	firstName?: null | string;
 	isLoading?: boolean;
-	isOrgAdmin?: boolean;
 	lastName?: null | string;
 	onLogOut?: () => void;
 	onOpenSettings?: (() => void) | undefined;
