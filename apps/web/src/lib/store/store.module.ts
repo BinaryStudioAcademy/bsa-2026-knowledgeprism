@@ -8,8 +8,8 @@ import { configureStore } from "@reduxjs/toolkit";
 import { type Config } from "~/lib/config/config.js";
 import { AppEnvironment } from "~/lib/enums/enums.js";
 import { storage } from "~/lib/storage/storage.js";
-import { reducer as addKnowledgeReducer } from "~/modules/add-knowledge/add-knowledge.js";
 import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
+import { reducer as knowledgeReducer } from "~/modules/knowledge/knowledge.js";
 import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
 
 type ExtraArguments = {
@@ -19,8 +19,8 @@ type ExtraArguments = {
 };
 
 type RootReducer = {
-	addKnowledge: ReturnType<typeof addKnowledgeReducer>;
 	auth: ReturnType<typeof authReducer>;
+	knowledge: ReturnType<typeof knowledgeReducer>;
 	users: ReturnType<typeof usersReducer>;
 };
 
@@ -44,8 +44,8 @@ class Store {
 				});
 			},
 			reducer: {
-				addKnowledge: addKnowledgeReducer,
 				auth: authReducer,
+				knowledge: knowledgeReducer,
 				users: usersReducer,
 			},
 		});

@@ -5,8 +5,8 @@ import "~/styles/styles.css";
 import { StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
-import { AddKnowledgePage } from "~/modules/add-knowledge/components/add-knowledge-page.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
+import { AddKnowledgePage } from "~/modules/knowledge/components/add-knowledge-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
 import { AccountSettingsPage } from "~/modules/users/components/account-settings-page.js";
 

@@ -1,5 +1,5 @@
 import { processDocument } from "./actions.js";
-import { actions } from "./add-knowledge.slice.js";
+import { actions } from "./knowledge.slice.js";
 
 const allActions = {
 	...actions,
@@ -7,4 +7,4 @@ const allActions = {
 };
 
 export { allActions as actions };
-export { reducer } from "./add-knowledge.slice.js";
+export { reducer } from "./knowledge.slice.js";

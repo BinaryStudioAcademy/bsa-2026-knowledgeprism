@@ -3,7 +3,7 @@ import { type JSX, useCallback } from "react";
 import { Alert } from "~/components/components.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 
-import { actions } from "../add-knowledge.js";
+import { actions } from "../knowledge.js";
 import { validateFile } from "../libs/helpers/helpers.js";
 import { DocumentRow } from "./document-row.js";
 import { FileDropzone } from "./file-dropzone.js";
@@ -15,7 +15,7 @@ type Properties = {
 const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 	const dispatch = useAppDispatch();
 	const { errorMessage, selectedFile } = useAppSelector(
-		(state) => state.addKnowledge,
+		(state) => state.knowledge,
 	);
 
 	const handleFileSelect = useCallback(

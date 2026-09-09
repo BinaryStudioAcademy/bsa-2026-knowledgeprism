@@ -3,10 +3,10 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { DocumentValidationMessage } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
-import { type AddKnowledgeState } from "../libs/types/types.js";
+import { type KnowledgeState } from "../libs/types/types.js";
 import { processDocument } from "./actions.js";
 
-type State = AddKnowledgeState;
+type State = KnowledgeState;
 
 const initialState: State = {
 	errorMessage: null,
@@ -44,7 +44,7 @@ const { actions, name, reducer } = createSlice({
 		});
 	},
 	initialState,
-	name: "add-knowledge",
+	name: "knowledge",
 	reducers: {
 		clearError(state) {
 			state.errorMessage = null;

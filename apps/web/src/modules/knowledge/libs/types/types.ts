@@ -2,7 +2,7 @@ import { type ValueOf } from "~/lib/types/types.js";
 
 import { type DocumentProcessingStatus } from "../enums/enums.js";
 
-type AddKnowledgeState = {
+type KnowledgeState = {
 	errorMessage: null | string;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
 	selectedFile: null | UploadedDocumentItem;
@@ -17,4 +17,4 @@ type UploadedDocumentItem = {
 	status: ValueOf<typeof DocumentProcessingStatus>;
 };
 
-export { type AddKnowledgeState, type UploadedDocumentItem };
+export { type KnowledgeState, type UploadedDocumentItem };

@@ -6,7 +6,7 @@ import { MOCK_PROCESSING_DELAY_MS } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
-import { name as sliceName } from "./add-knowledge.slice.js";
+import { name as sliceName } from "./knowledge.slice.js";
 
 type ProcessDocumentPayload = {
 	id: string;
