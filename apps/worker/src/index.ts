@@ -1,1 +1,1 @@
-export {};
+export { bedrockRuntimeClient } from "./bedrock/bedrock.js";
