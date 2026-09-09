@@ -34,10 +34,6 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 					{
 						children: [
 							{
-								element: <AskPrismView />,
-								path: AppRoute.ASK_PRISM,
-							},
-							{
 								element: <AuthPage />,
 								path: AppRoute.SIGN_IN,
 							},
@@ -56,6 +52,10 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 						children: [
 							{
 								children: [
+									{
+										element: <AskPrismView />,
+										path: AppRoute.ASK_PRISM,
+									},
 									{
 										element: <AccountSettingsPage />,
 										path: AppRoute.SETTINGS,

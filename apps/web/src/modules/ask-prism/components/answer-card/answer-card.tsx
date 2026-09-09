@@ -54,13 +54,16 @@ const AnswerCard = ({
 			{/* User Question Bubble */}
 			{query && (
 				<div className="flex justify-end animate-fade-in">
-					<div className="max-w-[75%] rounded-[14px_14px_4px_14px] bg-primary px-4.5 py-3 font-sans text-sm text-primary-fg shadow-2xs transition-all duration-300">
+					<div
+						className="max-w-[75%] rounded-[14px_14px_4px_14px] bg-primary px-4.5 py-3 font-sans text-sm text-primary-fg shadow-2xs transition-all duration-
+300"
+					>
 						{query}
 					</div>
 				</div>
 			)}
 
-			{/* Assistant Thinking State with subtle pulse */}
+			{/* Assistant Thinking State */}
 			{dataStatus === DataStatus.PENDING && (
 				<div className="flex items-center gap-3 transition-opacity duration-300 animate-fade-in">
 					<div className="animate-pulse">
@@ -69,6 +72,21 @@ const AnswerCard = ({
 					<span className="animate-pulse font-sans text-sm text-text-faint">
 						Prism is thinking…
 					</span>
+				</div>
+			)}
+
+			{/* Error State */}
+			{dataStatus === DataStatus.REJECTED && (
+				<div className="flex gap-3 transition-all duration-300 animate-fade-in">
+					<PrismAvatar />
+					<div className="flex flex-col gap-1 font-sans text-sm text-text">
+						<span className="font-medium text-error">
+							Unable to get an answer
+						</span>
+						<p className="m-0 text-text-muted">
+							Something went wrong while querying Prism. Please try again.
+						</p>
+					</div>
 				</div>
 			)}
 
@@ -94,12 +112,13 @@ const AnswerCard = ({
 					<div className="flex-1 space-y-3 font-sans text-sm leading-[1.65] text-text">
 						<p className="m-0 whitespace-pre-line">{answer}</p>
 
-						{/* Inline Citation Badges */}
 						{sources.length > EMPTY_COUNT && (
 							<div className="flex flex-wrap items-center gap-1.5 pt-1">
 								{sources.map((source) => (
 									<button
-										className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs transition-all duration-200 hover:scale-[1.03] hover:border-accent hover:bg-accent hover:text-white active:scale-[0.98]"
+										className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-
+sans text-[11px] font-medium
+text-accent shadow-2xs transition-all duration-200 hover:scale-[1.03] hover:border-accent hover:bg-accent hover:text-white active:scale-[0.98]"
 										key={String(source.id)}
 										onClick={handleSourceClick(source)}
 										title={`Jump to ${source.sectionTitle}`}
