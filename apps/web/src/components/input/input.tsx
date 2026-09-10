@@ -59,6 +59,7 @@ const inputStyles = tv({
 type Properties<T extends FieldValues> = {
 	control: Control<T, null>;
 	disabled?: boolean;
+	hasPasswordToggle?: boolean;
 	id?: string;
 	label: string;
 	name: FieldPath<T>;
@@ -69,6 +70,7 @@ type Properties<T extends FieldValues> = {
 const Input = <T extends FieldValues>({
 	control,
 	disabled = false,
+	hasPasswordToggle = false,
 	id,
 	label,
 	name,
@@ -83,7 +85,7 @@ const Input = <T extends FieldValues>({
 		name,
 	});
 
-	const isPassword = type === "password";
+	const isPassword = type === "password" && hasPasswordToggle;
 	const inputId = id ?? generatedId;
 	const errorMessage = fieldState.error?.message;
 	const hasError = fieldState.invalid;

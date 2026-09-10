@@ -80,6 +80,7 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 				/>
 				<Input
 					control={control}
+					hasPasswordToggle
 					label="Password"
 					name="password"
 					placeholder="At least 8 characters"
@@ -87,6 +88,7 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 				/>
 				<Input
 					control={control}
+					hasPasswordToggle
 					label="Confirm password"
 					name="confirmPassword"
 					placeholder="Repeat your password"

@@ -58,6 +58,7 @@ const SignInForm = ({ onSubmit }: Properties) => {
 				/>
 				<Input
 					control={control}
+					hasPasswordToggle
 					label="Password"
 					name="password"
 					placeholder="Enter your password"

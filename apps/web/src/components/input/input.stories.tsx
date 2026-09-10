@@ -12,12 +12,14 @@ type FormValues = {
 const InputWrapper = ({
 	disabled = false,
 	hasError = false,
+	hasPasswordToggle = false,
 	label = "Email Address",
 	placeholder = "Enter your email",
 	type = "text",
 }: {
 	disabled?: boolean;
 	hasError?: boolean;
+	hasPasswordToggle?: boolean;
 	label?: string;
 	placeholder?: string;
 	type?: "email" | "password" | "text";
@@ -41,6 +43,7 @@ const InputWrapper = ({
 		<Input
 			control={control}
 			disabled={disabled}
+			hasPasswordToggle={hasPasswordToggle}
 			label={label}
 			name="email"
 			placeholder={placeholder}
@@ -74,6 +77,7 @@ const Email: Story = {
 
 const Password: Story = {
 	args: {
+		hasPasswordToggle: true,
 		label: "Password",
 		placeholder: "Enter your password",
 		type: "password",
