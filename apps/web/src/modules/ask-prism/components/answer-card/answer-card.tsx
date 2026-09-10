@@ -5,6 +5,8 @@ import { Icon } from "~/components/components.js";
 import { DataStatus } from "~/lib/enums/enums.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
+import { PrismAvatar } from "./prism-avatar.js";
+
 const EMPTY_COUNT = 0;
 const NO_INFO_TEXT = "No info";
 
@@ -15,15 +17,6 @@ type Properties = {
 	query?: string;
 	sources: AskPrismSourceDto[];
 };
-
-const PrismAvatar = (): JSX.Element => (
-	<div className="flex size-[26px] shrink-0 items-center justify-center rounded-[7px] bg-accent text-white shadow-2xs transition-transform duration-200">
-		<svg fill="none" height="14" viewBox="0 0 44 44" width="14">
-			<polygon fill="rgba(255,255,255,.6)" points="22,4 22,40 4,40" />
-			<polygon fill="#fff" points="22,4 40,40 22,40" />
-		</svg>
-	</div>
-);
 
 const AnswerCard = ({
 	answer,

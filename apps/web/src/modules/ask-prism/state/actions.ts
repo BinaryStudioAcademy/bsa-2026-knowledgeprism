@@ -24,7 +24,7 @@ const askQuestion = createAsyncThunk<
 	try {
 		return await askPrismApi.ask(payload);
 	} catch (error: unknown) {
-		// Only use mock data during development when the backend endpoint is not yet implemented (404)
+		// TODO: Mock, remove after connecting to the API
 		const isPendingBackendInDevelopment =
 			config.ENV.APP.ENVIRONMENT === AppEnvironment.DEVELOPMENT &&
 			error instanceof HTTPError &&
