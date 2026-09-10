@@ -7,7 +7,7 @@ const POSITIVE_INTEGER_STRING_PATTERN = /^[1-9]\d*$/;
 
 const manualTextRouteParameters = documentUploadIntentRouteParameters.extend({
 	id: z.string().regex(POSITIVE_INTEGER_STRING_PATTERN, {
-		error: DocumentValidationMessage.IDENTIFIER_INVALID,
+		message: DocumentValidationMessage.IDENTIFIER_INVALID,
 	}),
 });
 
