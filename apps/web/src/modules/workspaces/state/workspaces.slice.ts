@@ -1,16 +1,12 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import { createProject, updateProject } from "./action.js";
 
 import { type WorkspacesApi } from "../api/workspaces-api.js";
-import {
-	MOCK_DOCUMENTS,
-	MOCK_PROJECTS,
-} from "../libs/constants/mock-data.constants.js";
-import { type DocumentItem, type ProjectItem } from "../types/types.js";
+import { MOCK_PROJECTS } from "../libs/constants/mock-data.constants.js";
+import { type ProjectItem } from "../types/types.js";
+import { createProject, updateProject } from "./action.js";
 
 interface WorkspacesState {
-	createError: null | string;
-	documents: DocumentItem[];
+	creationError: null | string;
 	error: null | string;
 	isCreating: boolean;
 	isLoading: boolean;
@@ -20,8 +16,7 @@ interface WorkspacesState {
 }
 
 const initialState: WorkspacesState = {
-	createError: null,
-	documents: MOCK_DOCUMENTS,
+	creationError: null,
 	error: null,
 	isCreating: false,
 	isLoading: false,
@@ -41,17 +36,6 @@ const fetchProjects = createAsyncThunk(
 	},
 );
 
-const fetchRecentDocuments = createAsyncThunk(
-	"workspaces/fetchRecentDocuments",
-	async (api: WorkspacesApi) => {
-		try {
-			return await api.getRecentDocuments();
-		} catch {
-			return MOCK_DOCUMENTS;
-		}
-	},
-);
-
 const workspacesSlice = createSlice({
 	extraReducers: (builder) => {
 		builder
@@ -67,15 +51,9 @@ const workspacesSlice = createSlice({
 				state.isLoading = false;
 				state.projects = MOCK_PROJECTS;
 			})
-			.addCase(fetchRecentDocuments.fulfilled, (state, action) => {
-				state.documents = action.payload;
-			})
-			.addCase(fetchRecentDocuments.rejected, (state) => {
-				state.documents = MOCK_DOCUMENTS;
-			})
 			.addCase(createProject.pending, (state) => {
 				state.isCreating = true;
-				state.createError = null;
+				state.creationError = null;
 			})
 			.addCase(createProject.fulfilled, (state, action) => {
 				state.isCreating = false;
@@ -83,7 +61,8 @@ const workspacesSlice = createSlice({
 			})
 			.addCase(createProject.rejected, (state, action) => {
 				state.isCreating = false;
-				state.createError = action.error.message ?? "Failed to create project";
+				state.creationError =
+					action.error.message ?? "Failed to create project";
 			})
 			.addCase(updateProject.pending, (state) => {
 				state.isUpdating = true;
@@ -109,10 +88,5 @@ const workspacesSlice = createSlice({
 
 const workspacesReducer = workspacesSlice.reducer;
 
-export {
-	createProject,
-	fetchProjects,
-	fetchRecentDocuments,
-	updateProject,
-	workspacesReducer,
-};
+export { createProject, updateProject } from "./action.js";
+export { fetchProjects, workspacesReducer };

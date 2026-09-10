@@ -1,17 +1,11 @@
-import {
-	MOCK_DOCUMENTS,
-	MOCK_PROJECTS,
-} from "../libs/constants/mock-data.constants.js";
-import {
-	type DocumentItem,
-	type ProjectItem,
-	ProjectRole,
-} from "../types/types.js";
+import { MOCK_PROJECTS } from "../libs/constants/mock-data.constants.js";
+import { type ProjectItem, type ProjectRole } from "../types/types.js";
 
 type CreateProjectPayload = {
 	description?: string;
 	name: string;
 };
+
 type ProjectResponseDto = {
 	description: null | string;
 	id: number;
@@ -56,13 +50,14 @@ class WorkspacesApi {
 			}
 
 			const dto = (await response.json()) as ProjectResponseDto;
-			return mapProjectResponseToItem(dto, { members: [], role: "ADMIN" });
+			return mapProjectResponseToItem(dto, { role: "ADMIN" });
 		} catch (error) {
 			throw error instanceof Error
 				? error
 				: new Error("Failed to create project");
 		}
 	}
+
 	public async getProjects(): Promise<ProjectItem[]> {
 		try {
 			const response = await fetch(`${this.#baseUrl}/workspaces/projects`, {
@@ -83,34 +78,6 @@ class WorkspacesApi {
 			return data as ProjectItem[];
 		} catch {
 			return MOCK_PROJECTS;
-		}
-	}
-
-	public async getRecentDocuments(): Promise<DocumentItem[]> {
-		try {
-			const response = await fetch(
-				`${this.#baseUrl}/workspaces/documents/recent`,
-				{
-					headers: {
-						"Content-Type": "application/json",
-					},
-				},
-			);
-
-			if (!response.ok) {
-				throw new Error(
-					`Failed to fetch recent documents: ${response.statusText}`,
-				);
-			}
-
-			const data = (await response.json()) as unknown;
-			if (!Array.isArray(data)) {
-				throw new TypeError("Invalid response format");
-			}
-
-			return data as DocumentItem[];
-		} catch {
-			return MOCK_DOCUMENTS;
 		}
 	}
 
@@ -142,44 +109,15 @@ class WorkspacesApi {
 				: new Error("Failed to update project");
 		}
 	}
-
-	// public async updateProject(
-	// 	payload: UpdateProjectPayload,
-	// ): Promise<ProjectItem> {
-	// 	try {
-	// 		const response = await fetch(
-	// 			`${this.#baseUrl}/workspaces/projects/${payload.id}`,
-	// 			{
-	// 				body: JSON.stringify({
-	// 					description: payload.description,
-	// 					name: payload.name,
-	// 				}),
-	// 				headers: { "Content-Type": "application/json" },
-	// 				method: "PATCH",
-	// 			},
-	// 		);
-	// 		if (!response.ok) {
-	// 			throw new Error(`Failed to update project: ${response.statusText}`);
-	// 		}
-	// 		return (await response.json()) as ProjectItem;
-	// 	} catch {
-	// 		return {
-	// 			description: payload.description ?? "",
-	// 			id: payload.id,
-	// 			name: payload.name,
-	// 		} as ProjectItem;
-	// 	}
-	// }
 }
 
 function mapProjectResponseToItem(
 	dto: ProjectResponseDto,
-	context: { members?: string[]; role?: ProjectRole },
+	context: { role?: ProjectRole },
 ): ProjectItem {
 	return {
-		description: dto.description ?? "",
+		...(dto.description != null && { description: dto.description }),
 		id: String(dto.id),
-		members: context.members ?? [],
 		name: dto.name,
 		role: context.role ?? "ADMIN",
 		updatedAt: dto.updatedAt,

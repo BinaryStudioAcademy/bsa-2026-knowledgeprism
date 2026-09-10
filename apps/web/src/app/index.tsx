@@ -21,7 +21,6 @@ import {
 import {
 	createProject,
 	fetchProjects,
-	fetchRecentDocuments,
 	updateProject,
 } from "~/modules/workspaces/state/workspaces.slice.js";
 import "~/styles/styles.css";
@@ -39,6 +38,7 @@ type LocalAuthState = {
 			firstName?: string;
 			isOrgAdmin?: boolean;
 			lastName?: string;
+			organizationName?: string;
 			role?: string;
 		};
 	};
@@ -46,7 +46,7 @@ type LocalAuthState = {
 
 const api = new WorkspacesApi({ baseUrl: "/api" });
 
-const WorkspaceContainer = () => {
+const WorkspaceContainer: React.FC = () => {
 	const dispatch = useDispatch<AppDispatch>();
 	const navigate = useNavigate();
 
@@ -54,13 +54,20 @@ const WorkspaceContainer = () => {
 		(state: RootState) => (state as unknown as LocalAuthState).auth?.user,
 	);
 
-	const { documents, error, isLoading, projects } = useSelector(
-		(state: RootState) => state.workspaces,
-	);
+	const {
+		creationError,
+		error,
+		isCreating,
+		isLoading,
+		isUpdating,
+		projects,
+		updateError,
+	} = useSelector((state: RootState) => state.workspaces);
 
-	const handleFetchData = useCallback(() => {
+	const isOrgAdmin = user?.isOrgAdmin ?? user?.role === "ADMIN";
+
+	const handleFetchData = useCallback((): void => {
 		void dispatch(fetchProjects(api));
-		void dispatch(fetchRecentDocuments(api));
 	}, [dispatch]);
 
 	useEffect(() => {
@@ -80,17 +87,19 @@ const WorkspaceContainer = () => {
 		},
 		[dispatch],
 	);
-	const handleLogOut = useCallback(() => {
+
+	const handleLogOut = useCallback((): void => {
 		// TODO: Implement user logout logic
-	}, []);
-	const handleOpenSettings = useCallback(() => {
-		// TODO: Implement settings navigation
-	}, []);
-	const handleSelectDocument = useCallback(() => {
-		// TODO: Implement document selection logic
-	}, []);
+		void navigate(AppRoute.ROOT);
+	}, [navigate]);
+
+	const handleOpenSettings = useCallback((): void => {
+		// TODO: Redirect to ADMIN_SETTINGS route once it is added to AppRoute enum
+		void navigate(AppRoute.SETTINGS);
+	}, [navigate]);
+
 	const handleSelectProject = useCallback(
-		(id: string) => {
+		(id: string): void => {
 			void navigate(`${AppRoute.WORKSPACES}/${id}`);
 		},
 		[navigate],
@@ -98,7 +107,7 @@ const WorkspaceContainer = () => {
 
 	if (isLoading) {
 		return (
-			<div className="flex items-center justify-center min-h-screen">
+			<div className="flex min-h-screen items-center justify-center">
 				<div className="text-center">
 					<Loader />
 				</div>
@@ -108,13 +117,13 @@ const WorkspaceContainer = () => {
 
 	if (error) {
 		return (
-			<div className="flex items-center justify-center min-h-screen">
-				<div className="p-6 text-center rounded-lg border border-error-disabled bg-error-bg">
-					<p className="text-sm font-medium text-error">
+			<div className="flex min-h-screen items-center justify-center">
+				<div className="border-error-disabled bg-error-bg rounded-lg border p-6 text-center">
+					<p className="text-error text-sm font-medium">
 						Data fetching error: {error}
 					</p>
 					<button
-						className="mt-4 text-xs font-semibold text-error hover:text-error-hover underline cursor-pointer"
+						className="text-error hover:text-error-hover mt-4 cursor-pointer text-xs font-semibold underline"
 						onClick={handleFetchData}
 						type="button"
 					>
@@ -127,18 +136,21 @@ const WorkspaceContainer = () => {
 
 	return (
 		<WorkspacePage
-			documents={documents}
+			creationError={creationError}
 			firstName={user?.firstName ?? ""}
-			isOrgAdmin={user?.isOrgAdmin || user?.role === "ADMIN"}
+			isCreating={isCreating}
+			isLoading={isLoading}
+			isOrgAdmin={isOrgAdmin}
+			isUpdating={isUpdating}
 			lastName={user?.lastName ?? ""}
 			onCreateProject={handleCreateProject}
 			onEditProject={handleEditProject}
 			onLogOut={handleLogOut}
 			onOpenSettings={handleOpenSettings}
-			onSelectDocument={handleSelectDocument}
 			onSelectProject={handleSelectProject}
-			organizationName="KnowledgePrism"
+			organizationName={user?.organizationName ?? ""}
 			projects={projects}
+			updateError={updateError}
 		/>
 	);
 };

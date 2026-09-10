@@ -7,7 +7,7 @@ const ProjectDetailsPage: React.FC = () => {
 	const { id } = useParams<{ id: string }>();
 	const navigate = useNavigate();
 
-	const handleBackToWorkspaces = useCallback(() => {
+	const handleBackToWorkspaces = useCallback((): void => {
 		void navigate(AppRoute.WORKSPACES);
 	}, [navigate]);
 
@@ -20,7 +20,9 @@ const ProjectDetailsPage: React.FC = () => {
 			>
 				← Back to Workspaces
 			</button>
-			<h1 className="font-serif text-3xl text-text">Project Details: {id}</h1>
+			<h1 className="font-serif text-3xl text-text">
+				Project Details: {id ?? "N/A"}
+			</h1>
 			<p className="mt-2 text-sm text-text-muted">
 				Temporary placeholder page for project specs and documentation.
 			</p>

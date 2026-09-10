@@ -10,16 +10,12 @@ import {
 } from "../api/workspaces-api.js";
 import { FILTER_ROLE_OPTIONS } from "../libs/constants/mock-data.constants.js";
 import { createProject, updateProject } from "../state/workspaces.slice.js";
-import {
-	type DocumentItem,
-	type ProjectItem,
-	type ProjectRole,
-} from "../types/types.js";
-import { ProjectCard, RecentDocuments, WorkspaceHeader } from "./components.js";
+import { type ProjectItem, type ProjectRole } from "../types/types.js";
+import { ProjectCard, WorkspaceHeader } from "./components.js";
 
 const EMPTY_LENGTH = 0;
-const INDEX_OFFSET = 1;
 const EVEN_MODULO = 2;
+const INDEX_OFFSET = 1;
 
 interface CreateProjectModalProperties {
 	error: null | string;
@@ -49,21 +45,22 @@ interface ProjectItemCardProperties {
 }
 
 interface WorkspacePageProperties {
-	createError?: null | string;
-	documents?: DocumentItem[];
+	creationError?: null | string;
 	firstName: string;
 	isCreating?: boolean;
+	isLoading?: boolean;
 	isOrgAdmin?: boolean;
 	isUpdating?: boolean;
 	lastName: string;
-	onCreateProject?: (payload: CreateProjectPayload) => void;
+	onCreateProject?: (
+		payload: CreateProjectPayload,
+	) => Promise<unknown> | undefined;
 	onDeleteProject?: (id: string) => void;
 	onEditProject?: (
 		payload: UpdateProjectPayload,
 	) => Promise<unknown> | undefined;
 	onLogOut: () => void;
-	onOpenSettings: () => void;
-	onSelectDocument?: (id: string) => void;
+	onOpenSettings?: () => void;
 	onSelectProject: (id: string) => void;
 	organizationName: string;
 	projects: ProjectItem[];
@@ -86,6 +83,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProperties> = ({
 		},
 		[onSubmit],
 	);
+
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} title="New Project">
 			<ProjectManagmentModalForm
@@ -97,6 +95,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProperties> = ({
 		</Modal>
 	);
 };
+
 const EditProjectModal: React.FC<EditProjectModalProperties> = ({
 	error,
 	isOpen,
@@ -115,6 +114,7 @@ const EditProjectModal: React.FC<EditProjectModalProperties> = ({
 		},
 		[onSubmit, project.id],
 	);
+
 	return (
 		<Modal isOpen={isOpen} onClose={onClose} title="Edit Project">
 			<ProjectManagmentModalForm
@@ -140,9 +140,9 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	project,
 	totalCount,
 }) => {
-	const isLastOdd =
-		index === totalCount - INDEX_OFFSET &&
-		totalCount % EVEN_MODULO !== EMPTY_LENGTH;
+	const canEdit =
+		isOrgAdmin || project.role === "ADMIN" || project.role === "EDITOR";
+	const canDelete = isOrgAdmin || project.role === "ADMIN";
 
 	const handleDelete = useCallback((): void => {
 		onDelete(project.id);
@@ -152,32 +152,31 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 		onEdit(project);
 	}, [onEdit, project]);
 
-	const canEdit =
-		isOrgAdmin || project.role === "ADMIN" || project.role === "EDITOR";
-	const canDelete = isOrgAdmin || project.role === "ADMIN";
+	const isLastOdd =
+		index === totalCount - INDEX_OFFSET &&
+		totalCount % EVEN_MODULO !== EMPTY_LENGTH;
 
 	return (
 		<div className={isLastOdd ? "sm:col-span-2 lg:col-span-1" : ""}>
 			<ProjectCard
 				description={project.description ?? ""}
 				id={project.id}
-				members={project.members ?? []}
 				name={project.name}
 				onSelect={onSelect}
 				role={project.role}
 				updatedAt={project.updatedAt}
-				{...(canEdit ? { onEdit: handleEdit } : {})}
 				{...(canDelete ? { onDelete: handleDelete } : {})}
+				{...(canEdit ? { onEdit: handleEdit } : {})}
 			/>
 		</div>
 	);
 };
 
 const WorkspacePage: React.FC<WorkspacePageProperties> = ({
-	createError = null,
-	documents = [],
+	creationError = null,
 	firstName,
 	isCreating = false,
+	isLoading = false,
 	isOrgAdmin = false,
 	isUpdating = false,
 	lastName,
@@ -186,7 +185,6 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	onEditProject,
 	onLogOut,
 	onOpenSettings,
-	onSelectDocument,
 	onSelectProject,
 	organizationName,
 	projects: initialProjects,
@@ -204,7 +202,6 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 	const [selectedRole, setSelectedRole] = useState<"ALL" | ProjectRole>("ALL");
 	const [isFilterOpen, setIsFilterOpen] = useState(false);
-
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [editingProject, setEditingProject] = useState<null | ProjectItem>(
 		null,
@@ -217,6 +214,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		if (selectedRole === "ALL") {
 			return localProjects;
 		}
+
 		return localProjects.filter((project) => project.role === selectedRole);
 	}, [localProjects, selectedRole]);
 
@@ -249,7 +247,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		(payload: CreateProjectPayload): void => {
 			void (async (): Promise<void> => {
 				const action = await onCreateProject?.(payload);
-				// Container returns the dispatch result — see Step 6
+
 				if (action && createProject.fulfilled.match(action)) {
 					setIsCreateModalOpen(false);
 				}
@@ -266,6 +264,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		(payload: UpdateProjectPayload): void => {
 			void (async (): Promise<void> => {
 				const action = await onEditProject?.(payload);
+
 				if (action && updateProject.fulfilled.match(action)) {
 					setEditingProject(null);
 				}
@@ -298,38 +297,31 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		setDeletingProjectId(null);
 	}, [deletingProjectId, onDeleteProject]);
 
-	const handleSelectDocument = useCallback(
-		(id: string): void => {
-			onSelectDocument?.(id);
-		},
-		[onSelectDocument],
-	);
-
 	return (
-		<div className="workspace-page relative min-h-screen bg-white">
+		<div className="workspace-page relative min-h-screen bg-bg">
 			<WorkspaceHeader
 				firstName={firstName}
-				isOrgAdmin={isOrgAdmin}
+				isLoading={isLoading}
 				lastName={lastName}
 				onLogOut={onLogOut}
 				onOpenSettings={onOpenSettings}
 				organizationName={organizationName}
 			/>
-			<main className="workspace-content max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-				<div className="mb-6 sm:mb-7 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+			<main className="workspace-content mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
+				<div className="mb-6 flex flex-col justify-between gap-4 sm:mb-7 sm:flex-row sm:items-center">
 					<div>
-						<h1 className="font-serif text-2xl sm:text-3xl font-normal text-text">
-							Your Workspaces
+						<span className="block text-(length:--text-xs) font-semibold uppercase tracking-wider text-text-muted">
+							WORKSPACE
+						</span>
+						<h1 className="mt-0.5 font-serif text-2xl font-normal text-text sm:text-3xl">
+							Your projects
 						</h1>
-						<p className="mt-1 text-xs sm:text-sm text-text-muted">
-							Manage your product documentation and engineering specs.
-						</p>
 					</div>
 
-					<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
-						{!isOrgAdmin && (
+					<div className="flex w-full flex-col items-stretch gap-2.5 sm:w-auto sm:flex-row sm:items-center">
+						{isOrgAdmin && (
 							<button
-								className="order-1 sm:order-2 inline-flex items-center justify-center gap-1.5 rounded-lg bg-text px-3.5 sm:px-4.5 py-2.5 sm:py-2 text-xs font-medium text-white shadow-sm hover:bg-black transition-colors cursor-pointer w-full sm:w-auto"
+								className="order-1 inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-primary px-3.5 py-2.5 text-(length:--text-xs) font-medium text-(--color-primary-fg) shadow-(--shadow-sm) transition-opacity hover:opacity-90 sm:order-2 sm:w-auto sm:px-4.5 sm:py-2"
 								onClick={handleOpenCreateModal}
 								type="button"
 							>
@@ -345,12 +337,12 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 							</button>
 						)}
 
-						<div className="relative order-2 sm:order-1 w-full sm:w-auto">
+						<div className="relative order-2 w-full sm:order-1 sm:w-auto">
 							<button
 								aria-expanded={isFilterOpen}
 								aria-haspopup="true"
 								aria-label="Filter projects by role"
-								className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-3.5 sm:px-4 py-2 text-xs font-medium text-text shadow-sm hover:bg-surface transition-colors cursor-pointer w-full sm:w-auto"
+								className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-3.5 py-2 text-(length:--text-xs) font-medium text-text shadow-sm transition-colors hover:bg-surface sm:w-auto sm:px-4"
 								onClick={handleToggleFilter}
 								type="button"
 							>
@@ -375,16 +367,16 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 										onClick={handleCloseFilter}
 									/>
 									<div
-										className="absolute left-0 sm:right-0 sm:left-auto mt-2 w-full sm:w-40 rounded-lg border border-border bg-white p-1.5 shadow-xl z-30"
+										className="absolute left-0 z-30 mt-2 w-full rounded-lg border border-border bg-white p-1.5 shadow-xl sm:right-0 sm:left-auto sm:w-40"
 										role="menu"
 									>
 										{FILTER_ROLE_OPTIONS.map((role) => (
 											<button
 												aria-checked={selectedRole === role}
-												className={`w-full text-left px-3 py-1.5 text-xs rounded-md transition-colors ${
+												className={`w-full rounded-md px-3 py-1.5 text-left text-(length:--text-xs) transition-colors ${
 													selectedRole === role
-														? "bg-text text-white font-medium"
-														: "hover:bg-surface text-text"
+														? "bg-text font-medium text-white"
+														: "text-text hover:bg-surface"
 												}`}
 												data-role={role}
 												key={role}
@@ -402,7 +394,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 					</div>
 				</div>
 
-				<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
 					{filteredProjects.map((project, index) => (
 						<ProjectItemCard
 							index={index}
@@ -418,22 +410,15 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 				</div>
 
 				{filteredProjects.length === EMPTY_LENGTH && (
-					<div className="py-12 text-center text-sm text-text-muted">
+					<div className="py-12 text-center text-control text-text-muted">
 						No projects found for the selected filter.
 					</div>
-				)}
-
-				{localProjects.length > EMPTY_LENGTH && (
-					<RecentDocuments
-						documents={documents}
-						onSelect={handleSelectDocument}
-					/>
 				)}
 			</main>
 
 			{isCreateModalOpen && (
 				<CreateProjectModal
-					error={createError}
+					error={creationError}
 					isOpen={isCreateModalOpen}
 					isSubmitting={isCreating}
 					onClose={handleCloseCreateModal}
@@ -456,26 +441,26 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 			{deletingProjectId && (
 				<div
 					aria-modal="true"
-					className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+					className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
 					role="dialog"
 				>
-					<div className="w-full max-w-sm rounded-xl bg-white p-5 sm:p-6 shadow-xl border border-border text-center">
-						<h2 className="font-serif text-lg sm:text-xl font-normal text-text mb-2">
+					<div className="w-full max-w-sm rounded-lg border border-border bg-(--color-surface) p-5 text-center shadow-(--shadow-md) sm:p-6">
+						<h2 className="mb-2 font-serif text-lg font-normal text-text sm:text-xl">
 							Delete Project?
 						</h2>
-						<p className="text-xs text-text-muted mb-6">
+						<p className="mb-6 text-(length:--text-xs) text-text-muted">
 							This action cannot be undone.
 						</p>
 						<div className="flex justify-center gap-2.5">
 							<button
-								className="rounded-lg px-4 py-2 text-xs font-medium text-text hover:bg-surface border border-border transition-colors cursor-pointer"
+								className="cursor-pointer rounded-md border border-border px-4 py-2 text-(length:--text-xs) font-medium text-text transition-colors hover:bg-(--color-secondary)"
 								onClick={handleCancelDelete}
 								type="button"
 							>
 								Cancel
 							</button>
 							<button
-								className="rounded-lg px-4 py-2 text-xs font-medium text-white bg-red-600 hover:bg-red-700 transition-colors cursor-pointer"
+								className="cursor-pointer rounded-md bg-red-600 px-4 py-2 text-(length:--text-xs) font-medium text-white transition-colors hover:bg-red-700"
 								onClick={handleDeleteProjectConfirm}
 								type="button"
 							>

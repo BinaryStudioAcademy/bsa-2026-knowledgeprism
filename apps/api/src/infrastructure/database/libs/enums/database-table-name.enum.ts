@@ -1,4 +1,5 @@
 const DatabaseTableName = {
+	DOCUMENTS: "documents",
 	MIGRATIONS: "migrations",
 	ORGANISATIONS: "organisations",
 	PROJECT_MEMBERS: "project_members",
