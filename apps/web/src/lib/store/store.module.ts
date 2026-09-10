@@ -9,6 +9,7 @@ import { type Config } from "~/lib/config/config.js";
 import { AppEnvironment } from "~/lib/enums/enums.js";
 import { storage } from "~/lib/storage/storage.js";
 import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
+import { reducer as knowledgeReducer } from "~/modules/knowledge/knowledge.js";
 import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
 
 type ExtraArguments = {
@@ -19,6 +20,7 @@ type ExtraArguments = {
 
 type RootReducer = {
 	auth: ReturnType<typeof authReducer>;
+	knowledge: ReturnType<typeof knowledgeReducer>;
 	users: ReturnType<typeof usersReducer>;
 };
 
@@ -43,6 +45,7 @@ class Store {
 			},
 			reducer: {
 				auth: authReducer,
+				knowledge: knowledgeReducer,
 				users: usersReducer,
 			},
 		});
