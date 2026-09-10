@@ -1,5 +1,6 @@
 import { config } from "~/infrastructure/config/config.js";
 import { database } from "~/infrastructure/database/database.js";
+import { health } from "~/infrastructure/health/health.js";
 import { logger } from "~/infrastructure/logger/logger.js";
 import { s3Client } from "~/infrastructure/s3/s3.js";
 import { authController } from "~/modules/auth/auth.js";
@@ -20,6 +21,7 @@ const serverApplication = new BaseServerApplication({
 	apis: [apiV1],
 	config,
 	database,
+	health,
 	logger,
 	s3Client,
 	title: "AI Meeting Assistant",

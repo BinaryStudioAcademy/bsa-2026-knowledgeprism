@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { type Config } from "~/infrastructure/config/config.js";
 import { type Database } from "~/infrastructure/database/database.js";
 import { DatabaseStore } from "~/infrastructure/database/libs/packages/session/database-store.js";
+import { type Health, HealthStatus } from "~/infrastructure/health/health.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { ServerErrorType } from "~/shared/enums/enums.js";
@@ -32,6 +33,7 @@ type Constructor = {
 	apis: ServerApplicationApi[];
 	config: Config;
 	database: Database;
+	health: Health;
 	logger: Logger;
 	s3Client: S3Client;
 	title: string;
@@ -52,6 +54,8 @@ class BaseServerApplication implements ServerApplication {
 
 	private database: Database;
 
+	private health: Health;
+
 	private logger: Logger;
 
 	private s3Client: S3Client;
@@ -62,6 +66,7 @@ class BaseServerApplication implements ServerApplication {
 		apis,
 		config,
 		database,
+		health,
 		logger,
 		s3Client,
 		title,
@@ -72,6 +77,7 @@ class BaseServerApplication implements ServerApplication {
 		this.database = database;
 		this.s3Client = s3Client;
 		this.apis = apis;
+		this.health = health;
 
 		this.initApp();
 	}
@@ -133,7 +139,14 @@ class BaseServerApplication implements ServerApplication {
 
 	private initHealthCheck(): void {
 		this.app.get("/health", async (_request, reply) => {
-			return await reply.status(HTTPCode.OK).send({ status: "ok" });
+			const health = await this.health.getHealthStatus();
+
+			const httpStatus =
+				health.status === HealthStatus.OK
+					? HTTPCode.OK
+					: HTTPCode.SERVICE_UNAVAILABLE;
+
+			return await reply.status(httpStatus).send(health);
 		});
 	}
 
