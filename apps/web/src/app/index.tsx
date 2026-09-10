@@ -9,14 +9,20 @@ import { type AppDispatch, type RootState, store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
 import { AccountSettingsPage } from "~/modules/users/components/components.js";
-import { WorkspacesApi } from "~/modules/workspaces/api/workspaces-api.js";
+import {
+	CreateProjectPayload,
+	UpdateProjectPayload,
+	WorkspacesApi,
+} from "~/modules/workspaces/api/workspaces-api.js";
 import {
 	ProjectDetailsPage,
 	WorkspacePage,
 } from "~/modules/workspaces/components/components.js";
 import {
+	createProject,
 	fetchProjects,
 	fetchRecentDocuments,
+	updateProject,
 } from "~/modules/workspaces/state/workspaces.slice.js";
 import "~/styles/styles.css";
 
@@ -61,9 +67,19 @@ const WorkspaceContainer = () => {
 		handleFetchData();
 	}, [handleFetchData]);
 
-	const handleCreateProject = useCallback(() => {
-		// TODO: Implement create project modal trigger
-	}, []);
+	const handleCreateProject = useCallback(
+		(payload: CreateProjectPayload) => {
+			return dispatch(createProject(payload));
+		},
+		[dispatch],
+	);
+
+	const handleEditProject = useCallback(
+		(payload: UpdateProjectPayload) => {
+			return dispatch(updateProject(payload));
+		},
+		[dispatch],
+	);
 	const handleLogOut = useCallback(() => {
 		// TODO: Implement user logout logic
 	}, []);
@@ -116,6 +132,7 @@ const WorkspaceContainer = () => {
 			isOrgAdmin={user?.isOrgAdmin || user?.role === "ADMIN"}
 			lastName={user?.lastName ?? ""}
 			onCreateProject={handleCreateProject}
+			onEditProject={handleEditProject}
 			onLogOut={handleLogOut}
 			onOpenSettings={handleOpenSettings}
 			onSelectDocument={handleSelectDocument}

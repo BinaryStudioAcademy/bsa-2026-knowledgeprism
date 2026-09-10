@@ -1,6 +1,15 @@
 import React, { useCallback, useMemo, useState } from "react";
 
+import { Modal } from "~/components/components.js";
+import { ProjectFormValue } from "~/modules/project-managment-modal/components/project-managment-modal-form/lib/type.js";
+import { ProjectManagmentModalForm } from "~/modules/project-managment-modal/components/project-managment-modal-form/project-managment-modal-form.js";
+
+import {
+	CreateProjectPayload,
+	UpdateProjectPayload,
+} from "../api/workspaces-api.js";
 import { FILTER_ROLE_OPTIONS } from "../libs/constants/mock-data.constants.js";
+import { createProject, updateProject } from "../state/workspaces.slice.js";
 import {
 	type DocumentItem,
 	type ProjectItem,
@@ -13,15 +22,19 @@ const INDEX_OFFSET = 1;
 const EVEN_MODULO = 2;
 
 interface CreateProjectModalProperties {
+	error: null | string;
 	isOpen: boolean;
+	isSubmitting: boolean;
 	onClose: () => void;
-	onSubmit: (newProject: ProjectItem) => void;
+	onSubmit: (payload: CreateProjectPayload) => void;
 }
 
 interface EditProjectModalProperties {
+	error: null | string;
 	isOpen: boolean;
+	isSubmitting: boolean;
 	onClose: () => void;
-	onSubmit: (updatedProject: ProjectItem) => void;
+	onSubmit: (payload: UpdateProjectPayload) => void;
 	project: ProjectItem;
 }
 
@@ -36,23 +49,87 @@ interface ProjectItemCardProperties {
 }
 
 interface WorkspacePageProperties {
+	createError?: null | string;
 	documents?: DocumentItem[];
 	firstName: string;
+	isCreating?: boolean;
 	isOrgAdmin?: boolean;
+	isUpdating?: boolean;
 	lastName: string;
-	onCreateProject?: () => void;
+	onCreateProject?: (payload: CreateProjectPayload) => void;
 	onDeleteProject?: (id: string) => void;
-	onEditProject?: (project: ProjectItem) => void;
+	onEditProject?: (
+		payload: UpdateProjectPayload,
+	) => Promise<unknown> | undefined;
 	onLogOut: () => void;
 	onOpenSettings: () => void;
 	onSelectDocument?: (id: string) => void;
 	onSelectProject: (id: string) => void;
 	organizationName: string;
 	projects: ProjectItem[];
+	updateError?: null | string;
 }
 
-const CreateProjectModal: React.FC<CreateProjectModalProperties> = () => null;
-const EditProjectModal: React.FC<EditProjectModalProperties> = () => null;
+const CreateProjectModal: React.FC<CreateProjectModalProperties> = ({
+	error,
+	isOpen,
+	isSubmitting,
+	onClose,
+	onSubmit,
+}) => {
+	const handleCreate = useCallback(
+		(payload: ProjectFormValue): void => {
+			onSubmit({
+				description: payload.description ?? "",
+				name: payload.projectName,
+			});
+		},
+		[onSubmit],
+	);
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} title="New Project">
+			<ProjectManagmentModalForm
+				error={error}
+				isSubmitting={isSubmitting}
+				onSubmit={handleCreate}
+				submitLabel="Create Project"
+			/>
+		</Modal>
+	);
+};
+const EditProjectModal: React.FC<EditProjectModalProperties> = ({
+	error,
+	isOpen,
+	isSubmitting,
+	onClose,
+	onSubmit,
+	project,
+}) => {
+	const handleUpdate = useCallback(
+		(payload: ProjectFormValue): void => {
+			onSubmit({
+				description: payload.description ?? "",
+				id: project.id,
+				name: payload.projectName,
+			});
+		},
+		[onSubmit, project.id],
+	);
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} title="Edit Project">
+			<ProjectManagmentModalForm
+				error={error}
+				initialValues={{
+					description: project.description ?? "",
+					projectName: project.name,
+				}}
+				isSubmitting={isSubmitting}
+				onSubmit={handleUpdate}
+				submitLabel="Save Changes"
+			/>
+		</Modal>
+	);
+};
 
 const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	index,
@@ -97,9 +174,12 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 };
 
 const WorkspacePage: React.FC<WorkspacePageProperties> = ({
+	createError = null,
 	documents = [],
 	firstName,
+	isCreating = false,
 	isOrgAdmin = false,
+	isUpdating = false,
 	lastName,
 	onCreateProject,
 	onDeleteProject,
@@ -110,6 +190,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	onSelectProject,
 	organizationName,
 	projects: initialProjects,
+	updateError = null,
 }) => {
 	const [localProjects, setLocalProjects] =
 		useState<ProjectItem[]>(initialProjects);
@@ -158,19 +239,23 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 	const handleOpenCreateModal = useCallback((): void => {
 		setIsCreateModalOpen(true);
-		onCreateProject?.();
-	}, [onCreateProject]);
+	}, []);
 
 	const handleCloseCreateModal = useCallback((): void => {
 		setIsCreateModalOpen(false);
 	}, []);
 
 	const handleSubmitCreateModal = useCallback(
-		(newProject: ProjectItem): void => {
-			setLocalProjects((previous) => [newProject, ...previous]);
-			setIsCreateModalOpen(false);
+		(payload: CreateProjectPayload): void => {
+			void (async (): Promise<void> => {
+				const action = await onCreateProject?.(payload);
+				// Container returns the dispatch result — see Step 6
+				if (action && createProject.fulfilled.match(action)) {
+					setIsCreateModalOpen(false);
+				}
+			})();
 		},
-		[],
+		[onCreateProject],
 	);
 
 	const handleCloseEditModal = useCallback((): void => {
@@ -178,14 +263,13 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	}, []);
 
 	const handleSubmitEditModal = useCallback(
-		(updatedProject: ProjectItem): void => {
-			setLocalProjects((previous) =>
-				previous.map((project) =>
-					project.id === updatedProject.id ? updatedProject : project,
-				),
-			);
-			onEditProject?.(updatedProject);
-			setEditingProject(null);
+		(payload: UpdateProjectPayload): void => {
+			void (async (): Promise<void> => {
+				const action = await onEditProject?.(payload);
+				if (action && updateProject.fulfilled.match(action)) {
+					setEditingProject(null);
+				}
+			})();
 		},
 		[onEditProject],
 	);
@@ -243,7 +327,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 					</div>
 
 					<div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
-						{isOrgAdmin && (
+						{!isOrgAdmin && (
 							<button
 								className="order-1 sm:order-2 inline-flex items-center justify-center gap-1.5 rounded-lg bg-text px-3.5 sm:px-4.5 py-2.5 sm:py-2 text-xs font-medium text-white shadow-sm hover:bg-black transition-colors cursor-pointer w-full sm:w-auto"
 								onClick={handleOpenCreateModal}
@@ -349,7 +433,9 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 			{isCreateModalOpen && (
 				<CreateProjectModal
+					error={createError}
 					isOpen={isCreateModalOpen}
+					isSubmitting={isCreating}
 					onClose={handleCloseCreateModal}
 					onSubmit={handleSubmitCreateModal}
 				/>
@@ -357,7 +443,10 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 			{editingProject && (
 				<EditProjectModal
+					error={updateError}
 					isOpen={Boolean(editingProject)}
+					isSubmitting={isUpdating}
+					key={editingProject.id}
 					onClose={handleCloseEditModal}
 					onSubmit={handleSubmitEditModal}
 					project={editingProject}

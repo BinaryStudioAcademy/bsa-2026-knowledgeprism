@@ -1,9 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createProject, updateProject } from "./action.js";
 
-import {
-	type CreateProjectPayload,
-	type WorkspacesApi,
-} from "../api/workspaces-api.js";
+import { type WorkspacesApi } from "../api/workspaces-api.js";
 import {
 	MOCK_DOCUMENTS,
 	MOCK_PROJECTS,
@@ -11,17 +9,25 @@ import {
 import { type DocumentItem, type ProjectItem } from "../types/types.js";
 
 interface WorkspacesState {
+	createError: null | string;
 	documents: DocumentItem[];
 	error: null | string;
+	isCreating: boolean;
 	isLoading: boolean;
+	isUpdating: boolean;
 	projects: ProjectItem[];
+	updateError: null | string;
 }
 
 const initialState: WorkspacesState = {
+	createError: null,
 	documents: MOCK_DOCUMENTS,
 	error: null,
+	isCreating: false,
 	isLoading: false,
+	isUpdating: false,
 	projects: MOCK_PROJECTS,
+	updateError: null,
 };
 
 const fetchProjects = createAsyncThunk(
@@ -42,36 +48,6 @@ const fetchRecentDocuments = createAsyncThunk(
 			return await api.getRecentDocuments();
 		} catch {
 			return MOCK_DOCUMENTS;
-		}
-	},
-);
-
-const createProject = createAsyncThunk<
-	ProjectItem,
-	{
-		api: WorkspacesApi;
-		payload: CreateProjectPayload;
-	}
->(
-	"workspaces/createProject",
-	async ({
-		api,
-		payload,
-	}: {
-		api: WorkspacesApi;
-		payload: CreateProjectPayload;
-	}) => {
-		try {
-			return await api.createProject(payload);
-		} catch {
-			return {
-				description: payload.description ?? "",
-				id: `proj-${String(Date.now())}`,
-				members: ["/avatars/avatar-1.png"],
-				name: payload.name,
-				role: "ADMIN",
-				updatedAt: "JUST NOW",
-			};
 		}
 	},
 );
@@ -97,19 +73,33 @@ const workspacesSlice = createSlice({
 			.addCase(fetchRecentDocuments.rejected, (state) => {
 				state.documents = MOCK_DOCUMENTS;
 			})
+			.addCase(createProject.pending, (state) => {
+				state.isCreating = true;
+				state.createError = null;
+			})
 			.addCase(createProject.fulfilled, (state, action) => {
+				state.isCreating = false;
 				state.projects.unshift(action.payload);
 			})
 			.addCase(createProject.rejected, (state, action) => {
-				const { payload } = action.meta.arg;
-				state.projects.unshift({
-					description: payload.description ?? "",
-					id: `proj-${String(Date.now())}`,
-					members: ["/avatars/avatar-1.png"],
-					name: payload.name,
-					role: "ADMIN",
-					updatedAt: "JUST NOW",
-				});
+				state.isCreating = false;
+				state.createError = action.error.message ?? "Failed to create project";
+			})
+			.addCase(updateProject.pending, (state) => {
+				state.isUpdating = true;
+				state.updateError = null;
+			})
+			.addCase(updateProject.fulfilled, (state, action) => {
+				state.isUpdating = false;
+				state.projects = state.projects.map((project) =>
+					project.id === action.payload.id
+						? { ...project, ...action.payload }
+						: project,
+				);
+			})
+			.addCase(updateProject.rejected, (state, action) => {
+				state.isUpdating = false;
+				state.updateError = action.error.message ?? "Failed to update project";
 			});
 	},
 	initialState,
@@ -119,4 +109,10 @@ const workspacesSlice = createSlice({
 
 const workspacesReducer = workspacesSlice.reducer;
 
-export { fetchProjects, fetchRecentDocuments, workspacesReducer };
+export {
+	createProject,
+	fetchProjects,
+	fetchRecentDocuments,
+	updateProject,
+	workspacesReducer,
+};
