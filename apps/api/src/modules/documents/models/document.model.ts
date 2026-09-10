@@ -1,4 +1,4 @@
-import { DocumentSourceType, DocumentStatus } from "@knowledgeprism/constants";
+import { type DocumentStatus } from "@knowledgeprism/constants";
 import { type ValueOf } from "@knowledgeprism/types";
 
 import {
@@ -7,21 +7,19 @@ import {
 } from "~/infrastructure/database/database.js";
 
 class DocumentModel extends AbstractModel {
-	public content!: string;
+	public mimeType!: string;
 
-	public contentHash!: string;
+	public name!: string;
 
-	public createdByUserId!: number;
+	public projectId!: string;
 
-	public errorMessage!: null | string;
+	public s3Key!: string;
 
-	public projectId!: number;
-
-	public sourceType!: ValueOf<typeof DocumentSourceType>;
+	public sizeInBytes!: null | number;
 
 	public status!: ValueOf<typeof DocumentStatus>;
 
-	public title!: null | string;
+	public uploadedBy!: null | number;
 
 	public static override get tableName(): string {
 		return DatabaseTableName.DOCUMENTS;

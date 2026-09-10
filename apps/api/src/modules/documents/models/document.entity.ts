@@ -1,174 +1,155 @@
-import { DocumentSourceType, DocumentStatus } from "@knowledgeprism/constants";
-import {
-	type ManualTextResponseDto,
-	type ValueOf,
-} from "@knowledgeprism/types";
+import { type DocumentStatus } from "@knowledgeprism/constants";
+import { type ValueOf } from "@knowledgeprism/types";
 
 import { type Entity } from "~/shared/types/types.js";
 
-type DocumentEntityPayload = {
-	content: string;
-	contentHash: string;
-	createdAt: null | string;
-	createdByUserId: number;
-	errorMessage: null | string;
-	id: null | number;
-	projectId: number;
-	sourceType: ValueOf<typeof DocumentSourceType>;
+type DocumentObject = {
+	id: number;
+	mimeType: string;
+	name: string;
+	projectId: string;
+	s3Key: string;
+	sizeInBytes: null | number;
 	status: ValueOf<typeof DocumentStatus>;
-	title: null | string;
-	updatedAt: null | string;
+	uploadedBy: null | number;
 };
 
 class DocumentEntity implements Entity {
-	private content: string;
-
-	private contentHash: string;
-
-	private createdAt: null | string;
-
-	private createdByUserId: number;
-
-	private errorMessage: null | string;
-
 	private id: null | number;
 
-	private projectId: number;
+	private mimeType: string;
 
-	private sourceType: ValueOf<typeof DocumentSourceType>;
+	private name: string;
+
+	private projectId: string;
+
+	private s3Key: string;
+
+	private sizeInBytes: null | number;
 
 	private status: ValueOf<typeof DocumentStatus>;
 
-	private title: null | string;
-
-	private updatedAt: null | string;
+	private uploadedBy: null | number;
 
 	private constructor({
-		content,
-		contentHash,
-		createdAt,
-		createdByUserId,
-		errorMessage,
 		id,
+		mimeType,
+		name,
 		projectId,
-		sourceType,
+		s3Key,
+		sizeInBytes,
 		status,
-		title,
-		updatedAt,
-	}: DocumentEntityPayload) {
-		this.content = content;
-		this.contentHash = contentHash;
-		this.createdAt = createdAt;
-		this.createdByUserId = createdByUserId;
-		this.errorMessage = errorMessage;
+		uploadedBy,
+	}: {
+		id: null | number;
+		mimeType: string;
+		name: string;
+		projectId: string;
+		s3Key: string;
+		sizeInBytes: null | number;
+		status: ValueOf<typeof DocumentStatus>;
+		uploadedBy: null | number;
+	}) {
 		this.id = id;
+		this.mimeType = mimeType;
+		this.name = name;
 		this.projectId = projectId;
-		this.sourceType = sourceType;
+		this.s3Key = s3Key;
+		this.sizeInBytes = sizeInBytes;
 		this.status = status;
-		this.title = title;
-		this.updatedAt = updatedAt;
+		this.uploadedBy = uploadedBy;
 	}
 
 	public static initialize({
-		content,
-		contentHash,
-		createdAt,
-		createdByUserId,
-		errorMessage,
 		id,
+		mimeType,
+		name,
 		projectId,
-		sourceType,
+		s3Key,
+		sizeInBytes,
 		status,
-		title,
-		updatedAt,
+		uploadedBy,
 	}: {
-		content: string;
-		contentHash: string;
-		createdAt: string;
-		createdByUserId: number;
-		errorMessage: null | string;
 		id: number;
-		projectId: number;
-		sourceType: ValueOf<typeof DocumentSourceType>;
+		mimeType: string;
+		name: string;
+		projectId: string;
+		s3Key: string;
+		sizeInBytes: null | number;
 		status: ValueOf<typeof DocumentStatus>;
-		title: null | string;
-		updatedAt: string;
+		uploadedBy: null | number;
 	}): DocumentEntity {
 		return new DocumentEntity({
-			content,
-			contentHash,
-			createdAt,
-			createdByUserId,
-			errorMessage,
 			id,
+			mimeType,
+			name,
 			projectId,
-			sourceType,
+			s3Key,
+			sizeInBytes,
 			status,
-			title,
-			updatedAt,
+			uploadedBy,
 		});
 	}
 
 	public static initializeNew({
-		content,
-		contentHash,
-		createdByUserId,
+		mimeType,
+		name,
 		projectId,
-		title,
+		s3Key,
+		sizeInBytes,
+		status,
+		uploadedBy,
 	}: {
-		content: string;
-		contentHash: string;
-		createdByUserId: number;
-		projectId: number;
-		title: null | string;
+		mimeType: string;
+		name: string;
+		projectId: string;
+		s3Key: string;
+		sizeInBytes: null | number;
+		status: ValueOf<typeof DocumentStatus>;
+		uploadedBy: null | number;
 	}): DocumentEntity {
 		return new DocumentEntity({
-			content,
-			contentHash,
-			createdAt: null,
-			createdByUserId,
-			errorMessage: null,
 			id: null,
+			mimeType,
+			name,
 			projectId,
-			sourceType: DocumentSourceType.MANUAL,
-			status: DocumentStatus.PROCESSING,
-			title,
-			updatedAt: null,
+			s3Key,
+			sizeInBytes,
+			status,
+			uploadedBy,
 		});
 	}
 
 	public toNewObject(): {
-		content: string;
-		contentHash: string;
-		createdByUserId: number;
-		errorMessage: null | string;
-		projectId: number;
-		sourceType: ValueOf<typeof DocumentSourceType>;
+		mimeType: string;
+		name: string;
+		projectId: string;
+		s3Key: string;
+		sizeInBytes: null | number;
 		status: ValueOf<typeof DocumentStatus>;
-		title: null | string;
+		uploadedBy: null | number;
 	} {
 		return {
-			content: this.content,
-			contentHash: this.contentHash,
-			createdByUserId: this.createdByUserId,
-			errorMessage: this.errorMessage,
+			mimeType: this.mimeType,
+			name: this.name,
 			projectId: this.projectId,
-			sourceType: this.sourceType,
+			s3Key: this.s3Key,
+			sizeInBytes: this.sizeInBytes,
 			status: this.status,
-			title: this.title,
+			uploadedBy: this.uploadedBy,
 		};
 	}
 
-	public toObject(): ManualTextResponseDto {
+	public toObject(): DocumentObject {
 		return {
-			createdAt: this.createdAt as string,
-			errorMessage: this.errorMessage,
 			id: this.id as number,
+			mimeType: this.mimeType,
+			name: this.name,
 			projectId: this.projectId,
-			sourceType: this.sourceType,
+			s3Key: this.s3Key,
+			sizeInBytes: this.sizeInBytes,
 			status: this.status,
-			title: this.title,
-			updatedAt: this.updatedAt as string,
+			uploadedBy: this.uploadedBy,
 		};
 	}
 }

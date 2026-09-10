@@ -1,5 +1,5 @@
 export {
-	type ManualTextCreateRequestDto,
-	type ManualTextResponseDto,
-	type ManualTextRouteParametersDto,
+	type DocumentUploadIntentRequestDto,
+	type DocumentUploadIntentResponseDto,
+	type DocumentUploadIntentRouteParametersDto,
 } from "./libs/types/types.js";

@@ -1,1 +1,4 @@
-export { manualTextCreate as manualTextCreateValidationSchema } from "./libs/validation-schemas/validation-schemas.js";
+export {
+	documentUploadIntentRouteParametersValidationSchema,
+	documentUploadIntentValidationSchema,
+} from "./libs/validation-schemas/validation-schemas.js";

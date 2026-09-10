@@ -1,26 +1,138 @@
+import { type ProjectAssignmentDto } from "@knowledgeprism/types";
+import { type Transaction } from "objection";
+
+import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
+import { ProjectMemberModel } from "~/modules/projects/models/project-member.model.js";
+import { ProjectModel } from "~/modules/projects/models/project.model.js";
 import { UserEntity } from "~/modules/users/models/user.entity.js";
 import { type UserModel } from "~/modules/users/models/user.model.js";
 import { type Repository } from "~/shared/types/types.js";
 
+type UserDatabaseRow = {
+	email: string;
+	firstName: string;
+	id: number;
+	lastName: string;
+	organisationId: number;
+	passwordHash: string;
+	projectMembers?: ProjectMemberModel[];
+	status: "active" | "inactive";
+};
+
 class UserRepository implements Repository {
 	private userModel: typeof UserModel;
+
 	public constructor(userModel: typeof UserModel) {
 		this.userModel = userModel;
 	}
 
-	public async create(entity: UserEntity): Promise<UserEntity> {
-		const { email, passwordHash } = entity.toNewObject();
+	private async assertProjectsBelongToOrganisation(
+		projectIds: number[],
+		organisationId: number,
+		trx: Transaction,
+	): Promise<void> {
+		const validProjects = await ProjectModel.query(trx)
+			.whereIn("id", projectIds)
+			.andWhere({ organisationId })
+			.execute();
+
+		if (validProjects.length !== projectIds.length) {
+			throw new HTTPError({
+				message:
+					"One or more project IDs do not belong to the user's organisation.",
+				status: HTTPCode.BAD_REQUEST,
+			});
+		}
+	}
+
+	private mapToEntity(row: unknown): UserEntity {
+		const typedUser = row as UserDatabaseRow;
+
+		return UserEntity.initialize({
+			...typedUser,
+			assignedProjects:
+				typedUser.projectMembers?.map((pm) => ({
+					projectId: pm.projectId,
+					role: pm.role,
+				})) ?? [],
+		});
+	}
+
+	public async create(
+		entity: UserEntity,
+		transaction?: Transaction,
+	): Promise<UserEntity> {
+		const { email, firstName, lastName, organisationId, passwordHash, status } =
+			entity.toNewObject();
 
 		const user = await this.userModel
-			.query()
+			.query(transaction)
 			.insert({
 				email,
+				firstName,
+				lastName,
+				organisationId,
 				passwordHash,
+				status,
 			})
 			.returning("*")
 			.execute();
 
-		return UserEntity.initialize(user);
+		const typedUser = user as unknown as UserDatabaseRow;
+
+		return UserEntity.initialize({
+			...typedUser,
+			assignedProjects: [],
+		});
+	}
+
+	public async createOrgUser(
+		entity: UserEntity,
+		assignedProjects?: ProjectAssignmentDto[],
+	): Promise<UserEntity> {
+		const { email, firstName, lastName, organisationId, passwordHash, status } =
+			entity.toNewObject();
+		const EMPTY_LENGTH = 0;
+
+		const user = await this.userModel.transaction(async (trx) => {
+			const insertedUser = await this.userModel
+				.query(trx)
+				.insert({
+					email,
+					firstName,
+					lastName,
+					organisationId,
+					passwordHash,
+					status,
+				})
+				.returning("*")
+				.execute();
+
+			if (assignedProjects && assignedProjects.length > EMPTY_LENGTH) {
+				const projectIds = assignedProjects.map((p) => p.projectId);
+				await this.assertProjectsBelongToOrganisation(
+					projectIds,
+					organisationId,
+					trx,
+				);
+
+				const projectMembersToInsert = assignedProjects.map((project) => ({
+					projectId: project.projectId,
+					role: project.role,
+					userId: insertedUser.id,
+				}));
+
+				await ProjectMemberModel.query(trx).insert(projectMembersToInsert);
+			}
+
+			return await this.userModel
+				.query(trx)
+				.findById(insertedUser.id)
+				.withGraphFetched("projectMembers")
+				.execute();
+		});
+
+		return this.mapToEntity(user);
 	}
 
 	public delete(): ReturnType<Repository["delete"]> {
@@ -34,11 +146,120 @@ class UserRepository implements Repository {
 	public async findAll(): Promise<UserEntity[]> {
 		const users = await this.userModel.query().execute();
 
-		return users.map((user) => UserEntity.initialize(user));
+		return users.map((user) =>
+			UserEntity.initialize({
+				...(user as unknown as UserDatabaseRow),
+				assignedProjects: [],
+			}),
+		);
+	}
+
+	public async findAllByOrgId(organisationId: number): Promise<UserEntity[]> {
+		const users = await this.userModel
+			.query()
+			.where({ organisationId })
+			.withGraphFetched("projectMembers")
+			.execute();
+
+		return users.map((user) => this.mapToEntity(user));
+	}
+
+	public async findByEmail(
+		email: string,
+		transaction?: Transaction,
+	): Promise<null | UserEntity> {
+		const user = await this.userModel
+			.query(transaction)
+			.findOne({ email })
+			.withGraphFetched("projectMembers")
+			.execute();
+
+		if (!user) {
+			return null;
+		}
+
+		return this.mapToEntity(user);
+	}
+
+	public async findById(
+		id: number,
+		transaction?: Transaction,
+	): Promise<null | UserEntity> {
+		const user = await this.userModel.query(transaction).findById(id).execute();
+
+		return user ? UserEntity.initialize(user) : null;
+	}
+
+	public async findDetailsById(
+		id: number,
+		organisationId: number,
+	): Promise<null | UserEntity> {
+		const user = await this.userModel
+			.query()
+			.findOne({ id, organisationId })
+			.withGraphFetched("projectMembers")
+			.execute();
+
+		if (!user) {
+			return null;
+		}
+
+		return this.mapToEntity(user);
 	}
 
 	public update(): ReturnType<Repository["update"]> {
 		return Promise.resolve(null);
+	}
+
+	public async updateOrgUser({
+		assignedProjects,
+		entity,
+		id,
+		organisationId,
+	}: {
+		assignedProjects?: ProjectAssignmentDto[];
+		entity: Partial<ReturnType<UserEntity["toNewObject"]>>;
+		id: number;
+		organisationId: number;
+	}): Promise<null | UserEntity> {
+		const EMPTY_LENGTH = 0;
+
+		const updatedUser = await this.userModel.transaction(async (trx) => {
+			await this.userModel
+				.query(trx)
+				.patchAndFetchById(id, entity)
+				.where({ organisationId })
+				.execute();
+
+			if (assignedProjects) {
+				await ProjectMemberModel.query(trx).delete().where({ userId: id });
+
+				if (assignedProjects.length > EMPTY_LENGTH) {
+					const projectIds = assignedProjects.map((p) => p.projectId);
+					await this.assertProjectsBelongToOrganisation(
+						projectIds,
+						organisationId,
+						trx,
+					);
+
+					const projectMembersToInsert = assignedProjects.map((project) => ({
+						projectId: project.projectId,
+						role: project.role,
+						userId: id,
+					}));
+
+					await ProjectMemberModel.query(trx).insert(projectMembersToInsert);
+				}
+			}
+
+			return await this.userModel
+				.query(trx)
+				.findById(id)
+				.withGraphFetched("projectMembers")
+				.execute();
+		});
+
+		return this.mapToEntity(updatedUser);
 	}
 }
 

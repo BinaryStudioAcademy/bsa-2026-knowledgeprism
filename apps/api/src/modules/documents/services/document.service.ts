@@ -1,237 +1,106 @@
+import { DocumentStatus } from "@knowledgeprism/constants";
 import {
-	DocumentErrorMessage,
-	DocumentStatus,
-	HTTPCode,
-} from "@knowledgeprism/constants";
-import {
-	type ManualTextCreateRequestDto,
-	type ManualTextResponseDto,
+	type DocumentUploadIntentRequestDto,
+	type DocumentUploadIntentResponseDto,
+	type DocumentUploadIntentRouteParametersDto,
 } from "@knowledgeprism/types";
 
-import { HTTPError } from "~/infrastructure/http/http.js";
-import { createContentHash } from "~/modules/documents/libs/helpers/create-content-hash.helper.js";
+import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
+import { type Logger } from "~/infrastructure/logger/logger.js";
+import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/helpers.js";
+import { type GeneratePresignedUploadUrl } from "~/infrastructure/s3/libs/types/types.js";
+import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
+import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 
-import { DocumentEntity } from "../models/document.entity.js";
-import { type DocumentAccessService } from "./document-access.service.js";
-import { type DocumentProcessor } from "./document-processor.js";
-
-type Constructor = {
-	documentAccessService: DocumentAccessService;
-	documentProcessor: DocumentProcessor;
-	documentRepository: DocumentRepository;
-};
-
 class DocumentService {
-	private documentAccessService: DocumentAccessService;
-
-	private documentProcessor: DocumentProcessor;
-
 	private documentRepository: DocumentRepository;
 
+	private generatePresignedUploadUrl: GeneratePresignedUploadUrl;
+
+	private logger: Logger;
+
 	public constructor({
-		documentAccessService,
-		documentProcessor,
 		documentRepository,
-	}: Constructor) {
-		this.documentAccessService = documentAccessService;
-		this.documentProcessor = documentProcessor;
+		generatePresignedUploadUrl,
+		logger,
+	}: {
+		documentRepository: DocumentRepository;
+		generatePresignedUploadUrl: GeneratePresignedUploadUrl;
+		logger: Logger;
+	}) {
 		this.documentRepository = documentRepository;
+		this.generatePresignedUploadUrl = generatePresignedUploadUrl;
+		this.logger = logger;
 	}
 
-	private async completeProcessing(id: number): Promise<void> {
-		try {
-			await this.documentProcessor.process();
-			await this.documentRepository.compareAndSwapStatus({
-				errorMessage: null,
-				expectedStatus: DocumentStatus.PROCESSING,
-				id,
-				status: DocumentStatus.WAITING_FOR_APPROVAL,
-			});
-		} catch {
-			await this.documentRepository.compareAndSwapStatus({
-				errorMessage: DocumentErrorMessage.PROCESSING_FAILED,
-				expectedStatus: DocumentStatus.PROCESSING,
-				id,
-				status: DocumentStatus.FAILED,
-			});
-		}
-	}
-
-	private async findOwnedDocument({
-		id,
-		projectId,
-	}: {
-		id: number;
-		projectId: number;
-	}): Promise<DocumentEntity> {
-		const document = await this.documentRepository.findByIdAndProjectId({
-			id,
-			projectId,
-		});
-
-		if (!document) {
-			throw new HTTPError({
-				message: DocumentErrorMessage.NOT_FOUND,
-				status: HTTPCode.NOT_FOUND,
-			});
-		}
-
-		return document;
-	}
-
-	private normalizeTitle(title: string | undefined): null | string {
-		if (!title) {
-			return null;
-		}
-
-		const trimmedTitle = title.trim();
-
-		return trimmedTitle === "" ? null : trimmedTitle;
-	}
-
-	private scheduleProcessing(id: number): void {
-		setImmediate(() => {
-			void this.completeProcessing(id);
-		});
-	}
-
-	public async cancelManualText({
-		id,
-		projectId,
-		userId,
-	}: {
-		id: number;
-		projectId: number;
-		userId: number;
-	}): Promise<ManualTextResponseDto> {
-		await this.documentAccessService.assertCanAddKnowledge({
-			projectId,
-			userId,
-		});
-		await this.findOwnedDocument({
-			id,
-			projectId,
-		});
-
-		const cancelledDocument =
-			await this.documentRepository.updateStatusIfCurrentIn({
-				allowedStatuses: [DocumentStatus.FAILED, DocumentStatus.PROCESSING],
-				errorMessage: null,
-				id,
-				status: DocumentStatus.CANCELLED,
-			});
-
-		if (!cancelledDocument) {
-			throw new HTTPError({
-				message: DocumentErrorMessage.CANCEL_NOT_ALLOWED,
-				status: HTTPCode.CONFLICT,
-			});
-		}
-
-		return cancelledDocument.toObject();
-	}
-
-	public async createManualText({
+	public async createUploadIntent({
 		payload,
-		projectId,
-		userId,
+		routeParameters,
 	}: {
-		payload: ManualTextCreateRequestDto;
-		projectId: number;
-		userId: number;
-	}): Promise<ManualTextResponseDto> {
-		await this.documentAccessService.assertCanAddKnowledge({
-			projectId,
-			userId,
+		payload: DocumentUploadIntentRequestDto;
+		routeParameters: DocumentUploadIntentRouteParametersDto;
+	}): Promise<DocumentUploadIntentResponseDto> {
+		const storageKey = buildDocumentStorageKey({
+			fileName: payload.fileName,
+			projectId: routeParameters.projectId,
 		});
 
-		const title = this.normalizeTitle(payload.title);
-		const contentHash = createContentHash(title, payload.content);
-		const inFlightDocument = await this.documentRepository.findProcessingByHash(
-			{
-				contentHash,
-				createdByUserId: userId,
-				projectId,
-			},
-		);
+		let uploadUrl: string;
 
-		if (inFlightDocument) {
-			return inFlightDocument.toObject();
-		}
+		try {
+			uploadUrl = await this.generatePresignedUploadUrl({
+				contentType: payload.contentType,
+				key: storageKey,
+			});
+		} catch (error) {
+			this.logger.error("Failed to create S3 presigned upload URL.", {
+				error,
+				storageKey,
+			});
 
-		const createdDocument = await this.documentRepository.create(
-			DocumentEntity.initializeNew({
-				content: payload.content,
-				contentHash,
-				createdByUserId: userId,
-				projectId,
-				title,
-			}),
-		);
-		const createdDocumentDto = createdDocument.toObject();
-
-		this.scheduleProcessing(createdDocumentDto.id);
-
-		return createdDocumentDto;
-	}
-
-	public async findManualText({
-		id,
-		projectId,
-		userId,
-	}: {
-		id: number;
-		projectId: number;
-		userId: number;
-	}): Promise<ManualTextResponseDto> {
-		await this.documentAccessService.assertCanAddKnowledge({
-			projectId,
-			userId,
-		});
-		const document = await this.findOwnedDocument({
-			id,
-			projectId,
-		});
-
-		return document.toObject();
-	}
-
-	public async retryManualText({
-		id,
-		projectId,
-		userId,
-	}: {
-		id: number;
-		projectId: number;
-		userId: number;
-	}): Promise<ManualTextResponseDto> {
-		await this.documentAccessService.assertCanAddKnowledge({
-			projectId,
-			userId,
-		});
-		await this.findOwnedDocument({
-			id,
-			projectId,
-		});
-
-		const retriedDocument = await this.documentRepository.compareAndSwapStatus({
-			errorMessage: null,
-			expectedStatus: DocumentStatus.FAILED,
-			id,
-			status: DocumentStatus.PROCESSING,
-		});
-
-		if (!retriedDocument) {
 			throw new HTTPError({
-				message: DocumentErrorMessage.RETRY_NOT_ALLOWED,
-				status: HTTPCode.CONFLICT,
+				cause: error,
+				message: "Failed to create upload URL.",
+				status: HTTPCode.INTERNAL_SERVER_ERROR,
 			});
 		}
 
-		this.scheduleProcessing(id);
+		let document: DocumentEntity;
 
-		return retriedDocument.toObject();
+		try {
+			document = await this.documentRepository.create(
+				DocumentEntity.initializeNew({
+					mimeType: payload.contentType,
+					name: payload.fileName,
+					projectId: routeParameters.projectId,
+					s3Key: storageKey,
+					sizeInBytes: payload.sizeInBytes ?? null,
+					status: DocumentStatus.UPLOADED,
+					uploadedBy: null,
+				}),
+			);
+		} catch (error) {
+			this.logger.error("Failed to create document upload intent.", {
+				error,
+				storageKey,
+			});
+
+			throw new HTTPError({
+				cause: error,
+				message: "Failed to create document upload intent.",
+				status: HTTPCode.INTERNAL_SERVER_ERROR,
+			});
+		}
+
+		const documentObject = document.toObject();
+
+		return {
+			documentId: documentObject.id,
+			expiresInSeconds: PRESIGNED_URL_EXPIRY_SECONDS,
+			storageKey,
+			uploadUrl,
+		};
 	}
 }
 

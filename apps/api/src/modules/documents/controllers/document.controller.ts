@@ -1,8 +1,11 @@
-import { APIPath, DocumentsApiPath, HTTPCode } from "@knowledgeprism/constants";
-import { manualTextCreateValidationSchema } from "@knowledgeprism/schemas";
+import { APIPath, DocumentsApiPath } from "@knowledgeprism/constants";
 import {
-	type ManualTextCreateRequestDto,
-	type ManualTextRouteParametersDto,
+	documentUploadIntentRouteParametersValidationSchema,
+	documentUploadIntentValidationSchema,
+} from "@knowledgeprism/schemas";
+import {
+	type DocumentUploadIntentRequestDto,
+	type DocumentUploadIntentRouteParametersDto,
 } from "@knowledgeprism/types";
 
 import {
@@ -10,13 +13,47 @@ import {
 	type APIHandlerResponse,
 	BaseController,
 } from "~/infrastructure/controller/controller.js";
+import { HTTPCode } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
-import {
-	getRequiredUserId,
-	parseIdentifier,
-} from "~/modules/documents/libs/helpers/parse-identifier.helper.js";
-import { type DocumentService } from "~/modules/documents/services/document.service.js";
 
+import { type DocumentService } from "../services/document.service.js";
+
+/**
+ * @swagger
+ * components:
+ *    schemas:
+ *      DocumentUploadIntentRequest:
+ *        type: object
+ *        required:
+ *          - fileName
+ *          - contentType
+ *        properties:
+ *          fileName:
+ *            type: string
+ *            example: Project_A_Requirements.pdf
+ *          contentType:
+ *            type: string
+ *            enum:
+ *              - application/pdf
+ *          sizeInBytes:
+ *            type: number
+ *            example: 1048576
+ *      DocumentUploadIntentResponse:
+ *        type: object
+ *        properties:
+ *          documentId:
+ *            type: number
+ *            example: 1
+ *          uploadUrl:
+ *            type: string
+ *            example: https://s3.amazonaws.com/bucket/key
+ *          storageKey:
+ *            type: string
+ *            example: projects/project-1/docs/1788354738034-25181d2e-7f78-4e6b-9a8f-f8da61fdc7b5-file.pdf
+ *          expiresInSeconds:
+ *            type: number
+ *            example: 900
+ */
 class DocumentController extends BaseController {
 	private documentService: DocumentService;
 
@@ -27,243 +64,58 @@ class DocumentController extends BaseController {
 
 		this.addRoute({
 			handler: (options) =>
-				this.createManualText(
+				this.createUploadIntent(
 					options as APIHandlerOptions<{
-						body: ManualTextCreateRequestDto;
-						params: ManualTextRouteParametersDto;
+						body: DocumentUploadIntentRequestDto;
+						params: DocumentUploadIntentRouteParametersDto;
 					}>,
 				),
 			method: "POST",
-			path: DocumentsApiPath.MANUAL_TEXT,
+			path: DocumentsApiPath.UPLOAD_URL,
 			validation: {
-				body: manualTextCreateValidationSchema,
+				body: documentUploadIntentValidationSchema,
+				params: documentUploadIntentRouteParametersValidationSchema,
 			},
 		});
-		this.addRoute({
-			handler: (options) =>
-				this.findManualText(
-					options as APIHandlerOptions<{
-						params: ManualTextRouteParametersDto;
-					}>,
-				),
-			method: "GET",
-			path: DocumentsApiPath.MANUAL_TEXT_$ID,
-		});
-		this.addRoute({
-			handler: (options) =>
-				this.retryManualText(
-					options as APIHandlerOptions<{
-						params: ManualTextRouteParametersDto;
-					}>,
-				),
-			method: "POST",
-			path: DocumentsApiPath.RETRY,
-		});
-		this.addRoute({
-			handler: (options) =>
-				this.cancelManualText(
-					options as APIHandlerOptions<{
-						params: ManualTextRouteParametersDto;
-					}>,
-				),
-			method: "POST",
-			path: DocumentsApiPath.CANCEL,
-		});
 	}
 
 	/**
 	 * @swagger
-	 * /projects/{projectId}/manual-text/{id}/cancel:
+	 * /projects/{projectId}/documents/upload-url:
 	 *    post:
-	 *      description: Cancel a processing or failed manual text document
+	 *      description: Create a document upload intent and return a presigned S3 upload URL
 	 *      parameters:
 	 *        - in: path
 	 *          name: projectId
 	 *          required: true
 	 *          schema:
-	 *            type: integer
-	 *        - in: path
-	 *          name: id
-	 *          required: true
-	 *          schema:
-	 *            type: integer
-	 *      responses:
-	 *        200:
-	 *          description: Document cancelled
-	 */
-	private async cancelManualText(
-		options: APIHandlerOptions<{
-			params: ManualTextRouteParametersDto;
-		}>,
-	): Promise<APIHandlerResponse> {
-		const { id, projectId, userId } = this.getRouteContext(options);
-
-		return {
-			payload: await this.documentService.cancelManualText({
-				id,
-				projectId,
-				userId,
-			}),
-			status: HTTPCode.OK,
-		};
-	}
-
-	/**
-	 * @swagger
-	 * /projects/{projectId}/manual-text:
-	 *    post:
-	 *      description: Submit manual text for processing
-	 *      parameters:
-	 *        - in: path
-	 *          name: projectId
-	 *          required: true
-	 *          schema:
-	 *            type: integer
+	 *            type: string
 	 *      requestBody:
 	 *        required: true
 	 *        content:
 	 *          application/json:
 	 *            schema:
-	 *              type: object
-	 *              required:
-	 *                - content
-	 *              properties:
-	 *                title:
-	 *                  type: string
-	 *                  maxLength: 255
-	 *                content:
-	 *                  type: string
+	 *              $ref: "#/components/schemas/DocumentUploadIntentRequest"
 	 *      responses:
-	 *        202:
-	 *          description: Processing started
-	 *        401:
-	 *          description: Unauthorized
-	 *        403:
-	 *          description: Viewer or outsider cannot add knowledge
-	 *        422:
-	 *          description: Invalid title or content
+	 *        201:
+	 *          description: Upload intent created
+	 *          content:
+	 *            application/json:
+	 *              schema:
+	 *                $ref: "#/components/schemas/DocumentUploadIntentResponse"
 	 */
-	private async createManualText(
+	private async createUploadIntent(
 		options: APIHandlerOptions<{
-			body: ManualTextCreateRequestDto;
-			params: ManualTextRouteParametersDto;
+			body: DocumentUploadIntentRequestDto;
+			params: DocumentUploadIntentRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { projectId, userId } = this.getProjectContext(options);
-
 		return {
-			payload: await this.documentService.createManualText({
+			payload: await this.documentService.createUploadIntent({
 				payload: options.body,
-				projectId,
-				userId,
+				routeParameters: options.params,
 			}),
-			status: HTTPCode.ACCEPTED,
-		};
-	}
-
-	/**
-	 * @swagger
-	 * /projects/{projectId}/manual-text/{id}:
-	 *    get:
-	 *      description: Get manual text processing status
-	 *      parameters:
-	 *        - in: path
-	 *          name: projectId
-	 *          required: true
-	 *          schema:
-	 *            type: integer
-	 *        - in: path
-	 *          name: id
-	 *          required: true
-	 *          schema:
-	 *            type: integer
-	 *      responses:
-	 *        200:
-	 *          description: Document status
-	 */
-	private async findManualText(
-		options: APIHandlerOptions<{
-			params: ManualTextRouteParametersDto;
-		}>,
-	): Promise<APIHandlerResponse> {
-		const { id, projectId, userId } = this.getRouteContext(options);
-
-		return {
-			payload: await this.documentService.findManualText({
-				id,
-				projectId,
-				userId,
-			}),
-			status: HTTPCode.OK,
-		};
-	}
-
-	private getProjectContext(
-		options: APIHandlerOptions<{
-			params: ManualTextRouteParametersDto;
-		}>,
-	): {
-		projectId: number;
-		userId: number;
-	} {
-		return {
-			projectId: parseIdentifier(options.params.projectId),
-			userId: getRequiredUserId(options.session.userId),
-		};
-	}
-
-	private getRouteContext(
-		options: APIHandlerOptions<{
-			params: ManualTextRouteParametersDto;
-		}>,
-	): {
-		id: number;
-		projectId: number;
-		userId: number;
-	} {
-		const { projectId, userId } = this.getProjectContext(options);
-
-		return {
-			id: parseIdentifier(options.params.id ?? ""),
-			projectId,
-			userId,
-		};
-	}
-
-	/**
-	 * @swagger
-	 * /projects/{projectId}/manual-text/{id}/retry:
-	 *    post:
-	 *      description: Retry a failed manual text processing attempt
-	 *      parameters:
-	 *        - in: path
-	 *          name: projectId
-	 *          required: true
-	 *          schema:
-	 *            type: integer
-	 *        - in: path
-	 *          name: id
-	 *          required: true
-	 *          schema:
-	 *            type: integer
-	 *      responses:
-	 *        200:
-	 *          description: Processing restarted
-	 */
-	private async retryManualText(
-		options: APIHandlerOptions<{
-			params: ManualTextRouteParametersDto;
-		}>,
-	): Promise<APIHandlerResponse> {
-		const { id, projectId, userId } = this.getRouteContext(options);
-
-		return {
-			payload: await this.documentService.retryManualText({
-				id,
-				projectId,
-				userId,
-			}),
-			status: HTTPCode.OK,
+			status: HTTPCode.CREATED,
 		};
 	}
 }
