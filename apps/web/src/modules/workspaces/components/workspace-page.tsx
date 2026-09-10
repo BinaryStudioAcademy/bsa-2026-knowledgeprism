@@ -1,5 +1,7 @@
 import React, { useCallback, useState } from "react";
 
+import { Modal } from "~/components/components.js";
+
 import { type ProjectItem } from "../types/types.js";
 import { ProjectCard, WorkspaceHeader } from "./components.js";
 
@@ -57,8 +59,7 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	project,
 	totalCount,
 }) => {
-	const canEdit =
-		isOrgAdmin || project.role === "ADMIN" || project.role === "EDITOR";
+	const canEdit = isOrgAdmin || project.role === "ADMIN";
 	const canDelete = isOrgAdmin || project.role === "ADMIN";
 
 	const handleDelete = useCallback((): void => {
@@ -250,38 +251,32 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 				/>
 			)}
 
-			{deletingProjectId && (
-				<div
-					aria-modal="true"
-					className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-					role="dialog"
-				>
-					<div className="w-full max-w-sm rounded-lg border border-border bg-(--color-surface) p-5 text-center shadow-(--shadow-md) sm:p-6">
-						<h2 className="mb-2 font-serif text-lg font-normal text-text sm:text-xl">
-							Delete Project?
-						</h2>
-						<p className="mb-6 text-(length:--text-xs) text-text-muted">
-							This action cannot be undone.
-						</p>
-						<div className="flex justify-center gap-2.5">
-							<button
-								className="cursor-pointer rounded-md border border-border px-4 py-2 text-(length:--text-xs) font-medium text-text transition-colors hover:bg-(--color-secondary)"
-								onClick={handleCancelDelete}
-								type="button"
-							>
-								Cancel
-							</button>
-							<button
-								className="cursor-pointer rounded-md bg-red-600 px-4 py-2 text-(length:--text-xs) font-medium text-white transition-colors hover:bg-red-700"
-								onClick={handleDeleteProjectConfirm}
-								type="button"
-							>
-								Delete
-							</button>
-						</div>
-					</div>
+			<Modal
+				className="w-full max-w-sm rounded-lg border border-border bg-(--color-surface) p-5 text-center shadow-md sm:p-6"
+				isOpen={Boolean(deletingProjectId)}
+				onClose={handleCancelDelete}
+				title="Delete Project?"
+			>
+				<p className="mb-6 text-xs text-text-muted">
+					This action cannot be undone.
+				</p>
+				<div className="flex justify-center gap-2.5">
+					<button
+						className="cursor-pointer rounded-md border border-border px-4 py-2 text-xs font-medium text-text transition-colors hover:bg-secondary"
+						onClick={handleCancelDelete}
+						type="button"
+					>
+						Cancel
+					</button>
+					<button
+						className="cursor-pointer rounded-md bg-red-600 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-red-700"
+						onClick={handleDeleteProjectConfirm}
+						type="button"
+					>
+						Delete
+					</button>
 				</div>
-			)}
+			</Modal>
 		</div>
 	);
 };
