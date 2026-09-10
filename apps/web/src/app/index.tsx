@@ -7,6 +7,7 @@ import { Loader, StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { type AppDispatch, type RootState, store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
+import { LandingPage } from "~/modules/landing/components/landing-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
 import { AccountSettingsPage } from "~/modules/users/components/components.js";
 import { WorkspacesApi } from "~/modules/workspaces/api/workspaces-api.js";
@@ -131,10 +132,13 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 			<RouterProvider
 				routes={[
 					{
+						element: <LandingPage />,
+						path: AppRoute.ROOT,
+					},
+					{
 						children: [
 							{
 								element: <App />,
-								path: AppRoute.ROOT,
 							},
 						],
 						element: <PublicLayout />,
