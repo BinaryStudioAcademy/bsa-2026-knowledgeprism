@@ -89,7 +89,7 @@ class DocumentController extends BaseController {
 				this.createManualText(
 					options as APIHandlerOptions<{
 						body: ManualTextCreateRequestDto;
-						params: ManualTextRouteParametersDto;
+						params: DocumentUploadIntentRouteParametersDto;
 					}>,
 				),
 			method: "POST",
@@ -215,7 +215,7 @@ class DocumentController extends BaseController {
 	private async createManualText(
 		options: APIHandlerOptions<{
 			body: ManualTextCreateRequestDto;
-			params: ManualTextRouteParametersDto;
+			params: DocumentUploadIntentRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
 		const { projectId, userId } = this.getProjectContext(options);
@@ -309,7 +309,7 @@ class DocumentController extends BaseController {
 
 	private getProjectContext(
 		options: APIHandlerOptions<{
-			params: ManualTextRouteParametersDto;
+			params: DocumentUploadIntentRouteParametersDto;
 		}>,
 	): {
 		projectId: string;
