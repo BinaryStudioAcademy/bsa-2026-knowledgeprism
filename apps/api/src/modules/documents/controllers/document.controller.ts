@@ -333,7 +333,7 @@ class DocumentController extends BaseController {
 		const { projectId, userId } = this.getProjectContext(options);
 
 		return {
-			id: parseIdentifier(options.params.id ?? ""),
+			id: parseIdentifier(options.params.id),
 			projectId,
 			userId,
 		};

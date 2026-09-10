@@ -327,7 +327,7 @@ class DocumentService {
 		projectId: string;
 		userId: number;
 	}): Promise<ManualTextResponseDto> {
-		await this.documentAccessService.assertCanAddKnowledge({
+		await this.documentAccessService.assertCanViewKnowledge({
 			projectId,
 			userId,
 		});

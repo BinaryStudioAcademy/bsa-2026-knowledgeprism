@@ -1,5 +1,5 @@
 type ManualTextRouteParametersDto = {
-	id?: string;
+	id: string;
 	projectId: string;
 };
 

@@ -12,6 +12,17 @@ const TenancyTableName = {
 	PROJECTS: "projects",
 } as const;
 
+const KnowledgeAddRole = [
+	ProjectMemberRole.ADMIN,
+	ProjectMemberRole.EDITOR,
+] as const;
+
+const KnowledgeViewRole = [
+	ProjectMemberRole.ADMIN,
+	ProjectMemberRole.EDITOR,
+	ProjectMemberRole.VIEWER,
+] as const;
+
 type ProjectMemberRow = {
 	role: string;
 };
@@ -22,10 +33,12 @@ type ProjectRow = {
 };
 
 class DocumentAccessService {
-	public async assertCanAddKnowledge({
+	private async assertHasRole({
+		allowedRoles,
 		projectId,
 		userId,
 	}: {
+		allowedRoles: readonly string[];
 		projectId: string;
 		userId: number;
 	}): Promise<void> {
@@ -55,21 +68,47 @@ class DocumentAccessService {
 		const membership = await knex<ProjectMemberRow>(
 			TenancyTableName.PROJECT_MEMBERS,
 		)
-			.where("project_id", project.id)
-			.andWhere("user_id", userId)
+			.where("projectId", project.id)
+			.andWhere("userId", userId)
 			.first();
 
-		const canAddKnowledge =
-			membership !== undefined &&
-			(membership.role === ProjectMemberRole.ADMIN ||
-				membership.role === ProjectMemberRole.EDITOR);
+		const hasAllowedRole =
+			membership !== undefined && allowedRoles.includes(membership.role);
 
-		if (!canAddKnowledge) {
+		if (!hasAllowedRole) {
 			throw new HTTPError({
 				message: DocumentErrorMessage.FORBIDDEN,
 				status: HTTPCode.FORBIDDEN,
 			});
 		}
+	}
+
+	public async assertCanAddKnowledge({
+		projectId,
+		userId,
+	}: {
+		projectId: string;
+		userId: number;
+	}): Promise<void> {
+		await this.assertHasRole({
+			allowedRoles: KnowledgeAddRole,
+			projectId,
+			userId,
+		});
+	}
+
+	public async assertCanViewKnowledge({
+		projectId,
+		userId,
+	}: {
+		projectId: string;
+		userId: number;
+	}): Promise<void> {
+		await this.assertHasRole({
+			allowedRoles: KnowledgeViewRole,
+			projectId,
+			userId,
+		});
 	}
 }
 
