@@ -55,8 +55,8 @@ class DocumentAccessService {
 		const membership = await knex<ProjectMemberRow>(
 			TenancyTableName.PROJECT_MEMBERS,
 		)
-			.where("projectId", project.id)
-			.andWhere("userId", userId)
+			.where("project_id", project.id)
+			.andWhere("user_id", userId)
 			.first();
 
 		const canAddKnowledge =
