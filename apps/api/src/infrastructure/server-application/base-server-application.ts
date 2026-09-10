@@ -197,8 +197,8 @@ class BaseServerApplication implements ServerApplication {
 			handler,
 			method,
 			schema: {
-				body: validation?.body,
-				params: validation?.params,
+				...(validation?.body && { body: validation.body }),
+				...(validation?.params && { params: validation.params }),
 			},
 			url: path,
 		});
