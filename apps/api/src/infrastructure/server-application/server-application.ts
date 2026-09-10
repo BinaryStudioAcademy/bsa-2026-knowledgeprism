@@ -15,7 +15,6 @@ const apiV1 = new BaseServerApplicationApi(
 	config,
 	...documentController.routes,
 	...authController.routes,
-	...documentController.routes,
 	...userController.routes,
 );
 const serverApplication = new BaseServerApplication({

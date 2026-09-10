@@ -1,6 +1,7 @@
 export {
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
+	manualTextCreateValidationSchema,
 } from "./modules/documents/documents.js";
 export {
 	userCreateValidationSchema,

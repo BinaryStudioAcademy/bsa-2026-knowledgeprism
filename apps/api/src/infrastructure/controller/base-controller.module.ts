@@ -8,7 +8,6 @@ import {
 	type APIHandlerOptions,
 	type Controller,
 	type ControllerRouteParameters,
-	type RequestSession,
 } from "./libs/types/types.js";
 
 class BaseController implements Controller {
@@ -22,28 +21,6 @@ class BaseController implements Controller {
 		this.logger = logger;
 		this.apiUrl = apiPath;
 		this.routes = [];
-	}
-
-	private getRequestSession(request: FastifyRequest): RequestSession {
-		const sessionValue: unknown = Reflect.get(request, "session");
-
-		if (typeof sessionValue !== "object" || sessionValue === null) {
-			return {};
-		}
-
-		if (!("userId" in sessionValue)) {
-			return {};
-		}
-
-		const { userId } = sessionValue;
-
-		if (typeof userId !== "number") {
-			return {};
-		}
-
-		return {
-			userId,
-		};
 	}
 
 	private async mapHandler(

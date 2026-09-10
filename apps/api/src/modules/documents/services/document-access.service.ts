@@ -10,7 +10,6 @@ import { HTTPError } from "~/infrastructure/http/http.js";
 const TenancyTableName = {
 	PROJECT_MEMBERS: "project_members",
 	PROJECTS: "projects",
-	USERS: "users",
 } as const;
 
 type ProjectMemberRow = {
@@ -22,36 +21,12 @@ type ProjectRow = {
 	organisationId: number;
 };
 
-type UserRow = {
-	organisationId?: null | number;
-	role?: null | string;
-};
-
 class DocumentAccessService {
-	private async isOrganisationAdmin({
-		organisationId,
-		userId,
-	}: {
-		organisationId: number;
-		userId: number;
-	}): Promise<boolean> {
-		const knex = Model.knex();
-		const user = await knex<UserRow>(TenancyTableName.USERS)
-			.where("id", userId)
-			.first();
-
-		if (!user || user.organisationId !== organisationId) {
-			return false;
-		}
-
-		return user.role === ProjectMemberRole.ADMIN;
-	}
-
 	public async assertCanAddKnowledge({
 		projectId,
 		userId,
 	}: {
-		projectId: number;
+		projectId: string;
 		userId: number;
 	}): Promise<void> {
 		const knex = Model.knex();
@@ -77,19 +52,10 @@ class DocumentAccessService {
 			});
 		}
 
-		const isOrganisationAdmin = await this.isOrganisationAdmin({
-			organisationId: project.organisationId,
-			userId,
-		});
-
-		if (isOrganisationAdmin) {
-			return;
-		}
-
 		const membership = await knex<ProjectMemberRow>(
 			TenancyTableName.PROJECT_MEMBERS,
 		)
-			.where("project_id", projectId)
+			.where("project_id", project.id)
 			.andWhere("user_id", userId)
 			.first();
 

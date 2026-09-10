@@ -4,8 +4,10 @@ const FileSizeRule = {
 } as const;
 
 const DocumentValidationRule = {
+	CONTENT_MINIMUM_LENGTH: 1,
 	FILE_NAME_MAXIMUM_LENGTH: 255,
 	FILE_NAME_MINIMUM_LENGTH: 1,
+	IDENTIFIER_MINIMUM_VALUE: 1,
 	MAXIMUM_FILE_SIZE_IN_BYTES:
 		FileSizeRule.MAXIMUM_SIZE_IN_MB *
 		FileSizeRule.BYTES_IN_KB *
@@ -13,6 +15,7 @@ const DocumentValidationRule = {
 	MINIMUM_FILE_SIZE_IN_BYTES: 1,
 	PROJECT_ID_MAXIMUM_LENGTH: 255,
 	PROJECT_ID_MINIMUM_LENGTH: 1,
+	TITLE_MAXIMUM_LENGTH: 255,
 } as const;
 
 export { DocumentValidationRule };
