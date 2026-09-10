@@ -1,8 +1,9 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
-import { Radio } from "./radio.js";
+import { RadioGroup } from "./radio-group.js";
 
 type FormValues = {
 	visibility: string;
@@ -14,35 +15,37 @@ const visibilityOptions = [
 ];
 
 const RadioGroupWrapper = ({
+	hasError = false,
 	isDisabled = false,
 }: {
+	hasError?: boolean;
 	isDisabled?: boolean;
 }): React.JSX.Element => {
-	const { control } = useForm<FormValues>({
+	const { control, setError } = useForm<FormValues>({
 		defaultValues: {
 			visibility: "public",
 		},
 	});
 
+	useEffect(() => {
+		if (hasError) {
+			setError("visibility", { message: "Please choose a visibility option" });
+		}
+	}, [hasError, setError]);
+
 	return (
-		<div className="flex flex-col gap-3">
-			{visibilityOptions.map((visibilityOption) => (
-				<Radio
-					control={control}
-					isDisabled={isDisabled}
-					key={visibilityOption.value}
-					label={visibilityOption.label}
-					name="visibility"
-					value={visibilityOption.value}
-				/>
-			))}
-		</div>
+		<RadioGroup
+			control={control}
+			isDisabled={isDisabled}
+			name="visibility"
+			options={visibilityOptions}
+		/>
 	);
 };
 
 const meta = {
 	component: RadioGroupWrapper,
-	title: "Components/Form/Radio",
+	title: "Components/Form/RadioGroup",
 } satisfies Meta<typeof RadioGroupWrapper>;
 
 type Story = StoryObj<typeof meta>;
@@ -59,5 +62,11 @@ const Disabled: Story = {
 	},
 };
 
+const WithError: Story = {
+	args: {
+		hasError: true,
+	},
+};
+
 export default meta;
-export { Default, Disabled };
+export { Default, Disabled, WithError };
