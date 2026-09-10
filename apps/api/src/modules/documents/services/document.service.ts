@@ -17,6 +17,7 @@ import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/h
 import { type GeneratePresignedUploadUrl } from "~/infrastructure/s3/libs/types/types.js";
 import { createContentHash } from "~/modules/documents/libs/helpers/create-content-hash.helper.js";
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
+import { isUniqueViolation } from "~/modules/documents/libs/helpers/is-unique-violation.helper.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 
@@ -200,21 +201,43 @@ class DocumentService {
 			return this.toManualTextResponse(inFlightDocument);
 		}
 
-		const createdDocument = await this.documentRepository.create(
-			DocumentEntity.initializeNew({
-				content: payload.content,
-				contentHash,
-				errorMessage: null,
-				mimeType: MANUAL_TEXT_MIME_TYPE,
-				name: title ?? UNTITLED_MANUAL_DOCUMENT_NAME,
-				projectId,
-				s3Key: null,
-				sizeInBytes: null,
-				sourceType: DocumentSourceType.MANUAL,
-				status: DocumentStatus.PROCESSING,
-				uploadedBy: userId,
-			}),
-		);
+		let createdDocument: DocumentEntity;
+
+		try {
+			createdDocument = await this.documentRepository.create(
+				DocumentEntity.initializeNew({
+					content: payload.content,
+					contentHash,
+					errorMessage: null,
+					mimeType: MANUAL_TEXT_MIME_TYPE,
+					name: title ?? UNTITLED_MANUAL_DOCUMENT_NAME,
+					projectId,
+					s3Key: null,
+					sizeInBytes: null,
+					sourceType: DocumentSourceType.MANUAL,
+					status: DocumentStatus.PROCESSING,
+					uploadedBy: userId,
+				}),
+			);
+		} catch (error) {
+			if (!isUniqueViolation(error)) {
+				throw error;
+			}
+
+			const existingDocument =
+				await this.documentRepository.findProcessingByHash({
+					contentHash,
+					projectId,
+					uploadedBy: userId,
+				});
+
+			if (!existingDocument) {
+				throw error;
+			}
+
+			return this.toManualTextResponse(existingDocument);
+		}
+
 		const createdDocumentDto = this.toManualTextResponse(createdDocument);
 
 		this.scheduleProcessing(createdDocumentDto.id);

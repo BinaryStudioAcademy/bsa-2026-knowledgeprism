@@ -3,6 +3,7 @@ import {
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
 	manualTextCreateValidationSchema,
+	manualTextRouteParametersValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
 	type DocumentUploadIntentRequestDto,
@@ -95,6 +96,7 @@ class DocumentController extends BaseController {
 			path: DocumentsApiPath.MANUAL_TEXT,
 			validation: {
 				body: manualTextCreateValidationSchema,
+				params: documentUploadIntentRouteParametersValidationSchema,
 			},
 		});
 		this.addRoute({
@@ -106,6 +108,9 @@ class DocumentController extends BaseController {
 				),
 			method: "GET",
 			path: DocumentsApiPath.MANUAL_TEXT_$ID,
+			validation: {
+				params: manualTextRouteParametersValidationSchema,
+			},
 		});
 		this.addRoute({
 			handler: (options) =>
@@ -116,6 +121,9 @@ class DocumentController extends BaseController {
 				),
 			method: "POST",
 			path: DocumentsApiPath.RETRY,
+			validation: {
+				params: manualTextRouteParametersValidationSchema,
+			},
 		});
 		this.addRoute({
 			handler: (options) =>
@@ -126,6 +134,9 @@ class DocumentController extends BaseController {
 				),
 			method: "POST",
 			path: DocumentsApiPath.CANCEL,
+			validation: {
+				params: manualTextRouteParametersValidationSchema,
+			},
 		});
 	}
 

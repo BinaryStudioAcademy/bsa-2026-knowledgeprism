@@ -55,20 +55,14 @@ class DocumentAccessService {
 		const membership = await knex<ProjectMemberRow>(
 			TenancyTableName.PROJECT_MEMBERS,
 		)
-			.where("project_id", project.id)
-			.andWhere("user_id", userId)
+			.where("projectId", project.id)
+			.andWhere("userId", userId)
 			.first();
 
-		if (!membership || membership.role === ProjectMemberRole.VIEWER) {
-			throw new HTTPError({
-				message: DocumentErrorMessage.FORBIDDEN,
-				status: HTTPCode.FORBIDDEN,
-			});
-		}
-
 		const canAddKnowledge =
-			membership.role === ProjectMemberRole.ADMIN ||
-			membership.role === ProjectMemberRole.EDITOR;
+			membership !== undefined &&
+			(membership.role === ProjectMemberRole.ADMIN ||
+				membership.role === ProjectMemberRole.EDITOR);
 
 		if (!canAddKnowledge) {
 			throw new HTTPError({
