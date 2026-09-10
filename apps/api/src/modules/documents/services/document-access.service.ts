@@ -6,11 +6,8 @@ import {
 import { Model } from "objection";
 
 import { HTTPError } from "~/infrastructure/http/http.js";
-
-const TenancyTableName = {
-	PROJECT_MEMBERS: "project_members",
-	PROJECTS: "projects",
-} as const;
+import { ProjectMemberModel } from "~/modules/projects/models/project-member.model.js";
+import { ProjectModel } from "~/modules/projects/models/project.model.js";
 
 const KnowledgeAddRole = [
 	ProjectMemberRole.ADMIN,
@@ -23,15 +20,6 @@ const KnowledgeViewRole = [
 	ProjectMemberRole.VIEWER,
 ] as const;
 
-type ProjectMemberRow = {
-	role: string;
-};
-
-type ProjectRow = {
-	id: number;
-	organisationId: number;
-};
-
 class DocumentAccessService {
 	private async assertHasRole({
 		allowedRoles,
@@ -43,20 +31,16 @@ class DocumentAccessService {
 		userId: number;
 	}): Promise<void> {
 		const knex = Model.knex();
-		const hasProjectsTable = await knex.schema.hasTable(
-			TenancyTableName.PROJECTS,
-		);
+		const hasProjectsTable = await knex.schema.hasTable(ProjectModel.tableName);
 		const hasProjectMembersTable = await knex.schema.hasTable(
-			TenancyTableName.PROJECT_MEMBERS,
+			ProjectMemberModel.tableName,
 		);
 
 		if (!hasProjectsTable || !hasProjectMembersTable) {
 			return;
 		}
 
-		const project = await knex<ProjectRow>(TenancyTableName.PROJECTS)
-			.where("id", projectId)
-			.first();
+		const project = await ProjectModel.query().findById(projectId);
 
 		if (!project) {
 			throw new HTTPError({
@@ -65,12 +49,10 @@ class DocumentAccessService {
 			});
 		}
 
-		const membership = await knex<ProjectMemberRow>(
-			TenancyTableName.PROJECT_MEMBERS,
-		)
-			.where("projectId", project.id)
-			.andWhere("userId", userId)
-			.first();
+		const membership = await ProjectMemberModel.query().findOne({
+			projectId: project.id,
+			userId,
+		});
 
 		const hasAllowedRole =
 			membership !== undefined && allowedRoles.includes(membership.role);
