@@ -1,8 +1,9 @@
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { tv } from "tailwind-variants";
 
 import { Button } from "~/components/button/button.js";
 import { Icon } from "~/components/icon/icon.js";
+import { Link } from "~/components/link/link.js";
 import { Logo } from "~/components/logo/logo.js";
 import { useCallback, useState } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
@@ -11,12 +12,14 @@ const getHeaderClassName = tv({
 	slots: {
 		bar: "mx-auto flex min-h-[72px] w-full max-w-[1240px] items-center justify-between px-5 tablet-small:px-6 tablet:px-10",
 		brand: "text-text no-underline hover:text-text hover:no-underline",
-		desktopNav: "hidden items-center gap-8 tablet-small:flex",
+		desktopNav: [
+			"hidden items-center gap-8 tablet-small:flex",
+			"[&>a]:rounded-md [&>a]:px-3.5 [&>a]:py-2 [&>a]:text-control [&>a]:font-medium",
+			"[&>a]:text-text [&>a]:no-underline [&>a]:hover:bg-secondary [&>a]:hover:text-text [&>a]:hover:no-underline",
+		],
 		mobileNav:
 			"flex flex-col gap-3.5 border-t border-border bg-bg px-5 py-4 tablet-small:hidden",
 		root: "sticky top-0 z-30 shrink-0 border-b border-border bg-bg/92 backdrop-blur-[6px]",
-		signIn:
-			"rounded-md px-3.5 py-2 text-control font-medium text-text no-underline hover:bg-secondary hover:text-text hover:no-underline",
 		toggle:
 			"cursor-pointer border-0 bg-transparent p-2 text-text tablet-small:hidden focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35",
 	},
@@ -25,7 +28,7 @@ const getHeaderClassName = tv({
 const Header: React.FC = () => {
 	const navigate = useNavigate();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
-	const { bar, brand, desktopNav, mobileNav, root, signIn, toggle } =
+	const { bar, brand, desktopNav, mobileNav, root, toggle } =
 		getHeaderClassName();
 
 	const handleToggleMenu = useCallback((): void => {
@@ -49,14 +52,12 @@ const Header: React.FC = () => {
 	return (
 		<header className={root()}>
 			<div className={bar()}>
-				<RouterLink className={brand()} to={AppRoute.ROOT}>
-					<Logo size="sm" />
-				</RouterLink>
+				<Logo className={brand()} size="sm" to={AppRoute.ROOT} />
 
 				<nav className={desktopNav()}>
-					<RouterLink className={signIn()} to={AppRoute.SIGN_IN}>
+					<Link to={AppRoute.SIGN_IN} variant="muted">
 						Sign in
-					</RouterLink>
+					</Link>
 					<Button
 						className="px-4 py-2"
 						onClick={handleSignUp}
