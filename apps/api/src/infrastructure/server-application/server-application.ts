@@ -24,7 +24,7 @@ const serverApplication = new BaseServerApplication({
 	health,
 	logger,
 	s3Client,
-	title: "AI Meeting Assistant",
+	title: "Knowledge Prism API",
 });
 
 export { serverApplication };

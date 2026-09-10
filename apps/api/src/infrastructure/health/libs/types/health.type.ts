@@ -1,4 +1,4 @@
-import { type HealthCheckResult } from "./health-check-result.type.js";
+import { type HealthCheckResult } from "./types.js";
 
 type Health = {
 	getHealthStatus: () => Promise<HealthCheckResult>;
