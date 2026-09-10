@@ -31,7 +31,7 @@ const AuthPage: React.FC = () => {
 				const action = await dispatch(authActions.signIn(payload));
 
 				if (authActions.signIn.fulfilled.match(action)) {
-					await navigate(AppRoute.WORKSPACE);
+					await navigate(AppRoute.WORKSPACES);
 				}
 			})();
 		},
@@ -44,7 +44,7 @@ const AuthPage: React.FC = () => {
 				const action = await dispatch(authActions.signUp(payload));
 
 				if (authActions.signUp.fulfilled.match(action)) {
-					await navigate(AppRoute.WORKSPACE);
+					await navigate(AppRoute.WORKSPACES);
 				}
 			})();
 		},
@@ -63,7 +63,7 @@ const AuthPage: React.FC = () => {
 
 	return (
 		<div className="flex min-h-screen flex-col tablet:flex-row">
-			<aside className="flex flex-shrink-0 flex-col justify-between gap-2.5 bg-primary px-6 py-7 text-primary-fg tablet:flex-[0.8] tablet:p-11 desktop:flex-1 desktop:p-16">
+			<aside className="flex shrink-0 flex-col justify-between gap-2.5 bg-primary px-6 py-7 text-primary-fg tablet:flex-[0.8] tablet:p-11 desktop:flex-1 desktop:p-16">
 				<Logo variant="inverted" />
 
 				<div className="max-w-95">

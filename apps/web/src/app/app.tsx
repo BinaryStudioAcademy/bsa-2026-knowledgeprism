@@ -14,13 +14,10 @@ import { actions as userActions } from "~/modules/users/users.js";
 const App: React.FC = () => {
 	const navigate = useNavigate();
 	const dispatch = useAppDispatch();
-	const { dataStatus, user, users } = useAppSelector(({ auth, users }) => ({
-		dataStatus: users.dataStatus,
-		user: auth.user,
-		users: users.users,
-	}));
-
-	const hasUser = Boolean(user);
+	const dataStatus = useAppSelector((state) => state.users.dataStatus);
+	const users = useAppSelector((state) => state.users.users);
+	const [firstUser] = users;
+	const hasUser = Boolean(users);
 
 	const handleLogout = useCallback((): void => {
 		void dispatch(authActions.logout());
@@ -44,7 +41,7 @@ const App: React.FC = () => {
 							onClick={handleLogout}
 							type="button"
 						>
-							Log out ({user?.user.email})
+							Log out ({firstUser?.email})
 						</button>
 					</li>
 				) : (
