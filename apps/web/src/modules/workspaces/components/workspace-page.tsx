@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from "react";
 
-import { Modal } from "~/components/components.js";
+import { Button, Heading, Icon, Modal } from "~/components/components.js";
 
 import { type ProjectItem } from "../types/types.js";
 import { ProjectCard, WorkspaceHeader } from "./components.js";
@@ -48,6 +48,7 @@ interface WorkspacePageProperties {
 }
 
 const CreateProjectModal: React.FC<CreateProjectModalProperties> = () => null;
+
 const EditProjectModal: React.FC<EditProjectModalProperties> = () => null;
 
 const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
@@ -59,8 +60,8 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	project,
 	totalCount,
 }) => {
-	const canEdit = isOrgAdmin || project.role === "ADMIN";
 	const canDelete = isOrgAdmin || project.role === "ADMIN";
+	const canEdit = isOrgAdmin || project.role === "ADMIN";
 
 	const handleDelete = useCallback((): void => {
 		onDelete(project.id);
@@ -188,27 +189,21 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 						<span className="block text-(length:--text-xs) font-semibold uppercase tracking-wider text-text-muted">
 							WORKSPACE
 						</span>
-						<h1 className="mt-0.5 font-serif text-2xl font-normal text-text sm:text-3xl">
+						<Heading className="mt-0.5" level="2">
 							Your projects
-						</h1>
+						</Heading>
 					</div>
 
-					{isOrgAdmin && (
-						<button
-							className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-primary px-3.5 py-2.5 text-(length:--text-xs) font-medium text-(--color-primary-fg) shadow-(--shadow-sm) transition-opacity hover:opacity-90 sm:w-auto sm:px-4.5 sm:py-2"
+					{isOrgAdmin && localProjects.length > EMPTY_LENGTH && (
+						<Button
+							className="w-full sm:w-auto"
 							onClick={handleOpenCreateModal}
-							type="button"
 						>
-							<svg
-								fill="currentColor"
-								height="10"
-								viewBox="0 0 10.5 10.5"
-								width="10"
-							>
-								<path d="M4.5 0h1.5v4.5H10.5v1.5H6v4.5H4.5V6H0V4.5h4.5z" />
-							</svg>
-							New Project
-						</button>
+							<span className="flex items-center gap-1.5">
+								<Icon name="plus" size={10} />
+								<span>New Project</span>
+							</span>
+						</Button>
 					)}
 				</div>
 
@@ -229,7 +224,19 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 				{localProjects.length === EMPTY_LENGTH && (
 					<div className="py-12 text-center text-control text-text-muted">
-						No projects found.
+						{isOrgAdmin && (
+							<div className="flex flex-col items-center gap-4">
+								<p>
+									No projects yet. Create your first project to get started.
+								</p>
+								<Button onClick={handleOpenCreateModal}>
+									<span className="flex items-center gap-1.5">
+										<Icon name="plus" size={10} />
+										<span>Create new project</span>
+									</span>
+								</Button>
+							</div>
+						)}
 					</div>
 				)}
 			</main>
@@ -261,20 +268,12 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 					This action cannot be undone.
 				</p>
 				<div className="flex justify-center gap-2.5">
-					<button
-						className="cursor-pointer rounded-md border border-border px-4 py-2 text-xs font-medium text-text transition-colors hover:bg-secondary"
-						onClick={handleCancelDelete}
-						type="button"
-					>
+					<Button onClick={handleCancelDelete} variant="secondary">
 						Cancel
-					</button>
-					<button
-						className="cursor-pointer rounded-md bg-red-600 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-red-700"
-						onClick={handleDeleteProjectConfirm}
-						type="button"
-					>
+					</Button>
+					<Button onClick={handleDeleteProjectConfirm} variant="destructive">
 						Delete
-					</button>
+					</Button>
 				</div>
 			</Modal>
 		</div>
