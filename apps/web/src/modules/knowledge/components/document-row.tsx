@@ -85,9 +85,7 @@ const DocumentRow = ({
 					{isFailed && (
 						<button
 							aria-label="Retry processing"
-							className="flex size-7 cursor-pointer items-center justify-center rounded-md text-text-muted hover:bg-
-border-subtle
-hover:text-text"
+							className="flex size-7 cursor-pointer items-center justify-center rounded-md text-text-muted hover:bg-border-subtle hover:text-text"
 							onClick={onRetry}
 							title="Retry"
 							type="button"
@@ -98,9 +96,7 @@ hover:text-text"
 
 					<button
 						aria-label={isProcessing ? "Cancel upload" : "Remove document"}
-						className="flex size-7 cursor-pointer items-center justify-center rounded-md text-text-muted hover:bg-border-
-subtle
-hover:text-text"
+						className="flex size-7 cursor-pointer items-center justify-center rounded-md text-text-muted hover:bg-border-subtle hover:text-text"
 						onClick={isProcessing ? onCancel : onRemove}
 						title={isProcessing ? "Cancel" : "Remove"}
 						type="button"

@@ -29,18 +29,23 @@ const { actions, name, reducer } = createSlice({
 			}
 		});
 		builder.addCase(processDocument.fulfilled, (state, action) => {
+			if (!state.selectedFile || state.selectedFile.id !== action.meta.arg.id) {
+				return;
+			}
+
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.SUCCESS;
 			state.selectedFile = action.payload;
 		});
 		builder.addCase(processDocument.rejected, (state, action) => {
+			if (!state.selectedFile || state.selectedFile.id !== action.meta.arg.id) {
+				return;
+			}
+
 			state.errorMessage =
 				action.error.message ?? DocumentValidationMessage.PROCESSING_FAILED;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
-
-			if (state.selectedFile) {
-				state.selectedFile.status = DocumentProcessingStatus.FAILED;
-			}
+			state.selectedFile.status = DocumentProcessingStatus.FAILED;
 		});
 	},
 	initialState,
