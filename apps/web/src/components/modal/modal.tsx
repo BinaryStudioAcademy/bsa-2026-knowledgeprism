@@ -72,7 +72,7 @@ const modalStyles = tv({
 				surface: "w-full tablet:w-120 desktop:w-150",
 			},
 			small: {
-				surface: "w-100",
+				surface: "w-full tablet:w-100",
 			},
 		},
 	},
