@@ -11,9 +11,13 @@ export {
 } from "./libs/enums/enums.js";
 export { AuthApiPath, AuthValidationMessage } from "./modules/auth/auth.js";
 export {
+	DocumentErrorMessage,
 	DocumentsApiPath,
+	DocumentSourceType,
 	DocumentStatus,
+	DocumentValidationMessage,
 	DocumentValidationRule,
+	ProjectMemberRole,
 } from "./modules/documents/documents.js";
 export {
 	UsersApiPath,

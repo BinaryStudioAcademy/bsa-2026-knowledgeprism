@@ -2,10 +2,14 @@ import { APIPath, DocumentsApiPath } from "@knowledgeprism/constants";
 import {
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
+	manualTextCreateValidationSchema,
+	manualTextRouteParametersValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentRouteParametersDto,
+	type ManualTextCreateRequestDto,
+	type ManualTextRouteParametersDto,
 } from "@knowledgeprism/types";
 
 import {
@@ -15,8 +19,11 @@ import {
 } from "~/infrastructure/controller/controller.js";
 import { HTTPCode } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
-
-import { type DocumentService } from "../services/document.service.js";
+import {
+	getRequiredUserId,
+	parseIdentifier,
+} from "~/modules/documents/libs/helpers/parse-identifier.helper.js";
+import { type DocumentService } from "~/modules/documents/services/document.service.js";
 
 /**
  * @swagger
@@ -77,6 +84,150 @@ class DocumentController extends BaseController {
 				params: documentUploadIntentRouteParametersValidationSchema,
 			},
 		});
+		this.addRoute({
+			handler: (options) =>
+				this.createManualText(
+					options as APIHandlerOptions<{
+						body: ManualTextCreateRequestDto;
+						params: DocumentUploadIntentRouteParametersDto;
+					}>,
+				),
+			method: "POST",
+			path: DocumentsApiPath.MANUAL_TEXT,
+			validation: {
+				body: manualTextCreateValidationSchema,
+				params: documentUploadIntentRouteParametersValidationSchema,
+			},
+		});
+		this.addRoute({
+			handler: (options) =>
+				this.findManualText(
+					options as APIHandlerOptions<{
+						params: ManualTextRouteParametersDto;
+					}>,
+				),
+			method: "GET",
+			path: DocumentsApiPath.MANUAL_TEXT_$ID,
+			validation: {
+				params: manualTextRouteParametersValidationSchema,
+			},
+		});
+		this.addRoute({
+			handler: (options) =>
+				this.retryManualText(
+					options as APIHandlerOptions<{
+						params: ManualTextRouteParametersDto;
+					}>,
+				),
+			method: "POST",
+			path: DocumentsApiPath.RETRY,
+			validation: {
+				params: manualTextRouteParametersValidationSchema,
+			},
+		});
+		this.addRoute({
+			handler: (options) =>
+				this.cancelManualText(
+					options as APIHandlerOptions<{
+						params: ManualTextRouteParametersDto;
+					}>,
+				),
+			method: "POST",
+			path: DocumentsApiPath.CANCEL,
+			validation: {
+				params: manualTextRouteParametersValidationSchema,
+			},
+		});
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/manual-text/{id}/cancel:
+	 *    post:
+	 *      description: Cancel a processing or failed manual text document
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: string
+	 *        - in: path
+	 *          name: id
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      responses:
+	 *        200:
+	 *          description: Document cancelled
+	 */
+	private async cancelManualText(
+		options: APIHandlerOptions<{
+			params: ManualTextRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		const { id, projectId, userId } = this.getRouteContext(options);
+
+		return {
+			payload: await this.documentService.cancelManualText({
+				id,
+				projectId,
+				userId,
+			}),
+			status: HTTPCode.OK,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/manual-text:
+	 *    post:
+	 *      description: Submit manual text for processing
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: string
+	 *      requestBody:
+	 *        required: true
+	 *        content:
+	 *          application/json:
+	 *            schema:
+	 *              type: object
+	 *              required:
+	 *                - content
+	 *              properties:
+	 *                title:
+	 *                  type: string
+	 *                  maxLength: 255
+	 *                content:
+	 *                  type: string
+	 *      responses:
+	 *        202:
+	 *          description: Processing started
+	 *        401:
+	 *          description: Unauthorized
+	 *        403:
+	 *          description: Viewer or outsider cannot add knowledge
+	 *        422:
+	 *          description: Invalid title or content
+	 */
+	private async createManualText(
+		options: APIHandlerOptions<{
+			body: ManualTextCreateRequestDto;
+			params: DocumentUploadIntentRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		const { projectId, userId } = this.getProjectContext(options);
+
+		return {
+			payload: await this.documentService.createManualText({
+				payload: options.body,
+				projectId,
+				userId,
+			}),
+			status: HTTPCode.ACCEPTED,
+		};
 	}
 
 	/**
@@ -116,6 +267,112 @@ class DocumentController extends BaseController {
 				routeParameters: options.params,
 			}),
 			status: HTTPCode.CREATED,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/manual-text/{id}:
+	 *    get:
+	 *      description: Get manual text processing status
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: string
+	 *        - in: path
+	 *          name: id
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      responses:
+	 *        200:
+	 *          description: Document status
+	 */
+	private async findManualText(
+		options: APIHandlerOptions<{
+			params: ManualTextRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		const { id, projectId, userId } = this.getRouteContext(options);
+
+		return {
+			payload: await this.documentService.findManualText({
+				id,
+				projectId,
+				userId,
+			}),
+			status: HTTPCode.OK,
+		};
+	}
+
+	private getProjectContext(
+		options: APIHandlerOptions<{
+			params: DocumentUploadIntentRouteParametersDto;
+		}>,
+	): {
+		projectId: string;
+		userId: number;
+	} {
+		return {
+			projectId: options.params.projectId,
+			userId: getRequiredUserId(options.session.userId),
+		};
+	}
+
+	private getRouteContext(
+		options: APIHandlerOptions<{
+			params: ManualTextRouteParametersDto;
+		}>,
+	): {
+		id: number;
+		projectId: string;
+		userId: number;
+	} {
+		const { projectId, userId } = this.getProjectContext(options);
+
+		return {
+			id: parseIdentifier(options.params.id),
+			projectId,
+			userId,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/manual-text/{id}/retry:
+	 *    post:
+	 *      description: Retry a failed manual text processing attempt
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: string
+	 *        - in: path
+	 *          name: id
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      responses:
+	 *        200:
+	 *          description: Processing restarted
+	 */
+	private async retryManualText(
+		options: APIHandlerOptions<{
+			params: ManualTextRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		const { id, projectId, userId } = this.getRouteContext(options);
+
+		return {
+			payload: await this.documentService.retryManualText({
+				id,
+				projectId,
+				userId,
+			}),
+			status: HTTPCode.OK,
 		};
 	}
 }
