@@ -11,10 +11,13 @@ export {
 	type ValueOf,
 } from "./libs/types/types.js";
 export {
+	type DocumentConfirmUploadResponseDto,
+	type DocumentConfirmUploadRouteParametersDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
 } from "./modules/documents/documents.js";
+
 export {
 	type ProjectAssignmentDto,
 	type UserCreateRequestDto,
