@@ -1,3 +1,4 @@
 export { bedrockRuntimeClient } from "./bedrock/bedrock.js";
 export { logger } from "./logger/logger.js";
+export { ClaudeModelId } from "./modules/knowledge-extraction/libs/constants/claude-model.constant.js";
 export { type KnowledgeItem } from "./modules/knowledge-extraction/libs/types/types.js";
