@@ -13,6 +13,9 @@ const kbEntryValidationSchema = z.object({
 		.trim()
 		.min(MIN_LENGTH, { message: "Title cannot be empty" })
 		.max(MAX_TITLE_LENGTH, { message: "Title cannot exceed 255 characters" }),
+	version: z
+		.number({ message: "Version is required" })
+		.int("Version must be an integer"),
 });
 
 export { kbEntryValidationSchema };

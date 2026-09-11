@@ -19,6 +19,9 @@
 		"storybook:build": "storybook build"
 	},
 	"dependencies": {
+		"@blocknote/core": "0.54.2",
+		"@blocknote/mantine": "0.54.2",
+		"@blocknote/react": "0.54.2",
 		"@hookform/resolvers": "5.5.8",
 		"@knowledgeprism/config": "*",
 		"@knowledgeprism/constants": "*",
@@ -33,7 +36,8 @@
 		"react-redux": "9.3.0",
 		"react-router-dom": "7.18.2",
 		"tailwind-variants": "3.3.1",
-		"tailwindcss": "4.3.3"
+		"tailwindcss": "4.3.3",
+		"usehooks-ts": "3.1.1"
 	},
 	"devDependencies": {
 		"@storybook/addon-essentials": "8.6.14",
