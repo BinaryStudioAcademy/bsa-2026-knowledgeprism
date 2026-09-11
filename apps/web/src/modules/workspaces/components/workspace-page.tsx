@@ -1,24 +1,37 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 
 import { Button, Heading, Icon, Modal } from "~/components/components.js";
+import { ProjectFormValue } from "~/modules/project-managment-modal/components/project-managment-modal-form/lib/type.js";
+import { ProjectManagmentModalForm } from "~/modules/project-managment-modal/components/project-managment-modal-form/project-managment-modal-form.js";
 
-import { type ProjectItem } from "../types/types.js";
-import { ProjectCard, WorkspaceHeader } from "./components.js";
+import {
+	CreateProjectPayload,
+	UpdateProjectPayload,
+} from "../api/workspaces-api.js";
+import { FILTER_ROLE_OPTIONS } from "../libs/constants/mock-data.constants.js";
+import { createProject, updateProject } from "../state/workspaces.slice.js";
+import { type ProjectItem, type ProjectRole } from "../types/types.js";
+import { ProjectCard } from "./project-card.js";
+import { WorkspaceHeader } from "./workspace-header.js";
 
 const EMPTY_LENGTH = 0;
 const EVEN_MODULO = 2;
 const INDEX_OFFSET = 1;
 
 interface CreateProjectModalProperties {
+	error: null | string;
 	isOpen: boolean;
+	isSubmitting: boolean;
 	onClose: () => void;
-	onSubmit: (newProject: ProjectItem) => void;
+	onSubmit: (payload: CreateProjectPayload) => void;
 }
 
 interface EditProjectModalProperties {
+	error: null | string;
 	isOpen: boolean;
+	isSubmitting: boolean;
 	onClose: () => void;
-	onSubmit: (updatedProject: ProjectItem) => void;
+	onSubmit: (payload: UpdateProjectPayload) => void;
 	project: ProjectItem;
 }
 
@@ -33,23 +46,91 @@ interface ProjectItemCardProperties {
 }
 
 interface WorkspacePageProperties {
+	creationError?: null | string;
 	firstName: string;
+	isCreating?: boolean;
 	isLoading?: boolean;
 	isOrgAdmin?: boolean;
+	isUpdating?: boolean;
 	lastName: string;
-	onCreateProject?: () => void;
+	onCreateProject?: (
+		payload: CreateProjectPayload,
+	) => Promise<unknown> | undefined;
 	onDeleteProject?: (id: string) => void;
-	onEditProject?: (project: ProjectItem) => void;
+	onEditProject?: (
+		payload: UpdateProjectPayload,
+	) => Promise<unknown> | undefined;
 	onLogOut: () => void;
 	onOpenSettings?: () => void;
 	onSelectProject: (id: string) => void;
 	organizationName: string;
 	projects: ProjectItem[];
+	updateError?: null | string;
 }
 
-const CreateProjectModal: React.FC<CreateProjectModalProperties> = () => null;
+const CreateProjectModal: React.FC<CreateProjectModalProperties> = ({
+	error,
+	isOpen,
+	isSubmitting,
+	onClose,
+	onSubmit,
+}) => {
+	const handleCreate = useCallback(
+		(payload: ProjectFormValue): void => {
+			onSubmit({
+				description: payload.description ?? "",
+				name: payload.projectName,
+			});
+		},
+		[onSubmit],
+	);
 
-const EditProjectModal: React.FC<EditProjectModalProperties> = () => null;
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} title="New Project">
+			<ProjectManagmentModalForm
+				error={error}
+				isSubmitting={isSubmitting}
+				onSubmit={handleCreate}
+				submitLabel="Create Project"
+			/>
+		</Modal>
+	);
+};
+
+const EditProjectModal: React.FC<EditProjectModalProperties> = ({
+	error,
+	isOpen,
+	isSubmitting,
+	onClose,
+	onSubmit,
+	project,
+}) => {
+	const handleUpdate = useCallback(
+		(payload: ProjectFormValue): void => {
+			onSubmit({
+				description: payload.description ?? "",
+				id: project.id,
+				name: payload.projectName,
+			});
+		},
+		[onSubmit, project.id],
+	);
+
+	return (
+		<Modal isOpen={isOpen} onClose={onClose} title="Edit Project">
+			<ProjectManagmentModalForm
+				error={error}
+				initialValues={{
+					description: project.description ?? "",
+					projectName: project.name,
+				}}
+				isSubmitting={isSubmitting}
+				onSubmit={handleUpdate}
+				submitLabel="Save Changes"
+			/>
+		</Modal>
+	);
+};
 
 const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	index,
@@ -60,8 +141,9 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	project,
 	totalCount,
 }) => {
+	const canEdit =
+		isOrgAdmin || project.role === "ADMIN" || project.role === "EDITOR";
 	const canDelete = isOrgAdmin || project.role === "ADMIN";
-	const canEdit = isOrgAdmin || project.role === "ADMIN";
 
 	const handleDelete = useCallback((): void => {
 		onDelete(project.id);
@@ -92,9 +174,12 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 };
 
 const WorkspacePage: React.FC<WorkspacePageProperties> = ({
+	creationError = null,
 	firstName,
+	isCreating = false,
 	isLoading = false,
 	isOrgAdmin = false,
+	isUpdating = false,
 	lastName,
 	onCreateProject,
 	onDeleteProject,
@@ -104,27 +189,101 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	onSelectProject,
 	organizationName,
 	projects: initialProjects,
+	updateError = null,
 }) => {
-	const [deletingProjectId, setDeletingProjectId] = useState<null | string>(
-		null,
-	);
+	const [localProjects, setLocalProjects] =
+		useState<ProjectItem[]>(initialProjects);
+	const [previousInitialProjects, setPreviousInitialProjects] =
+		useState<ProjectItem[]>(initialProjects);
+
+	if (initialProjects !== previousInitialProjects) {
+		setPreviousInitialProjects(initialProjects);
+		setLocalProjects(initialProjects);
+	}
+
+	const [selectedRole, setSelectedRole] = useState<"ALL" | ProjectRole>("ALL");
+	const [isFilterOpen, setIsFilterOpen] = useState(false);
+	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [editingProject, setEditingProject] = useState<null | ProjectItem>(
 		null,
 	);
-	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-	const [localProjects, setLocalProjects] =
-		useState<ProjectItem[]>(initialProjects);
+	const [deletingProjectId, setDeletingProjectId] = useState<null | string>(
+		null,
+	);
 
-	const handleCancelDelete = useCallback((): void => {
-		setDeletingProjectId(null);
+	const filteredProjects = useMemo(() => {
+		if (selectedRole === "ALL") {
+			return localProjects;
+		}
+
+		return localProjects.filter((project) => project.role === selectedRole);
+	}, [localProjects, selectedRole]);
+
+	const handleToggleFilter = useCallback((): void => {
+		setIsFilterOpen((previous) => !previous);
+	}, []);
+
+	const handleCloseFilter = useCallback((): void => {
+		setIsFilterOpen(false);
+	}, []);
+
+	const handleSelectRole = useCallback(
+		(event: React.MouseEvent<HTMLButtonElement>): void => {
+			const role = event.currentTarget.dataset["role"] as "ALL" | ProjectRole;
+			setSelectedRole(role);
+			setIsFilterOpen(false);
+		},
+		[],
+	);
+
+	const handleOpenCreateModal = useCallback((): void => {
+		setIsCreateModalOpen(true);
 	}, []);
 
 	const handleCloseCreateModal = useCallback((): void => {
 		setIsCreateModalOpen(false);
 	}, []);
 
+	const handleSubmitCreateModal = useCallback(
+		(payload: CreateProjectPayload): void => {
+			void (async (): Promise<void> => {
+				const action = await onCreateProject?.(payload);
+
+				if (action && createProject.fulfilled.match(action)) {
+					setIsCreateModalOpen(false);
+				}
+			})();
+		},
+		[onCreateProject],
+	);
+
 	const handleCloseEditModal = useCallback((): void => {
 		setEditingProject(null);
+	}, []);
+
+	const handleSubmitEditModal = useCallback(
+		(payload: UpdateProjectPayload): void => {
+			void (async (): Promise<void> => {
+				const action = await onEditProject?.(payload);
+
+				if (action && updateProject.fulfilled.match(action)) {
+					setEditingProject(null);
+				}
+			})();
+		},
+		[onEditProject],
+	);
+
+	const handleSetDeletingProjectId = useCallback((id: string): void => {
+		setDeletingProjectId(id);
+	}, []);
+
+	const handleSetEditingProject = useCallback((project: ProjectItem): void => {
+		setEditingProject(project);
+	}, []);
+
+	const handleCancelDelete = useCallback((): void => {
+		setDeletingProjectId(null);
 	}, []);
 
 	const handleDeleteProjectConfirm = useCallback((): void => {
@@ -139,39 +298,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		setDeletingProjectId(null);
 	}, [deletingProjectId, onDeleteProject]);
 
-	const handleOpenCreateModal = useCallback((): void => {
-		setIsCreateModalOpen(true);
-		onCreateProject?.();
-	}, [onCreateProject]);
-
-	const handleSetDeletingProjectId = useCallback((id: string): void => {
-		setDeletingProjectId(id);
-	}, []);
-
-	const handleSetEditingProject = useCallback((project: ProjectItem): void => {
-		setEditingProject(project);
-	}, []);
-
-	const handleSubmitCreateModal = useCallback(
-		(newProject: ProjectItem): void => {
-			setLocalProjects((previous) => [newProject, ...previous]);
-			setIsCreateModalOpen(false);
-		},
-		[],
-	);
-
-	const handleSubmitEditModal = useCallback(
-		(updatedProject: ProjectItem): void => {
-			setLocalProjects((previous) =>
-				previous.map((project) =>
-					project.id === updatedProject.id ? updatedProject : project,
-				),
-			);
-			onEditProject?.(updatedProject);
-			setEditingProject(null);
-		},
-		[onEditProject],
-	);
+	const hasProjects = localProjects.length > EMPTY_LENGTH;
 
 	return (
 		<div className="workspace-page relative min-h-screen bg-bg">
@@ -194,35 +321,96 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 						</Heading>
 					</div>
 
-					{isOrgAdmin && localProjects.length > EMPTY_LENGTH && (
-						<Button
-							className="w-full sm:w-auto"
-							onClick={handleOpenCreateModal}
-						>
-							<span className="flex items-center gap-1.5">
-								<Icon name="plus" size={10} />
-								<span>New Project</span>
-							</span>
-						</Button>
+					{hasProjects && (
+						<div className="flex w-full flex-col items-stretch gap-2.5 sm:w-auto sm:flex-row sm:items-center">
+							{isOrgAdmin && (
+								<Button
+									className="order-1 w-full sm:order-2 sm:w-auto"
+									onClick={handleOpenCreateModal}
+								>
+									<span className="flex items-center gap-1.5">
+										<Icon name="plus" size={10} />
+										<span>New Project</span>
+									</span>
+								</Button>
+							)}
+
+							<div className="relative order-2 w-full sm:order-1 sm:w-auto">
+								<button
+									aria-expanded={isFilterOpen}
+									aria-haspopup="true"
+									aria-label="Filter projects by role"
+									className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-3.5 py-2 text-(length:--text-xs) font-medium text-text shadow-sm transition-colors hover:bg-surface sm:w-auto sm:px-4"
+									onClick={handleToggleFilter}
+									type="button"
+								>
+									<svg
+										aria-hidden="true"
+										className="text-text-muted"
+										fill="currentColor"
+										height="8"
+										viewBox="0 0 13.5 9"
+										width="12"
+									>
+										<path d="M0 0h13.5L8.5 5.5v3h-3v-3z" />
+									</svg>
+									Filter {selectedRole !== "ALL" && `(${selectedRole})`}
+								</button>
+
+								{isFilterOpen && (
+									<>
+										<div
+											aria-hidden="true"
+											className="fixed inset-0 z-20"
+											onClick={handleCloseFilter}
+										/>
+										<div
+											className="absolute left-0 z-30 mt-2 w-full rounded-lg border border-border bg-white p-1.5 shadow-xl sm:right-0 sm:left-auto sm:w-40"
+											role="menu"
+										>
+											{FILTER_ROLE_OPTIONS.map((role) => (
+												<button
+													aria-checked={selectedRole === role}
+													className={`w-full rounded-md px-3 py-1.5 text-left text-(length:--text-xs) transition-colors ${
+														selectedRole === role
+															? "bg-text font-medium text-white"
+															: "text-text hover:bg-surface"
+													}`}
+													data-role={role}
+													key={role}
+													onClick={handleSelectRole}
+													role="menuitemradio"
+													type="button"
+												>
+													{role === "ALL" ? "All Roles" : role}
+												</button>
+											))}
+										</div>
+									</>
+								)}
+							</div>
+						</div>
 					)}
 				</div>
 
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-					{localProjects.map((project, index) => (
-						<ProjectItemCard
-							index={index}
-							isOrgAdmin={isOrgAdmin}
-							key={project.id}
-							onDelete={handleSetDeletingProjectId}
-							onEdit={handleSetEditingProject}
-							onSelect={onSelectProject}
-							project={project}
-							totalCount={localProjects.length}
-						/>
-					))}
-				</div>
+				{hasProjects && (
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+						{filteredProjects.map((project, index) => (
+							<ProjectItemCard
+								index={index}
+								isOrgAdmin={isOrgAdmin}
+								key={project.id}
+								onDelete={handleSetDeletingProjectId}
+								onEdit={handleSetEditingProject}
+								onSelect={onSelectProject}
+								project={project}
+								totalCount={filteredProjects.length}
+							/>
+						))}
+					</div>
+				)}
 
-				{localProjects.length === EMPTY_LENGTH && (
+				{!hasProjects && (
 					<div className="py-12 text-center text-control text-text-muted">
 						{isOrgAdmin && (
 							<div className="flex flex-col items-center gap-4">
@@ -239,11 +427,19 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 						)}
 					</div>
 				)}
+
+				{hasProjects && filteredProjects.length === EMPTY_LENGTH && (
+					<div className="py-12 text-center text-control text-text-muted">
+						No projects found for the selected filter.
+					</div>
+				)}
 			</main>
 
 			{isCreateModalOpen && (
 				<CreateProjectModal
+					error={creationError}
 					isOpen={isCreateModalOpen}
+					isSubmitting={isCreating}
 					onClose={handleCloseCreateModal}
 					onSubmit={handleSubmitCreateModal}
 				/>
@@ -251,7 +447,10 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 			{editingProject && (
 				<EditProjectModal
+					error={updateError}
 					isOpen={Boolean(editingProject)}
+					isSubmitting={isUpdating}
+					key={editingProject.id}
 					onClose={handleCloseEditModal}
 					onSubmit={handleSubmitEditModal}
 					project={editingProject}
