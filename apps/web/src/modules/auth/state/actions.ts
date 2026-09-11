@@ -4,33 +4,30 @@ import {
 	type UserSignUpRequestDto,
 	type UserSignUpResponseDto,
 } from "@knowledgeprism/types";
-import { createAsyncThunk } from "@reduxjs/toolkit";
 
-import { type AsyncThunkConfig } from "~/lib/types/types.js";
+import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 
 import { name as sliceName } from "./auth.slice.js";
 
-const signIn = createAsyncThunk<
-	UserSignInResponseDto,
-	UserSignInRequestDto,
-	AsyncThunkConfig
->(`${sliceName}/sign-in`, (loginPayload, { extra }) => {
-	const { authApi } = extra;
+const signIn = createAppAsyncThunk<UserSignInResponseDto, UserSignInRequestDto>(
+	`${sliceName}/sign-in`,
+	(loginPayload, { extra }) => {
+		const { authApi } = extra;
 
-	return authApi.signIn(loginPayload);
-});
+		return authApi.signIn(loginPayload);
+	},
+);
 
-const signUp = createAsyncThunk<
-	UserSignUpResponseDto,
-	UserSignUpRequestDto,
-	AsyncThunkConfig
->(`${sliceName}/sign-up`, (registerPayload, { extra }) => {
-	const { authApi } = extra;
+const signUp = createAppAsyncThunk<UserSignUpResponseDto, UserSignUpRequestDto>(
+	`${sliceName}/sign-up`,
+	(registerPayload, { extra }) => {
+		const { authApi } = extra;
 
-	return authApi.signUp(registerPayload);
-});
+		return authApi.signUp(registerPayload);
+	},
+);
 
-const logout = createAsyncThunk<null, undefined, AsyncThunkConfig>(
+const logout = createAppAsyncThunk<null, undefined>(
 	`${sliceName}/logout`,
 	async (_, { extra }) => {
 		const { authApi } = extra;
