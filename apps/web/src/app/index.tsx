@@ -6,8 +6,15 @@ import { StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
+import { LandingPage } from "~/modules/landing/components/landing-page.js";
+import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
+import { AccountSettingsPage } from "~/modules/users/components/account-settings-page.js";
 
 import { App } from "./app.js";
+import { AppLayout } from "./layouts/app-layout.js";
+import { AuthLayout } from "./layouts/auth-layout.js";
+import { PublicLayout } from "./layouts/public-layout.js";
+import { SidebarLayout } from "./layouts/sidebar-layout.js";
 import { RouterProvider } from "./router-provider.js";
 
 createRoot(document.querySelector("#root") as HTMLElement).render(
@@ -16,11 +23,19 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 			<RouterProvider
 				routes={[
 					{
+						element: <LandingPage />,
+						path: AppRoute.ROOT,
+					},
+					{
 						children: [
 							{
-								element: "Root",
-								path: AppRoute.ROOT,
+								element: <App />,
 							},
+						],
+						element: <PublicLayout />,
+					},
+					{
+						children: [
 							{
 								element: <AuthPage />,
 								path: AppRoute.SIGN_IN,
@@ -29,9 +44,30 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								element: <AuthPage />,
 								path: AppRoute.SIGN_UP,
 							},
+							{
+								element: <p>Organisation Workspace</p>,
+								path: AppRoute.WORKSPACE,
+							},
 						],
-						element: <App />,
-						path: AppRoute.ROOT,
+						element: <AuthLayout />,
+					},
+					{
+						children: [
+							{
+								children: [
+									{
+										element: <AccountSettingsPage />,
+										path: AppRoute.SETTINGS,
+									},
+								],
+								element: <SidebarLayout />,
+							},
+						],
+						element: <AppLayout />,
+					},
+					{
+						element: <NotFoundPage />,
+						path: "*",
 					},
 				]}
 			/>

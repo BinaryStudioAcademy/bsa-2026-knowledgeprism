@@ -1,5 +1,7 @@
 import knex, { type Knex } from "knex";
-import { knexSnakeCaseMappers, Model } from "objection";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { knexSnakeCaseMappers, Model, type Transaction } from "objection";
 
 import { type Config } from "~/infrastructure/config/config.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
@@ -8,8 +10,15 @@ import { AppEnvironment } from "~/shared/enums/enums.js";
 import { DatabaseTableName } from "./libs/enums/enums.js";
 import { type Database } from "./libs/types/types.js";
 
+const MIGRATIONS_DIRECTORY = path.join(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"migrations",
+);
+
 class BaseDatabase implements Database {
 	private appConfig: Config;
+
+	private knexInstance!: Knex;
 
 	private logger: Logger;
 
@@ -28,7 +37,7 @@ class BaseDatabase implements Database {
 			connection: this.appConfig.ENV.DB.CONNECTION_STRING,
 			debug: false,
 			migrations: {
-				directory: "src/infrastructure/database/migrations",
+				directory: MIGRATIONS_DIRECTORY,
 				tableName: DatabaseTableName.MIGRATIONS,
 			},
 			pool: {
@@ -37,6 +46,10 @@ class BaseDatabase implements Database {
 			},
 			...knexSnakeCaseMappers({ underscoreBetweenUppercaseLetters: true }),
 		};
+	}
+
+	public get client(): Knex {
+		return this.knexInstance;
 	}
 
 	public get environmentsConfig(): Database["environmentsConfig"] {
@@ -49,7 +62,14 @@ class BaseDatabase implements Database {
 	public connect(): ReturnType<Database["connect"]> {
 		this.logger.info("Establish DB connection...");
 
-		Model.knex(knex.default(this.environmentConfig));
+		this.knexInstance = knex.default(this.environmentConfig);
+		Model.knex(this.knexInstance);
+	}
+
+	public transaction<T>(
+		handler: (transaction: Transaction) => Promise<T>,
+	): Promise<T> {
+		return Model.transaction(handler);
 	}
 }
 

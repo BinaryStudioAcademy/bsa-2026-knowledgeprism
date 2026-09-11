@@ -64,6 +64,12 @@ class BaseConfig implements Config {
 					env: "AWS_REGION",
 					format: String,
 				},
+				S3_BUCKET_NAME: {
+					default: null,
+					doc: "AWS S3 bucket name for document storage",
+					env: "AWS_S3_BUCKET_NAME",
+					format: String,
+				},
 			},
 			DB: {
 				CONNECTION_STRING: {
@@ -89,6 +95,14 @@ class BaseConfig implements Config {
 					doc: "Database pool min count",
 					env: "DB_POOL_MIN",
 					format: Number,
+				},
+			},
+			SESSION: {
+				SECRET: {
+					default: null,
+					doc: "Session secret key",
+					env: "SESSION_SECRET",
+					format: String,
 				},
 			},
 		});
