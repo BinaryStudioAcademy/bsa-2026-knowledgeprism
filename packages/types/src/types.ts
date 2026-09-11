@@ -16,6 +16,14 @@ export {
 	type DocumentUploadIntentRouteParametersDto,
 } from "./modules/documents/documents.js";
 export {
+	type ProjectCreateRequestDto,
+	type ProjectMemberCreateRequestDto,
+	type ProjectMemberResponseDto,
+	type ProjectMembersResponseDto,
+	type ProjectResponseDto,
+	type ProjectRouteParametersDto,
+} from "./modules/projects/projects.js";
+export {
 	type ProjectAssignmentDto,
 	type UserCreateRequestDto,
 	type UserDetailsResponseDto,

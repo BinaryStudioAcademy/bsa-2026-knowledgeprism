@@ -7,7 +7,7 @@ type DocumentObject = {
 	id: number;
 	mimeType: string;
 	name: string;
-	projectId: string;
+	projectId: number;
 	s3Key: string;
 	sizeInBytes: null | number;
 	status: ValueOf<typeof DocumentStatus>;
@@ -21,7 +21,7 @@ class DocumentEntity implements Entity {
 
 	private name: string;
 
-	private projectId: string;
+	private projectId: number;
 
 	private s3Key: string;
 
@@ -44,7 +44,7 @@ class DocumentEntity implements Entity {
 		id: null | number;
 		mimeType: string;
 		name: string;
-		projectId: string;
+		projectId: number;
 		s3Key: string;
 		sizeInBytes: null | number;
 		status: ValueOf<typeof DocumentStatus>;
@@ -73,7 +73,7 @@ class DocumentEntity implements Entity {
 		id: number;
 		mimeType: string;
 		name: string;
-		projectId: string;
+		projectId: number;
 		s3Key: string;
 		sizeInBytes: null | number;
 		status: ValueOf<typeof DocumentStatus>;
@@ -102,7 +102,7 @@ class DocumentEntity implements Entity {
 	}: {
 		mimeType: string;
 		name: string;
-		projectId: string;
+		projectId: number;
 		s3Key: string;
 		sizeInBytes: null | number;
 		status: ValueOf<typeof DocumentStatus>;
@@ -123,7 +123,7 @@ class DocumentEntity implements Entity {
 	public toNewObject(): {
 		mimeType: string;
 		name: string;
-		projectId: string;
+		projectId: number;
 		s3Key: string;
 		sizeInBytes: null | number;
 		status: ValueOf<typeof DocumentStatus>;
