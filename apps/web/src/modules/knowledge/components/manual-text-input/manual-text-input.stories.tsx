@@ -40,7 +40,7 @@ const meta = {
 	decorators: [
 		(Story) => (
 			<div className="min-h-screen bg-bg p-8">
-				<div className="mx-auto max-w-2xl overflow-hidden rounded-lg bg-surface shadow-lg">
+				<div className="mx-auto max-w-2xl overflow-hidden rounded-lg bg-surface p-7 shadow-lg">
 					<Story />
 				</div>
 			</div>

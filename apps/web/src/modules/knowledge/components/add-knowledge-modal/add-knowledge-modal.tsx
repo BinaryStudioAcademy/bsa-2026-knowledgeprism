@@ -1,12 +1,16 @@
 import { type JSX, useCallback, useState } from "react";
 
-import { Button, Icon, Modal } from "~/components/components.js";
-import { useAppSelector } from "~/hooks/hooks.js";
+import { Icon, Modal } from "~/components/components.js";
+import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
+import { actions } from "../../knowledge.js";
 import { DocumentProcessingStatus } from "../../libs/enums/enums.js";
 import { DocumentUpload } from "../document-upload.js";
+import { KnowledgeInputFooter } from "../knowledge-input-footer.js";
+import { ManualTextInput } from "../manual-text-input/manual-text-input.js";
+import { WebLinkInput } from "../web-link-input/web-link-input.js";
 import { DestinationBadge } from "./destination-badge.js";
 import { AddKnowledgeTab } from "./libs/enums/add-knowledge-tab.enum.js";
 
@@ -41,6 +45,8 @@ const TAB_ITEMS = [
 ];
 
 const TAB_ICON_SIZE = 14;
+const FORM_SESSION_KEY_INCREMENT = 1;
+const INITIAL_FORM_SESSION_KEY = 0;
 
 const getCountLabel = ({
 	hasSelectedFile,
@@ -63,9 +69,14 @@ const AddKnowledgeModal = ({
 	onClose,
 	projectName = "Project Alpha",
 }: Properties): JSX.Element => {
+	const dispatch = useAppDispatch();
 	const [activeTab, setActiveTab] = useState<ValueOf<typeof AddKnowledgeTab>>(
 		AddKnowledgeTab.UPLOAD,
 	);
+	const [formSessionKey, setFormSessionKey] = useState(
+		INITIAL_FORM_SESSION_KEY,
+	);
+
 	const { selectedFile } = useAppSelector((state) => state.knowledge);
 
 	const handleTabChange = useCallback(
@@ -74,6 +85,17 @@ const AddKnowledgeModal = ({
 		},
 		[],
 	);
+
+	const handleClose = useCallback((): void => {
+		dispatch(actions.resetState());
+		setActiveTab(AddKnowledgeTab.UPLOAD);
+		setFormSessionKey((currentKey) => currentKey + FORM_SESSION_KEY_INCREMENT);
+		onClose();
+	}, [dispatch, onClose]);
+
+	const handleManualTextSubmit = useCallback((): void => {
+		handleClose();
+	}, [handleClose]);
 
 	const isReadyToAdd = Boolean(
 		selectedFile &&
@@ -88,23 +110,30 @@ const AddKnowledgeModal = ({
 
 	return (
 		<Modal
+			contentClassName="flex min-h-0 flex-1 flex-col"
 			hasCloseButton
+			isFullScreenOnMobile
 			isOpen={isOpen}
-			onClose={onClose}
+			onClose={handleClose}
 			size="large"
 			title="Add Knowledge"
 		>
-			<div className="flex flex-col">
-				<div className="mb-4">
+			<div className="flex min-h-0 flex-1 flex-col">
+				<div className="mb-4 shrink-0">
 					<DestinationBadge branchName={branchName} projectName={projectName} />
 				</div>
 
-				<div className="mb-6 flex gap-6 border-b border-border">
+				<div
+					aria-label="Knowledge input type"
+					className="mb-6 flex shrink-0 gap-6 border-b border-border"
+					role="tablist"
+				>
 					{TAB_ITEMS.map(({ iconName, id, label }) => {
 						const isActive = activeTab === id;
 
 						return (
 							<button
+								aria-selected={isActive}
 								className={getValidClassNames(
 									"-mb-px inline-flex cursor-pointer items-center gap-2 border-b-2 pb-2.5 pt-1 text-sm font-medium transition-colors",
 									isActive
@@ -113,6 +142,7 @@ const AddKnowledgeModal = ({
 								)}
 								key={id}
 								onClick={handleTabChange(id)}
+								role="tab"
 								type="button"
 							>
 								<Icon name={iconName} size={TAB_ICON_SIZE} />
@@ -122,29 +152,42 @@ const AddKnowledgeModal = ({
 					})}
 				</div>
 
-				<div>
-					{activeTab === AddKnowledgeTab.UPLOAD && <DocumentUpload />}
-					{activeTab === AddKnowledgeTab.TEXT && (
-						<div className="flex flex-col items-center justify-center py-12 text-center text-sm text-text-muted">
-							Paste text will be available soon.
-						</div>
-					)}
-					{activeTab === AddKnowledgeTab.LINK && (
-						<div className="flex flex-col items-center justify-center py-12 text-center text-sm text-text-muted">
-							Web link will be available soon.
-						</div>
-					)}
-				</div>
+				<div className="min-h-0 flex-1" key={formSessionKey}>
+					<div
+						className={getValidClassNames(
+							activeTab !== AddKnowledgeTab.UPLOAD && "hidden",
+						)}
+						role="tabpanel"
+					>
+						<DocumentUpload />
 
-				<div className="-mx-7 -mb-7 mt-6 flex items-center justify-between border-t border-border bg-bg/50 px-7 py-4">
-					<span className="text-xs text-text-muted">{countLabel}</span>
-					<div className="flex items-center gap-3">
-						<Button onClick={onClose} variant="ghost">
-							Cancel
-						</Button>
-						<Button disabled={!isReadyToAdd} onClick={onClose}>
-							Add to Knowledge Tree
-						</Button>
+						<KnowledgeInputFooter
+							isActionDisabled={!isReadyToAdd}
+							onCancel={handleClose}
+							onSubmit={handleClose}
+							statusMessage={countLabel}
+						/>
+					</div>
+
+					<div
+						className={getValidClassNames(
+							activeTab !== AddKnowledgeTab.TEXT && "hidden",
+						)}
+						role="tabpanel"
+					>
+						<ManualTextInput
+							onCancel={handleClose}
+							onSubmit={handleManualTextSubmit}
+						/>
+					</div>
+
+					<div
+						className={getValidClassNames(
+							activeTab !== AddKnowledgeTab.LINK && "hidden",
+						)}
+						role="tabpanel"
+					>
+						<WebLinkInput onCancel={handleClose} onSubmit={handleClose} />
 					</div>
 				</div>
 			</div>

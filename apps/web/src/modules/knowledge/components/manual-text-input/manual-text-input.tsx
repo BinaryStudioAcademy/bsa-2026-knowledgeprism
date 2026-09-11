@@ -2,18 +2,15 @@ import {
 	type BaseSyntheticEvent,
 	type JSX,
 	useCallback,
+	useId,
 	useRef,
 	useState,
 } from "react";
 import { type Resolver, useForm, useWatch } from "react-hook-form";
 
-import {
-	Alert,
-	Button,
-	Icon,
-	Input,
-	Textarea,
-} from "~/components/components.js";
+import { Alert, Input, Textarea } from "~/components/components.js";
+
+import { KnowledgeInputFooter } from "../knowledge-input-footer.js";
 
 const MANUAL_TEXTAREA_ROWS = 8;
 const TITLE_MAXIMUM_LENGTH = 255;
@@ -37,8 +34,6 @@ const DEFAULT_MANUAL_TEXT_INPUT_PAYLOAD: ManualTextInputPayload = {
 	content: "",
 	title: "",
 };
-
-const ACTION_ICON_SIZE = 9;
 
 const resolveManualTextInput: Resolver<ManualTextInputPayload> = (payload) => {
 	const isContentEmpty = !payload.content.trim();
@@ -81,6 +76,8 @@ const ManualTextInput = ({
 	onCancel,
 	onSubmit,
 }: Properties): JSX.Element => {
+	const formId = useId();
+
 	const {
 		control,
 		formState: { isSubmitting },
@@ -98,6 +95,7 @@ const ManualTextInput = ({
 		control,
 		name: "content",
 	});
+
 	const title = useWatch({
 		control,
 		name: "title",
@@ -148,10 +146,11 @@ const ManualTextInput = ({
 		<form
 			aria-busy={isProcessing}
 			className="flex min-h-85 flex-col"
+			id={formId}
 			onSubmit={handleFormSubmit}
 		>
 			<fieldset
-				className="m-0 flex min-w-0 flex-1 flex-col gap-3 border-0 px-6 py-5 max-sm:px-4"
+				className="m-0 flex min-w-0 flex-1 flex-col gap-3 border-0 p-0"
 				disabled={isProcessing}
 			>
 				<Input
@@ -181,41 +180,15 @@ const ManualTextInput = ({
 				)}
 			</fieldset>
 
-			<div className="flex items-center justify-between gap-4 border-t border-border bg-bg px-6 py-4 max-sm:px-4">
-				<span
-					aria-live="polite"
-					className="text-sm text-text-muted max-sm:hidden"
-				>
-					{statusMessage}
-				</span>
-
-				<div className="flex gap-2 max-sm:w-full">
-					<Button
-						className={hasProcessingFailed ? "max-sm:flex-1" : "max-sm:hidden"}
-						disabled={isProcessing}
-						onClick={onCancel}
-						variant="ghost"
-					>
-						Cancel
-					</Button>
-
-					<Button
-						className="enabled:!bg-accent enabled:hover:!bg-accent-hover max-sm:flex-1"
-						disabled={!isPayloadReady}
-						isLoading={isProcessing}
-						type="submit"
-					>
-						<span className="inline-flex items-center gap-2">
-							{!hasProcessingFailed && !isProcessing && (
-								<span aria-hidden="true" className="inline-flex">
-									<Icon name="add-knowledge" size={ACTION_ICON_SIZE} />
-								</span>
-							)}
-							{hasProcessingFailed ? "Retry" : "Add to Knowledge Tree"}
-						</span>
-					</Button>
-				</div>
-			</div>
+			<KnowledgeInputFooter
+				actionLabel={hasProcessingFailed ? "Retry" : "Add to Knowledge Tree"}
+				formId={formId}
+				hasActionIcon={!hasProcessingFailed}
+				isActionDisabled={!isPayloadReady}
+				isLoading={isProcessing}
+				onCancel={onCancel}
+				statusMessage={statusMessage}
+			/>
 		</form>
 	);
 };
