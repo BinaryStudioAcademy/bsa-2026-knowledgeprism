@@ -1,23 +1,16 @@
 import { type UserGetAllResponseDto } from "@knowledgeprism/types";
-import { createAsyncThunk } from "@reduxjs/toolkit";
 
-import { serializeError } from "~/lib/helpers/serialize-error.helper.js";
-import { type AsyncThunkConfig } from "~/lib/types/types.js";
+import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 
 import { name as sliceName } from "./users.slice.js";
 
-const loadAll = createAsyncThunk<
-	UserGetAllResponseDto,
-	undefined,
-	AsyncThunkConfig
->(
+const loadAll = createAppAsyncThunk<UserGetAllResponseDto, undefined>(
 	`${sliceName}/load-all`,
 	(_, { extra }) => {
 		const { userApi } = extra;
 
 		return userApi.getAll();
 	},
-	{ serializeError },
 );
 
 export { loadAll };
