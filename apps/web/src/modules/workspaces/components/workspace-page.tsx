@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState } from "react";
 
-import { Modal } from "~/components/components.js";
+import { Button, Heading, Icon, Modal } from "~/components/components.js";
 import { ProjectFormValue } from "~/modules/project-managment-modal/components/project-managment-modal-form/lib/type.js";
 import { ProjectManagmentModalForm } from "~/modules/project-managment-modal/components/project-managment-modal-form/project-managment-modal-form.js";
 
@@ -11,7 +11,8 @@ import {
 import { FILTER_ROLE_OPTIONS } from "../libs/constants/mock-data.constants.js";
 import { createProject, updateProject } from "../state/workspaces.slice.js";
 import { type ProjectItem, type ProjectRole } from "../types/types.js";
-import { ProjectCard, WorkspaceHeader } from "./components.js";
+import { ProjectCard } from "./project-card.js";
+import { WorkspaceHeader } from "./workspace-header.js";
 
 const EMPTY_LENGTH = 0;
 const EVEN_MODULO = 2;
@@ -297,6 +298,8 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		setDeletingProjectId(null);
 	}, [deletingProjectId, onDeleteProject]);
 
+	const hasProjects = localProjects.length > EMPTY_LENGTH;
+
 	return (
 		<div className="workspace-page relative min-h-screen bg-bg">
 			<WorkspaceHeader
@@ -313,103 +316,119 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 						<span className="block text-(length:--text-xs) font-semibold uppercase tracking-wider text-text-muted">
 							WORKSPACE
 						</span>
-						<h1 className="mt-0.5 font-serif text-2xl font-normal text-text sm:text-3xl">
+						<Heading className="mt-0.5" level="2">
 							Your projects
-						</h1>
+						</Heading>
 					</div>
 
-					<div className="flex w-full flex-col items-stretch gap-2.5 sm:w-auto sm:flex-row sm:items-center">
-						{isOrgAdmin && (
-							<button
-								className="order-1 inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-md bg-primary px-3.5 py-2.5 text-(length:--text-xs) font-medium text-(--color-primary-fg) shadow-(--shadow-sm) transition-opacity hover:opacity-90 sm:order-2 sm:w-auto sm:px-4.5 sm:py-2"
-								onClick={handleOpenCreateModal}
-								type="button"
-							>
-								<svg
-									fill="currentColor"
-									height="10"
-									viewBox="0 0 10.5 10.5"
-									width="10"
+					{hasProjects && (
+						<div className="flex w-full flex-col items-stretch gap-2.5 sm:w-auto sm:flex-row sm:items-center">
+							{isOrgAdmin && (
+								<Button
+									className="order-1 w-full sm:order-2 sm:w-auto"
+									onClick={handleOpenCreateModal}
 								>
-									<path d="M4.5 0h1.5v4.5H10.5v1.5H6v4.5H4.5V6H0V4.5h4.5z" />
-								</svg>
-								New Project
-							</button>
-						)}
-
-						<div className="relative order-2 w-full sm:order-1 sm:w-auto">
-							<button
-								aria-expanded={isFilterOpen}
-								aria-haspopup="true"
-								aria-label="Filter projects by role"
-								className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-3.5 py-2 text-(length:--text-xs) font-medium text-text shadow-sm transition-colors hover:bg-surface sm:w-auto sm:px-4"
-								onClick={handleToggleFilter}
-								type="button"
-							>
-								<svg
-									aria-hidden="true"
-									className="text-text-muted"
-									fill="currentColor"
-									height="8"
-									viewBox="0 0 13.5 9"
-									width="12"
-								>
-									<path d="M0 0h13.5L8.5 5.5v3h-3v-3z" />
-								</svg>
-								Filter {selectedRole !== "ALL" && `(${selectedRole})`}
-							</button>
-
-							{isFilterOpen && (
-								<>
-									<div
-										aria-hidden="true"
-										className="fixed inset-0 z-20"
-										onClick={handleCloseFilter}
-									/>
-									<div
-										className="absolute left-0 z-30 mt-2 w-full rounded-lg border border-border bg-white p-1.5 shadow-xl sm:right-0 sm:left-auto sm:w-40"
-										role="menu"
-									>
-										{FILTER_ROLE_OPTIONS.map((role) => (
-											<button
-												aria-checked={selectedRole === role}
-												className={`w-full rounded-md px-3 py-1.5 text-left text-(length:--text-xs) transition-colors ${
-													selectedRole === role
-														? "bg-text font-medium text-white"
-														: "text-text hover:bg-surface"
-												}`}
-												data-role={role}
-												key={role}
-												onClick={handleSelectRole}
-												role="menuitemradio"
-												type="button"
-											>
-												{role === "ALL" ? "All Roles" : role}
-											</button>
-										))}
-									</div>
-								</>
+									<span className="flex items-center gap-1.5">
+										<Icon name="plus" size={10} />
+										<span>New Project</span>
+									</span>
+								</Button>
 							)}
+
+							<div className="relative order-2 w-full sm:order-1 sm:w-auto">
+								<button
+									aria-expanded={isFilterOpen}
+									aria-haspopup="true"
+									aria-label="Filter projects by role"
+									className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-3.5 py-2 text-(length:--text-xs) font-medium text-text shadow-sm transition-colors hover:bg-surface sm:w-auto sm:px-4"
+									onClick={handleToggleFilter}
+									type="button"
+								>
+									<svg
+										aria-hidden="true"
+										className="text-text-muted"
+										fill="currentColor"
+										height="8"
+										viewBox="0 0 13.5 9"
+										width="12"
+									>
+										<path d="M0 0h13.5L8.5 5.5v3h-3v-3z" />
+									</svg>
+									Filter {selectedRole !== "ALL" && `(${selectedRole})`}
+								</button>
+
+								{isFilterOpen && (
+									<>
+										<div
+											aria-hidden="true"
+											className="fixed inset-0 z-20"
+											onClick={handleCloseFilter}
+										/>
+										<div
+											className="absolute left-0 z-30 mt-2 w-full rounded-lg border border-border bg-white p-1.5 shadow-xl sm:right-0 sm:left-auto sm:w-40"
+											role="menu"
+										>
+											{FILTER_ROLE_OPTIONS.map((role) => (
+												<button
+													aria-checked={selectedRole === role}
+													className={`w-full rounded-md px-3 py-1.5 text-left text-(length:--text-xs) transition-colors ${
+														selectedRole === role
+															? "bg-text font-medium text-white"
+															: "text-text hover:bg-surface"
+													}`}
+													data-role={role}
+													key={role}
+													onClick={handleSelectRole}
+													role="menuitemradio"
+													type="button"
+												>
+													{role === "ALL" ? "All Roles" : role}
+												</button>
+											))}
+										</div>
+									</>
+								)}
+							</div>
 						</div>
+					)}
+				</div>
+
+				{hasProjects && (
+					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+						{filteredProjects.map((project, index) => (
+							<ProjectItemCard
+								index={index}
+								isOrgAdmin={isOrgAdmin}
+								key={project.id}
+								onDelete={handleSetDeletingProjectId}
+								onEdit={handleSetEditingProject}
+								onSelect={onSelectProject}
+								project={project}
+								totalCount={filteredProjects.length}
+							/>
+						))}
 					</div>
-				</div>
+				)}
 
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-					{filteredProjects.map((project, index) => (
-						<ProjectItemCard
-							index={index}
-							isOrgAdmin={isOrgAdmin}
-							key={project.id}
-							onDelete={handleSetDeletingProjectId}
-							onEdit={handleSetEditingProject}
-							onSelect={onSelectProject}
-							project={project}
-							totalCount={filteredProjects.length}
-						/>
-					))}
-				</div>
+				{!hasProjects && (
+					<div className="py-12 text-center text-control text-text-muted">
+						{isOrgAdmin && (
+							<div className="flex flex-col items-center gap-4">
+								<p>
+									No projects yet. Create your first project to get started.
+								</p>
+								<Button onClick={handleOpenCreateModal}>
+									<span className="flex items-center gap-1.5">
+										<Icon name="plus" size={10} />
+										<span>Create new project</span>
+									</span>
+								</Button>
+							</div>
+						)}
+					</div>
+				)}
 
-				{filteredProjects.length === EMPTY_LENGTH && (
+				{hasProjects && filteredProjects.length === EMPTY_LENGTH && (
 					<div className="py-12 text-center text-control text-text-muted">
 						No projects found for the selected filter.
 					</div>
@@ -438,38 +457,24 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 				/>
 			)}
 
-			{deletingProjectId && (
-				<div
-					aria-modal="true"
-					className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-					role="dialog"
-				>
-					<div className="w-full max-w-sm rounded-lg border border-border bg-(--color-surface) p-5 text-center shadow-(--shadow-md) sm:p-6">
-						<h2 className="mb-2 font-serif text-lg font-normal text-text sm:text-xl">
-							Delete Project?
-						</h2>
-						<p className="mb-6 text-(length:--text-xs) text-text-muted">
-							This action cannot be undone.
-						</p>
-						<div className="flex justify-center gap-2.5">
-							<button
-								className="cursor-pointer rounded-md border border-border px-4 py-2 text-(length:--text-xs) font-medium text-text transition-colors hover:bg-(--color-secondary)"
-								onClick={handleCancelDelete}
-								type="button"
-							>
-								Cancel
-							</button>
-							<button
-								className="cursor-pointer rounded-md bg-red-600 px-4 py-2 text-(length:--text-xs) font-medium text-white transition-colors hover:bg-red-700"
-								onClick={handleDeleteProjectConfirm}
-								type="button"
-							>
-								Delete
-							</button>
-						</div>
-					</div>
+			<Modal
+				className="w-full max-w-sm rounded-lg border border-border bg-(--color-surface) p-5 text-center shadow-md sm:p-6"
+				isOpen={Boolean(deletingProjectId)}
+				onClose={handleCancelDelete}
+				title="Delete Project?"
+			>
+				<p className="mb-6 text-xs text-text-muted">
+					This action cannot be undone.
+				</p>
+				<div className="flex justify-center gap-2.5">
+					<Button onClick={handleCancelDelete} variant="secondary">
+						Cancel
+					</Button>
+					<Button onClick={handleDeleteProjectConfirm} variant="destructive">
+						Delete
+					</Button>
 				</div>
-			)}
+			</Modal>
 		</div>
 	);
 };

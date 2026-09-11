@@ -1,5 +1,7 @@
 import React, { useCallback } from "react";
 
+import { Button, Icon } from "~/components/components.js";
+
 import { type ProjectRole } from "../types/types.js";
 
 interface ProjectCardProperties {
@@ -36,19 +38,7 @@ const roleConfig: Record<
 		badgeText: "text-(--color-success)",
 		iconBg: "bg-(--color-success-bg)",
 		iconColor: "text-(--color-success)",
-		iconNode: (
-			<svg
-				fill="none"
-				height="20"
-				stroke="currentColor"
-				strokeWidth="1.5"
-				viewBox="0 0 24 24"
-				width="20"
-			>
-				<rect height="18" rx="3" width="14" x="5" y="3" />
-				<circle cx="12" cy="17" fill="currentColor" r="1" />
-			</svg>
-		),
+		iconNode: <Icon name="shield" size={20} />,
 		label: "Admin",
 	},
 	EDITOR: {
@@ -56,27 +46,7 @@ const roleConfig: Record<
 		badgeText: "text-(--color-success)",
 		iconBg: "bg-(--color-success-bg)",
 		iconColor: "text-(--color-success)",
-		iconNode: (
-			<svg
-				fill="none"
-				height="20"
-				stroke="currentColor"
-				strokeWidth="1.5"
-				viewBox="0 0 24 24"
-				width="20"
-			>
-				<path
-					d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-				/>
-				<path
-					d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-				/>
-			</svg>
-		),
+		iconNode: <Icon name="file" size={20} />,
 		label: "Editor",
 	},
 	VIEWER: {
@@ -84,29 +54,7 @@ const roleConfig: Record<
 		badgeText: "text-(--color-warning)",
 		iconBg: "bg-(--color-warning-bg)",
 		iconColor: "text-(--color-warning)",
-		iconNode: (
-			<svg
-				fill="none"
-				height="20"
-				stroke="currentColor"
-				strokeWidth="1.5"
-				viewBox="0 0 24 24"
-				width="20"
-			>
-				<path
-					d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-				/>
-				<circle
-					cx="12"
-					cy="12"
-					r="3"
-					strokeLinecap="round"
-					strokeLinejoin="round"
-				/>
-			</svg>
-		),
+		iconNode: <Icon name="search" size={20} />,
 		label: "Viewer",
 	},
 };
@@ -117,6 +65,7 @@ const formatRelativeTime = (dateString: string): string => {
 	}
 
 	const date = new Date(dateString);
+
 	if (Number.isNaN(date.getTime())) {
 		return dateString;
 	}
@@ -211,56 +160,25 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 						</span>
 
 						{onEdit && (
-							<button
+							<Button
 								aria-label="Edit project"
-								className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-text-muted transition-colors hover:bg-(--color-secondary) hover:text-text"
+								className="h-8 w-8 text-text-muted hover:bg-(--color-secondary) hover:text-text"
 								onClick={handleEdit}
-								type="button"
+								variant="icon"
 							>
-								<svg
-									fill="none"
-									height="14"
-									stroke="currentColor"
-									strokeWidth="1.5"
-									viewBox="0 0 24 24"
-									width="14"
-								>
-									<path
-										d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-									/>
-									<path
-										d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-									/>
-								</svg>
-							</button>
+								<Icon name="file-sharp" size={14} />
+							</Button>
 						)}
 
 						{onDelete && (
-							<button
+							<Button
 								aria-label="Delete project"
-								className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md text-text-muted transition-colors hover:bg-red-50 hover:text-red-600"
+								className="h-8 w-8 text-text-muted hover:bg-red-50 hover:text-red-600"
 								onClick={handleDelete}
-								type="button"
+								variant="icon"
 							>
-								<svg
-									fill="none"
-									height="14"
-									stroke="currentColor"
-									strokeWidth="1.5"
-									viewBox="0 0 24 24"
-									width="14"
-								>
-									<path
-										d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-										strokeLinecap="round"
-										strokeLinejoin="round"
-									/>
-								</svg>
-							</button>
+								<Icon name="close" size={14} />
+							</Button>
 						)}
 					</div>
 				</div>
@@ -278,38 +196,18 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 
 			<div className="mt-5 flex items-center justify-between border-t border-(--color-border-subtle) pt-4">
 				<div className="flex items-center gap-1.5 text-(length:--text-sm) text-text-muted">
-					<svg
-						className="h-3.5 w-3.5 shrink-0 text-text-faint"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<circle cx="12" cy="12" r="9" strokeWidth="1.5" />
-						<path d="M12 7v5l3 2" strokeLinecap="round" strokeWidth="1.5" />
-					</svg>
+					<Icon name="aperture" size={14} />
 					<span>{formatRelativeTime(updatedAt)}</span>
 				</div>
 
-				<button
+				<Button
 					aria-label="Open project"
-					className="flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border bg-(--color-secondary) text-text-muted transition-colors hover:border-primary hover:bg-primary hover:text-(--color-primary-fg)"
+					className="h-8 w-8 rounded-full border border-border bg-(--color-secondary) text-text-muted transition-colors hover:border-primary hover:bg-primary hover:text-(--color-primary-fg)"
 					onClick={handleClick}
-					type="button"
+					variant="icon"
 				>
-					<svg
-						className="h-4 w-4"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path
-							d="M13.5 4.5L19.5 10.5M19.5 10.5L13.5 16.5M19.5 10.5H4.5"
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							strokeWidth="1.5"
-						/>
-					</svg>
-				</button>
+					<Icon name="arrow-right-long" size={16} />
+				</Button>
 			</div>
 		</div>
 	);
