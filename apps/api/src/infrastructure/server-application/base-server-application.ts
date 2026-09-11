@@ -1,3 +1,4 @@
+import { type S3Client } from "@aws-sdk/client-s3";
 import { fastifyCookie } from "@fastify/cookie";
 import fastifySession from "@fastify/session";
 import fastifyStatic from "@fastify/static";
@@ -11,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { type Config } from "~/infrastructure/config/config.js";
 import { type Database } from "~/infrastructure/database/database.js";
 import { DatabaseStore } from "~/infrastructure/database/libs/packages/session/database-store.js";
+import { type Health, HealthStatus } from "~/infrastructure/health/health.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { ServerErrorType } from "~/shared/enums/enums.js";
@@ -31,9 +33,17 @@ type Constructor = {
 	apis: ServerApplicationApi[];
 	config: Config;
 	database: Database;
+	health: Health;
 	logger: Logger;
+	s3Client: S3Client;
 	title: string;
 };
+
+declare module "fastify" {
+	interface FastifyInstance {
+		s3: S3Client;
+	}
+}
 
 class BaseServerApplication implements ServerApplication {
 	private apis: ServerApplicationApi[];
@@ -44,16 +54,30 @@ class BaseServerApplication implements ServerApplication {
 
 	private database: Database;
 
+	private health: Health;
+
 	private logger: Logger;
+
+	private s3Client: S3Client;
 
 	private title: string;
 
-	public constructor({ apis, config, database, logger, title }: Constructor) {
+	public constructor({
+		apis,
+		config,
+		database,
+		health,
+		logger,
+		s3Client,
+		title,
+	}: Constructor) {
 		this.title = title;
 		this.config = config;
 		this.logger = logger;
 		this.database = database;
+		this.s3Client = s3Client;
 		this.apis = apis;
+		this.health = health;
 
 		this.initApp();
 	}
@@ -62,6 +86,8 @@ class BaseServerApplication implements ServerApplication {
 		this.app = Fastify({
 			ignoreTrailingSlash: true,
 		});
+
+		this.app.decorate("s3", this.s3Client);
 	}
 
 	private initErrorHandler(): void {
@@ -113,7 +139,14 @@ class BaseServerApplication implements ServerApplication {
 
 	private initHealthCheck(): void {
 		this.app.get("/health", async (_request, reply) => {
-			return await reply.status(HTTPCode.OK).send({ status: "ok" });
+			const health = await this.health.getHealthStatus();
+
+			const httpStatus =
+				health.status === HealthStatus.OK
+					? HTTPCode.OK
+					: HTTPCode.SERVICE_UNAVAILABLE;
+
+			return await reply.status(httpStatus).send(health);
 		});
 	}
 
@@ -164,7 +197,8 @@ class BaseServerApplication implements ServerApplication {
 			handler,
 			method,
 			schema: {
-				body: validation?.body,
+				...(validation?.body && { body: validation.body }),
+				...(validation?.params && { params: validation.params }),
 			},
 			url: path,
 		});

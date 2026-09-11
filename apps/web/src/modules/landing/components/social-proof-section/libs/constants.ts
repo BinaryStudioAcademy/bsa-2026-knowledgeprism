@@ -1,0 +1,14 @@
+const SOCIAL_PROOF_SECTION_COPY = {
+	line: "Built for teams managing complex, ever-changing knowledge",
+} as const;
+
+const SOCIAL_PROOF_LOGO_HEIGHT = 24;
+const SOCIAL_PROOF_LOGO_WIDTH = 88;
+const SOCIAL_PROOF_LOGO_VIEW_BOX = "0 0 88 24";
+
+export {
+	SOCIAL_PROOF_LOGO_HEIGHT,
+	SOCIAL_PROOF_LOGO_VIEW_BOX,
+	SOCIAL_PROOF_LOGO_WIDTH,
+	SOCIAL_PROOF_SECTION_COPY,
+};
