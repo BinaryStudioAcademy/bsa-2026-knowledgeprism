@@ -1,9 +1,11 @@
 import { APIPath, DocumentsApiPath } from "@knowledgeprism/constants";
 import {
+	documentConfirmUploadRouteParametersValidationSchema,
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
+	type DocumentConfirmUploadRouteParametersDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentRouteParametersDto,
 } from "@knowledgeprism/types";
@@ -53,6 +55,18 @@ import { type DocumentService } from "../services/document.service.js";
  *          expiresInSeconds:
  *            type: number
  *            example: 900
+ *      DocumentConfirmUploadResponse:
+ *        type: object
+ *        properties:
+ *          documentId:
+ *            type: number
+ *            example: 1
+ *          status:
+ *            type: string
+ *            example: PARSED
+ *          blocksCount:
+ *            type: number
+ *            example: 4
  */
 class DocumentController extends BaseController {
 	private documentService: DocumentService;
@@ -77,6 +91,57 @@ class DocumentController extends BaseController {
 				params: documentUploadIntentRouteParametersValidationSchema,
 			},
 		});
+
+		this.addRoute({
+			handler: (options) =>
+				this.confirmUpload(
+					options as APIHandlerOptions<{
+						params: DocumentConfirmUploadRouteParametersDto;
+					}>,
+				),
+			method: "POST",
+			path: DocumentsApiPath.CONFIRM_UPLOAD,
+			validation: {
+				params: documentConfirmUploadRouteParametersValidationSchema,
+			},
+		});
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/documents/{documentId}/confirm-upload:
+	 *    post:
+	 *      description: Confirm a document was uploaded to S3 and trigger parsing into blocks
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: string
+	 *        - in: path
+	 *          name: documentId
+	 *          required: true
+	 *          schema:
+	 *            type: number
+	 *      responses:
+	 *        200:
+	 *          description: Document parsed successfully
+	 *          content:
+	 *            application/json:
+	 *              schema:
+	 *                $ref: "#/components/schemas/DocumentConfirmUploadResponse"
+	 */
+	private async confirmUpload(
+		options: APIHandlerOptions<{
+			params: DocumentConfirmUploadRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.documentService.confirmUpload({
+				routeParameters: options.params,
+			}),
+			status: HTTPCode.OK,
+		};
 	}
 
 	/**
