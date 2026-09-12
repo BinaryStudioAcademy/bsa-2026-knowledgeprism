@@ -66,21 +66,14 @@ const SignInForm = ({ isLoading = false, onSubmit }: Properties) => {
 					placeholder="Enter your password"
 					type="password"
 				/>
-				<div className="flex justify-between">
-					<Checkbox
-						control={control}
-						label={
-							<Paragraph size={ParagraphSize.BODY_SMALL}>Remember me</Paragraph>
-						}
-						name="rememberMe"
-					/>
-					<Paragraph
-						className="text-accent! cursor-pointer"
-						size={ParagraphSize.BODY_SMALL}
-					>
-						Forgot password?
-					</Paragraph>
-				</div>
+				<Checkbox
+					control={control}
+					label={
+						<Paragraph size={ParagraphSize.BODY_SMALL}>Remember me</Paragraph>
+					}
+					name="rememberMe"
+				/>
+
 				<Button isLoading={isLoading} type="submit">
 					Sign in
 				</Button>
