@@ -25,7 +25,7 @@ const FEATURES_LIST = [
 		title: "Shared glossary",
 	},
 	{
-		body: "Role-based access and full audit logs.",
+		body: "Each organisation's data and knowledge are isolated from other organisations.",
 		iconName: "shield",
 		id: FeatureId.SECURITY,
 		title: "Enterprise security",
@@ -65,7 +65,7 @@ const FEATURE_PREVIEW_CONTENT = {
 	SECURITY: {
 		AUDIT_ACTOR: "Sarah J. edited Camera system",
 		AUDIT_TIME: "2h ago",
-		BADGES: ["SOC 2 TYPE II", "GDPR READY"],
+		BADGES: ["PER ORGANISATION", "NO CROSS-TENANT ACCESS"],
 	},
 } as const;
 
