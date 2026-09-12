@@ -5,10 +5,12 @@ import {
 	Checkbox,
 	Heading,
 	Input,
+	Link,
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
 import { useAppForm, useCallback } from "~/hooks/hooks.js";
+import { AppRoute } from "~/lib/enums/app-route.enum.js";
 
 import { DEFAULT_SIGN_UP_PAYLOAD } from "./libs/constants.js";
 import { type SignUpFormValues } from "./libs/types.js";
@@ -112,6 +114,15 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 					Create Account
 				</Button>
 			</form>
+			<Paragraph
+				className="pt-2 w-full text-center"
+				size={ParagraphSize.BODY_SMALL}
+			>
+				Already have an account?{" "}
+				<Link to={AppRoute.SIGN_IN} variant="inline">
+					Sign in
+				</Link>
+			</Paragraph>
 		</>
 	);
 };
