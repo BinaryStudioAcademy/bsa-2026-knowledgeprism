@@ -9,6 +9,7 @@ import { email } from "./email.validation-schema.js";
 
 const DIGIT_PATTERN = /\d/u;
 const SPECIAL_CHARACTER_PATTERN = /[^A-Za-z0-9]/u;
+const EMOJI_PATTERN = /(?:\p{Emoji_Presentation}|\p{Extended_Pictographic})/u;
 
 const createRequiredNameField = (
 	requiredError: string,
@@ -27,6 +28,10 @@ const createRequiredNameField = (
 
 const hasNameDigit = (name: string): boolean => {
 	return DIGIT_PATTERN.test(name);
+};
+
+const hasEmoji = (value: string): boolean => {
+	return EMOJI_PATTERN.test(value);
 };
 
 const hasPasswordDigit = (password: string): boolean => {
@@ -63,38 +68,72 @@ const userSignUp = z
 			}),
 	})
 	.required()
-	.superRefine(({ firstName, lastName, password }, context) => {
-		if (hasNameDigit(firstName)) {
-			context.addIssue({
-				code: "custom",
-				message: AuthValidationMessage.FIRST_NAME_DIGIT_WRONG,
-				path: ["firstName"],
-			});
-		}
+	.superRefine(
+		({ firstName, lastName, organisationName, password }, context) => {
+			if (hasNameDigit(firstName)) {
+				context.addIssue({
+					code: "custom",
+					message: AuthValidationMessage.FIRST_NAME_DIGIT_WRONG,
+					path: ["firstName"],
+				});
+			}
 
-		if (hasNameDigit(lastName)) {
-			context.addIssue({
-				code: "custom",
-				message: AuthValidationMessage.LAST_NAME_DIGIT_WRONG,
-				path: ["lastName"],
-			});
-		}
+			if (hasEmoji(firstName)) {
+				context.addIssue({
+					code: "custom",
+					message: AuthValidationMessage.FIRST_NAME_EMOJI_WRONG,
+					path: ["firstName"],
+				});
+			}
 
-		if (!hasPasswordDigit(password)) {
-			context.addIssue({
-				code: "custom",
-				message: UserValidationMessage.PASSWORD_DIGIT_REQUIRE,
-				path: ["password"],
-			});
-		}
+			if (hasNameDigit(lastName)) {
+				context.addIssue({
+					code: "custom",
+					message: AuthValidationMessage.LAST_NAME_DIGIT_WRONG,
+					path: ["lastName"],
+				});
+			}
 
-		if (!hasPasswordSpecialCharacter(password)) {
-			context.addIssue({
-				code: "custom",
-				message: UserValidationMessage.PASSWORD_SPECIAL_CHARACTER_REQUIRE,
-				path: ["password"],
-			});
-		}
-	});
+			if (hasEmoji(lastName)) {
+				context.addIssue({
+					code: "custom",
+					message: AuthValidationMessage.LAST_NAME_EMOJI_WRONG,
+					path: ["lastName"],
+				});
+			}
+
+			if (hasEmoji(organisationName)) {
+				context.addIssue({
+					code: "custom",
+					message: AuthValidationMessage.ORGANISATION_NAME_EMOJI_WRONG,
+					path: ["organisationName"],
+				});
+			}
+
+			if (!hasPasswordDigit(password)) {
+				context.addIssue({
+					code: "custom",
+					message: UserValidationMessage.PASSWORD_DIGIT_REQUIRE,
+					path: ["password"],
+				});
+			}
+
+			if (hasEmoji(password)) {
+				context.addIssue({
+					code: "custom",
+					message: UserValidationMessage.PASSWORD_EMOJI_WRONG,
+					path: ["password"],
+				});
+			}
+
+			if (!hasPasswordSpecialCharacter(password)) {
+				context.addIssue({
+					code: "custom",
+					message: UserValidationMessage.PASSWORD_SPECIAL_CHARACTER_REQUIRE,
+					path: ["password"],
+				});
+			}
+		},
+	);
 
 export { userSignUp };
