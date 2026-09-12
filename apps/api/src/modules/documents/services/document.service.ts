@@ -7,60 +7,41 @@ import {
 	type DocumentUploadIntentRouteParametersDto,
 } from "@knowledgeprism/types";
 
-import { type Database } from "~/infrastructure/database/database.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/helpers.js";
 import {
-	type FetchDocumentObjectBytes,
+	type CheckDocumentObjectExists,
 	type GeneratePresignedUploadUrl,
 } from "~/infrastructure/s3/libs/types/types.js";
-import {
-	buildDocumentStorageKey,
-	parsePdfDocumentIntoBlocks,
-	type PdfPageBlock,
-} from "~/modules/documents/libs/helpers/helpers.js";
-import { DocumentBlockEntity } from "~/modules/documents/models/document-block.entity.js";
+import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
-import { type DocumentBlockRepository } from "~/modules/documents/repositories/document-block.repository.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 
-const EMPTY_LENGTH = 0;
-
 class DocumentService {
-	private documentBlockRepository: DocumentBlockRepository;
+	private checkDocumentObjectExists: CheckDocumentObjectExists;
 
 	private documentRepository: DocumentRepository;
-
-	private fetchDocumentObjectBytes: FetchDocumentObjectBytes;
 
 	private generatePresignedUploadUrl: GeneratePresignedUploadUrl;
 
 	private logger: Logger;
 
-	private runInTransaction: Database["transaction"];
-
 	public constructor({
-		documentBlockRepository,
+		checkDocumentObjectExists,
 		documentRepository,
-		fetchDocumentObjectBytes,
 		generatePresignedUploadUrl,
 		logger,
-		runInTransaction,
 	}: {
-		documentBlockRepository: DocumentBlockRepository;
+		checkDocumentObjectExists: CheckDocumentObjectExists;
 		documentRepository: DocumentRepository;
-		fetchDocumentObjectBytes: FetchDocumentObjectBytes;
 		generatePresignedUploadUrl: GeneratePresignedUploadUrl;
 		logger: Logger;
-		runInTransaction: Database["transaction"];
 	}) {
-		this.documentBlockRepository = documentBlockRepository;
+		this.checkDocumentObjectExists = checkDocumentObjectExists;
 		this.documentRepository = documentRepository;
-		this.fetchDocumentObjectBytes = fetchDocumentObjectBytes;
 		this.generatePresignedUploadUrl = generatePresignedUploadUrl;
 		this.logger = logger;
-		this.runInTransaction = runInTransaction;
 	}
 
 	private async failAndThrow(
@@ -113,66 +94,36 @@ class DocumentService {
 			status: DocumentStatus.PROCESSING,
 		});
 
-		let bytes: Uint8Array;
+		let isObjectPresent: boolean;
 
 		try {
-			bytes = await this.fetchDocumentObjectBytes({
+			isObjectPresent = await this.checkDocumentObjectExists({
 				key: documentObject.s3Key,
 			});
 		} catch (error) {
 			return await this.failAndThrow(
 				documentId,
-				"Failed to fetch document from S3.",
+				"Failed to verify uploaded document in S3.",
 				error,
 			);
 		}
 
-		let pages: PdfPageBlock[];
-
-		try {
-			pages = await parsePdfDocumentIntoBlocks(bytes);
-
-			if (pages.length === EMPTY_LENGTH) {
-				throw new Error("Parsed PDF has no pages.");
-			}
-		} catch (error) {
+		if (!isObjectPresent) {
 			return await this.failAndThrow(
 				documentId,
-				"Failed to parse PDF document.",
-				error,
+				"Uploaded document was not found in S3.",
+				new Error("S3 object missing"),
 			);
 		}
 
-		try {
-			await this.runInTransaction(async (transaction) => {
-				await this.documentBlockRepository.createMany(
-					pages.map((page) =>
-						DocumentBlockEntity.initializeNew({
-							content: page.content,
-							documentId,
-							pageNumber: page.pageNumber,
-						}),
-					),
-					transaction,
-				);
-
-				await this.documentRepository.updateStatus(
-					{ id: documentId, status: DocumentStatus.PARSED },
-					transaction,
-				);
-			});
-		} catch (error) {
-			return await this.failAndThrow(
-				documentId,
-				"Failed to persist parsed document blocks.",
-				error,
-			);
-		}
+		const confirmedDocument = await this.documentRepository.updateStatus({
+			id: documentId,
+			status: DocumentStatus.PARSED,
+		});
 
 		return {
-			blocksCount: pages.length,
 			documentId,
-			status: DocumentStatus.PARSED,
+			status: confirmedDocument.toObject().status,
 		};
 	}
 

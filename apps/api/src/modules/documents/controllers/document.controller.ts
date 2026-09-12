@@ -64,9 +64,6 @@ import { type DocumentService } from "../services/document.service.js";
  *          status:
  *            type: string
  *            example: PARSED
- *          blocksCount:
- *            type: number
- *            example: 4
  */
 class DocumentController extends BaseController {
 	private documentService: DocumentService;
