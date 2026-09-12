@@ -1,4 +1,8 @@
-import { AuthApiPath, AuthValidationMessage } from "@knowledgeprism/constants";
+import {
+	AuthApiPath,
+	AuthValidationMessage,
+	TimeMs,
+} from "@knowledgeprism/constants";
 import {
 	userSignInValidationSchema,
 	userSignUpValidationSchema,
@@ -18,6 +22,8 @@ import { type Logger } from "~/infrastructure/logger/logger.js";
 import { APIPath } from "~/shared/enums/enums.js";
 
 import { type AuthService } from "../services/auth.service.js";
+
+const SESSION_LIFETIME_DAYS = 30;
 
 class AuthController extends BaseController {
 	private authService: AuthService;
@@ -144,6 +150,13 @@ class AuthController extends BaseController {
 		const authResult = await this.authService.signIn(options.body);
 		options.session.userId = authResult.user.id;
 		options.session.organisationId = authResult.organisation.id;
+
+		if (options.body.rememberMe) {
+			options.session.cookie.maxAge = TimeMs.DAY * SESSION_LIFETIME_DAYS;
+		} else {
+			delete options.session.cookie.maxAge;
+		}
+
 		await options.session.regenerate(["userId", "organisationId"]);
 
 		return {

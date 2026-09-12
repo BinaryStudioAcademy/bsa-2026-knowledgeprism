@@ -8,6 +8,7 @@ const userSignIn = z.object({
 	password: z
 		.string()
 		.min(UserValidationRule.PASSWORD_MINIMUM_LENGTH, "Password is required."),
+	rememberMe: z.boolean().optional(),
 });
 
 export { userSignIn };
