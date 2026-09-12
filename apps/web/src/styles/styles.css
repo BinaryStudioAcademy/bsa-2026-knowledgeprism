@@ -14,12 +14,14 @@
 	--text-control: 14px;
 	--text-sm: 13px;
 	--text-xs: 11px;
+	--text-2xs: 10px;
 	--color-primary: rgb(45 42 38);
 	--color-primary-hover: rgb(26 24 22);
 	--color-primary-fg: rgb(255 255 255);
 	--color-secondary: rgb(242 240 236);
 	--color-accent: rgb(42 107 90);
 	--color-accent-hover: rgb(30 80 68);
+	--color-accent-light: rgb(58 139 116);
 	--color-bg: rgb(250 249 247);
 	--color-surface: rgb(255 255 255);
 	--color-border: rgb(229 226 219);
@@ -57,102 +59,6 @@ body:has(dialog:modal) {
 }
 
 @layer components {
-	.btn {
-		padding: 10px 20px;
-		font-family: var(--font-sans);
-		font-size: 13px;
-		font-weight: 500;
-		border-radius: var(--radius-md);
-	}
-
-	.btn:focus-visible {
-		outline: none;
-		box-shadow: 0 0 0 3px rgb(42 107 90 / 35%);
-	}
-
-	.btn:disabled {
-		cursor: not-allowed;
-	}
-
-	.btn-primary {
-		color: var(--color-primary-fg);
-		background-color: var(--color-primary);
-	}
-
-	.btn-primary:disabled {
-		color: var(--color-text-faint);
-		background-color: var(--color-border-subtle);
-	}
-
-	.btn-primary:hover:not(:disabled) {
-		background-color: var(--color-primary-hover);
-	}
-
-	.btn-secondary {
-		color: var(--color-text);
-		background-color: var(--color-surface);
-		border: 1px solid var(--color-border);
-	}
-
-	.btn-secondary:disabled {
-		color: var(--color-text-disabled);
-		background-color: var(--color-surface);
-		border-color: var(--color-border-subtle);
-	}
-
-	.btn-secondary:hover:not(:disabled) {
-		background-color: var(--color-border-subtle);
-	}
-
-	.btn-ghost {
-		color: var(--color-text);
-		background-color: transparent;
-	}
-
-	.btn-ghost:disabled {
-		color: var(--color-text-disabled);
-		background-color: transparent;
-	}
-
-	.btn-ghost:hover:not(:disabled) {
-		background-color: var(--color-border-subtle);
-	}
-
-	.btn-destructive {
-		color: var(--color-primary-fg);
-		background-color: var(--color-error);
-	}
-
-	.btn-destructive:focus-visible {
-		box-shadow: 0 0 0 3px rgb(196 67 58 / 30%);
-	}
-
-	.btn-destructive:disabled {
-		color: var(--color-error-disabled);
-		background-color: var(--color-error-bg);
-	}
-
-	.btn-destructive:hover:not(:disabled) {
-		background-color: var(--color-error-hover);
-	}
-
-	.btn-icon {
-		width: 36px;
-		height: 36px;
-		padding: 0;
-		background-color: transparent;
-		border: 1px solid var(--color-border);
-	}
-
-	.btn-icon:disabled {
-		color: var(--color-text-disabled);
-		border-color: var(--color-border-subtle);
-	}
-
-	.btn-icon:hover:not(:disabled) {
-		background-color: var(--color-border-subtle);
-	}
-
 	.ds-nav-link {
 		display: flex;
 		align-items: center;
@@ -183,11 +89,20 @@ body:has(dialog:modal) {
 		gap: 10px;
 		align-items: center;
 		padding: 10px 12px;
+		font-family: inherit;
 		font-size: 13px;
 		color: var(--color-text-muted);
 		text-decoration: none;
+		cursor: pointer;
+		background: none;
+		border: none;
 		border-radius: var(--radius-md);
 		transition: background-color 0.15s ease;
+	}
+
+	.nav-item:hover {
+		color: var(--color-text);
+		background-color: var(--color-secondary);
 	}
 
 	.nav-item.is-active {
@@ -211,74 +126,6 @@ body:has(dialog:modal) {
 	.tab-link.is-active {
 		color: var(--color-accent);
 		border-bottom-color: var(--color-accent);
-	}
-
-	.form-label {
-		display: block;
-		margin-bottom: 6px;
-		font-family: var(--font-sans);
-		font-size: 12px;
-		font-weight: 500;
-		color: var(--color-text);
-	}
-
-	.form-label.is-error {
-		color: var(--color-error);
-	}
-
-	.form-input,
-	.form-textarea,
-	.form-select {
-		width: 100%;
-		padding: 0 14px;
-		font-family: var(--font-sans);
-		font-size: 14px;
-		color: var(--color-text);
-		background-color: var(--color-surface);
-		border: 1px solid var(--color-border);
-		border-radius: var(--radius-md);
-		transition:
-			border-color 0.15s ease,
-			box-shadow 0.15s ease;
-	}
-
-	.form-input,
-	.form-select {
-		height: 40px;
-	}
-
-	.form-textarea {
-		padding-top: 10px;
-		padding-bottom: 10px;
-		resize: vertical;
-	}
-
-	.form-input:focus,
-	.form-textarea:focus,
-	.form-select:focus {
-		outline: none;
-		border-color: var(--color-accent);
-		box-shadow: 0 0 0 3px rgb(42 107 90 / 15%);
-	}
-
-	.form-input.is-error,
-	.form-textarea.is-error {
-		background-color: var(--color-error-bg);
-		border-color: var(--color-error);
-	}
-
-	.form-error-message {
-		margin-top: 4px;
-		font-size: 12px;
-		color: var(--color-error);
-	}
-
-	.form-input:disabled,
-	.form-textarea:disabled {
-		color: var(--color-text-faint);
-		cursor: not-allowed;
-		background-color: var(--color-bg);
-		border-color: var(--color-border-subtle);
 	}
 
 	.card {
@@ -327,29 +174,6 @@ body:has(dialog:modal) {
 		background: var(--color-error-bg);
 	}
 
-	.alert {
-		display: flex;
-		gap: 10px;
-		align-items: flex-start;
-		padding: 14px 16px;
-		border-radius: var(--radius-md);
-	}
-
-	.alert--success {
-		background: var(--color-success-bg);
-		border: 1px solid rgb(42 107 90 / 25%);
-	}
-
-	.alert--warning {
-		background: var(--color-warning-bg);
-		border: 1px solid rgb(201 154 58 / 30%);
-	}
-
-	.alert--error {
-		background: var(--color-error-bg);
-		border: 1px solid rgb(196 67 58 / 25%);
-	}
-
 	.empty-state {
 		padding: 36px 24px;
 		text-align: center;
@@ -366,7 +190,7 @@ body:has(dialog:modal) {
 
 	.dropdown-menu {
 		position: absolute;
-		top: 100%;
+		top: calc(100% + 6px);
 		left: 0;
 		z-index: 5;
 		min-width: 160px;
@@ -378,9 +202,12 @@ body:has(dialog:modal) {
 	}
 
 	.dropdown-item {
+		display: block;
+		width: 100%;
 		padding: 9px 12px;
 		font-size: 13px;
 		color: var(--color-text);
+		text-align: left;
 		cursor: pointer;
 		border-radius: var(--radius-sm);
 		transition: background-color 0.15s ease;
@@ -396,24 +223,6 @@ body:has(dialog:modal) {
 
 	.dropdown-item.is-danger:hover {
 		background: var(--color-error-bg);
-	}
-
-	.modal-backdrop {
-		position: fixed;
-		inset: 0;
-		z-index: 20;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		background: rgb(45 42 38 / 40%);
-	}
-
-	.modal {
-		width: 400px;
-		padding: 28px;
-		background: var(--color-surface);
-		border-radius: var(--radius-lg);
-		box-shadow: var(--shadow-lg);
 	}
 
 	.drawer-backdrop {

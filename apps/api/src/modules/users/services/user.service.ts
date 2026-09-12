@@ -1,7 +1,11 @@
-import { HTTPCode } from "@knowledgeprism/constants";
+import { HTTPCode, UserValidationMessage } from "@knowledgeprism/constants";
 import {
+	type UserCreateRequestDto,
+	type UserDetailsResponseDto,
+	type UserGetAllItemResponseDto,
 	type UserGetAllResponseDto,
 	type UserSignUpRequestDto,
+	type UserUpdateRequestDto,
 } from "@knowledgeprism/types";
 import { type Transaction, UniqueViolationError } from "objection";
 
@@ -24,6 +28,37 @@ class UserService implements Service {
 	) {
 		this.encryptService = encryptService;
 		this.userRepository = userRepository;
+	}
+
+	private guardSelfModification(
+		id: number,
+		currentUserId: number,
+		payload: UserUpdateRequestDto,
+	): void {
+		if (id !== currentUserId) {
+			return;
+		}
+
+		if (payload.status) {
+			throw new HTTPError({
+				message: UserValidationMessage.USER_CANNOT_UPDATE_STATUS,
+				status: HTTPCode.BAD_REQUEST,
+			});
+		}
+
+		if (payload.email) {
+			throw new HTTPError({
+				message: UserValidationMessage.USER_CANNOT_UPDATE_EMAIL,
+				status: HTTPCode.BAD_REQUEST,
+			});
+		}
+
+		if (payload.assignedProjects) {
+			throw new HTTPError({
+				message: UserValidationMessage.USER_CANNOT_REMOVE_SELF_FROM_PROJECTS,
+				status: HTTPCode.BAD_REQUEST,
+			});
+		}
 	}
 
 	public create(): ReturnType<Service["create"]> {
@@ -60,6 +95,7 @@ class UserService implements Service {
 					lastName: payload.lastName,
 					organisationId: payload.organisationId,
 					passwordHash,
+					status: "active",
 				}),
 				transaction,
 			);
@@ -74,6 +110,38 @@ class UserService implements Service {
 
 			throw error;
 		}
+	}
+
+	public async createOrgUser(
+		payload: UserCreateRequestDto,
+		organisationId: number,
+	): Promise<UserDetailsResponseDto> {
+		const existingUser = await this.userRepository.findByEmail(payload.email);
+
+		if (existingUser) {
+			throw new HTTPError({
+				message: UserValidationMessage.EMAIL_ALREADY_EXISTS,
+				status: HTTPCode.CONFLICT,
+			});
+		}
+
+		const passwordHash = await this.encryptService.generateHash(
+			payload.password,
+		);
+
+		const item = await this.userRepository.createOrgUser(
+			UserEntity.initializeNew({
+				email: payload.email,
+				firstName: payload.firstName,
+				lastName: payload.lastName,
+				organisationId,
+				passwordHash,
+				status: "active",
+			}),
+			payload.assignedProjects,
+		);
+
+		return item.toObject();
 	}
 
 	public delete(): ReturnType<Service["delete"]> {
@@ -92,6 +160,16 @@ class UserService implements Service {
 		};
 	}
 
+	public async findAllByOrgId(
+		organisationId: number,
+	): Promise<{ items: UserGetAllItemResponseDto[] }> {
+		const items = await this.userRepository.findAllByOrgId(organisationId);
+
+		return {
+			items: items.map((item) => item.toObject()),
+		};
+	}
+
 	public async findByEmail(email: string): Promise<null | UserEntity> {
 		return await this.userRepository.findByEmail(email);
 	}
@@ -100,8 +178,92 @@ class UserService implements Service {
 		return await this.userRepository.findById(id);
 	}
 
+	public async findDetailsById(
+		id: number,
+		organisationId: number,
+	): Promise<UserDetailsResponseDto> {
+		const item = await this.userRepository.findDetailsById(id, organisationId);
+
+		if (!item) {
+			throw new HTTPError({
+				message: UserValidationMessage.USER_NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
+		return item.toObject();
+	}
+
 	public update(): ReturnType<Service["update"]> {
 		return Promise.resolve(null);
+	}
+
+	public async updateOrgUser({
+		currentUserId,
+		id,
+		organisationId,
+		payload,
+	}: {
+		currentUserId: number;
+		id: number;
+		organisationId: number;
+		payload: UserUpdateRequestDto;
+	}): Promise<UserDetailsResponseDto> {
+		const existingUser = await this.userRepository.findDetailsById(
+			id,
+			organisationId,
+		);
+
+		if (!existingUser) {
+			throw new HTTPError({
+				message: UserValidationMessage.USER_NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
+		this.guardSelfModification(id, currentUserId, payload);
+
+		const { assignedProjects, email, firstName, lastName, password, status } =
+			payload;
+
+		const entity: Partial<ReturnType<UserEntity["toNewObject"]>> = {
+			...(email !== undefined && { email }),
+			...(firstName !== undefined && { firstName }),
+			...(lastName !== undefined && { lastName }),
+			...(status !== undefined && { status }),
+		};
+
+		if (password) {
+			entity.passwordHash = await this.encryptService.generateHash(password);
+		}
+
+		if (email && email !== existingUser.toObject().email) {
+			const emailTaken = await this.userRepository.findByEmail(email);
+			if (emailTaken) {
+				throw new HTTPError({
+					message: UserValidationMessage.EMAIL_ALREADY_EXISTS,
+					status: HTTPCode.CONFLICT,
+				});
+			}
+		}
+
+		const updatedUser = await this.userRepository.updateOrgUser({
+			...(assignedProjects && {
+				assignedProjects,
+			}),
+			entity,
+			id,
+			organisationId,
+		});
+
+		if (!updatedUser) {
+			throw new HTTPError({
+				message: UserValidationMessage.USER_NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
+		return updatedUser.toObject();
 	}
 }
 
