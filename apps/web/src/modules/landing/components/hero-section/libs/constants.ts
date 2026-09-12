@@ -3,7 +3,6 @@ const HERO_SECTION_COPY = {
 	eyebrow: "Order from chaos",
 	heading: "Turn scattered documents into one queryable knowledge graph.",
 	primaryCTA: "Start Building",
-	secondaryCTA: "View Documentation",
 } as const;
 
 const HERO_DEMO_PANEL = {

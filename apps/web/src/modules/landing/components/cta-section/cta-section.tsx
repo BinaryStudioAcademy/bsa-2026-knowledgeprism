@@ -4,10 +4,6 @@ import { Button } from "~/components/button/button.js";
 import { useCallback } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import {
-	LANDING_FOCUS_RING,
-	LANDING_PLACEHOLDER_HREF,
-} from "~/modules/landing/libs/constants.js";
 
 import { FloatingMark } from "../floating-mark/floating-mark.js";
 import { CTA_SECTION_COPY } from "./libs/constants.js";
@@ -37,15 +33,6 @@ const CtaSection: React.FC = () => {
 					>
 						{CTA_SECTION_COPY.primaryCTA}
 					</Button>
-					<a
-						className={getValidClassNames(
-							"inline-flex items-center justify-center gap-2 rounded-md border border-primary-fg/30 bg-transparent px-5 py-2.5 text-[13px] font-medium leading-normal text-primary-fg no-underline transition-colors hover:bg-primary-fg/[0.08] hover:no-underline",
-							LANDING_FOCUS_RING,
-						)}
-						href={LANDING_PLACEHOLDER_HREF}
-					>
-						{CTA_SECTION_COPY.secondaryCTA}
-					</a>
 				</div>
 			</div>
 		</section>
