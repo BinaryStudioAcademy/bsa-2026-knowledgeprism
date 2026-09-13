@@ -8,6 +8,7 @@ import {
 	useAppDispatch,
 	useAppSelector,
 	useCallback,
+	useEffect,
 	useLocation,
 	useNavigate,
 } from "~/hooks/hooks.js";
@@ -24,6 +25,10 @@ const AuthPage: React.FC = () => {
 	}));
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
+
+	useEffect(() => {
+		dispatch(authActions.clearError());
+	}, [dispatch, pathname]);
 
 	const handleSignInSubmit = useCallback(
 		(payload: UserSignInRequestDto): void => {
