@@ -217,9 +217,8 @@ Final demo – 18.09.2026
 
 **14\. Final scope**
 Testing will cover the following areas of the KnowledgePrism MVP:
-*Core MVP functionality:* Landing Page, Authentication and Registration, Organisation Workspace, User Management, Account Settings, Project Workspace, Knowledge Base, Add Knowledge, and Ask Prism.
-*Critical quality areas:* authentication and authorization, role-based access control, organisation and project isolation, Knowledge Base data integrity, and core end-to-end user flows.
-*Testing levels and types:* functional, API, integration, UI, basic accessibility, and data-level testing.
-*AI functionality:* verification of RAG grounding, source traceability, and explicit handling of information that is not available in the Knowledge Base. Exact AI-generated wording will not be asserted.
-*Out of scope:* Post-MVP and backlog functionality, password reset, user/account deletion, concurrent editing conflict handling, full performance/load testing.
-
+_Core MVP functionality:_ Landing Page, Authentication and Registration, Organisation Workspace, User Management, Account Settings, Project Workspace, Knowledge Base, Add Knowledge, and Ask Prism.
+_Critical quality areas:_ authentication and authorization, role-based access control, organisation and project isolation, Knowledge Base data integrity, and core end-to-end user flows.
+_Testing levels and types:_ functional, API, integration, UI, basic accessibility, and data-level testing.
+_AI functionality:_ verification of RAG grounding, source traceability, and explicit handling of information that is not available in the Knowledge Base. Exact AI-generated wording will not be asserted.
+_Out of scope:_ Post-MVP and backlog functionality, password reset, user/account deletion, concurrent editing conflict handling, full performance/load testing.
