@@ -26,7 +26,7 @@ const TermsOfServices = [
 	},
 	{
 		"answer":
-			'KnowledgePrism is provided "as is" without warranties of any kind. We are not liable for any indirect, incidental, or consequential damages arising from your use of the platform.',
+			"KnowledgePrism is provided as is without warranties of any kind. We are not liable for any indirect, incidental, or consequential damages arising from your use of the platform.",
 		"title": "Limitation of Liability",
 	},
 	{
