@@ -5,6 +5,7 @@ import "~/styles/styles.css";
 import { StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
+import { actions as authActions } from "~/modules/auth/auth.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { LandingPage } from "~/modules/landing/components/landing-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
@@ -17,60 +18,62 @@ import { PublicLayout } from "./layouts/public-layout.js";
 import { SidebarLayout } from "./layouts/sidebar-layout.js";
 import { RouterProvider } from "./router-provider.js";
 
-createRoot(document.querySelector("#root") as HTMLElement).render(
-	<StrictMode>
-		<StoreProvider store={store.instance}>
-			<RouterProvider
-				routes={[
-					{
-						element: <LandingPage />,
-						path: AppRoute.ROOT,
-					},
-					{
-						children: [
-							{
-								element: <App />,
-							},
-						],
-						element: <PublicLayout />,
-					},
-					{
-						children: [
-							{
-								element: <AuthPage />,
-								path: AppRoute.SIGN_IN,
-							},
-							{
-								element: <AuthPage />,
-								path: AppRoute.SIGN_UP,
-							},
-							{
-								element: <p>Organisation Workspace</p>,
-								path: AppRoute.WORKSPACE,
-							},
-						],
-						element: <AuthLayout />,
-					},
-					{
-						children: [
-							{
-								children: [
-									{
-										element: <AccountSettingsPage />,
-										path: AppRoute.SETTINGS,
-									},
-								],
-								element: <SidebarLayout />,
-							},
-						],
-						element: <AppLayout />,
-					},
-					{
-						element: <NotFoundPage />,
-						path: "*",
-					},
-				]}
-			/>
-		</StoreProvider>
-	</StrictMode>,
-);
+void store.instance.dispatch(authActions.loadCurrentUser()).finally(() => {
+	createRoot(document.querySelector("#root") as HTMLElement).render(
+		<StrictMode>
+			<StoreProvider store={store.instance}>
+				<RouterProvider
+					routes={[
+						{
+							element: <LandingPage />,
+							path: AppRoute.ROOT,
+						},
+						{
+							children: [
+								{
+									element: <App />,
+								},
+							],
+							element: <PublicLayout />,
+						},
+						{
+							children: [
+								{
+									element: <AuthPage />,
+									path: AppRoute.SIGN_IN,
+								},
+								{
+									element: <AuthPage />,
+									path: AppRoute.SIGN_UP,
+								},
+								{
+									element: <p>Organisation Workspace</p>,
+									path: AppRoute.WORKSPACE,
+								},
+							],
+							element: <AuthLayout />,
+						},
+						{
+							children: [
+								{
+									children: [
+										{
+											element: <AccountSettingsPage />,
+											path: AppRoute.SETTINGS,
+										},
+									],
+									element: <SidebarLayout />,
+								},
+							],
+							element: <AppLayout />,
+						},
+						{
+							element: <NotFoundPage />,
+							path: "*",
+						},
+					]}
+				/>
+			</StoreProvider>
+		</StrictMode>,
+	);
+});

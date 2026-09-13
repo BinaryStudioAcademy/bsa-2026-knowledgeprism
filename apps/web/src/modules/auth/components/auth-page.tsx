@@ -3,11 +3,12 @@ import {
 	type UserSignUpRequestDto,
 } from "@knowledgeprism/types";
 
-import { Logo } from "~/components/components.js";
+import { Loader, Logo } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
 	useCallback,
+	useEffect,
 	useLocation,
 	useNavigate,
 } from "~/hooks/hooks.js";
@@ -18,12 +19,19 @@ import { SignInForm, SignUpForm } from "./components.js";
 
 const AuthPage: React.FC = () => {
 	const dispatch = useAppDispatch();
-	const { error, isAuthPending } = useAppSelector(({ auth }) => ({
+	const { error, hasUser, isAuthPending } = useAppSelector(({ auth }) => ({
 		error: auth.error,
+		hasUser: Boolean(auth.user),
 		isAuthPending: auth.dataStatus === DataStatus.PENDING,
 	}));
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
+
+	useEffect(() => {
+		if (hasUser) {
+			void navigate(AppRoute.WORKSPACE, { replace: true });
+		}
+	}, [hasUser, navigate]);
 
 	const handleSignInSubmit = useCallback(
 		(payload: UserSignInRequestDto): void => {
@@ -50,6 +58,10 @@ const AuthPage: React.FC = () => {
 		},
 		[dispatch, navigate],
 	);
+
+	if (isAuthPending) {
+		return <Loader />;
+	}
 
 	const getScreen = (screen: string): React.JSX.Element => {
 		if (screen === AppRoute.SIGN_UP) {

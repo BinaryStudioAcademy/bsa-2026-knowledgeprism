@@ -1,5 +1,6 @@
 import { AuthApiPath } from "@knowledgeprism/constants";
 import {
+	type UserGetCurrentResponseDto,
 	type UserSignInRequestDto,
 	type UserSignInResponseDto,
 	type UserSignUpRequestDto,
@@ -20,6 +21,16 @@ type Constructor = {
 class AuthApi extends BaseHTTPApi {
 	public constructor({ baseUrl, http, storage }: Constructor) {
 		super({ baseUrl, http, path: APIPath.AUTH, storage });
+	}
+
+	public async getCurrentUser(): Promise<UserGetCurrentResponseDto> {
+		const response = await this.load(this.getFullEndpoint(AuthApiPath.ME, {}), {
+			contentType: ContentType.JSON,
+			hasAuth: true,
+			method: "GET",
+		});
+
+		return await response.json<UserGetCurrentResponseDto>();
 	}
 
 	public async logout(): Promise<void> {
