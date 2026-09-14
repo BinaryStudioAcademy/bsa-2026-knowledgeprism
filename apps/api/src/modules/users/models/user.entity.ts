@@ -137,6 +137,22 @@ class UserEntity implements Entity {
 		return this.organisationRole === OrganisationRole.ADMIN;
 	}
 
+	public toAuthObject(): {
+		email: string;
+		firstName: string;
+		id: number;
+		lastName: string;
+		organisationRole: null | OrganisationRoleValue;
+	} {
+		return {
+			email: this.email,
+			firstName: this.firstName,
+			id: this.getId(),
+			lastName: this.lastName,
+			organisationRole: this.organisationRole,
+		};
+	}
+
 	public toNewObject(): {
 		email: string;
 		firstName: string;
@@ -174,20 +190,6 @@ class UserEntity implements Entity {
 			lastName: this.lastName,
 			organisationId: this.organisationId,
 			status: this.status,
-		};
-	}
-
-	public toSignUpObject(): {
-		email: string;
-		firstName: string;
-		id: number;
-		lastName: string;
-	} {
-		return {
-			email: this.email,
-			firstName: this.firstName,
-			id: this.getId(),
-			lastName: this.lastName,
 		};
 	}
 
