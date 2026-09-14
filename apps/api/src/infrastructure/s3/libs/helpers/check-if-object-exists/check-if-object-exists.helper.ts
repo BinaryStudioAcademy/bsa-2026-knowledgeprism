@@ -8,7 +8,7 @@ type Parameters = {
 	s3Client: S3Client;
 };
 
-const checkObjectExists = async ({
+const checkIfObjectExists = async ({
 	bucketName,
 	key,
 	s3Client,
@@ -28,4 +28,4 @@ const checkObjectExists = async ({
 	}
 };
 
-export { checkObjectExists };
+export { checkIfObjectExists };

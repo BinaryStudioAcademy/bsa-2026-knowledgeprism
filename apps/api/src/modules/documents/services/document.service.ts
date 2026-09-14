@@ -10,10 +10,8 @@ import {
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/helpers.js";
-import {
-	type CheckDocumentObjectExists,
-	type GeneratePresignedUploadUrl,
-} from "~/infrastructure/s3/libs/types/types.js";
+import { type GeneratePresignedUploadUrl } from "~/infrastructure/s3/libs/types/types.js";
+import { type CheckDocumentObjectExists } from "~/infrastructure/s3/verify-object.js";
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
