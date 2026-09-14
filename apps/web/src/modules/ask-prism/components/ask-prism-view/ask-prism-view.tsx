@@ -101,9 +101,9 @@ const AskPrismView = (): JSX.Element => {
 	);
 
 	return (
-		<div className="mx-auto flex w-full max-w-[680px] flex-col gap-6 py-8">
+		<div className="mx-auto flex h-full min-h-[calc(100vh-5rem)] w-full max-w-[680px] flex-col justify-between px-4 py-6">
 			{/* Header */}
-			<div className="flex flex-col gap-1.5 border-b border-border pb-4">
+			<div className="flex shrink-0 flex-col gap-1.5 border-b border-border pb-4">
 				<div className="flex items-center gap-2 text-accent">
 					<Icon name="ask-prism" size={24} />
 					<Heading level="3">Ask Prism</Heading>
@@ -114,7 +114,7 @@ const AskPrismView = (): JSX.Element => {
 			</div>
 
 			{/* Q&A Conversation Area */}
-			<div className="min-h-[220px] flex-1">
+			<div className="flex-1 min-h-[160px] overflow-y-auto py-6">
 				<AnswerCard
 					answer={answer}
 					dataStatus={dataStatus}
@@ -127,7 +127,7 @@ const AskPrismView = (): JSX.Element => {
 			</div>
 
 			{/* Input Bar pinned to bottom container */}
-			<div className="flex flex-col gap-2">
+			<div className="sticky bottom-0 mt-auto flex shrink-0 flex-col gap-2 bg-bg/95 pt-2 pb-1 backdrop-blur-xs">
 				{/* Dynamic Suggestion Pills based on Knowledge Tree */}
 				<div className="flex flex-wrap items-center gap-1.5">
 					<span className="font-sans text-xs text-text-faint">
