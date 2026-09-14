@@ -20,6 +20,7 @@ export {
 	KnowledgeValidationMessage,
 	KnowledgeValidationRule,
 } from "./modules/knowledge/knowledge.js";
+export { ProjectMemberRole } from "./modules/projects/projects.js";
 export {
 	UsersApiPath,
 	UserValidationMessage,

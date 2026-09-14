@@ -1,6 +1,7 @@
 import {
 	HTTPCode,
 	KnowledgeValidationMessage,
+	ProjectMemberRole,
 } from "@knowledgeprism/constants";
 import {
 	type KnowledgeEntryResponseDto,
@@ -54,7 +55,7 @@ class KnowledgeService {
 			});
 		}
 
-		if (member.role === "VIEWER") {
+		if (member.role === ProjectMemberRole.VIEWER) {
 			this.logger.warn(
 				`User ${String(userId)} with role VIEWER attempted to edit entry ${String(entryId)}`,
 			);
@@ -73,14 +74,14 @@ class KnowledgeService {
 			});
 		}
 
-		const updated = await this.knowledgeNodeRepository.update({
+		const updatedKnowledgeNode = await this.knowledgeNodeRepository.update({
 			content: payload.content,
 			id: entryId,
 			title: payload.title,
 			updatedBy: userId,
 		});
 
-		return updated.toObject();
+		return updatedKnowledgeNode.toObject();
 	}
 }
 
