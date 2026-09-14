@@ -1,9 +1,8 @@
 export { bedrockRuntimeClient } from "./bedrock/bedrock.js";
 export { logger } from "./logger/logger.js";
-export { CohereModelId } from "./modules/embeddings/libs/constants/cohere-model.constant.js";
+export { CohereEmbeddingModel } from "./modules/embeddings/libs/constants/cohere-embedding-model.constant.js";
 export { EmbeddingInputType } from "./modules/embeddings/libs/constants/embedding-input-type.constant.js";
 export { EmbeddingRequest } from "./modules/embeddings/libs/constants/embedding-request.constant.js";
-export { EmbeddingResponse } from "./modules/embeddings/libs/constants/embedding-response.constant.js";
 export {
 	type EmbeddingInputTypeValue,
 	type EmbeddingVector,
