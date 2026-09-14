@@ -32,7 +32,9 @@ const toResponseText = (decoded: string): string => {
 
 	try {
 		envelope = JSON.parse(decoded);
-	} catch {
+	} catch (error) {
+		logger.error("Failed to parse Bedrock response body.", { error });
+
 		return "";
 	}
 
