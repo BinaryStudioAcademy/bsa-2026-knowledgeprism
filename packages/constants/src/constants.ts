@@ -16,6 +16,11 @@ export {
 	DocumentValidationRule,
 } from "./modules/documents/documents.js";
 export {
+	KnowledgeApiPath,
+	KnowledgeValidationMessage,
+	KnowledgeValidationRule,
+} from "./modules/knowledge/knowledge.js";
+export {
 	UsersApiPath,
 	UserValidationMessage,
 	UserValidationRule,
