@@ -69,6 +69,22 @@ class ProjectMemberRepository {
 			.castTo<ProjectMemberResponseDto[]>()
 			.execute();
 	}
+
+	public async findByProjectIdAndUserId(
+		projectId: number,
+		userId: number,
+		transaction?: Transaction,
+	): Promise<null | ProjectMemberModel> {
+		const member = await this.projectMemberModel
+			.query(transaction)
+			.findOne({
+				projectId,
+				userId,
+			})
+			.execute();
+
+		return member ?? null;
+	}
 }
 
 export { ProjectMemberRepository };

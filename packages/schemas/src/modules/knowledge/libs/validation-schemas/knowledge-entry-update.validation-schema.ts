@@ -4,14 +4,17 @@ import {
 } from "@knowledgeprism/constants";
 import { z } from "zod";
 
+const knowledgeNodeContentItem = z.record(z.string(), z.unknown());
+
+const knowledgeNodeContent = z
+	.array(knowledgeNodeContentItem)
+	.min(KnowledgeValidationRule.CONTENT_MINIMUM_LENGTH, {
+		error: KnowledgeValidationMessage.CONTENT_EMPTY,
+	});
+
 const knowledgeEntryUpdate = z
 	.object({
-		content: z
-			.string()
-			.trim()
-			.min(KnowledgeValidationRule.CONTENT_MINIMUM_LENGTH, {
-				error: KnowledgeValidationMessage.CONTENT_EMPTY,
-			}),
+		contentJson: knowledgeNodeContent.nullable(),
 		title: z
 			.string()
 			.trim()

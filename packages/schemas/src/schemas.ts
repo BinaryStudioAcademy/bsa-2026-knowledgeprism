@@ -5,6 +5,7 @@ export {
 export {
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
+	knowledgeTreeRouteParametersValidationSchema,
 } from "./modules/knowledge/knowledge.js";
 export {
 	projectCreateValidationSchema,

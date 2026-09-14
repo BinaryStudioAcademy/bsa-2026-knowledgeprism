@@ -1,5 +1,6 @@
 import {
 	HTTPCode,
+	ProjectMemberRole,
 	ProjectValidationMessage,
 	UserStatus,
 	UserValidationMessage,
@@ -56,26 +57,6 @@ class ProjectService {
 		const user = await this.findActor(context);
 
 		if (!user.isOrganisationAdmin()) {
-			this.throwAccessForbidden();
-		}
-	}
-
-	private async assertProjectAccess(
-		projectId: number,
-		context: ProjectAccessContext,
-	): Promise<void> {
-		const user = await this.findActor(context);
-
-		if (user.isOrganisationAdmin()) {
-			return;
-		}
-
-		const isProjectMember = await this.projectMemberRepository.exists(
-			projectId,
-			context.userId,
-		);
-
-		if (!isProjectMember) {
 			this.throwAccessForbidden();
 		}
 	}
@@ -196,6 +177,58 @@ class ProjectService {
 		};
 	}
 
+	public async assertProjectAccess(
+		projectId: number,
+		context: ProjectAccessContext,
+	): Promise<void> {
+		await this.findProjectOrThrow(projectId, context.organisationId);
+
+		const user = await this.findActor(context);
+
+		if (user.isOrganisationAdmin()) {
+			return;
+		}
+
+		const isProjectMember = await this.projectMemberRepository.exists(
+			projectId,
+			context.userId,
+		);
+
+		if (!isProjectMember) {
+			this.throwAccessForbidden();
+		}
+	}
+
+	public async assertProjectEditAccess(
+		projectId: number,
+		context: ProjectAccessContext,
+	): Promise<void> {
+		await this.findProjectOrThrow(projectId, context.organisationId);
+
+		const user = await this.findActor(context);
+
+		if (user.isOrganisationAdmin()) {
+			return;
+		}
+
+		const member = await this.projectMemberRepository.findByProjectIdAndUserId(
+			projectId,
+			context.userId,
+		);
+
+		if (!member) {
+			this.throwAccessForbidden();
+		}
+
+		const hasEditAccess =
+			member.role === ProjectMemberRole.ADMIN ||
+			member.role === ProjectMemberRole.EDITOR;
+
+		if (!hasEditAccess) {
+			this.throwAccessForbidden();
+		}
+	}
+
 	public async create(
 		payload: ProjectCreateRequestDto,
 		context: ProjectAccessContext,
@@ -308,3 +341,4 @@ class ProjectService {
 }
 
 export { ProjectService };
+export { type ProjectAccessContext };

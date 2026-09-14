@@ -1,5 +1,7 @@
+import { type KnowledgeNodeContentDto } from "./knowledge-node-content-dto.type.js";
+
 type KnowledgeEntryUpdateRequestDto = {
-	content: string;
+	contentJson: KnowledgeNodeContentDto | null;
 	title: string;
 };
 

@@ -7,11 +7,13 @@ import {
 import {
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
+	knowledgeTreeRouteParametersValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeTreeRouteParametersDto,
 } from "@knowledgeprism/types";
 
 import {
@@ -24,6 +26,11 @@ import { type Logger } from "~/infrastructure/logger/logger.js";
 
 import { type KnowledgeService } from "../services/knowledge.service.js";
 
+type SessionContext = {
+	organisationId: number;
+	userId: number;
+};
+
 /**
  * @swagger
  * components:
@@ -32,15 +39,17 @@ import { type KnowledgeService } from "../services/knowledge.service.js";
  *        type: object
  *        required:
  *          - title
- *          - content
+ *          - contentJson
  *        properties:
  *          title:
  *            type: string
  *            maxLength: 255
  *            example: "Youth Center Grand Opening"
- *          content:
- *            type: string
- *            example: "Join us for the grand opening..."
+ *          contentJson:
+ *            type: array
+ *            nullable: true
+ *            items:
+ *              type: object
  *      KnowledgeEntryResponse:
  *        type: object
  *        properties:
@@ -48,16 +57,52 @@ import { type KnowledgeService } from "../services/knowledge.service.js";
  *            type: number
  *          projectId:
  *            type: number
+ *          parentId:
+ *            type: number
+ *            nullable: true
+ *          position:
+ *            type: number
  *          title:
  *            type: string
- *          content:
+ *          type:
  *            type: string
+ *            enum: [SECTION, PAGE, ENTRY]
+ *          contentJson:
+ *            type: array
+ *            nullable: true
+ *            items:
+ *              type: object
  *          createdAt:
  *            type: string
  *            format: date-time
  *          updatedAt:
  *            type: string
  *            format: date-time
+ *      KnowledgeTreeItemResponse:
+ *        type: object
+ *        properties:
+ *          id:
+ *            type: number
+ *          parentId:
+ *            type: number
+ *            nullable: true
+ *          position:
+ *            type: number
+ *          title:
+ *            type: string
+ *          type:
+ *            type: string
+ *            enum: [SECTION, PAGE, ENTRY]
+ *          updatedAt:
+ *            type: string
+ *            format: date-time
+ *      KnowledgeTreeResponse:
+ *        type: object
+ *        properties:
+ *          items:
+ *            type: array
+ *            items:
+ *              $ref: "#/components/schemas/KnowledgeTreeItemResponse"
  */
 class KnowledgeController extends BaseController {
 	private knowledgeService: KnowledgeService;
@@ -66,6 +111,34 @@ class KnowledgeController extends BaseController {
 		super(logger, APIPath.PROJECTS);
 
 		this.knowledgeService = knowledgeService;
+
+		this.addRoute({
+			handler: (options) =>
+				this.findTree(
+					options as APIHandlerOptions<{
+						params: KnowledgeTreeRouteParametersDto;
+					}>,
+				),
+			method: "GET",
+			path: KnowledgeApiPath.ROOT,
+			validation: {
+				params: knowledgeTreeRouteParametersValidationSchema,
+			},
+		});
+
+		this.addRoute({
+			handler: (options) =>
+				this.findEntry(
+					options as APIHandlerOptions<{
+						params: KnowledgeEntryRouteParametersDto;
+					}>,
+				),
+			method: "GET",
+			path: KnowledgeApiPath.ENTRY_$ID,
+			validation: {
+				params: knowledgeEntryRouteParametersValidationSchema,
+			},
+		});
 
 		this.addRoute({
 			handler: (options) =>
@@ -82,6 +155,61 @@ class KnowledgeController extends BaseController {
 				params: knowledgeEntryRouteParametersValidationSchema,
 			},
 		});
+	}
+
+	private async findEntry(
+		options: APIHandlerOptions<{
+			params: KnowledgeEntryRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		const { organisationId, userId } = this.getSessionContext(options);
+
+		return {
+			payload: await this.knowledgeService.findEntry({
+				context: {
+					organisationId,
+					userId,
+				},
+				entryId: Number(options.params.id),
+				projectId: Number(options.params.projectId),
+			}),
+			status: HTTPCode.OK,
+		};
+	}
+
+	private async findTree(
+		options: APIHandlerOptions<{
+			params: KnowledgeTreeRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		const { organisationId, userId } = this.getSessionContext(options);
+
+		return {
+			payload: await this.knowledgeService.findTree({
+				context: {
+					organisationId,
+					userId,
+				},
+				projectId: Number(options.params.projectId),
+			}),
+			status: HTTPCode.OK,
+		};
+	}
+
+	private getSessionContext(options: APIHandlerOptions): SessionContext {
+		const { organisationId, userId } = options.session;
+
+		if (!organisationId || !userId) {
+			throw new HTTPError({
+				message: AuthValidationMessage.UNAUTHORIZED,
+				status: HTTPCode.UNAUTHORIZED,
+			});
+		}
+
+		return {
+			organisationId,
+			userId,
+		};
 	}
 
 	/**
@@ -128,17 +256,14 @@ class KnowledgeController extends BaseController {
 			params: KnowledgeEntryRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const userId = options.session.userId;
-
-		if (!userId) {
-			throw new HTTPError({
-				message: AuthValidationMessage.UNAUTHORIZED,
-				status: HTTPCode.UNAUTHORIZED,
-			});
-		}
+		const { organisationId, userId } = this.getSessionContext(options);
 
 		const updatedEntry: KnowledgeEntryResponseDto =
 			await this.knowledgeService.updateEntry({
+				context: {
+					organisationId,
+					userId,
+				},
 				entryId: Number(options.params.id),
 				payload: options.body,
 				projectId: Number(options.params.projectId),

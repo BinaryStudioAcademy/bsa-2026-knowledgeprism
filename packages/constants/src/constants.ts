@@ -17,6 +17,7 @@ export {
 } from "./modules/documents/documents.js";
 export {
 	KnowledgeApiPath,
+	KnowledgeNodeType,
 	KnowledgeValidationMessage,
 	KnowledgeValidationRule,
 } from "./modules/knowledge/knowledge.js";
