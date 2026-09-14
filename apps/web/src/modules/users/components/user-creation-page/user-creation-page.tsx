@@ -13,8 +13,11 @@ import { actions as userActions } from "~/modules/users/users.js";
 
 import { UserForm } from "../user-form/user-form.js";
 
+type ProjectRole = "EDITOR" | "VIEWER";
+
 // TODO: Import real schema when available, for now using basic typing
 type UserCreationFormValues = {
+	assignedProjects: { projectId: number; role: ProjectRole }[];
 	email: string;
 	firstName: string;
 	lastName: string;
@@ -22,11 +25,18 @@ type UserCreationFormValues = {
 };
 
 const DEFAULT_USER_CREATION_PAYLOAD: UserCreationFormValues = {
+	assignedProjects: [],
 	email: "",
 	firstName: "",
 	lastName: "",
 	password: "",
 };
+
+// NOTE: Projects are currently mocked. When GET /projects endpoint is implemented, this should consume actual project data.
+const MOCKED_PROJECTS = [
+	{ id: 1, name: "Knowledge Base Alpha" },
+	{ id: 2, name: "Marketing Site" },
+];
 
 const UserCreationPage: React.FC = () => {
 	const dispatch = useAppDispatch();
@@ -43,7 +53,7 @@ const UserCreationPage: React.FC = () => {
 			setErrorMessage(undefined);
 			void dispatch(
 				userActions.createUser({
-					assignedProjects: [],
+					assignedProjects: values.assignedProjects,
 					email: values.email,
 					firstName: values.firstName,
 					lastName: values.lastName,
@@ -89,6 +99,7 @@ const UserCreationPage: React.FC = () => {
 				</div>
 
 				<UserForm
+					availableProjects={MOCKED_PROJECTS}
 					control={control}
 					errorMessage={errorMessage}
 					onCancel={handleCancel}

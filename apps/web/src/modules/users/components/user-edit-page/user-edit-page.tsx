@@ -1,7 +1,4 @@
-import { UserValidationRule } from "@knowledgeprism/constants";
-import { userUpdateValidationSchema } from "@knowledgeprism/schemas";
 import { useParams } from "react-router-dom";
-import { z } from "zod";
 
 import {
 	Heading,
@@ -22,24 +19,24 @@ import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 import { UserForm } from "../user-form/user-form.js";
+import { userUpdateFrontendValidationSchema } from "./libs/validation-schemas.js";
 
-const frontendUpdateSchema = userUpdateValidationSchema.extend({
-	isActive: z.boolean().optional(),
-	password: z
-		.string()
-		.min(UserValidationRule.PASSWORD_MINIMUM_LENGTH)
-		.max(UserValidationRule.PASSWORD_MAXIMUM_LENGTH)
-		.optional()
-		.or(z.literal("")),
-});
+type ProjectRole = "EDITOR" | "VIEWER";
 
 type UserEditFormValues = {
+	assignedProjects: { projectId: number; role: ProjectRole }[];
 	email: string;
 	firstName: string;
 	isActive?: boolean;
 	lastName: string;
 	password?: string;
 };
+
+// NOTE: Projects are currently mocked. When GET /projects endpoint is implemented, this should consume actual project data.
+const MOCKED_PROJECTS = [
+	{ id: 1, name: "Knowledge Base Alpha" },
+	{ id: 2, name: "Marketing Site" },
+];
 
 const UserEditPage: React.FC = () => {
 	const dispatch = useAppDispatch();
@@ -65,18 +62,23 @@ const UserEditPage: React.FC = () => {
 
 	const { control, handleSubmit, reset } = useAppForm<UserEditFormValues>({
 		defaultValues: {
+			assignedProjects: [],
 			email: "",
 			firstName: "",
 			isActive: true,
 			lastName: "",
 			password: "",
 		},
-		validationSchema: frontendUpdateSchema,
+		validationSchema: userUpdateFrontendValidationSchema,
 	});
 
 	useEffect(() => {
 		if (selectedUser) {
 			reset({
+				assignedProjects: selectedUser.assignedProjects as {
+					projectId: number;
+					role: ProjectRole;
+				}[],
 				email: selectedUser.email,
 				firstName: selectedUser.firstName ?? "",
 				isActive: selectedUser.status === "active",
@@ -94,6 +96,7 @@ const UserEditPage: React.FC = () => {
 				userActions.updateUser({
 					id: userId,
 					payload: {
+						assignedProjects: values.assignedProjects,
 						email: values.email,
 						firstName: values.firstName,
 						lastName: values.lastName,
@@ -149,6 +152,7 @@ const UserEditPage: React.FC = () => {
 
 				{selectedUserStatus === DataStatus.FULFILLED && selectedUser && (
 					<UserForm
+						availableProjects={MOCKED_PROJECTS}
 						control={control}
 						errorMessage={errorMessage}
 						isAdmin={isAdminEditingSelf}

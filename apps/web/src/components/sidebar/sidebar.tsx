@@ -35,7 +35,7 @@ const utilityNavItems: NavItem[] = [
 	{ icon: <Icon name="help" />, id: "help", label: "Help" },
 	{ icon: <Icon name="settings" />, id: "settings", label: "Settings" },
 	{
-		icon: <Icon name="settings" />,
+		icon: <Icon name="users" />,
 		id: "users",
 		isActive: true,
 		label: "Users",
