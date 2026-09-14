@@ -101,13 +101,8 @@ const askQuestion = createAsyncThunk<
 	try {
 		return await askPrismApi.ask(payload);
 	} catch (error: unknown) {
-		// In development fallback, simulate responses
-		const isPendingBackendInDevelopment =
-			config.ENV.APP.ENVIRONMENT === AppEnvironment.DEVELOPMENT &&
-			error instanceof HTTPError &&
-			error.status === HTTPCode.NOT_FOUND;
-
-		if (!isPendingBackendInDevelopment) {
+		// In production, delegate directly to actual backend error types
+		if (config.ENV.APP.ENVIRONMENT === AppEnvironment.PRODUCTION) {
 			const isNotFoundError =
 				error instanceof HTTPError && error.status === HTTPCode.NOT_FOUND;
 
@@ -116,6 +111,7 @@ const askQuestion = createAsyncThunk<
 			});
 		}
 
+		// In development fallback, simulate responses
 		await new Promise((resolve) => {
 			setTimeout(resolve, MOCK_SEARCH_DELAY_MS);
 		});

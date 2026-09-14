@@ -79,11 +79,12 @@ const AskPrismView = (): JSX.Element => {
 		(event: MouseEvent<HTMLButtonElement>): void => {
 			const prompt = event.currentTarget.dataset["prompt"];
 
-			if (prompt) {
+			if (prompt && !isLoading) {
 				setQuery(prompt);
+				void dispatch(askPrismActions.askQuestion({ query: prompt }));
 			}
 		},
-		[],
+		[dispatch, isLoading],
 	);
 
 	const handleRetry = useCallback((): void => {
