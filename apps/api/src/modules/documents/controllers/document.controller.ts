@@ -49,7 +49,7 @@ import { type DocumentService } from "../services/document.service.js";
  *            example: https://s3.amazonaws.com/bucket/key
  *          storageKey:
  *            type: string
- *            example: projects/project-1/docs/1788354738034-25181d2e-7f78-4e6b-9a8f-f8da61fdc7b5-file.pdf
+ *            example: projects/1/docs/1788354738034-25181d2e-7f78-4e6b-9a8f-f8da61fdc7b5-file.pdf
  *          expiresInSeconds:
  *            type: number
  *            example: 900
@@ -89,7 +89,9 @@ class DocumentController extends BaseController {
 	 *          name: projectId
 	 *          required: true
 	 *          schema:
-	 *            type: string
+	 *            type: integer
+	 *            minimum: 1
+	 *            maximum: 2147483647
 	 *      requestBody:
 	 *        required: true
 	 *        content:
@@ -103,6 +105,10 @@ class DocumentController extends BaseController {
 	 *            application/json:
 	 *              schema:
 	 *                $ref: "#/components/schemas/DocumentUploadIntentResponse"
+	 *        404:
+	 *          description: Project not found
+	 *        422:
+	 *          description: Invalid project ID or upload request
 	 */
 	private async createUploadIntent(
 		options: APIHandlerOptions<{

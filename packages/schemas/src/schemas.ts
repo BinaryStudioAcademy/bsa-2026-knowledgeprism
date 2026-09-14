@@ -3,6 +3,11 @@ export {
 	documentUploadIntentValidationSchema,
 } from "./modules/documents/documents.js";
 export {
+	projectCreateValidationSchema,
+	projectMemberCreateValidationSchema,
+	projectRouteParametersValidationSchema,
+} from "./modules/projects/projects.js";
+export {
 	userCreateValidationSchema,
 	userSignInValidationSchema,
 	userSignUpValidationSchema,
