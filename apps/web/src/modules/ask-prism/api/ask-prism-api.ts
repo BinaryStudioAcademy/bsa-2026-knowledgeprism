@@ -29,6 +29,20 @@ class AskPrismApi extends BaseHTTPApi {
 
 		return await response.json<AskPrismResponseDto>();
 	}
+
+	public async getSuggestedQuestions(projectId?: string): Promise<string[]> {
+		const endpoint = projectId
+			? `${this.getFullEndpoint("/suggestions", {})}?projectId=${encodeURIComponent(projectId)}`
+			: this.getFullEndpoint("/suggestions", {});
+
+		const response = await this.load(endpoint, {
+			contentType: ContentType.JSON,
+			hasAuth: true,
+			method: "GET",
+		});
+
+		return await response.json<string[]>();
+	}
 }
 
 export { AskPrismApi };

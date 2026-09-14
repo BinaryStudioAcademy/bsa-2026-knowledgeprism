@@ -6,6 +6,7 @@ import {
 	type KeyboardEvent,
 	type MouseEvent,
 	useCallback,
+	useEffect,
 	useState,
 } from "react";
 
@@ -18,12 +19,6 @@ import { AnswerCard } from "../answer-card/answer-card.js";
 
 const QUESTION_PLACEHOLDER = "Ask anything about your knowledge base...";
 
-const SAMPLE_PROMPTS = [
-	"What are the validation rules for user password?",
-	"How does knowledge base integration work?",
-	"What are the roles and permissions in a project?",
-] as const;
-
 const AskPrismView = (): JSX.Element => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
@@ -32,11 +27,19 @@ const AskPrismView = (): JSX.Element => {
 	const {
 		answer,
 		dataStatus,
+		errorType,
+		isSuggestionsLoading,
 		query: submittedQuery,
 		sources,
+		suggestedQuestions,
 	} = useAppSelector(({ askPrism }) => askPrism);
 
 	const isLoading = dataStatus === DataStatus.PENDING;
+
+	// Load knowledge-tree suggestions on mount
+	useEffect(() => {
+		void dispatch(askPrismActions.loadSuggestedQuestions());
+	}, [dispatch]);
 
 	const handleQueryChange = useCallback(
 		(event: ChangeEvent<HTMLInputElement>): void => {
@@ -83,6 +86,12 @@ const AskPrismView = (): JSX.Element => {
 		[],
 	);
 
+	const handleRetry = useCallback((): void => {
+		if (submittedQuery) {
+			void dispatch(askPrismActions.askQuestion({ query: submittedQuery }));
+		}
+	}, [dispatch, submittedQuery]);
+
 	const handleSourceSelect = useCallback(
 		(source: AskPrismSourceDto): void => {
 			void navigate(`/knowledge#${String(source.nodeId)}`);
@@ -108,6 +117,8 @@ const AskPrismView = (): JSX.Element => {
 				<AnswerCard
 					answer={answer}
 					dataStatus={dataStatus}
+					errorType={errorType}
+					onRetry={handleRetry}
 					onSourceSelect={handleSourceSelect}
 					query={submittedQuery}
 					sources={sources}
@@ -116,22 +127,30 @@ const AskPrismView = (): JSX.Element => {
 
 			{/* Input Bar pinned to bottom container */}
 			<div className="flex flex-col gap-2">
-				{/* Example Suggestion Pills */}
+				{/* Dynamic Suggestion Pills based on Knowledge Tree */}
 				<div className="flex flex-wrap items-center gap-1.5">
 					<span className="font-sans text-xs text-text-faint">
-						Suggestions:
+						Suggested questions:
 					</span>
-					{SAMPLE_PROMPTS.map((prompt) => (
-						<button
-							className="max-w-[220px] cursor-pointer truncate rounded-md border border-border bg-surface px-2.5 py-1 font-sans text-xs text-text-muted shadow-2xs transition-all duration-200 hover:scale-[1.02] hover:border-accent hover:bg-success-bg/40 hover:text-accent active:scale-95"
-							data-prompt={prompt}
-							key={prompt}
-							onClick={handlePromptClick}
-							type="button"
-						>
-							{prompt}
-						</button>
-					))}
+					{isSuggestionsLoading ? (
+						<div className="flex gap-2 animate-pulse">
+							<span className="h-6 w-28 rounded-md bg-surface" />
+							<span className="h-6 w-36 rounded-md bg-surface" />
+						</div>
+					) : (
+						suggestedQuestions.map((prompt) => (
+							<button
+								className="max-w-[220px] cursor-pointer truncate rounded-md border border-border bg-surface px-2.5 py-1 font-sans text-xs text-text-muted shadow-2xs transition-all duration-200 hover:scale-[1.02] hover:border-accent hover:bg-success-bg/40 hover:text-accent active:scale-95"
+								data-prompt={prompt}
+								key={prompt}
+								onClick={handlePromptClick}
+								title={prompt}
+								type="button"
+							>
+								{prompt}
+							</button>
+						))
+					)}
 				</div>
 
 				{/* Input box with focus ring transition */}
@@ -162,7 +181,7 @@ const AskPrismView = (): JSX.Element => {
 
 				{/* Footer helper text */}
 				<div className="flex items-center justify-between font-sans text-[11px] text-text-faint">
-					<span>Prism can make mistakes. Verify important information.</span>
+					<span>Prism retrieves verified facts from the knowledge tree.</span>
 					<span>Enter to send</span>
 				</div>
 			</div>
