@@ -64,7 +64,7 @@ const AuthPage: React.FC = () => {
 	return (
 		<div className="flex min-h-screen flex-col tablet:flex-row">
 			<aside className="flex flex-shrink-0 flex-col justify-between gap-2.5 bg-primary px-6 py-7 text-primary-fg tablet:flex-[0.8] tablet:p-11 desktop:flex-1 desktop:p-16">
-				<Logo variant="inverted" />
+				<Logo to={AppRoute.ROOT} variant="inverted" />
 
 				<div className="max-w-95">
 					<p className="font-serif text-h3 leading-tight desktop:text-h2">
