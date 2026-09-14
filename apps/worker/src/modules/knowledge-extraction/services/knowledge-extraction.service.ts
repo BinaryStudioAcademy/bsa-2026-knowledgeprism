@@ -3,12 +3,10 @@ import { logger } from "~/logger/logger.js";
 import { invokePageExtraction } from "../libs/helpers/invoke-page-extraction.helper.js";
 import { isBlankPageContent } from "../libs/helpers/is-blank-page-content.helper.js";
 import { mapExtractionOutput } from "../libs/helpers/map-extraction-output.helper.js";
-import { type KnowledgeItem } from "../libs/types/types.js";
-
-type ExtractionBlock = {
-	content: string;
-	pageNumber: number;
-};
+import {
+	type ExtractionBlock,
+	type KnowledgeItem,
+} from "../libs/types/types.js";
 
 const EMPTY_ITEM_COUNT = 0;
 
