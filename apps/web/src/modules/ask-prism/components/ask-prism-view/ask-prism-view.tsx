@@ -101,9 +101,9 @@ const AskPrismView = (): JSX.Element => {
 	);
 
 	return (
-		<div className="mx-auto flex h-full min-h-[calc(100vh-5rem)] w-full max-w-[680px] flex-col justify-between px-4 py-6">
+		<div className="mx-auto flex w-full max-w-[680px] flex-col gap-6 px-4 pt-8 pb-48">
 			{/* Header */}
-			<div className="flex shrink-0 flex-col gap-1.5 border-b border-border pb-4">
+			<div className="flex flex-col gap-1.5 border-b border-border pb-4">
 				<div className="flex items-center gap-2 text-accent">
 					<Icon name="ask-prism" size={24} />
 					<Heading level="3">Ask Prism</Heading>
@@ -114,7 +114,7 @@ const AskPrismView = (): JSX.Element => {
 			</div>
 
 			{/* Q&A Conversation Area */}
-			<div className="flex-1 min-h-[160px] overflow-y-auto py-6">
+			<div className="min-h-[220px] flex-1">
 				<AnswerCard
 					answer={answer}
 					dataStatus={dataStatus}
@@ -126,64 +126,66 @@ const AskPrismView = (): JSX.Element => {
 				/>
 			</div>
 
-			{/* Input Bar pinned to bottom container */}
-			<div className="sticky bottom-0 mt-auto flex shrink-0 flex-col gap-2 bg-bg/95 pt-2 pb-1 backdrop-blur-xs">
-				{/* Dynamic Suggestion Pills based on Knowledge Tree */}
-				<div className="flex flex-wrap items-center gap-1.5">
-					<span className="font-sans text-xs text-text-faint">
-						Suggested questions:
-					</span>
-					{isSuggestionsLoading ? (
-						<div className="flex gap-2 animate-pulse">
-							<span className="h-6 w-28 rounded-md bg-surface" />
-							<span className="h-6 w-36 rounded-md bg-surface" />
-						</div>
-					) : (
-						suggestedQuestions.map((prompt) => (
-							<button
-								className="max-w-[220px] cursor-pointer truncate rounded-md border border-border bg-surface px-2.5 py-1 font-sans text-xs text-text-muted shadow-2xs transition-all duration-200 hover:scale-[1.02] hover:border-accent hover:bg-success-bg/40 hover:text-accent active:scale-95"
-								data-prompt={prompt}
-								key={prompt}
-								onClick={handlePromptClick}
-								title={prompt}
-								type="button"
-							>
-								{prompt}
-							</button>
-						))
-					)}
-				</div>
+			{/* Fixed Input Bar - always pinned to the bottom of the viewport */}
+			<div className="fixed bottom-0 left-0 right-0 z-20 pointer-events-none tablet:left-14 desktop:left-58">
+				<div className="pointer-events-auto mx-auto flex w-full max-w-[680px] flex-col gap-2 bg-bg px-4 pt-2 pb-6">
+					{/* Dynamic Suggestion Pills based on Knowledge Tree */}
+					<div className="flex flex-wrap items-center gap-1.5">
+						<span className="font-sans text-xs text-text-faint">
+							Suggested questions:
+						</span>
+						{isSuggestionsLoading ? (
+							<div className="flex gap-2 animate-pulse">
+								<span className="h-6 w-28 rounded-md bg-surface" />
+								<span className="h-6 w-36 rounded-md bg-surface" />
+							</div>
+						) : (
+							suggestedQuestions.map((prompt) => (
+								<button
+									className="max-w-[220px] cursor-pointer truncate rounded-md border border-border bg-surface px-2.5 py-1 font-sans text-xs text-text-muted shadow-2xs transition-all duration-200 hover:scale-[1.02] hover:border-accent hover:bg-success-bg/40 hover:text-accent active:scale-95"
+									data-prompt={prompt}
+									key={prompt}
+									onClick={handlePromptClick}
+									title={prompt}
+									type="button"
+								>
+									{prompt}
+								</button>
+							))
+						)}
+					</div>
 
-				{/* Input box with focus ring transition */}
-				<form
-					className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface p-2 shadow-xs transition-all duration-200 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15"
-					onSubmit={handleSubmit}
-				>
-					<span className="ml-2 text-text-faint transition-colors duration-200">
-						<Icon name="search" size={16} />
-					</span>
-					<input
-						className="flex-1 border-0 bg-transparent font-sans text-sm text-text placeholder:text-text-faint focus:outline-hidden"
-						onChange={handleQueryChange}
-						onKeyDown={handleKeyDown}
-						placeholder={QUESTION_PLACEHOLDER}
-						type="text"
-						value={query}
-					/>
-					<button
-						className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-accent text-white shadow-2xs transition-all duration-200 hover:scale-105 hover:bg-accent-hover active:scale-95 disabled:scale-100 disabled:opacity-40"
-						disabled={!query.trim() || isLoading}
-						title="Send question"
-						type="submit"
+					{/* Input box with focus ring transition */}
+					<form
+						className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface p-2 shadow-xs transition-all duration-200 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15"
+						onSubmit={handleSubmit}
 					>
-						<Icon name="send" size={14} />
-					</button>
-				</form>
+						<span className="ml-2 text-text-faint transition-colors duration-200">
+							<Icon name="search" size={16} />
+						</span>
+						<input
+							className="flex-1 border-0 bg-transparent font-sans text-sm text-text placeholder:text-text-faint focus:outline-hidden"
+							onChange={handleQueryChange}
+							onKeyDown={handleKeyDown}
+							placeholder={QUESTION_PLACEHOLDER}
+							type="text"
+							value={query}
+						/>
+						<button
+							className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-accent text-white shadow-2xs transition-all duration-200 hover:scale-105 hover:bg-accent-hover active:scale-95 disabled:scale-100 disabled:opacity-40"
+							disabled={!query.trim() || isLoading}
+							title="Send question"
+							type="submit"
+						>
+							<Icon name="send" size={14} />
+						</button>
+					</form>
 
-				{/* Footer helper text */}
-				<div className="flex items-center justify-between font-sans text-[11px] text-text-faint">
-					<span>Prism retrieves verified facts from the knowledge tree.</span>
-					<span>Enter to send</span>
+					{/* Footer helper text */}
+					<div className="flex items-center justify-between font-sans text-[11px] text-text-faint">
+						<span>Prism retrieves verified facts from the knowledge tree.</span>
+						<span>Enter to send</span>
+					</div>
 				</div>
 			</div>
 		</div>
