@@ -12,8 +12,8 @@ type FormValues = {
 const InputWrapper = ({
 	disabled = false,
 	hasError = false,
+	hasPasswordToggle = false,
 	hintInfo,
-	isToggleablePassword,
 	label = "Email Address",
 	maxLength,
 	placeholder = "Enter your email",
@@ -22,8 +22,8 @@ const InputWrapper = ({
 }: {
 	disabled?: boolean;
 	hasError?: boolean;
+	hasPasswordToggle?: boolean;
 	hintInfo?: string;
-	isToggleablePassword?: boolean;
 	label?: string;
 	maxLength?: number;
 	placeholder?: string;
@@ -49,8 +49,8 @@ const InputWrapper = ({
 		<Input
 			control={control}
 			disabled={disabled}
+			hasPasswordToggle={hasPasswordToggle}
 			hintInfo={hintInfo}
-			isToggleablePassword={isToggleablePassword}
 			label={label}
 			maxLength={maxLength}
 			name="email"
@@ -86,6 +86,7 @@ const Email: Story = {
 
 const Password: Story = {
 	args: {
+		hasPasswordToggle: true,
 		label: "Password",
 		placeholder: "Enter your password",
 		type: "password",
@@ -94,8 +95,8 @@ const Password: Story = {
 
 const PasswordWithToggle: Story = {
 	args: {
+		hasPasswordToggle: true,
 		hintInfo: "Password must be at least 8 characters long",
-		isToggleablePassword: true,
 		label: "Password",
 		maxLength: 32,
 		placeholder: "Enter your password",

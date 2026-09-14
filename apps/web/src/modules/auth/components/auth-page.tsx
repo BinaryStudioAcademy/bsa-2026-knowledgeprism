@@ -11,15 +11,16 @@ import {
 	useLocation,
 	useNavigate,
 } from "~/hooks/hooks.js";
-import { AppRoute } from "~/lib/enums/enums.js";
+import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 import { actions as authActions } from "~/modules/auth/auth.js";
 
 import { SignInForm, SignUpForm } from "./components.js";
 
 const AuthPage: React.FC = () => {
 	const dispatch = useAppDispatch();
-	const { error } = useAppSelector(({ auth }) => ({
+	const { error, isAuthPending } = useAppSelector(({ auth }) => ({
 		error: auth.error,
+		isAuthPending: auth.dataStatus === DataStatus.PENDING,
 	}));
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
@@ -55,7 +56,9 @@ const AuthPage: React.FC = () => {
 			return <SignUpForm onSubmit={handleSignUpSubmit} />;
 		}
 
-		return <SignInForm onSubmit={handleSignInSubmit} />;
+		return (
+			<SignInForm isLoading={isAuthPending} onSubmit={handleSignInSubmit} />
+		);
 	};
 
 	return (

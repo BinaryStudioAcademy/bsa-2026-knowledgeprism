@@ -3,9 +3,23 @@ import { type SvgIconProperties } from "../types.js";
 const EyeOffIcon: React.FC<SvgIconProperties> = ({
 	size,
 }: SvgIconProperties) => (
-	<svg fill="none" height={size} viewBox="0 0 24 24" width={size}>
+	<svg fill="none" height={size} viewBox="0 0 20 20" width={size}>
 		<path
-			d="M9.88 9.88a3 3 0 1 0 4.24 4.24M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61M2 2l20 20"
+			d="M8.75 4c.407-.16.837-.25 1.25-.25 3.333 0 6.667 2.083 8.333 6.25-.563 1.408-1.42 2.61-2.487 3.52"
+			stroke="currentColor"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			strokeWidth="1.5"
+		/>
+		<path
+			d="M5.5 5.5C3.766 6.816 2.534 8.442 1.667 10c1.666 4.167 5 6.25 8.333 6.25 1.616 0 3.14-.492 4.417-1.333M2.5 2.5l15 15"
+			stroke="currentColor"
+			strokeLinecap="round"
+			strokeLinejoin="round"
+			strokeWidth="1.5"
+		/>
+		<path
+			d="M8.232 8.232a2.5 2.5 0 0 0 3.536 3.536"
 			stroke="currentColor"
 			strokeLinecap="round"
 			strokeLinejoin="round"

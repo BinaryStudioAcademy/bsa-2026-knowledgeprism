@@ -9,15 +9,16 @@ import {
 	useFormController,
 } from "~/hooks/hooks.js";
 
+const TOGGLE_ICON_SIZE = 16;
+
 const inputStyles = tv({
 	defaultVariants: {
 		hasError: false,
 		isDisabled: false,
+		isPassword: false,
 	},
 	slots: {
 		errorWrapper: "mt-1 block font-sans text-xs text-error",
-		iconButton:
-			"absolute right-3.5 top-1/2 flex -translate-y-1/2 items-center justify-center text-text-muted transition-colors hover:text-text",
 		input: [
 			"block h-11 w-full appearance-none rounded-lg border px-3.5 font-sans text-sm text-text outline-none transition",
 			"focus:border-accent focus:ring-3 focus:ring-accent/15",
@@ -26,6 +27,10 @@ const inputStyles = tv({
 		inputWrapper: "relative w-full",
 		labelWrapper:
 			"mb-1.5 flex items-center gap-1.5 font-sans text-sm font-medium text-text",
+		toggleButton: [
+			"absolute right-3.5 top-1/2 -translate-y-1/2 cursor-pointer text-text-muted transition hover:text-text",
+			"disabled:cursor-not-allowed disabled:text-text-faint",
+		],
 		wrapper: "w-full",
 	},
 	variants: {
@@ -44,15 +49,20 @@ const inputStyles = tv({
 				labelWrapper: "text-text-faint",
 			},
 		},
+		isPassword: {
+			true: {
+				input: "pr-10",
+			},
+		},
 	},
 });
 
 type Properties<T extends FieldValues> = {
 	control: Control<T, null>;
 	disabled?: boolean;
+	hasPasswordToggle?: boolean;
 	hintInfo?: string | undefined;
 	id?: string;
-	isToggleablePassword?: boolean | undefined;
 	label: string;
 	maxLength?: number | undefined;
 	name: FieldPath<T>;
@@ -64,9 +74,9 @@ type Properties<T extends FieldValues> = {
 const Input = <T extends FieldValues>({
 	control,
 	disabled = false,
+	hasPasswordToggle = false,
 	hintInfo,
 	id,
-	isToggleablePassword = false,
 	label,
 	maxLength,
 	name,
@@ -75,29 +85,38 @@ const Input = <T extends FieldValues>({
 	type = "text",
 }: Properties<T>): React.JSX.Element => {
 	const generatedId = useId();
-	const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+	const [isPasswordVisible, setIsPasswordVisible] = useState<boolean>(false);
 	const { field, fieldState } = useFormController({
 		control,
 		disabled,
 		name,
 	});
 
+	const isPassword = type === "password" && hasPasswordToggle;
 	const inputId = id ?? generatedId;
 	const errorMessage = fieldState.error?.message;
 	const hasError = fieldState.invalid;
 	const errorId = errorMessage ? `${inputId}-error` : undefined;
 	const isDisabled = field.disabled;
+	const inputType = isPassword && isPasswordVisible ? "text" : type;
+
+	const handleToggleVisibility = useCallback((): void => {
+		setIsPasswordVisible(
+			(previousIsPasswordVisible) => !previousIsPasswordVisible,
+		);
+	}, []);
 
 	const {
 		errorWrapper,
-		iconButton,
 		input,
 		inputWrapper,
 		labelWrapper,
+		toggleButton,
 		wrapper,
 	} = inputStyles({
 		hasError,
 		isDisabled,
+		isPassword,
 	});
 
 	const handleOnChange = useCallback(
@@ -109,18 +128,6 @@ const Input = <T extends FieldValues>({
 		},
 		[field, transformValue],
 	);
-
-	const handlePasswordVisibilityToggle = useCallback(() => {
-		setIsPasswordVisible((previous) => !previous);
-	}, []);
-
-	const isPasswordToggleShown = type === "password" && isToggleablePassword;
-
-	let currentType = type;
-
-	if (isPasswordToggleShown) {
-		currentType = isPasswordVisible ? "text" : "password";
-	}
 
 	return (
 		<div className={wrapper()}>
@@ -138,24 +145,27 @@ const Input = <T extends FieldValues>({
 					{...field}
 					aria-describedby={errorId}
 					aria-invalid={hasError}
-					className={input({
-						className: isPasswordToggleShown ? "pr-10" : "",
-					})}
+					className={input()}
 					disabled={isDisabled}
 					id={inputId}
 					maxLength={maxLength}
 					onChange={handleOnChange}
 					placeholder={placeholder}
-					type={currentType}
+					type={inputType}
 				/>
-				{isPasswordToggleShown && (
+
+				{isPassword && (
 					<button
 						aria-label={isPasswordVisible ? "Hide password" : "Show password"}
-						className={iconButton()}
-						onClick={handlePasswordVisibilityToggle}
+						className={toggleButton()}
+						disabled={isDisabled}
+						onClick={handleToggleVisibility}
 						type="button"
 					>
-						<Icon name={isPasswordVisible ? "eye-off" : "eye"} size={16} />
+						<Icon
+							name={isPasswordVisible ? "eye-off" : "eye"}
+							size={TOGGLE_ICON_SIZE}
+						/>
 					</button>
 				)}
 			</div>

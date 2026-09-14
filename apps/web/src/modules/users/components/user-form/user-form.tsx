@@ -134,8 +134,8 @@ const UserForm = <T extends FieldValues>({
 
 				<Input
 					control={control}
+					hasPasswordToggle={true}
 					hintInfo="Password must be at least 8 characters long"
-					isToggleablePassword={true}
 					label={isEditMode ? "Password (Optional)" : "Password"}
 					maxLength={32}
 					name={"password" as Path<T>}
