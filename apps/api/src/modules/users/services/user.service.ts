@@ -39,16 +39,9 @@ class UserService implements Service {
 			return;
 		}
 
-		if (payload.status) {
+		if (payload.status === "inactive") {
 			throw new HTTPError({
-				message: UserValidationMessage.USER_CANNOT_UPDATE_STATUS,
-				status: HTTPCode.BAD_REQUEST,
-			});
-		}
-
-		if (payload.email) {
-			throw new HTTPError({
-				message: UserValidationMessage.USER_CANNOT_UPDATE_EMAIL,
+				message: UserValidationMessage.USER_CANNOT_DEACTIVATE_SELF,
 				status: HTTPCode.BAD_REQUEST,
 			});
 		}
