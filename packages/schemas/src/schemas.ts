@@ -3,6 +3,10 @@ export {
 	documentUploadIntentValidationSchema,
 } from "./modules/documents/documents.js";
 export {
+	knowledgeEntryRouteParametersValidationSchema,
+	knowledgeEntryUpdateValidationSchema,
+} from "./modules/knowledge/knowledge.js";
+export {
 	projectCreateValidationSchema,
 	projectMemberCreateValidationSchema,
 	projectRouteParametersValidationSchema,
