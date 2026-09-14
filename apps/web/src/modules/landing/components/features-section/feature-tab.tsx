@@ -35,7 +35,7 @@ const FeatureTab: React.FC<Properties> = ({
 				isActive
 					? "border-accent bg-success-bg"
 					: "border-transparent bg-surface",
-				!isLast && "border-b border-border-subtle",
+				!isLast && !isActive && "border-b border-border-subtle",
 			)}
 			onClick={handleSelect}
 			type="button"
