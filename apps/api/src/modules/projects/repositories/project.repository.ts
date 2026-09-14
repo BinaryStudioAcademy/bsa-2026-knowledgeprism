@@ -3,6 +3,16 @@ import { type Transaction } from "objection";
 import { ProjectEntity } from "~/modules/projects/models/project.entity.js";
 import { type ProjectModel } from "~/modules/projects/models/project.model.js";
 
+type UpdateByIdAndOrganisationIdParameters = {
+	id: number;
+	organisationId: number;
+	payload: {
+		description?: string;
+		name?: string;
+	};
+	transaction?: Transaction;
+};
+
 class ProjectRepository {
 	private projectModel: typeof ProjectModel;
 
@@ -60,6 +70,32 @@ class ProjectRepository {
 			.execute();
 
 		return project ? ProjectEntity.initialize(project) : null;
+	}
+
+	public async updateByIdAndOrganisationId({
+		id,
+		organisationId,
+		payload,
+		transaction,
+	}: UpdateByIdAndOrganisationIdParameters): Promise<null | ProjectEntity> {
+		const updatedProjectsCount = await this.projectModel
+			.query(transaction)
+			.patch(payload)
+			.where({
+				id,
+				organisationId,
+			})
+			.execute();
+
+		if (!updatedProjectsCount) {
+			return null;
+		}
+
+		return await this.findByIdAndOrganisationId(
+			id,
+			organisationId,
+			transaction,
+		);
 	}
 }
 

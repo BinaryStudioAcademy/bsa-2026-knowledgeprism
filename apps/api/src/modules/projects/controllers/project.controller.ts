@@ -8,11 +8,13 @@ import {
 	projectCreateValidationSchema,
 	projectMemberCreateValidationSchema,
 	projectRouteParametersValidationSchema,
+	projectUpdateValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
 	type ProjectCreateRequestDto,
 	type ProjectMemberCreateRequestDto,
 	type ProjectRouteParametersDto,
+	type ProjectUpdateRequestDto,
 } from "@knowledgeprism/types";
 
 import {
@@ -69,6 +71,12 @@ class ProjectController extends BaseController {
 	 *       properties:
 	 *         name: { type: string, minLength: 1, maxLength: 50, example: KnowledgePrism }
 	 *         description: { type: string, example: Team knowledge base }
+	 *     ProjectUpdateRequest:
+	 *       type: object
+	 *       minProperties: 1
+	 *       properties:
+	 *         name: { type: string, minLength: 1, maxLength: 50 }
+	 *         description: { type: string }
 	 *     Project:
 	 *       type: object
 	 *       required: [id, name, description, createdAt, updatedAt]
@@ -130,6 +138,33 @@ class ProjectController extends BaseController {
 	 *         '422':
 	 *           $ref: '#/components/responses/ProjectValidationFailed'
 	 *   /projects/{id}:
+	 *     patch:
+	 *       tags: [Projects]
+	 *       summary: Update a project
+	 *       description: Requires an active organisation administrator.
+	 *       security:
+	 *         - sessionAuth: []
+	 *       requestBody:
+	 *         required: true
+	 *         content:
+	 *           application/json:
+	 *             schema:
+	 *               $ref: '#/components/schemas/ProjectUpdateRequest'
+	 *       responses:
+	 *         '200':
+	 *           description: Project updated
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/Project'
+	 *         '401':
+	 *           $ref: '#/components/responses/ProjectUnauthorized'
+	 *         '403':
+	 *           $ref: '#/components/responses/ProjectForbidden'
+	 *         '404':
+	 *           $ref: '#/components/responses/ProjectNotFound'
+	 *         '422':
+	 *           $ref: '#/components/responses/ProjectValidationFailed'
 	 *     parameters:
 	 *       - $ref: '#/components/parameters/ProjectId'
 	 *     get:
@@ -257,6 +292,22 @@ class ProjectController extends BaseController {
 			method: "GET",
 			path: ProjectsApiPath.ID,
 			validation: {
+				params: projectRouteParametersValidationSchema,
+			},
+		});
+
+		this.addRoute({
+			handler: (options) =>
+				this.update(
+					options as APIHandlerOptions<{
+						body: ProjectUpdateRequestDto;
+						params: ProjectRouteParametersDto;
+					}>,
+				),
+			method: "PATCH",
+			path: ProjectsApiPath.ID,
+			validation: {
+				body: projectUpdateValidationSchema,
 				params: projectRouteParametersValidationSchema,
 			},
 		});
@@ -393,6 +444,22 @@ class ProjectController extends BaseController {
 		return {
 			organisationId,
 			userId,
+		};
+	}
+
+	private async update(
+		options: APIHandlerOptions<{
+			body: ProjectUpdateRequestDto;
+			params: ProjectRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.projectService.update(
+				Number(options.params.id),
+				options.body,
+				this.getSessionContext(options),
+			),
+			status: HTTPCode.OK,
 		};
 	}
 }

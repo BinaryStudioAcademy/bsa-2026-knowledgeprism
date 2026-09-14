@@ -10,6 +10,7 @@ import {
 	type ProjectMemberResponseDto,
 	type ProjectMembersResponseDto,
 	type ProjectResponseDto,
+	type ProjectUpdateRequestDto,
 } from "@knowledgeprism/types";
 import { ForeignKeyViolationError, UniqueViolationError } from "objection";
 
@@ -273,6 +274,36 @@ class ProjectService {
 					context.organisationId,
 				),
 		};
+	}
+
+	public async update(
+		id: number,
+		payload: ProjectUpdateRequestDto,
+		context: ProjectAccessContext,
+	): Promise<ProjectResponseDto> {
+		await this.assertOrganisationAdmin(context);
+
+		const project = await this.projectRepository.updateByIdAndOrganisationId({
+			id,
+			organisationId: context.organisationId,
+			payload: {
+				...(payload.description !== undefined && {
+					description: payload.description.trim(),
+				}),
+				...(payload.name !== undefined && {
+					name: payload.name.trim(),
+				}),
+			},
+		});
+
+		if (!project) {
+			throw new HTTPError({
+				message: ProjectValidationMessage.NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
+		return this.mapProjectToResponse(project);
 	}
 }
 
