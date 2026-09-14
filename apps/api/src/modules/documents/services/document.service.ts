@@ -68,7 +68,7 @@ class DocumentService {
 	}: {
 		routeParameters: DocumentConfirmUploadRouteParametersDto;
 	}): Promise<DocumentConfirmUploadResponseDto> {
-		const documentId = Number(routeParameters.documentId);
+		const { documentId } = routeParameters;
 		const document = await this.documentRepository.findById(documentId);
 		const documentObject = document?.toObject();
 
@@ -109,7 +109,7 @@ class DocumentService {
 		}
 
 		if (!isObjectPresent) {
-			return await this.failAndThrow(
+			await this.failAndThrow(
 				documentId,
 				"Uploaded document was not found in S3.",
 				new Error("S3 object missing"),

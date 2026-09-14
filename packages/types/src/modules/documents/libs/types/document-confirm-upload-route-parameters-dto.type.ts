@@ -1,5 +1,5 @@
 type DocumentConfirmUploadRouteParametersDto = {
-	documentId: string;
+	documentId: number;
 	projectId: string;
 };
 
