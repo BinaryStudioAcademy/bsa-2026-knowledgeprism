@@ -19,16 +19,23 @@ const extract = async (blocks: ExtractionBlock[]): Promise<KnowledgeItem[]> => {
 			continue;
 		}
 
-		const raw = await invokePageExtraction(block.content);
-		const pageItems = mapExtractionOutput(raw, block.pageNumber);
+		try {
+			const raw = await invokePageExtraction(block.content);
+			const pageItems = mapExtractionOutput(raw, block.pageNumber);
 
-		if (pageItems.length === EMPTY_ITEM_COUNT) {
-			logger.warn(
-				`No knowledge items extracted from page ${block.pageNumber.toString()}`,
+			if (pageItems.length === EMPTY_ITEM_COUNT) {
+				logger.warn(
+					`No knowledge items extracted from page ${block.pageNumber.toString()}`,
+				);
+			}
+
+			items.push(...pageItems);
+		} catch (error) {
+			logger.error(
+				`Failed to extract knowledge from page ${block.pageNumber.toString()}`,
+				{ error },
 			);
 		}
-
-		items.push(...pageItems);
 	}
 
 	return items;
