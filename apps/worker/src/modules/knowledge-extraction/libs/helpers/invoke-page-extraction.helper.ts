@@ -1,6 +1,7 @@
 import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
 import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
+import { logger } from "~/logger/logger.js";
 
 import { BedrockRequest } from "../constants/bedrock-request.constant.js";
 import { ClaudeModelId } from "../constants/claude-model.constant.js";
@@ -27,7 +28,13 @@ const toPagePrompt = (content: string): string => {
 };
 
 const toResponseText = (decoded: string): string => {
-	const envelope: unknown = JSON.parse(decoded);
+	let envelope: unknown;
+
+	try {
+		envelope = JSON.parse(decoded);
+	} catch {
+		return "";
+	}
 
 	if (
 		typeof envelope !== "object" ||
@@ -47,22 +54,28 @@ const toResponseText = (decoded: string): string => {
 };
 
 const invokePageExtraction = async (content: string): Promise<unknown> => {
-	const response = await bedrockRuntimeClient.send(
-		new InvokeModelCommand({
-			accept: "application/json",
-			body: JSON.stringify({
-				anthropic_version: BedrockRequest.ANTHROPIC_VERSION,
-				max_tokens: BedrockRequest.MAX_TOKENS,
-				messages: [{ content: toPagePrompt(content), role: "user" }],
-				system: EXTRACTION_SYSTEM_PROMPT,
-				temperature: BedrockRequest.TEMPERATURE,
+	try {
+		const response = await bedrockRuntimeClient.send(
+			new InvokeModelCommand({
+				accept: "application/json",
+				body: JSON.stringify({
+					anthropic_version: BedrockRequest.ANTHROPIC_VERSION,
+					max_tokens: BedrockRequest.MAX_TOKENS,
+					messages: [{ content: toPagePrompt(content), role: "user" }],
+					system: EXTRACTION_SYSTEM_PROMPT,
+					temperature: BedrockRequest.TEMPERATURE,
+				}),
+				contentType: "application/json",
+				modelId: ClaudeModelId.SONNET_4_6,
 			}),
-			contentType: "application/json",
-			modelId: ClaudeModelId.SONNET_4_6,
-		}),
-	);
+		);
 
-	return toResponseText(response.body.transformToString());
+		return toResponseText(response.body.transformToString());
+	} catch (error) {
+		logger.error("Failed to invoke page extraction.", { error });
+
+		throw error;
+	}
 };
 
 export { invokePageExtraction };
