@@ -12,6 +12,8 @@ import { ChevronFilledRightIcon } from "./icons/chevron-filled-right.icon.js";
 import { ChevronFilledUpIcon } from "./icons/chevron-filled-up.icon.js";
 import { CloseIcon } from "./icons/close.icon.js";
 import { DesktopIcon } from "./icons/desktop.icon.js";
+import { EyeOffIcon } from "./icons/eye-off.icon.js";
+import { EyeIcon } from "./icons/eye.icon.js";
 import { FileRoundedIcon } from "./icons/file-rounded.icon.js";
 import { FileSharpIcon } from "./icons/file-sharp.icon.js";
 import { FileIcon } from "./icons/file.icon.js";
@@ -36,6 +38,7 @@ import { SquarePlaceholderIcon } from "./icons/square-placeholder.icon.js";
 import { TabletIcon } from "./icons/tablet.icon.js";
 import { ToastCheckIcon } from "./icons/toast-check.icon.js";
 import { UploadIcon } from "./icons/upload.icon.js";
+import { UsersIcon } from "./icons/users.icon.js";
 import { type SvgIconProperties } from "./types.js";
 
 const DEFAULT_ICON_SIZE = 14;
@@ -55,6 +58,8 @@ const iconNameToComponent = {
 	"chevron-filled-up": ChevronFilledUpIcon,
 	close: CloseIcon,
 	desktop: DesktopIcon,
+	eye: EyeIcon,
+	"eye-off": EyeOffIcon,
 	file: FileIcon,
 	"file-rounded": FileRoundedIcon,
 	"file-sharp": FileSharpIcon,
@@ -79,6 +84,7 @@ const iconNameToComponent = {
 	tablet: TabletIcon,
 	"toast-check": ToastCheckIcon,
 	upload: UploadIcon,
+	users: UsersIcon,
 } as const satisfies Record<string, React.FC<SvgIconProperties>>;
 
 type IconName = keyof typeof iconNameToComponent;

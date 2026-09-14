@@ -12,14 +12,22 @@ type FormValues = {
 const InputWrapper = ({
 	disabled = false,
 	hasError = false,
+	hintInfo,
+	isToggleablePassword,
 	label = "Email Address",
+	maxLength,
 	placeholder = "Enter your email",
+	transformValue,
 	type = "text",
 }: {
 	disabled?: boolean;
 	hasError?: boolean;
+	hintInfo?: string;
+	isToggleablePassword?: boolean;
 	label?: string;
+	maxLength?: number;
 	placeholder?: string;
+	transformValue?: (value: string) => string;
 	type?: "email" | "password" | "text";
 }): React.JSX.Element => {
 	const { control, setError } = useForm<FormValues>({
@@ -41,9 +49,13 @@ const InputWrapper = ({
 		<Input
 			control={control}
 			disabled={disabled}
+			hintInfo={hintInfo}
+			isToggleablePassword={isToggleablePassword}
 			label={label}
+			maxLength={maxLength}
 			name="email"
 			placeholder={placeholder}
+			transformValue={transformValue}
 			type={type}
 		/>
 	);
@@ -80,6 +92,17 @@ const Password: Story = {
 	},
 };
 
+const PasswordWithToggle: Story = {
+	args: {
+		hintInfo: "Password must be at least 8 characters long",
+		isToggleablePassword: true,
+		label: "Password",
+		maxLength: 32,
+		placeholder: "Enter your password",
+		type: "password",
+	},
+};
+
 const Disabled: Story = {
 	args: {
 		disabled: true,
@@ -99,4 +122,4 @@ const WithError: Story = {
 };
 
 export default meta;
-export { Default, Disabled, Email, Password, WithError };
+export { Default, Disabled, Email, Password, PasswordWithToggle, WithError };
