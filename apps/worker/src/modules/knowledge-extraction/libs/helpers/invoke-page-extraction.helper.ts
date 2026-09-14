@@ -54,17 +54,19 @@ const toResponseText = (decoded: string): string => {
 };
 
 const invokePageExtraction = async (content: string): Promise<unknown> => {
+	const body = JSON.stringify({
+		anthropic_version: BedrockRequest.ANTHROPIC_VERSION,
+		max_tokens: BedrockRequest.MAX_TOKENS,
+		messages: [{ content: toPagePrompt(content), role: "user" }],
+		system: EXTRACTION_SYSTEM_PROMPT,
+		temperature: BedrockRequest.TEMPERATURE,
+	});
+
 	try {
 		const response = await bedrockRuntimeClient.send(
 			new InvokeModelCommand({
 				accept: "application/json",
-				body: JSON.stringify({
-					anthropic_version: BedrockRequest.ANTHROPIC_VERSION,
-					max_tokens: BedrockRequest.MAX_TOKENS,
-					messages: [{ content: toPagePrompt(content), role: "user" }],
-					system: EXTRACTION_SYSTEM_PROMPT,
-					temperature: BedrockRequest.TEMPERATURE,
-				}),
+				body,
 				contentType: "application/json",
 				modelId: ClaudeModelId.SONNET_4_6,
 			}),
