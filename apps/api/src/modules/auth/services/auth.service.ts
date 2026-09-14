@@ -64,12 +64,7 @@ class AuthService {
 
 		return {
 			organisation: organisation.toObject(),
-			user: {
-				email: userObject.email,
-				firstName: userObject.firstName,
-				id: userObject.id,
-				lastName: userObject.lastName,
-			},
+			user: user.toAuthObject(),
 		};
 	}
 
@@ -111,12 +106,7 @@ class AuthService {
 
 		return {
 			organisation: organisation.toObject(),
-			user: {
-				email: userObject.email,
-				firstName: userObject.firstName,
-				id: userObject.id,
-				lastName: userObject.lastName,
-			},
+			user: user.toAuthObject(),
 		};
 	}
 
@@ -139,7 +129,7 @@ class AuthService {
 
 			return {
 				organisation: organisationObject,
-				user: user.toSignUpObject(),
+				user: user.toAuthObject(),
 			};
 		});
 	}
