@@ -46,7 +46,12 @@ class UserService implements Service {
 			});
 		}
 
-		if (payload.assignedProjects) {
+		const EMPTY_LENGTH = 0;
+
+		if (
+			payload.assignedProjects &&
+			payload.assignedProjects.length === EMPTY_LENGTH
+		) {
 			throw new HTTPError({
 				message: UserValidationMessage.USER_CANNOT_REMOVE_SELF_FROM_PROJECTS,
 				status: HTTPCode.BAD_REQUEST,
