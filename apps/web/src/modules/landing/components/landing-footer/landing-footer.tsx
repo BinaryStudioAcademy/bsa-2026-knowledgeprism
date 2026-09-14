@@ -14,10 +14,21 @@ const LandingFooter: React.FC = () => (
 				"flex flex-wrap items-center justify-between gap-3 py-7",
 			)}
 		>
-			<span className="font-mono text-[12px] text-text-faint">
+			<span
+				className={getValidClassNames(
+					"order-2 font-mono text-[12px] text-text-faint",
+					"tablet:order-none",
+				)}
+			>
 				{LANDING_FOOTER_COPY.copyright}
 			</span>
-			<nav aria-label="Footer" className="flex gap-6">
+			<nav
+				aria-label="Footer"
+				className={getValidClassNames(
+					"order-1 flex gap-6",
+					"tablet:order-none",
+				)}
+			>
 				{LANDING_FOOTER_COPY.links.map((link) => (
 					<a
 						className={getValidClassNames(
