@@ -1,4 +1,6 @@
 import knex, { type Knex } from "knex";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { knexSnakeCaseMappers, Model, type Transaction } from "objection";
 
 import { type Config } from "~/infrastructure/config/config.js";
@@ -7,6 +9,11 @@ import { AppEnvironment } from "~/shared/enums/enums.js";
 
 import { DatabaseTableName } from "./libs/enums/enums.js";
 import { type Database } from "./libs/types/types.js";
+
+const MIGRATIONS_DIRECTORY = path.join(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"migrations",
+);
 
 class BaseDatabase implements Database {
 	private appConfig: Config;
@@ -30,7 +37,7 @@ class BaseDatabase implements Database {
 			connection: this.appConfig.ENV.DB.CONNECTION_STRING,
 			debug: false,
 			migrations: {
-				directory: "src/infrastructure/database/migrations",
+				directory: MIGRATIONS_DIRECTORY,
 				tableName: DatabaseTableName.MIGRATIONS,
 			},
 			pool: {
