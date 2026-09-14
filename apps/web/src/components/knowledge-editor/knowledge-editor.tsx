@@ -1,32 +1,77 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
-import { type Block, type PartialBlock } from "@blocknote/core";
+import {
+	type Block,
+	BlockNoteSchema,
+	type BlockSchemaFromSpecs,
+	type BlockSpecs,
+	defaultBlockSpecs,
+	type PartialBlock,
+} from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
+
+type EditorBlock = Block<BlockSchemaFromSpecs<BlockSpecs>>;
+
+type EditorBlockType = Exclude<keyof typeof defaultBlockSpecs, "paragraph">;
 
 type EditorTheme = "dark" | "light";
 
 type Properties = {
+	disabledBlocks?: EditorBlockType[];
 	initialContent?: PartialBlock[];
 	isEditable?: boolean;
-	onChange?: (blocks: Block[]) => void;
+	onChange?: (blocks: EditorBlock[]) => void;
 	theme?: EditorTheme;
 };
 
+const getEditorBlockSpecs = (
+	disabledBlocks: readonly EditorBlockType[] = [],
+): BlockSpecs => {
+	const disabledBlockSet = new Set<EditorBlockType>(disabledBlocks);
+
+	return Object.fromEntries(
+		Object.entries(defaultBlockSpecs).filter(([blockType]) => {
+			return (
+				blockType === "paragraph" ||
+				!disabledBlockSet.has(blockType as EditorBlockType)
+			);
+		}),
+	) as unknown as BlockSpecs;
+};
+
+// Workaround for BlockNote types with exactOptionalPropertyTypes enabled.
+// DefaultBlockSchema heading props are not compatible with BlockSchema constraints.
+// Context: https://github.com/TypeCellOS/BlockNote/discussions/2476.
+const getEditorSchema = (blockSpecs: BlockSpecs) => {
+	return BlockNoteSchema.create({
+		blockSpecs,
+	});
+};
+
 const KnowledgeEditor: React.FC<Properties> = ({
+	disabledBlocks,
 	initialContent,
 	isEditable = true,
 	onChange,
 	theme = "light",
 }: Properties) => {
+	const disabledBlocksKey = disabledBlocks?.join(",") ?? "";
+	const editorSchema = useMemo(() => {
+		const disabledBlockTypes =
+			disabledBlocksKey === ""
+				? []
+				: (disabledBlocksKey.split(",") as EditorBlockType[]);
+
+		return getEditorSchema(getEditorBlockSpecs(disabledBlockTypes));
+	}, [disabledBlocksKey]);
 	const editor = useCreateBlockNote(
-		initialContent === undefined ? undefined : { initialContent },
-		[initialContent],
+		initialContent === undefined
+			? { schema: editorSchema }
+			: { initialContent, schema: editorSchema },
+		[initialContent, editorSchema],
 	);
-	// Workaround for BlockNote types with exactOptionalPropertyTypes enabled.
-	// DefaultBlockSchema heading props are not compatible with BlockSchema constraints.
-	// Context: https://github.com/TypeCellOS/BlockNote/discussions/2476.
 	const TypedBlockNoteView = BlockNoteView as unknown as React.FC<{
 		editable: boolean;
 		editor: typeof editor;
