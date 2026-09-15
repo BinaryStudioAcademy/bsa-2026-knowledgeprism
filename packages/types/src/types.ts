@@ -14,6 +14,9 @@ export {
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
+	type ManualTextCreateRequestDto,
+	type ManualTextResponseDto,
+	type ManualTextRouteParametersDto,
 } from "./modules/documents/documents.js";
 export {
 	type ProjectAssignmentDto,
