@@ -1,5 +1,7 @@
 import { DocumentStatus } from "@knowledgeprism/constants";
 import {
+	type DocumentConfirmUploadResponseDto,
+	type DocumentConfirmUploadRouteParametersDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
@@ -9,11 +11,14 @@ import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/helpers.js";
 import { type GeneratePresignedUploadUrl } from "~/infrastructure/s3/libs/types/types.js";
+import { type CheckDocumentObjectExists } from "~/infrastructure/s3/verify-object.js";
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 
 class DocumentService {
+	private checkDocumentObjectExists: CheckDocumentObjectExists;
+
 	private documentRepository: DocumentRepository;
 
 	private generatePresignedUploadUrl: GeneratePresignedUploadUrl;
@@ -21,17 +26,103 @@ class DocumentService {
 	private logger: Logger;
 
 	public constructor({
+		checkDocumentObjectExists,
 		documentRepository,
 		generatePresignedUploadUrl,
 		logger,
 	}: {
+		checkDocumentObjectExists: CheckDocumentObjectExists;
 		documentRepository: DocumentRepository;
 		generatePresignedUploadUrl: GeneratePresignedUploadUrl;
 		logger: Logger;
 	}) {
+		this.checkDocumentObjectExists = checkDocumentObjectExists;
 		this.documentRepository = documentRepository;
 		this.generatePresignedUploadUrl = generatePresignedUploadUrl;
 		this.logger = logger;
+	}
+
+	private async failAndThrow(
+		documentId: number,
+		message: string,
+		error: unknown,
+	): Promise<never> {
+		await this.documentRepository.updateStatus({
+			id: documentId,
+			status: DocumentStatus.FAILED,
+		});
+
+		this.logger.error(message, { documentId, error });
+
+		throw new HTTPError({
+			cause: error,
+			message,
+			status: HTTPCode.INTERNAL_SERVER_ERROR,
+		});
+	}
+
+	public async confirmUpload({
+		routeParameters,
+	}: {
+		routeParameters: DocumentConfirmUploadRouteParametersDto;
+	}): Promise<DocumentConfirmUploadResponseDto> {
+		const { documentId } = routeParameters;
+		const document = await this.documentRepository.findById(documentId);
+		const documentObject = document?.toObject();
+
+		if (
+			!documentObject ||
+			documentObject.projectId !== routeParameters.projectId
+		) {
+			throw new HTTPError({
+				message: "Document not found.",
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
+		if (documentObject.status !== DocumentStatus.UPLOADED) {
+			throw new HTTPError({
+				message: `Document cannot be confirmed from status "${documentObject.status}".`,
+				status: HTTPCode.CONFLICT,
+			});
+		}
+
+		await this.documentRepository.updateStatus({
+			id: documentId,
+			status: DocumentStatus.PROCESSING,
+		});
+
+		let isObjectPresent: boolean;
+
+		try {
+			isObjectPresent = await this.checkDocumentObjectExists({
+				key: documentObject.s3Key,
+			});
+		} catch (error) {
+			return await this.failAndThrow(
+				documentId,
+				"Failed to verify uploaded document in S3.",
+				error,
+			);
+		}
+
+		if (!isObjectPresent) {
+			await this.failAndThrow(
+				documentId,
+				"Uploaded document was not found in S3.",
+				new Error("S3 object missing"),
+			);
+		}
+
+		const confirmedDocument = await this.documentRepository.updateStatus({
+			id: documentId,
+			status: DocumentStatus.PARSED,
+		});
+
+		return {
+			documentId,
+			status: confirmedDocument.toObject().status,
+		};
 	}
 
 	public async createUploadIntent({
