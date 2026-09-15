@@ -121,4 +121,4 @@ function mapProjectResponseToItem(
 	};
 }
 
-export { type CreateProjectPayload, UpdateProjectPayload, WorkspacesApi };
+export { type CreateProjectPayload, type UpdateProjectPayload, WorkspacesApi };

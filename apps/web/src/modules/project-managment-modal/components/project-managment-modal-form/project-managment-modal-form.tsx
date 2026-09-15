@@ -5,7 +5,7 @@ import { useAppForm } from "~/hooks/hooks.js";
 
 import { DEFAULT_PROJECT_MANAGMENT_MODAL_FORM_PAYLOAD } from "./lib/constant.js";
 import { ProjectFormValue } from "./lib/type.js";
-import { ProjectFormValidationSchema } from "./lib/validation-schemta.js";
+import { ProjectFormValidationSchema } from "./lib/validation-schema.js";
 
 type Properties = Readonly<{
 	error?: null | string;
