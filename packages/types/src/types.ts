@@ -16,6 +16,15 @@ export {
 	type DocumentUploadIntentRouteParametersDto,
 } from "./modules/documents/documents.js";
 export {
+	type KnowledgeEntryResponseDto,
+	type KnowledgeEntryRouteParametersDto,
+	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeNodeContentDto,
+	type KnowledgeTreeItemResponseDto,
+	type KnowledgeTreeResponseDto,
+	type KnowledgeTreeRouteParametersDto,
+} from "./modules/knowledge/knowledge.js";
+export {
 	type ProjectCreateRequestDto,
 	type ProjectMemberCreateRequestDto,
 	type ProjectMemberResponseDto,
