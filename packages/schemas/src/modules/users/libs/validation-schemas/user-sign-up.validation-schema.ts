@@ -8,7 +8,9 @@ import { z } from "zod";
 import { email } from "./email.validation-schema.js";
 
 const DIGIT_PATTERN = /\d/u;
-const SPECIAL_CHARACTER_PATTERN = /[^A-Za-z0-9]/u;
+const SPECIAL_CHARACTER_PATTERN = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/u;
+const VALID_PASSWORD_CHARACTERS_PATTERN =
+	/^[\dA-Za-z!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]*$/u;
 
 const createRequiredNameField = (
 	requiredError: string,
@@ -35,6 +37,10 @@ const hasPasswordDigit = (password: string): boolean => {
 
 const hasPasswordSpecialCharacter = (password: string): boolean => {
 	return SPECIAL_CHARACTER_PATTERN.test(password);
+};
+
+const hasInvalidPasswordCharacters = (password: string): boolean => {
+	return !VALID_PASSWORD_CHARACTERS_PATTERN.test(password);
 };
 
 const userSignUp = z
@@ -92,6 +98,14 @@ const userSignUp = z
 			context.addIssue({
 				code: "custom",
 				message: UserValidationMessage.PASSWORD_SPECIAL_CHARACTER_REQUIRE,
+				path: ["password"],
+			});
+		}
+
+		if (hasInvalidPasswordCharacters(password)) {
+			context.addIssue({
+				code: "custom",
+				message: UserValidationMessage.PASSWORD_INVALID_CHARACTERS,
 				path: ["password"],
 			});
 		}
