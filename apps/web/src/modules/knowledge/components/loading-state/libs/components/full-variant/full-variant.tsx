@@ -107,7 +107,7 @@ const FullVariant = ({
 				)}
 			</div>
 
-			<Heading className="mb-2" level={"1"}>
+			<Heading className="mb-2" level="1">
 				{isError ? "Processing failed" : "Analysing your content"}
 			</Heading>
 			<Paragraph
