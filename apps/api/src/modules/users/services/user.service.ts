@@ -1,4 +1,8 @@
-import { HTTPCode, UserValidationMessage } from "@knowledgeprism/constants";
+import {
+	HTTPCode,
+	OrganisationRole,
+	UserValidationMessage,
+} from "@knowledgeprism/constants";
 import {
 	type UserCreateRequestDto,
 	type UserDetailsResponseDto,
@@ -94,6 +98,7 @@ class UserService implements Service {
 					firstName: payload.firstName,
 					lastName: payload.lastName,
 					organisationId: payload.organisationId,
+					organisationRole: OrganisationRole.ADMIN,
 					passwordHash,
 					status: "active",
 				}),
@@ -135,6 +140,7 @@ class UserService implements Service {
 				firstName: payload.firstName,
 				lastName: payload.lastName,
 				organisationId,
+				organisationRole: OrganisationRole.USER,
 				passwordHash,
 				status: "active",
 			}),

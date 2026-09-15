@@ -16,7 +16,15 @@ export {
 	DocumentValidationRule,
 } from "./modules/documents/documents.js";
 export {
+	ProjectMemberRole,
+	ProjectsApiPath,
+	ProjectValidationMessage,
+	ProjectValidationRule,
+} from "./modules/projects/projects.js";
+export {
+	OrganisationRole,
 	UsersApiPath,
+	UserStatus,
 	UserValidationMessage,
 	UserValidationRule,
 } from "./modules/users/users.js";

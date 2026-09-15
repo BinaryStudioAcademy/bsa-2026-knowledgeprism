@@ -269,7 +269,7 @@ class BaseServerApplication implements ServerApplication {
 				});
 
 				await this.app.register(swaggerUi, {
-					routePrefix: `${api.version}/documentation`,
+					routePrefix: `/${api.version}/documentation`,
 				});
 			}),
 		);
