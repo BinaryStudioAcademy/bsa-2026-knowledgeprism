@@ -1,12 +1,9 @@
-import { Header, Logo, RouterOutlet } from "~/components/components.js";
-import { AppRoute } from "~/lib/enums/enums.js";
+import { Header, RouterOutlet } from "~/components/components.js";
 
 const PublicLayout: React.FC = () => {
 	return (
 		<div className="flex min-h-screen flex-col bg-bg">
-			<Header>
-				<Logo to={AppRoute.ROOT} />
-			</Header>
+			<Header />
 
 			<main className="flex-1">
 				<RouterOutlet />
