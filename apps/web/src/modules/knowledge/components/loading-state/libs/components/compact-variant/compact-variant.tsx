@@ -96,7 +96,7 @@ const CompactVariant = ({
 					<div
 						className={`h-full transition-all duration-300 ${isError ? "bg-error" : "bg-accent"}`}
 						style={{
-							width: `${String(isError ? FULL_PERCENTAGE : percentage)}%`,
+							width: `${isError ? FULL_PERCENTAGE : percentage}%`,
 						}}
 					/>
 				</div>
