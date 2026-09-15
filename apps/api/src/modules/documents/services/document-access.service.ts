@@ -1,9 +1,9 @@
 import {
 	DocumentErrorMessage,
+	DocumentValidationRule,
 	HTTPCode,
 	ProjectMemberRole,
 } from "@knowledgeprism/constants";
-import { Model } from "objection";
 
 import { HTTPError } from "~/infrastructure/http/http.js";
 import { ProjectMemberModel } from "~/modules/projects/models/project-member.model.js";
@@ -30,17 +30,20 @@ class DocumentAccessService {
 		projectId: string;
 		userId: number;
 	}): Promise<void> {
-		const knex = Model.knex();
-		const hasProjectsTable = await knex.schema.hasTable(ProjectModel.tableName);
-		const hasProjectMembersTable = await knex.schema.hasTable(
-			ProjectMemberModel.tableName,
-		);
+		const parsedProjectId = Number(projectId);
 
-		if (!hasProjectsTable || !hasProjectMembersTable) {
-			return;
+		if (
+			!Number.isSafeInteger(parsedProjectId) ||
+			parsedProjectId < DocumentValidationRule.IDENTIFIER_MINIMUM_VALUE ||
+			String(parsedProjectId) !== projectId
+		) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.PROJECT_NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
 		}
 
-		const project = await ProjectModel.query().findById(projectId);
+		const project = await ProjectModel.query().findById(parsedProjectId);
 
 		if (!project) {
 			throw new HTTPError({
