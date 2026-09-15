@@ -1,3 +1,5 @@
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
+
 import { FloatingMark } from "../floating-mark/floating-mark.js";
 import { CTA_SECTION_COPY } from "./libs/constants.js";
 
