@@ -3,10 +3,8 @@ import { logger } from "~/logger/logger.js";
 import { invokePageExtraction } from "../libs/helpers/invoke-page-extraction.helper.js";
 import { isBlankPageContent } from "../libs/helpers/is-blank-page-content.helper.js";
 import { mapExtractionOutput } from "../libs/helpers/map-extraction-output.helper.js";
-import {
-	type ExtractionBlock,
-	type KnowledgeItem,
-} from "../libs/types/types.js";
+import { type ExtractionBlock } from "../libs/types/extraction-block.type.js";
+import { type KnowledgeItem } from "../libs/types/knowledge-item.type.js";
 
 const EMPTY_ITEM_COUNT = 0;
 

@@ -2,7 +2,8 @@ import { config as loadEnvironment } from "dotenv";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { type Config, type EnvironmentSchema } from "./libs/types/types.js";
+import { type Config } from "./libs/types/config.type.js";
+import { type EnvironmentSchema } from "./libs/types/environment-schema.type.js";
 
 const ENV_FILE_PATH = path.join(
 	path.dirname(fileURLToPath(import.meta.url)),
