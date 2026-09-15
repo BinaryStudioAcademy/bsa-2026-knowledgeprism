@@ -57,9 +57,9 @@ const { actions, name, reducer } = createSlice({
 			state.error = null;
 			state.user = action.payload;
 		});
-		builder.addCase(loadCurrentUser.rejected, (state, action) => {
+		builder.addCase(loadCurrentUser.rejected, (state) => {
 			state.dataStatus = DataStatus.REJECTED;
-			state.error = action.error.message ?? null;
+			state.error = null;
 			state.user = null;
 		});
 		builder.addCase(logout.pending, (state) => {

@@ -18,62 +18,62 @@ import { PublicLayout } from "./layouts/public-layout.js";
 import { SidebarLayout } from "./layouts/sidebar-layout.js";
 import { RouterProvider } from "./router-provider.js";
 
-void store.instance.dispatch(authActions.loadCurrentUser()).finally(() => {
-	createRoot(document.querySelector("#root") as HTMLElement).render(
-		<StrictMode>
-			<StoreProvider store={store.instance}>
-				<RouterProvider
-					routes={[
-						{
-							element: <LandingPage />,
-							path: AppRoute.ROOT,
-						},
-						{
-							children: [
-								{
-									element: <App />,
-								},
-							],
-							element: <PublicLayout />,
-						},
-						{
-							children: [
-								{
-									element: <AuthPage />,
-									path: AppRoute.SIGN_IN,
-								},
-								{
-									element: <AuthPage />,
-									path: AppRoute.SIGN_UP,
-								},
-								{
-									element: <p>Organisation Workspace</p>,
-									path: AppRoute.WORKSPACE,
-								},
-							],
-							element: <AuthLayout />,
-						},
-						{
-							children: [
-								{
-									children: [
-										{
-											element: <AccountSettingsPage />,
-											path: AppRoute.SETTINGS,
-										},
-									],
-									element: <SidebarLayout />,
-								},
-							],
-							element: <AppLayout />,
-						},
-						{
-							element: <NotFoundPage />,
-							path: "*",
-						},
-					]}
-				/>
-			</StoreProvider>
-		</StrictMode>,
-	);
-});
+void store.instance.dispatch(authActions.loadCurrentUser());
+
+createRoot(document.querySelector("#root") as HTMLElement).render(
+	<StrictMode>
+		<StoreProvider store={store.instance}>
+			<RouterProvider
+				routes={[
+					{
+						element: <LandingPage />,
+						path: AppRoute.ROOT,
+					},
+					{
+						children: [
+							{
+								element: <App />,
+							},
+						],
+						element: <PublicLayout />,
+					},
+					{
+						children: [
+							{
+								element: <AuthPage />,
+								path: AppRoute.SIGN_IN,
+							},
+							{
+								element: <AuthPage />,
+								path: AppRoute.SIGN_UP,
+							},
+							{
+								element: <p>Organisation Workspace</p>,
+								path: AppRoute.WORKSPACE,
+							},
+						],
+						element: <AuthLayout />,
+					},
+					{
+						children: [
+							{
+								children: [
+									{
+										element: <AccountSettingsPage />,
+										path: AppRoute.SETTINGS,
+									},
+								],
+								element: <SidebarLayout />,
+							},
+						],
+						element: <AppLayout />,
+					},
+					{
+						element: <NotFoundPage />,
+						path: "*",
+					},
+				]}
+			/>
+		</StoreProvider>
+	</StrictMode>,
+);
