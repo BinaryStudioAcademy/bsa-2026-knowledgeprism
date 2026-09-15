@@ -29,6 +29,7 @@ import { ParagraphIcon } from "./icons/paragraph.icon.js";
 import { PasteTextIcon } from "./icons/paste-text.icon.js";
 import { PhoneIcon } from "./icons/phone.icon.js";
 import { PlusIcon } from "./icons/plus.icon.js";
+import { PrismIcon } from "./icons/prism.icon.js";
 import { ProjectIcon } from "./icons/project.icon.js";
 import { SearchIcon } from "./icons/search.icon.js";
 import { SendIcon } from "./icons/send.icon.js";
@@ -74,6 +75,7 @@ const iconNameToComponent = {
 	"paste-text": PasteTextIcon,
 	phone: PhoneIcon,
 	plus: PlusIcon,
+	prism: PrismIcon,
 	project: ProjectIcon,
 	search: SearchIcon,
 	send: SendIcon,

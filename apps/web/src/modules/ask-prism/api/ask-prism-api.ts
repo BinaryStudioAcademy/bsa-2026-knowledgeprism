@@ -1,3 +1,4 @@
+import { APIPath, AskPrismApiPath } from "@knowledgeprism/constants";
 import {
 	type AskPrismRequestDto,
 	type AskPrismResponseDto,
@@ -16,24 +17,27 @@ type Constructor = {
 
 class AskPrismApi extends BaseHTTPApi {
 	public constructor({ baseUrl, http, storage }: Constructor) {
-		super({ baseUrl, http, path: "/ask-prism", storage });
+		super({ baseUrl, http, path: APIPath.ASK_PRISM, storage });
 	}
 
 	public async ask(payload: AskPrismRequestDto): Promise<AskPrismResponseDto> {
-		const response = await this.load(this.getFullEndpoint("/", {}), {
-			contentType: ContentType.JSON,
-			hasAuth: true,
-			method: "POST",
-			payload: JSON.stringify(payload),
-		});
+		const response = await this.load(
+			this.getFullEndpoint(AskPrismApiPath.ROOT, {}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify(payload),
+			},
+		);
 
 		return await response.json<AskPrismResponseDto>();
 	}
 
 	public async getSuggestedQuestions(projectId?: string): Promise<string[]> {
 		const endpoint = projectId
-			? `${this.getFullEndpoint("/suggestions", {})}?projectId=${encodeURIComponent(projectId)}`
-			: this.getFullEndpoint("/suggestions", {});
+			? `${this.getFullEndpoint(AskPrismApiPath.SUGGESTIONS, {})}?projectId=${encodeURIComponent(projectId)}`
+			: this.getFullEndpoint(AskPrismApiPath.SUGGESTIONS, {});
 
 		const response = await this.load(endpoint, {
 			contentType: ContentType.JSON,

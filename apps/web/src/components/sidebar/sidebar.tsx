@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React from "react";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
@@ -44,12 +44,9 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	const location = useLocation();
 	const navigate = useNavigate();
 
-	const handleNavigate = useCallback(
-		(route: string) => (): void => {
-			void navigate(route);
-		},
-		[navigate],
-	);
+	const handleNavigate = (route: string): void => {
+		void navigate(route);
+	};
 
 	const isAskPrismActive = location.pathname === AppRoute.ASK_PRISM;
 	const isSettingsActive = location.pathname === AppRoute.SETTINGS;
@@ -59,21 +56,27 @@ const Sidebar: React.FC<SidebarProperties> = ({
 			icon: <Icon name="knowledge-tree" />,
 			id: "knowledge-tree",
 			label: "Knowledge Tree",
-			onClick: handleNavigate(AppRoute.ROOT),
+			onClick: () => {
+				handleNavigate(AppRoute.ROOT);
+			},
 		},
 		{
 			icon: <Icon name="glossary" />,
 			id: "glossary",
 			isActive: !isAskPrismActive && !isSettingsActive,
 			label: "Glossary",
-			onClick: handleNavigate(AppRoute.ROOT),
+			onClick: () => {
+				handleNavigate(AppRoute.ROOT);
+			},
 		},
 		{
 			icon: <Icon name="ask-prism" />,
 			id: "ask-prism",
 			isActive: isAskPrismActive,
 			label: "Ask Prism",
-			onClick: handleNavigate(AppRoute.ASK_PRISM),
+			onClick: () => {
+				handleNavigate(AppRoute.ASK_PRISM);
+			},
 		},
 	];
 
@@ -84,7 +87,9 @@ const Sidebar: React.FC<SidebarProperties> = ({
 			id: "settings",
 			isActive: isSettingsActive,
 			label: "Settings",
-			onClick: handleNavigate(AppRoute.SETTINGS),
+			onClick: () => {
+				handleNavigate(AppRoute.SETTINGS);
+			},
 		},
 	];
 
@@ -122,33 +127,36 @@ const MobileNav: React.FC = () => {
 
 	const isAskPrismActive = location.pathname === AppRoute.ASK_PRISM;
 
-	const handleNavigate = useCallback(
-		(route: string) => (): void => {
-			void navigate(route);
-		},
-		[navigate],
-	);
+	const handleNavigate = (route: string): void => {
+		void navigate(route);
+	};
 
 	const mobileNavItems: NavItem[] = [
 		{
 			icon: <Icon name="knowledge-tree" size={MOBILE_NAV_ICON_SIZE} />,
 			id: "knowledge-tree",
 			label: "Tree",
-			onClick: handleNavigate(AppRoute.ROOT),
+			onClick: () => {
+				handleNavigate(AppRoute.ROOT);
+			},
 		},
 		{
 			icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
 			id: "glossary",
 			isActive: !isAskPrismActive,
 			label: "Glossary",
-			onClick: handleNavigate(AppRoute.ROOT),
+			onClick: () => {
+				handleNavigate(AppRoute.ROOT);
+			},
 		},
 		{
 			icon: <Icon name="ask-prism" size={MOBILE_NAV_ICON_SIZE} />,
 			id: "ask-prism",
 			isActive: isAskPrismActive,
 			label: "Ask",
-			onClick: handleNavigate(AppRoute.ASK_PRISM),
+			onClick: () => {
+				handleNavigate(AppRoute.ASK_PRISM);
+			},
 		},
 	];
 

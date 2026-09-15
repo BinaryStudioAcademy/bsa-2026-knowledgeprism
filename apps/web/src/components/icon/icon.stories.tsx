@@ -34,6 +34,7 @@ const ICON_NAMES = [
 	"paste-text",
 	"phone",
 	"plus",
+	"prism",
 	"project",
 	"search",
 	"send",

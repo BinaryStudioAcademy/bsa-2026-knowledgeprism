@@ -4,7 +4,6 @@ import {
 	type ChangeEvent,
 	type JSX,
 	type KeyboardEvent,
-	type MouseEvent,
 	useCallback,
 	useEffect,
 	useState,
@@ -16,6 +15,7 @@ import { DataStatus } from "~/lib/enums/enums.js";
 
 import { actions as askPrismActions } from "../../state/state.js";
 import { AnswerCard } from "../answer-card/answer-card.js";
+import { PromptButton } from "../prompt-button/prompt-button.js";
 
 const QUESTION_PLACEHOLDER = "Ask anything about your knowledge base...";
 
@@ -36,7 +36,6 @@ const AskPrismView = (): JSX.Element => {
 
 	const isLoading = dataStatus === DataStatus.PENDING;
 
-	// Load knowledge-tree suggestions on mount
 	useEffect(() => {
 		void dispatch(askPrismActions.loadSuggestedQuestions());
 	}, [dispatch]);
@@ -76,21 +75,23 @@ const AskPrismView = (): JSX.Element => {
 	);
 
 	const handlePromptClick = useCallback(
-		(event: MouseEvent<HTMLButtonElement>): void => {
-			const prompt = event.currentTarget.dataset["prompt"];
-
-			if (prompt && !isLoading) {
-				setQuery(prompt);
-				void dispatch(askPrismActions.askQuestion({ query: prompt }));
+		(prompt: string): void => {
+			if (isLoading) {
+				return;
 			}
+
+			setQuery(prompt);
+			void dispatch(askPrismActions.askQuestion({ query: prompt }));
 		},
 		[dispatch, isLoading],
 	);
 
 	const handleRetry = useCallback((): void => {
-		if (submittedQuery) {
-			void dispatch(askPrismActions.askQuestion({ query: submittedQuery }));
+		if (!submittedQuery) {
+			return;
 		}
+
+		void dispatch(askPrismActions.askQuestion({ query: submittedQuery }));
 	}, [dispatch, submittedQuery]);
 
 	const handleSourceSelect = useCallback(
@@ -102,7 +103,6 @@ const AskPrismView = (): JSX.Element => {
 
 	return (
 		<div className="mx-auto flex w-full max-w-[680px] flex-col gap-6 px-4 pt-8 pb-48">
-			{/* Header */}
 			<div className="flex flex-col gap-1.5 border-b border-border pb-4">
 				<div className="flex items-center gap-2 text-accent">
 					<Icon name="ask-prism" size={24} />
@@ -113,7 +113,6 @@ const AskPrismView = (): JSX.Element => {
 				</Paragraph>
 			</div>
 
-			{/* Q&A Conversation Area */}
 			<div className="min-h-[220px] flex-1">
 				<AnswerCard
 					answer={answer}
@@ -126,10 +125,8 @@ const AskPrismView = (): JSX.Element => {
 				/>
 			</div>
 
-			{/* Fixed Input Bar - always pinned to the bottom of the viewport */}
 			<div className="fixed bottom-0 left-0 right-0 z-20 pointer-events-none tablet:left-14 desktop:left-58">
 				<div className="pointer-events-auto mx-auto flex w-full max-w-[680px] flex-col gap-2 bg-bg px-4 pt-2 pb-6">
-					{/* Dynamic Suggestion Pills based on Knowledge Tree */}
 					<div className="flex flex-wrap items-center gap-1.5">
 						<span className="font-sans text-xs text-text-faint">
 							Suggested questions:
@@ -141,21 +138,16 @@ const AskPrismView = (): JSX.Element => {
 							</div>
 						) : (
 							suggestedQuestions.map((prompt) => (
-								<button
-									className="max-w-[220px] cursor-pointer truncate rounded-md border border-border bg-surface px-2.5 py-1 font-sans text-xs text-text-muted shadow-2xs transition-all duration-200 hover:scale-[1.02] hover:border-accent hover:bg-success-bg/40 hover:text-accent active:scale-95"
-									data-prompt={prompt}
+								<PromptButton
+									isDisabled={isLoading}
 									key={prompt}
 									onClick={handlePromptClick}
-									title={prompt}
-									type="button"
-								>
-									{prompt}
-								</button>
+									prompt={prompt}
+								/>
 							))
 						)}
 					</div>
 
-					{/* Input box with focus ring transition */}
 					<form
 						className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface p-2 shadow-xs transition-all duration-200 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15"
 						onSubmit={handleSubmit}
@@ -181,7 +173,6 @@ const AskPrismView = (): JSX.Element => {
 						</button>
 					</form>
 
-					{/* Footer helper text */}
 					<div className="flex items-center justify-between font-sans text-[11px] text-text-faint">
 						<span>Prism retrieves verified facts from the knowledge tree.</span>
 						<span>Enter to send</span>
