@@ -27,6 +27,7 @@ type UserWithRole = {
 	id: number;
 	isOrgAdmin?: boolean;
 	lastName: string;
+	organisationRole?: "ADMIN" | "USER";
 	role?: string;
 };
 
@@ -49,7 +50,7 @@ const WorkspaceContainer: React.FC = () => {
 	const userObject = userResponse?.user as undefined | UserWithRole;
 
 	const firstName = userObject?.firstName ?? "";
-	const isOrgAdmin = userObject?.isOrgAdmin ?? userObject?.role === "ADMIN";
+	const isOrgAdmin = userObject?.organisationRole === "ADMIN";
 	const lastName = userObject?.lastName ?? "";
 	const organizationName = userResponse?.organisation.name ?? "";
 

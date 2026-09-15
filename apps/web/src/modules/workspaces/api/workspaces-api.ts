@@ -39,7 +39,7 @@ class WorkspacesApi {
 		payload: CreateProjectPayload,
 	): Promise<ProjectItem> {
 		try {
-			const response = await fetch(`${this.#baseUrl}/workspaces/projects`, {
+			const response = await fetch(`${this.#baseUrl}/projects`, {
 				body: JSON.stringify(payload),
 				headers: { "Content-Type": "application/json" },
 				method: "POST",
@@ -85,17 +85,14 @@ class WorkspacesApi {
 		payload: UpdateProjectPayload,
 	): Promise<ProjectItem> {
 		try {
-			const response = await fetch(
-				`${this.#baseUrl}/workspaces/projects/${payload.id}`,
-				{
-					body: JSON.stringify({
-						description: payload.description,
-						name: payload.name,
-					}),
-					headers: { "Content-Type": "application/json" },
-					method: "PATCH",
-				},
-			);
+			const response = await fetch(`${this.#baseUrl}/projects/${payload.id}`, {
+				body: JSON.stringify({
+					description: payload.description,
+					name: payload.name,
+				}),
+				headers: { "Content-Type": "application/json" },
+				method: "PATCH",
+			});
 
 			if (!response.ok) {
 				throw await this.parseError(response);
