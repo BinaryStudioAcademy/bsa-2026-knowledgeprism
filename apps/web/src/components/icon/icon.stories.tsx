@@ -33,6 +33,7 @@ const ICON_NAMES = [
 	"phone",
 	"plus",
 	"project",
+	"refresh",
 	"search",
 	"send",
 	"settings",
