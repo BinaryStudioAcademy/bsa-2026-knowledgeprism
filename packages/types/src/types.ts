@@ -22,6 +22,7 @@ export {
 	type ProjectMembersResponseDto,
 	type ProjectResponseDto,
 	type ProjectRouteParametersDto,
+	type ProjectUpdateRequestDto,
 } from "./modules/projects/projects.js";
 export {
 	type ProjectAssignmentDto,

@@ -4,3 +4,4 @@ export { type ProjectMemberResponseDto } from "./project-member-response-dto.typ
 export { type ProjectMembersResponseDto } from "./project-members-response-dto.type.js";
 export { type ProjectResponseDto } from "./project-response-dto.type.js";
 export { type ProjectRouteParametersDto } from "./project-route-parameters-dto.type.js";
+export { type ProjectUpdateRequestDto } from "./project-update-request-dto.type.js";

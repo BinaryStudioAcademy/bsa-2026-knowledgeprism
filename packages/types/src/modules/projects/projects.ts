@@ -5,4 +5,5 @@ export {
 	type ProjectMembersResponseDto,
 	type ProjectResponseDto,
 	type ProjectRouteParametersDto,
+	type ProjectUpdateRequestDto,
 } from "./libs/types/types.js";

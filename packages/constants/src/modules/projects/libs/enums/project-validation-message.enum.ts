@@ -7,6 +7,7 @@ const ProjectValidationMessage = {
 	NAME_MAXIMUM_LENGTH: "Project name must be at most 50 characters long",
 	NAME_REQUIRE: "Project name is required",
 	NOT_FOUND: "Project not found",
+	UPDATE_REQUIRE: "At least one project field must be provided",
 } as const;
 
 export { ProjectValidationMessage };
