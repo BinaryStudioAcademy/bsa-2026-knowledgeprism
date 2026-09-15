@@ -15,7 +15,8 @@ const HEADER_NAV_ID = "header-nav";
 const HEADER_SECTION_LINKS = [
 	{ href: "#what", label: "Product" },
 	{ href: "#how", label: "How it works" },
-	{ href: "#features", label: "Features" },
+	// Restored in weeks 5–6 with FeaturesSection:
+	// { href: "#features", label: "Features" },
 ] as const;
 
 export {
