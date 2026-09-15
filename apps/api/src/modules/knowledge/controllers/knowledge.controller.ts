@@ -32,15 +32,17 @@ import { type KnowledgeService } from "../services/knowledge.service.js";
  *        type: object
  *        required:
  *          - title
- *          - content
+ *          - contentJson
  *        properties:
  *          title:
  *            type: string
  *            maxLength: 255
  *            example: "Youth Center Grand Opening"
- *          content:
- *            type: string
- *            example: "Join us for the grand opening..."
+ *          contentJson:
+ *            type: array
+ *            items:
+ *              type: object
+ *            example: [{"type": "paragraph", "content": []}]
  *      KnowledgeEntryResponse:
  *        type: object
  *        properties:
@@ -50,8 +52,11 @@ import { type KnowledgeService } from "../services/knowledge.service.js";
  *            type: number
  *          title:
  *            type: string
- *          content:
- *            type: string
+ *          contentJson:
+ *            type: array
+ *            items:
+ *              type: object
+ *            example: [{"type": "paragraph", "content": []}]
  *          createdAt:
  *            type: string
  *            format: date-time

@@ -4,7 +4,7 @@ import { type Knex } from "knex";
 const TABLE_NAME = "knowledge_nodes";
 
 const ColumnName = {
-	CONTENT: "content",
+	CONTENT_JSON: "content_json",
 	CREATED_AT: "created_at",
 	CREATED_BY: "created_by",
 	ID: "id",
@@ -30,7 +30,7 @@ function up(knex: Knex): Promise<void> {
 		table
 			.string(ColumnName.TITLE, KnowledgeValidationRule.TITLE_MAXIMUM_LENGTH)
 			.notNullable();
-		table.text(ColumnName.CONTENT).notNullable();
+		table.jsonb(ColumnName.CONTENT_JSON).notNullable();
 		table
 			.integer(ColumnName.CREATED_BY)
 			.references("id")

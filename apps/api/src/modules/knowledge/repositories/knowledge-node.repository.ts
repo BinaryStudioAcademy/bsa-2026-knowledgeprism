@@ -16,7 +16,7 @@ class KnowledgeNodeRepository {
 		}
 
 		return KnowledgeNodeEntity.initialize({
-			content: node.content,
+			contentJson: node.contentJson,
 			createdAt: node.createdAt,
 			id: node.id,
 			projectId: node.projectId,
@@ -26,12 +26,12 @@ class KnowledgeNodeRepository {
 	}
 
 	public async update({
-		content,
+		contentJson,
 		id,
 		title,
 		updatedBy,
 	}: {
-		content: string;
+		contentJson: Record<string, unknown>[];
 		id: number;
 		title: string;
 		updatedBy: number;
@@ -39,7 +39,7 @@ class KnowledgeNodeRepository {
 		const updatedNode = await this.knowledgeNodeModel
 			.query()
 			.patchAndFetchById(id, {
-				content,
+				contentJson,
 				title,
 				updatedAt: new Date().toISOString(),
 				updatedBy,
@@ -47,7 +47,7 @@ class KnowledgeNodeRepository {
 			.execute();
 
 		return KnowledgeNodeEntity.initialize({
-			content: updatedNode.content,
+			contentJson: updatedNode.contentJson,
 			createdAt: updatedNode.createdAt,
 			id: updatedNode.id,
 			projectId: updatedNode.projectId,

@@ -4,7 +4,7 @@ import {
 } from "~/infrastructure/database/database.js";
 
 class KnowledgeNodeModel extends AbstractModel {
-	public content!: string;
+	public contentJson!: Record<string, unknown>[];
 
 	public createdBy!: null | number;
 

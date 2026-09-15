@@ -4,12 +4,13 @@ import {
 } from "@knowledgeprism/constants";
 import { z } from "zod";
 
+const blockItem = z.record(z.string(), z.unknown());
+
 const knowledgeEntryUpdate = z
 	.object({
-		content: z
-			.string()
-			.trim()
-			.min(KnowledgeValidationRule.CONTENT_MINIMUM_LENGTH, {
+		contentJson: z
+			.array(blockItem)
+			.min(KnowledgeValidationRule.CONTENT_JSON_MINIMUM_ITEMS, {
 				error: KnowledgeValidationMessage.CONTENT_EMPTY,
 			}),
 		title: z

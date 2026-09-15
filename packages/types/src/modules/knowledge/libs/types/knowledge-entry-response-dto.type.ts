@@ -1,5 +1,5 @@
 type KnowledgeEntryResponseDto = {
-	content: string;
+	contentJson: Record<string, unknown>[];
 	createdAt: string;
 	id: number;
 	projectId: number;

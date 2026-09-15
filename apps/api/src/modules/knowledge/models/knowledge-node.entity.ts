@@ -1,7 +1,7 @@
 import { type Entity } from "~/shared/types/types.js";
 
 type KnowledgeNodeObject = {
-	content: string;
+	contentJson: Record<string, unknown>[];
 	createdAt: string;
 	id: number;
 	projectId: number;
@@ -10,7 +10,7 @@ type KnowledgeNodeObject = {
 };
 
 class KnowledgeNodeEntity implements Entity {
-	private content: string;
+	private contentJson: Record<string, unknown>[];
 	private createdAt: string;
 	private id: null | number;
 	private projectId: number;
@@ -18,14 +18,14 @@ class KnowledgeNodeEntity implements Entity {
 	private updatedAt: string;
 
 	private constructor({
-		content,
+		contentJson,
 		createdAt,
 		id,
 		projectId,
 		title,
 		updatedAt,
 	}: {
-		content: string;
+		contentJson: Record<string, unknown>[];
 		createdAt?: string;
 		id: null | number;
 		projectId: number;
@@ -35,13 +35,13 @@ class KnowledgeNodeEntity implements Entity {
 		this.id = id;
 		this.projectId = projectId;
 		this.title = title;
-		this.content = content;
+		this.contentJson = contentJson;
 		this.createdAt = createdAt ?? new Date().toISOString();
 		this.updatedAt = updatedAt ?? new Date().toISOString();
 	}
 
 	public static initialize(data: {
-		content: string;
+		contentJson: Record<string, unknown>[];
 		createdAt: string;
 		id: number;
 		projectId: number;
@@ -52,12 +52,12 @@ class KnowledgeNodeEntity implements Entity {
 	}
 
 	public toNewObject(): {
-		content: string;
+		contentJson: Record<string, unknown>[];
 		projectId: number;
 		title: string;
 	} {
 		return {
-			content: this.content,
+			contentJson: this.contentJson,
 			projectId: this.projectId,
 			title: this.title,
 		};
@@ -65,7 +65,7 @@ class KnowledgeNodeEntity implements Entity {
 
 	public toObject(): KnowledgeNodeObject {
 		return {
-			content: this.content,
+			contentJson: this.contentJson,
 			createdAt: this.createdAt,
 			id: this.id as number,
 			projectId: this.projectId,

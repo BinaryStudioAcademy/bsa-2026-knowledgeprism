@@ -75,7 +75,7 @@ class KnowledgeService {
 		}
 
 		const updatedKnowledgeNode = await this.knowledgeNodeRepository.update({
-			content: payload.content,
+			contentJson: payload.contentJson,
 			id: entryId,
 			title: payload.title,
 			updatedBy: userId,

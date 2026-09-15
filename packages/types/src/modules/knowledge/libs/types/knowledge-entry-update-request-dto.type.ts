@@ -1,5 +1,5 @@
 type KnowledgeEntryUpdateRequestDto = {
-	content: string;
+	contentJson: Record<string, unknown>[];
 	title: string;
 };
 
