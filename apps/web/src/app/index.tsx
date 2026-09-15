@@ -8,7 +8,12 @@ import { store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { LandingPage } from "~/modules/landing/components/landing-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
-import { AccountSettingsPage } from "~/modules/users/components/account-settings-page.js";
+import {
+	AccountSettingsPage,
+	UserCreationPage,
+	UserEditPage,
+	UserManagementHubPage,
+} from "~/modules/users/components/components.js";
 
 import { App } from "./app.js";
 import { AppLayout } from "./layouts/app-layout.js";
@@ -58,6 +63,18 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 									{
 										element: <AccountSettingsPage />,
 										path: AppRoute.SETTINGS,
+									},
+									{
+										element: <UserManagementHubPage />,
+										path: AppRoute.USERS,
+									},
+									{
+										element: <UserCreationPage />,
+										path: AppRoute.USERS_NEW,
+									},
+									{
+										element: <UserEditPage />,
+										path: AppRoute.USERS_EDIT,
 									},
 								],
 								element: <SidebarLayout />,
