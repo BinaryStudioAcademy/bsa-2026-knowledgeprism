@@ -1,4 +1,14 @@
-import { type ProjectItem } from "~/modules/workspaces/types/types.js";
+import {
+	type ProjectItem,
+	type ProjectRole,
+} from "~/modules/workspaces/types/types.js";
+
+const FILTER_ROLE_OPTIONS = [
+	"ALL",
+	"ADMIN",
+	"EDITOR",
+	"VIEWER",
+] as const satisfies readonly ("ALL" | ProjectRole)[];
 
 const MOCK_PROJECTS: ProjectItem[] = [
 	{
@@ -27,4 +37,4 @@ const MOCK_PROJECTS: ProjectItem[] = [
 	},
 ];
 
-export { MOCK_PROJECTS };
+export { FILTER_ROLE_OPTIONS, MOCK_PROJECTS };
