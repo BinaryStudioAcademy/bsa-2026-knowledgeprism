@@ -19,6 +19,8 @@ const LandingPage: React.FC = () => {
 		};
 	}, []);
 
+	void FeaturesSection;
+
 	return (
 		<>
 			<LandingHeader />
@@ -26,7 +28,7 @@ const LandingPage: React.FC = () => {
 			<SocialProofSection />
 			<WhatItIsSection />
 			<HowItWorksSection />
-			<FeaturesSection />
+			{/* FeaturesSection is restored in weeks 5–6, once those features are actually implemented. <FeaturesSection /> */}
 			<AudienceSection />
 			<CtaSection />
 			<LandingFooter />
