@@ -5,6 +5,7 @@ import "~/styles/styles.css";
 import { StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
+import { actions as authActions } from "~/modules/auth/auth.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { LandingPage } from "~/modules/landing/components/landing-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
@@ -16,6 +17,8 @@ import { AuthLayout } from "./layouts/auth-layout.js";
 import { PublicLayout } from "./layouts/public-layout.js";
 import { SidebarLayout } from "./layouts/sidebar-layout.js";
 import { RouterProvider } from "./router-provider.js";
+
+void store.instance.dispatch(authActions.loadCurrentUser());
 
 createRoot(document.querySelector("#root") as HTMLElement).render(
 	<StrictMode>
