@@ -1,4 +1,6 @@
 const HEADER_LABEL = {
+	GO_TO_WORKSPACE: "Go to Workspace",
+	LOG_OUT: "Log Out",
 	MENU: "Menu",
 	MOBILE_NAV: "Mobile",
 	PRIMARY_NAV: "Primary",

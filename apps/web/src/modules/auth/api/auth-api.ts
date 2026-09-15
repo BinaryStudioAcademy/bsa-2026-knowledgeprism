@@ -1,5 +1,6 @@
 import { AuthApiPath } from "@knowledgeprism/constants";
 import {
+	type UserGetCurrentResponseDto,
 	type UserSignInRequestDto,
 	type UserSignInResponseDto,
 	type UserSignUpRequestDto,
@@ -8,7 +9,7 @@ import {
 
 import { BaseHTTPApi } from "~/api/api.js";
 import { APIPath, ContentType } from "~/lib/enums/enums.js";
-import { type HTTP } from "~/lib/http/http.js";
+import { type HTTP, HTTPCode, HTTPError } from "~/lib/http/http.js";
 import { type Storage } from "~/lib/storage/storage.js";
 
 type Constructor = {
@@ -22,11 +23,36 @@ class AuthApi extends BaseHTTPApi {
 		super({ baseUrl, http, path: APIPath.AUTH, storage });
 	}
 
+	public async getCurrentUser(): Promise<null | UserGetCurrentResponseDto> {
+		try {
+			const response = await this.load(
+				this.getFullEndpoint(AuthApiPath.ME, {}),
+				{
+					contentType: ContentType.JSON,
+					hasAuth: false,
+					method: "GET",
+				},
+			);
+
+			return await response.json<UserGetCurrentResponseDto>();
+		} catch (error: unknown) {
+			if (
+				error instanceof HTTPError &&
+				error.status === HTTPCode.UNAUTHORIZED
+			) {
+				return null;
+			}
+
+			throw error;
+		}
+	}
+
 	public async logout(): Promise<void> {
 		await this.load(this.getFullEndpoint(AuthApiPath.LOG_OUT, {}), {
 			contentType: ContentType.JSON,
 			hasAuth: false,
 			method: "POST",
+			payload: JSON.stringify({}),
 		});
 	}
 
