@@ -4,7 +4,10 @@ type ProjectMemberResponseDto = {
 	email: string;
 	firstName: null | string;
 	lastName: null | string;
-	role: typeof ProjectMemberRole.EDITOR | typeof ProjectMemberRole.VIEWER;
+	role:
+		| typeof ProjectMemberRole.ADMIN
+		| typeof ProjectMemberRole.EDITOR
+		| typeof ProjectMemberRole.VIEWER;
 	status: "active" | "inactive";
 	userId: number;
 };

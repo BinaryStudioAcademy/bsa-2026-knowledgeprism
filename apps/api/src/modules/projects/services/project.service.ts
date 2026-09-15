@@ -1,5 +1,6 @@
 import {
 	HTTPCode,
+	ProjectMemberRole,
 	ProjectValidationMessage,
 	UserStatus,
 	UserValidationMessage,
@@ -173,7 +174,11 @@ class ProjectService {
 				userId: payload.userId,
 			});
 		} catch (error) {
-			if (error instanceof UniqueViolationError) {
+			if (
+				error instanceof UniqueViolationError &&
+				error.constraint ===
+					DatabaseConstraintName.PROJECT_MEMBERS_PROJECT_ID_USER_ID_UNIQUE
+			) {
 				throw new HTTPError({
 					cause: error,
 					message: ProjectValidationMessage.MEMBER_ALREADY_EXISTS,
@@ -194,6 +199,28 @@ class ProjectService {
 			status,
 			userId: id,
 		};
+	}
+
+	public async assertCanAddKnowledge(
+		projectId: number,
+		context: ProjectAccessContext,
+	): Promise<void> {
+		const user = await this.findActor(context);
+
+		await this.findProjectOrThrow(projectId, context.organisationId);
+
+		if (user.isOrganisationAdmin()) {
+			return;
+		}
+
+		const role = await this.projectMemberRepository.findRole(
+			projectId,
+			context.userId,
+		);
+
+		if (role !== ProjectMemberRole.ADMIN && role !== ProjectMemberRole.EDITOR) {
+			this.throwAccessForbidden();
+		}
 	}
 
 	public async create(
@@ -264,8 +291,8 @@ class ProjectService {
 		id: number,
 		context: ProjectAccessContext,
 	): Promise<ProjectMembersResponseDto> {
+		await this.assertOrganisationAdmin(context);
 		await this.findProjectOrThrow(id, context.organisationId);
-		await this.assertProjectAccess(id, context);
 
 		return {
 			items:
@@ -307,4 +334,4 @@ class ProjectService {
 	}
 }
 
-export { ProjectService };
+export { type ProjectAccessContext, ProjectService };
