@@ -1,4 +1,5 @@
 const AppRoute = {
+	GLOSSARY: "/glossary",
 	ROOT: "/",
 	SETTINGS: "/settings",
 	SIGN_IN: "/sign-in",

@@ -6,6 +6,7 @@ import { StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
+import { KnowledgeSearchPage } from "~/modules/knowledge/components/components.js";
 import { LandingPage } from "~/modules/landing/components/landing-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
 import { AccountSettingsPage } from "~/modules/users/components/account-settings-page.js";
@@ -58,6 +59,10 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 									{
 										element: <AccountSettingsPage />,
 										path: AppRoute.SETTINGS,
+									},
+									{
+										element: <KnowledgeSearchPage />,
+										path: AppRoute.GLOSSARY,
 									},
 								],
 								element: <SidebarLayout />,
