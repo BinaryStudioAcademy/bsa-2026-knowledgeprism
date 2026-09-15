@@ -36,8 +36,7 @@ const UserManagementHubPage: React.FC = () => {
 			const id = event_.currentTarget.dataset["id"];
 
 			if (id) {
-				// eslint-disable-next-line unicorn/no-unsafe-string-replacement
-				void navigate(AppRoute.USERS_EDIT.replace(/:id/, id));
+				void navigate(AppRoute.USERS_EDIT.split(":id").join(id));
 			}
 		},
 		[navigate],
