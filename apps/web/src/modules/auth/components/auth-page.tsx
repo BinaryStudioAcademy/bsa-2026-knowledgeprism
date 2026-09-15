@@ -31,7 +31,7 @@ const AuthPage: React.FC = () => {
 				const action = await dispatch(authActions.signIn(payload));
 
 				if (authActions.signIn.fulfilled.match(action)) {
-					await navigate(AppRoute.WORKSPACE);
+					await navigate(AppRoute.WORKSPACES);
 				}
 			})();
 		},
@@ -44,7 +44,7 @@ const AuthPage: React.FC = () => {
 				const action = await dispatch(authActions.signUp(payload));
 
 				if (authActions.signUp.fulfilled.match(action)) {
-					await navigate(AppRoute.WORKSPACE);
+					await navigate(AppRoute.WORKSPACES);
 				}
 			})();
 		},

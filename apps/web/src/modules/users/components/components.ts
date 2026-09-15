@@ -1,3 +1,4 @@
+export { AccountSettingsPage } from "./account-settings-page.js";
 export { DangerZoneSection } from "./danger-zone-section/danger-zone-section.js";
 export { MobilePreferences } from "./mobile-preferences/mobile-preferences.js";
 export { NotificationsSection } from "./notifications-section/notifications-section.js";

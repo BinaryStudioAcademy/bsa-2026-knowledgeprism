@@ -1,14 +1,18 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import "~/styles/styles.css";
 import { StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { LandingPage } from "~/modules/landing/components/landing-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
-import { AccountSettingsPage } from "~/modules/users/components/account-settings-page.js";
+import { AccountSettingsPage } from "~/modules/users/components/components.js";
+import {
+	ProjectDetailsPage,
+	WorkspaceContainer,
+} from "~/modules/workspaces/components/components.js";
+import "~/styles/styles.css";
 
 import { App } from "./app.js";
 import { AppLayout } from "./layouts/app-layout.js";
@@ -45,8 +49,12 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								path: AppRoute.SIGN_UP,
 							},
 							{
-								element: <p>Organisation Workspace</p>,
-								path: AppRoute.WORKSPACE,
+								element: <WorkspaceContainer />,
+								path: AppRoute.WORKSPACES,
+							},
+							{
+								element: <ProjectDetailsPage />,
+								path: AppRoute.WORKSPACE_DETAILS,
 							},
 						],
 						element: <AuthLayout />,
