@@ -1,13 +1,18 @@
 import { logger } from "~/logger/logger.js";
 
 import { EmbeddingRequest } from "../libs/constants/embedding-request.constant.js";
+import { SemanticSearchDefault } from "../libs/constants/semantic-search-default.constant.js";
+import { calculateCosineSimilarity } from "../libs/helpers/calculate-cosine-similarity.helper.js";
 import { invokeEmbedding } from "../libs/helpers/invoke-embedding.helper.js";
 import { splitIntoBatches } from "../libs/helpers/split-into-batches.helper.js";
 import { type EmbeddingInputTypeValue } from "../libs/types/embedding-input-type-value.type.js";
 import { type EmbeddingVector } from "../libs/types/embedding-vector.type.js";
+import { type SemanticSearchParameters } from "../libs/types/semantic-search-parameters.type.js";
+import { type SimilarityMatch } from "../libs/types/similarity-match.type.js";
 
 const EMPTY_TEXTS_COUNT = 0;
 const NOT_FOUND_INDEX = -1;
+const FIRST_MATCH_INDEX = 0;
 
 const embed = async (
 	texts: string[],
@@ -52,4 +57,27 @@ const embed = async (
 	return vectors;
 };
 
-export { embed };
+const search = <T>(
+	parameters: SemanticSearchParameters<T>,
+): SimilarityMatch<T>[] => {
+	const {
+		candidates,
+		queryVector,
+		topK = SemanticSearchDefault.TOP_K,
+	} = parameters;
+
+	const matches = candidates.map((candidate) => {
+		return {
+			item: candidate.item,
+			score: calculateCosineSimilarity(queryVector, candidate.vector),
+		};
+	});
+
+	const sortedMatches = matches.toSorted((firstMatch, secondMatch) => {
+		return secondMatch.score - firstMatch.score;
+	});
+
+	return sortedMatches.slice(FIRST_MATCH_INDEX, topK);
+};
+
+export { embed, search };
