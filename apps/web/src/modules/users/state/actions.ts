@@ -4,46 +4,41 @@ import {
 	type UserGetAllResponseDto,
 	type UserUpdateRequestDto,
 } from "@knowledgeprism/types";
-import { createAsyncThunk } from "@reduxjs/toolkit";
 
-import { type AsyncThunkConfig } from "~/lib/types/types.js";
+import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 
 import { name as sliceName } from "./users.slice.js";
 
-const loadAll = createAsyncThunk<
-	UserGetAllResponseDto,
-	undefined,
-	AsyncThunkConfig
->(`${sliceName}/load-all`, (_, { extra }) => {
-	const { userApi } = extra;
+const loadAll = createAppAsyncThunk<UserGetAllResponseDto, undefined>(
+	`${sliceName}/load-all`,
+	(_, { extra }) => {
+		const { userApi } = extra;
 
-	return userApi.getAll();
-});
+		return userApi.getAll();
+	},
+);
 
-const loadUserById = createAsyncThunk<
+const loadUserById = createAppAsyncThunk<UserDetailsResponseDto, number>(
+	`${sliceName}/load-by-id`,
+	(id, { extra }) => {
+		const { userApi } = extra;
+
+		return userApi.getById(id);
+	},
+);
+
+const createUser = createAppAsyncThunk<
 	UserDetailsResponseDto,
-	number,
-	AsyncThunkConfig
->(`${sliceName}/load-by-id`, (id, { extra }) => {
-	const { userApi } = extra;
-
-	return userApi.getById(id);
-});
-
-const createUser = createAsyncThunk<
-	UserDetailsResponseDto,
-	UserCreateRequestDto,
-	AsyncThunkConfig
+	UserCreateRequestDto
 >(`${sliceName}/create`, (payload, { extra }) => {
 	const { userApi } = extra;
 
 	return userApi.create(payload);
 });
 
-const updateUser = createAsyncThunk<
+const updateUser = createAppAsyncThunk<
 	UserDetailsResponseDto,
-	{ id: number; payload: UserUpdateRequestDto },
-	AsyncThunkConfig
+	{ id: number; payload: UserUpdateRequestDto }
 >(`${sliceName}/update`, ({ id, payload }, { extra }) => {
 	const { userApi } = extra;
 
