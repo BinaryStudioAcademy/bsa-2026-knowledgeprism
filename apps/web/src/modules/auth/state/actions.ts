@@ -39,10 +39,9 @@ const logout = createAppAsyncThunk<null, undefined>(
 	},
 );
 
-const loadCurrentUser = createAsyncThunk<
+const loadCurrentUser = createAppAsyncThunk<
 	UserGetCurrentResponseDto,
-	undefined,
-	AsyncThunkConfig
+	undefined
 >(`${sliceName}/load-current-user`, (_, { extra }) => {
 	const { authApi } = extra;
 
