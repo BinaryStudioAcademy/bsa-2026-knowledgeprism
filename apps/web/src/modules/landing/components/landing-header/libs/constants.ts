@@ -19,6 +19,8 @@ const HEADER_SECTION_LINKS = [
 	// { href: "#features", label: "Features" },
 ] as const;
 
+const SCROLL_TO_TOP_POSITION = 0;
+
 export {
 	HEADER_LABEL,
 	HEADER_MENU_ICON_HEIGHT,
@@ -26,4 +28,5 @@ export {
 	HEADER_MENU_ICON_WIDTH,
 	HEADER_NAV_ID,
 	HEADER_SECTION_LINKS,
+	SCROLL_TO_TOP_POSITION,
 };
