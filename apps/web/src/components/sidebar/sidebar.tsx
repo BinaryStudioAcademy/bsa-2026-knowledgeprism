@@ -131,7 +131,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	);
 };
 
-const MobileNavRow = ({ icon, id, label, to }: NavItem) => {
+const MobileNavRow = ({ icon, label, to }: NavItem) => {
 	const { pathname } = useLocation();
 	const isActive = Boolean(to) && pathname === to;
 
@@ -145,7 +145,6 @@ const MobileNavRow = ({ icon, id, label, to }: NavItem) => {
 			<Link
 				aria-current={isActive ? "page" : undefined}
 				className={className}
-				key={id}
 				to={to}
 			>
 				{icon}
@@ -155,7 +154,7 @@ const MobileNavRow = ({ icon, id, label, to }: NavItem) => {
 	}
 
 	return (
-		<button className={className} key={id} type="button">
+		<button className={className} type="button">
 			{icon}
 			{label}
 		</button>

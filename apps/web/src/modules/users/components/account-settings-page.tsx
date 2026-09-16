@@ -93,7 +93,6 @@ const AccountSettingsPage: React.FC = () => {
 				userActions.updateUser({
 					id: currentUserId,
 					payload: {
-						email: values.email,
 						firstName: values.firstName,
 						lastName: values.lastName,
 						...(values.password && { password: values.password }),
