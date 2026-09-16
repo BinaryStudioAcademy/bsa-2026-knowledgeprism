@@ -1,6 +1,6 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { Button, Icon } from "~/components/components.js";
+import { Icon } from "~/components/components.js";
 
 import { type ProjectRole } from "../types/types.js";
 
@@ -22,39 +22,89 @@ const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
 const SINGLE_UNIT = 1;
 
+const FIRST_ARRAY_INDEX = 0;
+const SECOND_ARRAY_INDEX = 1;
+const INITIALS_SLICE_COUNT = 2;
+const BITSHIFT_OFFSET = 5;
+const INITIAL_HASH_VALUE = 0;
+const INDEX_INCREMENT = 1;
+
+const MIXED_CASE_REGEX = /^([a-z])([A-Z])/;
+
+const AVATAR_COLORS = [
+	{ bg: "bg-(--color-info-bg)", text: "text-(--color-info)" },
+	{ bg: "bg-(--color-success-bg)", text: "text-(--color-success)" },
+	{ bg: "bg-(--color-warning-bg)", text: "text-(--color-warning)" },
+	{ bg: "bg-(--color-error-bg)", text: "text-(--color-error)" },
+	{ bg: "bg-(--color-secondary)", text: "text-(--color-primary)" },
+] as const;
+
+const DEFAULT_AVATAR_COLOR = AVATAR_COLORS[FIRST_ARRAY_INDEX];
+
+const getInitials = (name: string): string => {
+	const trimmed = name.trim();
+	if (!trimmed) {
+		return "";
+	}
+
+	const words = trimmed.split(/\s+/).filter(Boolean);
+	const firstWord = words[FIRST_ARRAY_INDEX] ?? "";
+
+	if (words.length === SINGLE_UNIT) {
+		const mixedCaseMatch = MIXED_CASE_REGEX.exec(firstWord);
+		if (mixedCaseMatch) {
+			const [, firstLetter, secondLetter] = mixedCaseMatch;
+			return `${firstLetter ?? ""}${secondLetter ?? ""}`.toUpperCase();
+		}
+
+		return firstWord
+			.slice(FIRST_ARRAY_INDEX, INITIALS_SLICE_COUNT)
+			.toUpperCase();
+	}
+
+	const secondWord = words[SECOND_ARRAY_INDEX] ?? "";
+	const firstLetter = firstWord[FIRST_ARRAY_INDEX] ?? "";
+	const secondLetter = secondWord[FIRST_ARRAY_INDEX] ?? "";
+
+	return `${firstLetter}${secondLetter}`.toUpperCase();
+};
+
+const getAvatarColor = (id: string) => {
+	let hash = INITIAL_HASH_VALUE;
+	for (
+		let index_ = FIRST_ARRAY_INDEX;
+		index_ < id.length;
+		index_ += INDEX_INCREMENT
+	) {
+		hash =
+			(id.codePointAt(index_) ?? FIRST_ARRAY_INDEX) +
+			((hash << BITSHIFT_OFFSET) - hash);
+	}
+	const index = Math.abs(hash) % AVATAR_COLORS.length;
+	return AVATAR_COLORS[index] ?? DEFAULT_AVATAR_COLOR;
+};
+
 const roleConfig: Record<
 	ProjectRole,
 	{
 		badgeBg: string;
 		badgeText: string;
-		iconBg: string;
-		iconColor: string;
-		iconNode: React.ReactNode;
 		label: string;
 	}
 > = {
 	ADMIN: {
 		badgeBg: "bg-(--color-success-bg)",
 		badgeText: "text-(--color-success)",
-		iconBg: "bg-(--color-success-bg)",
-		iconColor: "text-(--color-success)",
-		iconNode: <Icon name="shield" size={20} />,
 		label: "Admin",
 	},
 	EDITOR: {
-		badgeBg: "bg-(--color-success-bg)",
-		badgeText: "text-(--color-success)",
-		iconBg: "bg-(--color-success-bg)",
-		iconColor: "text-(--color-success)",
-		iconNode: <Icon name="file" size={20} />,
+		badgeBg: "bg-(--color-info-bg)",
+		badgeText: "text-(--color-info)",
 		label: "Editor",
 	},
 	VIEWER: {
-		badgeBg: "bg-(--color-warning-bg)",
-		badgeText: "text-(--color-warning)",
-		iconBg: "bg-(--color-warning-bg)",
-		iconColor: "text-(--color-warning)",
-		iconNode: <Icon name="search" size={20} />,
+		badgeBg: "bg-(--color-secondary)",
+		badgeText: "text-(--color-text)",
 		label: "Viewer",
 	},
 };
@@ -102,6 +152,10 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 	role,
 	updatedAt,
 }) => {
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+	const menuReference = useRef<HTMLDivElement>(null);
+
 	const handleClick = useCallback(() => {
 		onSelect?.(id);
 	}, [id, onSelect]);
@@ -109,6 +163,7 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 	const handleDelete = useCallback(
 		(event: React.MouseEvent<HTMLButtonElement>): void => {
 			event.stopPropagation();
+			setIsMenuOpen(false);
 			onDelete?.();
 		},
 		[onDelete],
@@ -117,6 +172,7 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 	const handleEdit = useCallback(
 		(event: React.MouseEvent<HTMLButtonElement>): void => {
 			event.stopPropagation();
+			setIsMenuOpen(false);
 			onEdit?.();
 		},
 		[onEdit],
@@ -134,7 +190,35 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 		[id, onSelect],
 	);
 
+	const toggleMenu = useCallback(
+		(event: React.MouseEvent<HTMLButtonElement>): void => {
+			event.stopPropagation();
+			setIsMenuOpen((previous) => !previous);
+		},
+		[],
+	);
+
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent): void => {
+			if (
+				menuReference.current &&
+				!menuReference.current.contains(event.target as Node)
+			) {
+				setIsMenuOpen(false);
+			}
+		};
+
+		document.addEventListener("mousedown", handleClickOutside);
+
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, []);
+
 	const currentRoleConfig = roleConfig[role];
+	const hasActions = Boolean(onEdit || onDelete);
+	const initials = getInitials(name);
+	const avatarColor = getAvatarColor(id);
 
 	return (
 		<div
@@ -147,38 +231,59 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 			<div>
 				<div className="mb-4 flex items-center justify-between gap-2">
 					<div
-						className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${currentRoleConfig.iconBg} ${currentRoleConfig.iconColor}`}
+						className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-(length:--text-sm) font-semibold ${avatarColor.bg} ${avatarColor.text}`}
 					>
-						{currentRoleConfig.iconNode}
+						{initials}
 					</div>
 
-					<div className="flex items-center gap-2">
+					<div
+						className="relative flex items-center gap-1.5"
+						ref={hasActions ? menuReference : undefined}
+					>
 						<span
 							className={`rounded-full px-3 py-1 text-(length:--text-xs) font-medium ${currentRoleConfig.badgeBg} ${currentRoleConfig.badgeText}`}
 						>
 							{currentRoleConfig.label}
 						</span>
 
-						{onEdit && (
-							<Button
-								aria-label="Edit project"
-								className="h-8 w-8 text-text-muted hover:bg-(--color-secondary) hover:text-text"
-								onClick={handleEdit}
-								variant="icon"
-							>
-								<Icon name="file-sharp" size={14} />
-							</Button>
-						)}
+						{hasActions && (
+							<>
+								<button
+									aria-label="Project options"
+									className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-text-muted transition-colors hover:bg-(--color-secondary) hover:text-text"
+									onClick={toggleMenu}
+									type="button"
+								>
+									<div className="flex flex-row items-center -space-x-1 text-text-muted">
+										<Icon name="bullet-point" size={10} />
+										<Icon name="bullet-point" size={10} />
+										<Icon name="bullet-point" size={10} />
+									</div>
+								</button>
+								{isMenuOpen && (
+									<div className="absolute left-0 right-0 top-full z-10 mt-1 flex flex-col rounded-lg border border-(--color-border-subtle) bg-(--color-surface) p-1 shadow-xl">
+										{onEdit && (
+											<button
+												className="w-full cursor-pointer rounded-md px-2.5 py-1 text-left text-(length:--text-xs) font-normal text-text-muted transition-colors hover:bg-(--color-secondary) hover:text-text"
+												onClick={handleEdit}
+												type="button"
+											>
+												Edit
+											</button>
+										)}
 
-						{onDelete && (
-							<Button
-								aria-label="Delete project"
-								className="h-8 w-8 text-text-muted hover:bg-red-50 hover:text-red-600"
-								onClick={handleDelete}
-								variant="icon"
-							>
-								<Icon name="close" size={14} />
-							</Button>
+										{onDelete && (
+											<button
+												className="w-full cursor-pointer rounded-md px-2.5 py-1 text-left text-(length:--text-xs) font-normal text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
+												onClick={handleDelete}
+												type="button"
+											>
+												Delete
+											</button>
+										)}
+									</div>
+								)}
+							</>
 						)}
 					</div>
 				</div>
@@ -194,20 +299,10 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 				)}
 			</div>
 
-			<div className="mt-5 flex items-center justify-between border-t border-(--color-border-subtle) pt-4">
-				<div className="flex items-center gap-1.5 text-(length:--text-sm) text-text-muted">
-					<Icon name="aperture" size={14} />
-					<span>{formatRelativeTime(updatedAt)}</span>
-				</div>
-
-				<Button
-					aria-label="Open project"
-					className="h-8 w-8 rounded-full border border-border bg-(--color-secondary) text-text-muted transition-colors hover:border-primary hover:bg-primary hover:text-(--color-primary-fg)"
-					onClick={handleClick}
-					variant="icon"
-				>
-					<Icon name="arrow-right-long" size={16} />
-				</Button>
+			<div className="mt-5 border-t border-(--color-border-subtle) pt-4">
+				<span className="text-(length:--text-sm) text-text-muted">
+					{formatRelativeTime(updatedAt)}
+				</span>
 			</div>
 		</div>
 	);

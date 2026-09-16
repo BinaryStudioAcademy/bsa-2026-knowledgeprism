@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { Avatar, Header, Icon, Logo } from "~/components/components.js";
+import { Avatar, Header, Logo } from "~/components/components.js";
 import { useNavigate } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 
@@ -47,6 +47,10 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	const initials = getInitials(firstName, lastName);
 	const trimmedOrgName = organizationName?.trim();
 
+	const handleCloseDropdown = useCallback((): void => {
+		setIsDropdownOpen(false);
+	}, []);
+
 	const handleLogOut = useCallback((): void => {
 		setIsDropdownOpen(false);
 		onLogOut?.();
@@ -86,138 +90,111 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	}, []);
 
 	return (
-		<Header>
-			<div className="flex h-full w-full items-center justify-between">
-				<div className="flex min-w-0 items-center gap-3">
-					<Logo to={AppRoute.ROOT} />
-					{isLoading && (
-						<div className="hidden items-center gap-3 sm:flex">
-							<span className="text-(length:--text-sm) font-light text-border">
-								|
-							</span>
-							<div className="h-4 w-28 animate-pulse rounded bg-(--color-border-subtle)" />
-						</div>
-					)}
-					{!isLoading && trimmedOrgName && (
-						<div className="hidden items-center gap-3 sm:flex">
-							<span className="text-(length:--text-sm) font-light text-border">
-								|
-							</span>
-							<span className="max-w-xs truncate text-(length:--text-sm) font-medium text-text">
-								{trimmedOrgName}
-							</span>
-						</div>
-					)}
-				</div>
-
-				<div className="hidden items-center gap-4 sm:flex">
-					{isLoading && (
-						<div className="h-4 w-32 animate-pulse rounded bg-(--color-border-subtle)" />
-					)}
-					{!isLoading && (
-						<>
-							<div className="flex items-center gap-3">
-								<Avatar
-									alt={fullName || "User Avatar"}
-									initials={initials}
-									{...(avatarUrl ? { src: avatarUrl } : {})}
-								/>
-								{fullName && (
-									<span className="max-w-40 truncate text-(length:--text-sm) font-medium text-text-muted">
-										{fullName}
-									</span>
-								)}
+		<div className="sticky top-0 z-30 w-full bg-(--color-surface)">
+			<Header>
+				<div className="flex h-full w-full items-center justify-between py-3 sm:py-5">
+					<div className="flex min-w-0 items-center gap-3">
+						<Logo to={AppRoute.ROOT} />
+						{isLoading && (
+							<div className="hidden items-center gap-3 sm:flex">
+								<span className="text-(length:--text-sm) font-light text-border">
+									|
+								</span>
+								<div className="h-4 w-28 animate-pulse rounded bg-(--color-border-subtle)" />
 							</div>
-
-							<div className="mx-1 h-5 w-px bg-(--color-border-subtle)" />
-
-							<div className="flex items-center gap-2">
-								<button
-									aria-label="Settings"
-									className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
-									onClick={handleOpenSettings}
-									type="button"
-								>
-									<Icon name="settings" size={18} />
-								</button>
-
-								<button
-									aria-label="Log out"
-									className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-text-muted transition-colors hover:bg-surface-hover hover:text-text"
-									onClick={handleLogOut}
-									type="button"
-								>
-									<Icon name="close" size={18} />
-								</button>
-							</div>
-						</>
-					)}
-				</div>
-
-				<div
-					className="relative flex items-center sm:hidden"
-					ref={dropdownReference}
-				>
-					<button
-						className="flex cursor-pointer items-center justify-center rounded-full transition-opacity hover:opacity-80"
-						onClick={toggleDropdown}
-						type="button"
-					>
-						<Avatar
-							alt={fullName || "User Avatar"}
-							initials={initials}
-							{...(avatarUrl ? { src: avatarUrl } : {})}
-						/>
-					</button>
-
-					{isDropdownOpen && (
-						<div className="absolute right-0 top-full z-50 mt-3 flex w-64 flex-col rounded-lg border border-(--color-border-subtle) bg-(--color-surface) p-4 shadow-lg">
-							{trimmedOrgName && (
-								<div className="mb-3 flex flex-col border-b border-(--color-border-subtle) pb-3">
-									<span className="text-(length:--text-xs) text-text-muted">
-										Workspace
-									</span>
-									<span className="truncate text-(length:--text-sm) font-medium text-text">
-										{trimmedOrgName}
-									</span>
-								</div>
-							)}
-
-							<div className="mb-3 flex items-center gap-3 border-b border-(--color-border-subtle) pb-3">
-								<Avatar
-									alt={fullName || "User Avatar"}
-									initials={initials}
-									{...(avatarUrl ? { src: avatarUrl } : {})}
-								/>
-								<span className="truncate text-(length:--text-sm) font-medium text-text">
-									{fullName}
+						)}
+						{!isLoading && trimmedOrgName && (
+							<div className="hidden items-center gap-3 sm:flex">
+								<span className="text-(length:--text-sm) font-light text-border">
+									|
+								</span>
+								<span className="max-w-xs truncate text-(length:--text-sm) font-medium text-text">
+									{trimmedOrgName}
 								</span>
 							</div>
+						)}
+					</div>
 
-							<div className="flex flex-col gap-2">
+					<div className="flex items-center" ref={dropdownReference}>
+						{isLoading && (
+							<div className="h-8 w-8 animate-pulse rounded-full bg-(--color-border-subtle) sm:h-8 sm:w-32 sm:rounded-md" />
+						)}
+
+						{!isLoading && (
+							<div className="relative">
 								<button
-									className="flex w-full cursor-pointer items-center gap-2 rounded-md p-2 text-left text-(length:--text-sm) text-text-muted transition-colors hover:bg-secondary hover:text-text"
-									onClick={handleOpenSettings}
+									className="flex cursor-pointer items-center gap-3 rounded-full border-none outline-none transition-opacity hover:opacity-80 focus:outline-none focus:ring-0 focus-visible:outline-none"
+									onClick={toggleDropdown}
 									type="button"
 								>
-									<Icon name="settings" size={16} />
-									<span>Settings</span>
+									{fullName && (
+										<span className="hidden max-w-40 truncate text-(length:--text-sm) font-medium text-text-muted sm:inline">
+											{fullName}
+										</span>
+									)}
+									<Avatar
+										alt={fullName || "User Avatar"}
+										initials={initials}
+										{...(avatarUrl ? { src: avatarUrl } : {})}
+									/>
 								</button>
 
-								<button
-									className="flex w-full cursor-pointer items-center gap-2 rounded-md p-2 text-left text-(length:--text-sm) text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
-									onClick={handleLogOut}
-									type="button"
-								>
-									<Icon name="close" size={16} />
-									<span>Log out</span>
-								</button>
+								{isDropdownOpen && (
+									<>
+										<button
+											aria-label="Close menu"
+											className="fixed inset-0 z-40 cursor-default border-none bg-black/15 outline-none transition-opacity duration-300 ease-in-out animate-in fade-in lg:hidden"
+											onClick={handleCloseDropdown}
+											type="button"
+										/>
+
+										<div className="fixed inset-x-0 bottom-0 z-50 flex w-full flex-col rounded-t-2xl border-t border-(--color-border-subtle) bg-(--color-surface) px-3.5 pb-3 pt-2 shadow-2xl transition-all duration-300 ease-out animate-in slide-in-from-bottom sm:absolute sm:bottom-auto sm:left-auto sm:-right-2 sm:top-full sm:mt-2 sm:w-36 sm:rounded-xl sm:border sm:p-2.5 sm:shadow-xl sm:slide-in-from-top-2">
+											<div className="mx-auto mb-2 h-1 w-8 rounded-full bg-border sm:hidden" />
+
+											<div className="mb-2 flex items-center gap-2.5 border-b border-(--color-border-subtle) pb-2 sm:hidden">
+												<Avatar
+													alt={fullName || "User Avatar"}
+													initials={initials}
+													{...(avatarUrl ? { src: avatarUrl } : {})}
+												/>
+												<div className="flex flex-col min-w-0">
+													<span className="truncate text-xs font-semibold text-text">
+														{fullName}
+													</span>
+													{trimmedOrgName && (
+														<span className="truncate text-2xs text-text-muted">
+															{trimmedOrgName}
+														</span>
+													)}
+												</div>
+											</div>
+
+											<div className="flex flex-col gap-0.5 sm:gap-1.5">
+												<button
+													className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-text-muted transition-colors hover:bg-secondary hover:text-text focus:outline-none sm:py-2"
+													onClick={handleOpenSettings}
+													type="button"
+												>
+													Settings
+												</button>
+
+												<button
+													className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none sm:py-2"
+													onClick={handleLogOut}
+													type="button"
+												>
+													Log out
+												</button>
+											</div>
+										</div>
+									</>
+								)}
 							</div>
-						</div>
-					)}
+						)}
+					</div>
 				</div>
-			</div>
-		</Header>
+			</Header>
+		</div>
 	);
 };
 
