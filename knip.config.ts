@@ -2,7 +2,7 @@ import { type KnipConfig } from "knip";
 
 const config: KnipConfig = {
 	ignore: ["design/support.js"],
-	ignoreDependencies: ["@mantine/core", "@mantine/hooks"],
+	ignoreDependencies: ["pg"],
 	prettier: ["./prettier.config.js"],
 	stylelint: ["./stylelint.config.ts"],
 	workspaces: {
