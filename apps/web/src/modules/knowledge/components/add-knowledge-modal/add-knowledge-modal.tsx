@@ -1,6 +1,6 @@
 import { type JSX, useCallback, useState } from "react";
 
-import { Icon, Modal } from "~/components/components.js";
+import { Icon, type IconName, Modal } from "~/components/components.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
@@ -26,19 +26,25 @@ type Properties = {
 	projectName?: string;
 };
 
-const TAB_ITEMS = [
+type TabItem = {
+	iconName: IconName;
+	id: ValueOf<typeof AddKnowledgeTab>;
+	label: string;
+};
+
+const TAB_ITEMS: TabItem[] = [
 	{
-		iconName: "upload" as const,
+		iconName: "upload",
 		id: AddKnowledgeTab.UPLOAD,
 		label: "Upload files",
 	},
 	{
-		iconName: "paste-text" as const,
+		iconName: "paste-text",
 		id: AddKnowledgeTab.TEXT,
 		label: "Paste text",
 	},
 	{
-		iconName: "link" as const,
+		iconName: "link",
 		id: AddKnowledgeTab.LINK,
 		label: "Web link",
 	},

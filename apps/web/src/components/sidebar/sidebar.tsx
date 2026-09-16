@@ -1,3 +1,5 @@
+import { ProjectMemberRole } from "@knowledgeprism/constants";
+import React from "react";
 import { Link } from "react-router-dom";
 
 import { Button } from "~/components/components.js";
@@ -106,7 +108,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 }: SidebarProperties) => {
 	const { hideModal, isOpen, showModal } = useModal();
 
-	const canAddKnowledge = role !== "VIEWER";
+	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
 
 	return (
 		<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">

@@ -17,7 +17,6 @@ export {
 	DocumentStatus,
 	DocumentValidationMessage,
 	DocumentValidationRule,
-	ProjectMemberRole,
 } from "./modules/documents/documents.js";
 export {
 	KnowledgeApiPath,
