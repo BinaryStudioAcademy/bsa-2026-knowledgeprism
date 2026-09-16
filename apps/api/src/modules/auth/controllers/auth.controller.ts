@@ -152,9 +152,11 @@ class AuthController extends BaseController {
 		options.session.organisationId = authResult.organisation.id;
 
 		if (options.body.rememberMe) {
-			options.session.cookie.maxAge = TimeMs.DAY * SESSION_LIFETIME_DAYS;
+			options.session.options({ maxAge: TimeMs.DAY * SESSION_LIFETIME_DAYS });
 		} else {
-			delete options.session.cookie.maxAge;
+			options.session.options({ maxAge: undefined } as unknown as Parameters<
+				typeof options.session.options
+			>[0]);
 		}
 
 		await options.session.regenerate(["userId", "organisationId"]);

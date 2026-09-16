@@ -172,7 +172,6 @@ class BaseServerApplication implements ServerApplication {
 		await this.app.register(fastifySession, {
 			cookie: {
 				httpOnly: true,
-				maxAge: TimeMs.DAY,
 				sameSite: "lax",
 				secure: "auto",
 			},
