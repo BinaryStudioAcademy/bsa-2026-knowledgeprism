@@ -38,6 +38,7 @@ import { SquarePlaceholderIcon } from "./icons/square-placeholder.icon.js";
 import { TabletIcon } from "./icons/tablet.icon.js";
 import { ToastCheckIcon } from "./icons/toast-check.icon.js";
 import { UploadIcon } from "./icons/upload.icon.js";
+import { UsersIcon } from "./icons/users.icon.js";
 import { type SvgIconProperties } from "./types.js";
 
 const DEFAULT_ICON_SIZE = 14;
@@ -83,6 +84,7 @@ const iconNameToComponent = {
 	tablet: TabletIcon,
 	"toast-check": ToastCheckIcon,
 	upload: UploadIcon,
+	users: UsersIcon,
 } as const satisfies Record<string, React.FC<SvgIconProperties>>;
 
 type IconName = keyof typeof iconNameToComponent;
