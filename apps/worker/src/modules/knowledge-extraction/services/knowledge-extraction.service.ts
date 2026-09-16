@@ -3,12 +3,8 @@ import { logger } from "~/logger/logger.js";
 import { invokePageExtraction } from "../libs/helpers/invoke-page-extraction.helper.js";
 import { isBlankPageContent } from "../libs/helpers/is-blank-page-content.helper.js";
 import { mapExtractionOutput } from "../libs/helpers/map-extraction-output.helper.js";
-import { type KnowledgeItem } from "../libs/types/types.js";
-
-type ExtractionBlock = {
-	content: string;
-	pageNumber: number;
-};
+import { type ExtractionBlock } from "../libs/types/extraction-block.type.js";
+import { type KnowledgeItem } from "../libs/types/knowledge-item.type.js";
 
 const EMPTY_ITEM_COUNT = 0;
 
@@ -21,16 +17,23 @@ const extract = async (blocks: ExtractionBlock[]): Promise<KnowledgeItem[]> => {
 			continue;
 		}
 
-		const raw = await invokePageExtraction(block.content);
-		const pageItems = mapExtractionOutput(raw, block.pageNumber);
+		try {
+			const raw = await invokePageExtraction(block.content);
+			const pageItems = mapExtractionOutput(raw, block.pageNumber);
 
-		if (pageItems.length === EMPTY_ITEM_COUNT) {
-			logger.warn(
-				`No knowledge items extracted from page ${block.pageNumber.toString()}`,
+			if (pageItems.length === EMPTY_ITEM_COUNT) {
+				logger.warn(
+					`No knowledge items extracted from page ${block.pageNumber.toString()}`,
+				);
+			}
+
+			items.push(...pageItems);
+		} catch (error) {
+			logger.error(
+				`Failed to extract knowledge from page ${block.pageNumber.toString()}`,
+				{ error },
 			);
 		}
-
-		items.push(...pageItems);
 	}
 
 	return items;

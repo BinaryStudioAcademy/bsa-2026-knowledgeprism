@@ -12,6 +12,8 @@ import { ChevronFilledRightIcon } from "./icons/chevron-filled-right.icon.js";
 import { ChevronFilledUpIcon } from "./icons/chevron-filled-up.icon.js";
 import { CloseIcon } from "./icons/close.icon.js";
 import { DesktopIcon } from "./icons/desktop.icon.js";
+import { EyeOffIcon } from "./icons/eye-off.icon.js";
+import { EyeIcon } from "./icons/eye.icon.js";
 import { FileRoundedIcon } from "./icons/file-rounded.icon.js";
 import { FileSharpIcon } from "./icons/file-sharp.icon.js";
 import { FileIcon } from "./icons/file.icon.js";
@@ -55,6 +57,8 @@ const iconNameToComponent = {
 	"chevron-filled-up": ChevronFilledUpIcon,
 	close: CloseIcon,
 	desktop: DesktopIcon,
+	eye: EyeIcon,
+	"eye-off": EyeOffIcon,
 	file: FileIcon,
 	"file-rounded": FileRoundedIcon,
 	"file-sharp": FileSharpIcon,
