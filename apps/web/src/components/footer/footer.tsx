@@ -4,9 +4,8 @@ import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 import { Button } from "../button/button.js";
 import { Modal } from "../modal/modal.js";
+import { privacyPolicy, TermsOfServices } from "./data/data.js";
 import { FOOTER_COPY } from "./libs/constants.js";
-import { privacyPolicy } from "./privacy-policy.js";
-import { TermsOfServices } from "./terms-of-service.js";
 
 type LegalDocument = (typeof FOOTER_COPY.links)[number]["document"] | null;
 
