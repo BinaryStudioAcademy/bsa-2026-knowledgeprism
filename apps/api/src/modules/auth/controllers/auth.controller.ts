@@ -156,7 +156,7 @@ class AuthController extends BaseController {
 		} else {
 			options.session.options({ maxAge: undefined } as unknown as Parameters<
 				typeof options.session.options
-			>[0]);
+			>[number]);
 		}
 
 		await options.session.regenerate(["userId", "organisationId"]);
