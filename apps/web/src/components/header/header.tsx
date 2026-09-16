@@ -3,25 +3,22 @@ import { tv } from "tailwind-variants";
 
 import { Button } from "~/components/button/button.js";
 import { Icon } from "~/components/icon/icon.js";
-import { Link } from "~/components/link/link.js";
 import { Logo } from "~/components/logo/logo.js";
-import { useCallback, useState } from "~/hooks/hooks.js";
+import { useCallback, useEffect, useState } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
+
+const HEADER_BREAKPOINT_VARIABLE = "--breakpoint-tablet";
 
 const getHeaderClassName = tv({
 	slots: {
-		bar: "mx-auto flex min-h-[72px] w-full max-w-[1240px] items-center justify-between px-5 tablet-small:px-6 tablet:px-10",
+		bar: "mx-auto flex h-[72px] w-full max-w-[1240px] items-center justify-between px-[clamp(20px,5vw,40px)]",
 		brand: "text-text no-underline hover:text-text hover:no-underline",
-		desktopNav: [
-			"hidden items-center gap-8 tablet-small:flex",
-			"[&>a]:rounded-md [&>a]:px-3.5 [&>a]:py-2 [&>a]:text-control [&>a]:font-medium",
-			"[&>a]:text-text [&>a]:no-underline [&>a]:hover:bg-secondary [&>a]:hover:text-text [&>a]:hover:no-underline",
-		],
+		desktopNav: "hidden items-center gap-2.5 tablet:flex",
 		mobileNav:
-			"flex flex-col gap-3.5 border-t border-border bg-bg px-5 py-4 tablet-small:hidden",
+			"mx-auto flex w-full max-w-[1240px] gap-2.5 border-t border-border bg-bg px-[clamp(20px,5vw,40px)] py-4 tablet:hidden",
 		root: "sticky top-0 z-30 shrink-0 border-b border-border bg-bg/92 backdrop-blur-[6px]",
 		toggle:
-			"cursor-pointer border-0 bg-transparent p-2 text-text tablet-small:hidden focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35",
+			"cursor-pointer border-0 bg-transparent p-2 text-text tablet:hidden focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35",
 	},
 });
 
@@ -49,17 +46,49 @@ const Header: React.FC = () => {
 		void navigate(AppRoute.SIGN_UP);
 	}, [handleCloseMenu, navigate]);
 
+	useEffect(() => {
+		if (typeof matchMedia !== "function") {
+			return;
+		}
+
+		const breakpoint = getComputedStyle(document.documentElement)
+			.getPropertyValue(HEADER_BREAKPOINT_VARIABLE)
+			.trim();
+
+		if (!breakpoint) {
+			return;
+		}
+
+		const mediaQuery = matchMedia(`(min-width: ${breakpoint})`);
+
+		const handleViewportChange = (event: MediaQueryListEvent): void => {
+			if (event.matches) {
+				setIsMenuOpen(false);
+			}
+		};
+
+		mediaQuery.addEventListener("change", handleViewportChange);
+
+		return (): void => {
+			mediaQuery.removeEventListener("change", handleViewportChange);
+		};
+	}, []);
+
 	return (
 		<header className={root()}>
 			<div className={bar()}>
-				<Logo className={brand()} size="sm" to={AppRoute.ROOT} />
+				<Logo className={brand()} to={AppRoute.ROOT} />
 
 				<nav className={desktopNav()}>
-					<Link to={AppRoute.SIGN_IN} variant="muted">
-						Sign in
-					</Link>
 					<Button
-						className="px-4 py-2"
+						className="px-3.5 py-[9px]"
+						onClick={handleSignIn}
+						variant="ghost"
+					>
+						Sign in
+					</Button>
+					<Button
+						className="px-[18px] py-[9px]"
 						onClick={handleSignUp}
 						variant="primary"
 					>
@@ -70,21 +99,29 @@ const Header: React.FC = () => {
 				<button
 					aria-controls="header-nav"
 					aria-expanded={isMenuOpen}
-					aria-label="Menu"
+					aria-label={isMenuOpen ? "Close menu" : "Open menu"}
 					className={toggle()}
 					onClick={handleToggleMenu}
 					type="button"
 				>
-					<Icon name="hamburger" size={18} />
+					<Icon name="hamburger" size={20} />
 				</button>
 			</div>
 
 			{isMenuOpen && (
 				<nav className={mobileNav()} id="header-nav">
-					<Button className="w-full" onClick={handleSignIn} variant="ghost">
+					<Button
+						className="flex-1 border border-border py-2.5"
+						onClick={handleSignIn}
+						variant="ghost"
+					>
 						Sign in
 					</Button>
-					<Button className="w-full" onClick={handleSignUp} variant="primary">
+					<Button
+						className="flex-1 py-2.5"
+						onClick={handleSignUp}
+						variant="primary"
+					>
 						Sign up
 					</Button>
 				</nav>
