@@ -1,6 +1,8 @@
 export { bedrockRuntimeClient } from "./bedrock/bedrock.js";
 export { logger } from "./logger/logger.js";
 export { EmbeddingInputType } from "./modules/embeddings/libs/constants/embedding-input-type.constant.js";
+// TODO: Temporary export, don't forget to delete
+export { calculateCosineSimilarity } from "./modules/embeddings/libs/helpers/calculate-cosine-similarity.helper.js";
 export {
 	type EmbeddingInputTypeValue,
 	type EmbeddingVector,
