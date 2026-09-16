@@ -1,10 +1,14 @@
+import { ProjectMemberRole } from "@knowledgeprism/constants";
 import React from "react";
+import { Link } from "react-router-dom";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
-import { useLocation, useNavigate } from "~/hooks/hooks.js";
+import { useLocation, useModal } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { type ValueOf } from "~/lib/types/types.js";
+import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
 const PROJECT_ICON_SIZE = 18;
 const MOBILE_NAV_ICON_SIZE = 16;
@@ -12,9 +16,8 @@ const MOBILE_NAV_ICON_SIZE = 16;
 type NavItem = {
 	icon: React.ReactNode;
 	id: string;
-	isActive?: boolean;
 	label: string;
-	onClick?: () => void;
+	to?: ValueOf<typeof AppRoute>;
 };
 
 type SidebarProperties = {
@@ -22,76 +25,96 @@ type SidebarProperties = {
 	role: string;
 };
 
-const NavRow = ({ icon, isActive, label, onClick }: NavItem) => (
-	<button
-		aria-current={isActive ? "page" : undefined}
-		className={getValidClassNames(
-			"nav-item tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5",
-			{ "is-active": isActive },
-		)}
-		onClick={onClick}
-		type="button"
-	>
-		{icon}
-		<span className="hidden desktop:inline">{label}</span>
-	</button>
-);
+const primaryNavItems: NavItem[] = [
+	{
+		icon: <Icon name="knowledge-tree" />,
+		id: "knowledge-tree",
+		label: "Knowledge Tree",
+	},
+	{
+		icon: <Icon name="glossary" />,
+		id: "glossary",
+		label: "Glossary",
+	},
+	{
+		icon: <Icon name="ask-prism" />,
+		id: "ask-prism",
+		label: "Ask Prism",
+		to: AppRoute.ASK_PRISM,
+	},
+];
+
+const utilityNavItems: NavItem[] = [
+	{ icon: <Icon name="help" />, id: "help", label: "Help" },
+	{
+		icon: <Icon name="settings" />,
+		id: "settings",
+		label: "Settings",
+		to: AppRoute.SETTINGS,
+	},
+	{
+		icon: <Icon name="users" />,
+		id: "users",
+		label: "Users",
+	},
+];
+
+const mobileNavItems: NavItem[] = [
+	{
+		icon: <Icon name="knowledge-tree" size={MOBILE_NAV_ICON_SIZE} />,
+		id: "knowledge-tree",
+		label: "Tree",
+	},
+	{
+		icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
+		id: "glossary",
+		label: "Glossary",
+	},
+	{
+		icon: <Icon name="ask-prism" size={MOBILE_NAV_ICON_SIZE} />,
+		id: "ask-prism",
+		label: "Ask",
+		to: AppRoute.ASK_PRISM,
+	},
+];
+
+const NavRow = ({ icon, label, to }: NavItem) => {
+	const { pathname } = useLocation();
+	const isActive = Boolean(to) && pathname === to;
+
+	const className = getValidClassNames(
+		"nav-item tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5",
+		{ "is-active": isActive },
+	);
+
+	if (to) {
+		return (
+			<Link
+				aria-current={isActive ? "page" : undefined}
+				className={className}
+				to={to}
+			>
+				{icon}
+				<span className="hidden desktop:inline">{label}</span>
+			</Link>
+		);
+	}
+
+	return (
+		<button className={className} type="button">
+			{icon}
+			<span className="hidden desktop:inline">{label}</span>
+		</button>
+	);
+};
 
 const Sidebar: React.FC<SidebarProperties> = ({
 	projectName,
 	role,
 }: SidebarProperties) => {
-	const location = useLocation();
-	const navigate = useNavigate();
+	const { hideModal, isOpen, showModal } = useModal();
 
-	const handleNavigate = (route: string): void => {
-		void navigate(route);
-	};
-
-	const isAskPrismActive = location.pathname === AppRoute.ASK_PRISM;
-	const isSettingsActive = location.pathname === AppRoute.SETTINGS;
-
-	const primaryNavItems: NavItem[] = [
-		{
-			icon: <Icon name="knowledge-tree" />,
-			id: "knowledge-tree",
-			label: "Knowledge Tree",
-			onClick: () => {
-				handleNavigate(AppRoute.ROOT);
-			},
-		},
-		{
-			icon: <Icon name="glossary" />,
-			id: "glossary",
-			isActive: !isAskPrismActive && !isSettingsActive,
-			label: "Glossary",
-			onClick: () => {
-				handleNavigate(AppRoute.ROOT);
-			},
-		},
-		{
-			icon: <Icon name="ask-prism" />,
-			id: "ask-prism",
-			isActive: isAskPrismActive,
-			label: "Ask Prism",
-			onClick: () => {
-				handleNavigate(AppRoute.ASK_PRISM);
-			},
-		},
-	];
-
-	const utilityNavItems: NavItem[] = [
-		{ icon: <Icon name="help" />, id: "help", label: "Help" },
-		{
-			icon: <Icon name="settings" />,
-			id: "settings",
-			isActive: isSettingsActive,
-			label: "Settings",
-			onClick: () => {
-				handleNavigate(AppRoute.SETTINGS);
-			},
-		},
-	];
+	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
 
 	return (
 		<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
@@ -109,8 +132,19 @@ const Sidebar: React.FC<SidebarProperties> = ({
 				))}
 			</nav>
 
-			<div className="hidden desktop:flex mt-auto flex-col gap-2.5 border-t border-border-subtle pt-3.5">
-				<Button>Add Knowledge</Button>
+			<div className="mt-auto flex flex-col gap-2.5 border-t border-border-subtle pt-3.5">
+				{canAddKnowledge && (
+					<>
+						<Button className="hidden desktop:inline-flex" onClick={showModal}>
+							Add Knowledge
+						</Button>
+						<AddKnowledgeModal
+							isOpen={isOpen}
+							onClose={hideModal}
+							projectName={projectName}
+						/>
+					</>
+				)}
 				<div className="flex flex-col gap-0.5">
 					{utilityNavItems.map((item) => (
 						<NavRow key={item.id} {...item} />
@@ -121,64 +155,43 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	);
 };
 
-const MobileNav: React.FC = () => {
-	const location = useLocation();
-	const navigate = useNavigate();
+const MobileNavRow = ({ icon, label, to }: NavItem) => {
+	const { pathname } = useLocation();
+	const isActive = Boolean(to) && pathname === to;
 
-	const isAskPrismActive = location.pathname === AppRoute.ASK_PRISM;
+	const className = getValidClassNames(
+		"flex flex-1 flex-col items-center gap-0.75 py-2.25 text-2xs border-none bg-transparent cursor-pointer font-sans",
+		{ "text-accent": isActive, "text-text-muted": !isActive },
+	);
 
-	const handleNavigate = (route: string): void => {
-		void navigate(route);
-	};
-
-	const mobileNavItems: NavItem[] = [
-		{
-			icon: <Icon name="knowledge-tree" size={MOBILE_NAV_ICON_SIZE} />,
-			id: "knowledge-tree",
-			label: "Tree",
-			onClick: () => {
-				handleNavigate(AppRoute.ROOT);
-			},
-		},
-		{
-			icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
-			id: "glossary",
-			isActive: !isAskPrismActive,
-			label: "Glossary",
-			onClick: () => {
-				handleNavigate(AppRoute.ROOT);
-			},
-		},
-		{
-			icon: <Icon name="ask-prism" size={MOBILE_NAV_ICON_SIZE} />,
-			id: "ask-prism",
-			isActive: isAskPrismActive,
-			label: "Ask",
-			onClick: () => {
-				handleNavigate(AppRoute.ASK_PRISM);
-			},
-		},
-	];
+	if (to) {
+		return (
+			<Link
+				aria-current={isActive ? "page" : undefined}
+				className={className}
+				to={to}
+			>
+				{icon}
+				{label}
+			</Link>
+		);
+	}
 
 	return (
+		<button className={className} type="button">
+			{icon}
+			{label}
+		</button>
+	);
+};
+
+const MobileNav: React.FC = () => {
+	return (
 		<nav className="flex flex-shrink-0 tablet:hidden border-t border-border bg-surface">
-			{mobileNavItems.map(({ icon, id, isActive, label, onClick }) => (
-				<button
-					aria-current={isActive ? "page" : undefined}
-					className={getValidClassNames(
-						"flex flex-1 flex-col items-center gap-0.75 py-2.25 text-2xs border-none bg-transparent cursor-pointer font-sans",
-						{ "text-accent": isActive, "text-text-muted": !isActive },
-					)}
-					key={id}
-					onClick={onClick}
-					type="button"
-				>
-					{icon}
-					{label}
-				</button>
+			{mobileNavItems.map((item) => (
+				<MobileNavRow key={item.id} {...item} />
 			))}
 		</nav>
 	);
 };
-
 export { MobileNav, Sidebar };
