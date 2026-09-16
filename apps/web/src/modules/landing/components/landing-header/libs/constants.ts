@@ -2,8 +2,8 @@ const HEADER_LABEL = {
 	MENU: "Menu",
 	MOBILE_NAV: "Mobile",
 	PRIMARY_NAV: "Primary",
-	SIGN_IN: "Sign in",
-	SIGN_UP: "Sign up",
+	SIGN_IN: "Log In",
+	SIGN_UP: "Register Organisation",
 } as const;
 
 const HEADER_MENU_ICON_HEIGHT = 14;
