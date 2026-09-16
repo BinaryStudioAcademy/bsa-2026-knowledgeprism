@@ -23,5 +23,17 @@ type Story = StoryObj<typeof meta>;
 
 const Default: Story = {};
 
+const CustomContent: Story = {
+	args: {
+		children: (
+			<div className="flex h-full w-full items-center justify-between">
+				<span className="font-medium text-text">Workspace header content</span>
+
+				<span className="text-sm text-text-muted">Account actions</span>
+			</div>
+		),
+	},
+};
+
 export default meta;
-export { Default };
+export { CustomContent, Default };

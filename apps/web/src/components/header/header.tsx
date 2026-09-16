@@ -1,3 +1,4 @@
+import { type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { tv } from "tailwind-variants";
 
@@ -8,6 +9,17 @@ import { useCallback, useEffect, useState } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 
 const HEADER_BREAKPOINT_VARIABLE = "--breakpoint-tablet";
+
+const CUSTOM_HEADER_CLASS_NAME =
+	"h-[57px] shrink-0 border-b border-border bg-surface px-[18px] tablet:h-[65px] tablet:px-[28px]";
+
+type CustomHeaderProperties = {
+	children: ReactNode;
+};
+
+type Properties = {
+	children?: ReactNode;
+};
 
 const getHeaderClassName = tv({
 	slots: {
@@ -22,7 +34,13 @@ const getHeaderClassName = tv({
 	},
 });
 
-const Header: React.FC = () => {
+const CustomHeader: React.FC<CustomHeaderProperties> = ({
+	children,
+}: CustomHeaderProperties) => {
+	return <header className={CUSTOM_HEADER_CLASS_NAME}>{children}</header>;
+};
+
+const DefaultHeader: React.FC = () => {
 	const navigate = useNavigate();
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const { bar, brand, desktopNav, mobileNav, root, toggle } =
@@ -87,6 +105,7 @@ const Header: React.FC = () => {
 					>
 						Sign in
 					</Button>
+
 					<Button
 						className="px-[18px] py-[9px]"
 						onClick={handleSignUp}
@@ -117,6 +136,7 @@ const Header: React.FC = () => {
 					>
 						Sign in
 					</Button>
+
 					<Button
 						className="flex-1 py-2.5"
 						onClick={handleSignUp}
@@ -128,6 +148,14 @@ const Header: React.FC = () => {
 			)}
 		</header>
 	);
+};
+
+const Header: React.FC<Properties> = ({ children }: Properties) => {
+	if (children !== undefined) {
+		return <CustomHeader>{children}</CustomHeader>;
+	}
+
+	return <DefaultHeader />;
 };
 
 export { Header };
