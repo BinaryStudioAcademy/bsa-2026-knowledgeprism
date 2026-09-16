@@ -1,9 +1,11 @@
-import React from "react";
+import { Link } from "react-router-dom";
 
-import { Button } from "~/components/button/button.js";
+import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
-import { useModal } from "~/hooks/hooks.js";
+import { useLocation, useModal } from "~/hooks/hooks.js";
+import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { type ValueOf } from "~/lib/types/types.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
 const PROJECT_ICON_SIZE = 18;
@@ -12,8 +14,8 @@ const MOBILE_NAV_ICON_SIZE = 16;
 type NavItem = {
 	icon: React.ReactNode;
 	id: string;
-	isActive?: boolean;
 	label: string;
+	to?: ValueOf<typeof AppRoute>;
 };
 
 type SidebarProperties = {
@@ -37,11 +39,15 @@ const primaryNavItems: NavItem[] = [
 
 const utilityNavItems: NavItem[] = [
 	{ icon: <Icon name="help" />, id: "help", label: "Help" },
-	{ icon: <Icon name="settings" />, id: "settings", label: "Settings" },
+	{
+		icon: <Icon name="settings" />,
+		id: "settings",
+		label: "Settings",
+		to: AppRoute.SETTINGS,
+	},
 	{
 		icon: <Icon name="users" />,
 		id: "users",
-		isActive: true,
 		label: "Users",
 	},
 ];
@@ -64,22 +70,35 @@ const mobileNavItems: NavItem[] = [
 	},
 ];
 
-const NavRow = ({ icon, isActive, label }: NavItem) => (
-	<button
-		aria-current={isActive ? "page" : undefined}
-		className={getValidClassNames(
-			"nav-item tablet:h-8.5 tablet:w-8.5",
-			"tablet:justify-center tablet:p-0",
-			"desktop:h-auto desktop:w-auto",
-			"desktop:justify-start desktop:px-3 desktop:py-2.5",
-			{ "is-active": isActive },
-		)}
-		type="button"
-	>
-		{icon}
-		<span className="hidden desktop:inline">{label}</span>
-	</button>
-);
+const NavRow = ({ icon, label, to }: NavItem) => {
+	const { pathname } = useLocation();
+	const isActive = Boolean(to) && pathname === to;
+
+	const className = getValidClassNames(
+		"nav-item tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5",
+		{ "is-active": isActive },
+	);
+
+	if (to) {
+		return (
+			<Link
+				aria-current={isActive ? "page" : undefined}
+				className={className}
+				to={to}
+			>
+				{icon}
+				<span className="hidden desktop:inline">{label}</span>
+			</Link>
+		);
+	}
+
+	return (
+		<button className={className} type="button">
+			{icon}
+			<span className="hidden desktop:inline">{label}</span>
+		</button>
+	);
+};
 
 const Sidebar: React.FC<SidebarProperties> = ({
 	projectName,
@@ -90,13 +109,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	const canAddKnowledge = role !== "VIEWER";
 
 	return (
-		<aside
-			className={getValidClassNames(
-				"hidden tablet:flex tablet:w-14 desktop:w-58",
-				"flex-shrink-0 flex-col gap-5 border-r border-border bg-surface",
-				"px-3.5 py-5",
-			)}
-		>
+		<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
 			<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
 				<Icon name="project" size={PROJECT_ICON_SIZE} />
 				<div>
@@ -111,10 +124,12 @@ const Sidebar: React.FC<SidebarProperties> = ({
 				))}
 			</nav>
 
-			<div className="hidden desktop:flex mt-auto flex-col gap-2.5 border-t border-border-subtle pt-3.5">
+			<div className="mt-auto flex flex-col gap-2.5 border-t border-border-subtle pt-3.5">
 				{canAddKnowledge && (
 					<>
-						<Button onClick={showModal}>Add Knowledge</Button>
+						<Button className="hidden desktop:inline-flex" onClick={showModal}>
+							Add Knowledge
+						</Button>
 						<AddKnowledgeModal
 							isOpen={isOpen}
 							onClose={hideModal}
@@ -132,24 +147,43 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	);
 };
 
-const MobileNav: React.FC = () => (
-	<nav className="flex flex-shrink-0 tablet:hidden border-t border-border bg-surface">
-		{mobileNavItems.map(({ icon, id, isActive, label }) => (
-			<button
+const MobileNavRow = ({ icon, label, to }: NavItem) => {
+	const { pathname } = useLocation();
+	const isActive = Boolean(to) && pathname === to;
+
+	const className = getValidClassNames(
+		"flex flex-1 flex-col items-center gap-0.75 py-2.25 text-2xs border-none bg-transparent cursor-pointer font-sans",
+		{ "text-accent": isActive, "text-text-muted": !isActive },
+	);
+
+	if (to) {
+		return (
+			<Link
 				aria-current={isActive ? "page" : undefined}
-				className={getValidClassNames(
-					"flex flex-1 flex-col items-center gap-0.75 py-2.25",
-					"text-2xs border-none bg-transparent cursor-pointer font-sans",
-					{ "text-accent": isActive, "text-text-muted": !isActive },
-				)}
-				key={id}
-				type="button"
+				className={className}
+				to={to}
 			>
 				{icon}
 				{label}
-			</button>
-		))}
-	</nav>
-);
+			</Link>
+		);
+	}
 
+	return (
+		<button className={className} type="button">
+			{icon}
+			{label}
+		</button>
+	);
+};
+
+const MobileNav: React.FC = () => {
+	return (
+		<nav className="flex flex-shrink-0 tablet:hidden border-t border-border bg-surface">
+			{mobileNavItems.map((item) => (
+				<MobileNavRow key={item.id} {...item} />
+			))}
+		</nav>
+	);
+};
 export { MobileNav, Sidebar };

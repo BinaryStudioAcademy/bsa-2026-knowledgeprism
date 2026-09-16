@@ -28,6 +28,7 @@ type Properties<T extends FieldValues> = {
 	isAdmin?: boolean;
 	isEditMode?: boolean;
 	isLoading?: boolean;
+	isReadOnly?: boolean;
 	onCancel: () => void;
 	onSubmit: (event_: React.BaseSyntheticEvent) => void;
 };
@@ -39,6 +40,7 @@ const UserForm = <T extends FieldValues>({
 	isAdmin = false,
 	isEditMode = false,
 	isLoading = false,
+	isReadOnly = false,
 	onCancel,
 	onSubmit,
 }: Properties<T>): React.JSX.Element => {
@@ -99,7 +101,11 @@ const UserForm = <T extends FieldValues>({
 		return value.trim();
 	}, []);
 
-	const hasProjects = availableProjects.length > EMPTY_LENGTH;
+	const hasAssignableProjects = availableProjects.length > EMPTY_LENGTH;
+	const hasAssignedProjects = assignedProjects.length > EMPTY_LENGTH;
+	const shouldShowProjectsSection = isReadOnly
+		? hasAssignedProjects
+		: hasAssignableProjects;
 
 	return (
 		<form className="flex w-full flex-col gap-6" onSubmit={onSubmit}>
@@ -125,6 +131,7 @@ const UserForm = <T extends FieldValues>({
 
 				<Input
 					control={control}
+					disabled={isReadOnly}
 					label="Email"
 					name={"email" as Path<T>}
 					placeholder="jane.doe@example.com"
@@ -153,7 +160,7 @@ const UserForm = <T extends FieldValues>({
 						</div>
 						<Toggle
 							isChecked={Boolean(activeField.value)}
-							isDisabled={isAdmin}
+							isDisabled={isAdmin || isReadOnly}
 							isLabelVisible={false}
 							label="Active Status"
 							name={activeField.name}
@@ -162,34 +169,56 @@ const UserForm = <T extends FieldValues>({
 					</div>
 				)}
 
-				{hasProjects && (
+				{shouldShowProjectsSection && (
 					<div className="flex flex-col gap-3 rounded-lg border border-border p-4">
 						<div>
 							<div className="font-medium text-text">Project Assignment</div>
 							<div className="text-sm text-text-muted">
-								Assign this user to projects and set their roles.
+								{isReadOnly
+									? "Projects you're assigned to and your role on each."
+									: "Assign this user to projects and set their roles."}
 								{/* NOTE: Projects are currently mocked. When GET /projects endpoint is implemented, this should consume actual project data. */}
 							</div>
 						</div>
 						<div className="flex flex-col gap-4 pt-2">
-							{availableProjects.map((project) => {
-								const assignment = assignedProjects.find(
-									(p) => p.projectId === project.id,
-								);
-								const isAssigned = Boolean(assignment);
+							{isReadOnly
+								? assignedProjects.map((assignment) => {
+										const project = availableProjects.find(
+											(candidate) => candidate.id === assignment.projectId,
+										);
 
-								return (
-									<ProjectListItem
-										isAssigned={isAssigned}
-										key={project.id}
-										onAssign={handleProjectAssign}
-										onRoleChange={handleRoleChange}
-										onUnassign={handleProjectUnassign}
-										project={project}
-										role={assignment?.role ?? "VIEWER"}
-									/>
-								);
-							})}
+										return project ? (
+											<div
+												className="flex items-center justify-between"
+												key={project.id}
+											>
+												<span className="font-medium text-text">
+													{project.name}
+												</span>
+												<span className="text-sm text-text-muted">
+													{assignment.role}
+												</span>
+											</div>
+										) : null;
+									})
+								: availableProjects.map((project) => {
+										const assignment = assignedProjects.find(
+											(candidate) => candidate.projectId === project.id,
+										);
+										const isAssigned = Boolean(assignment);
+
+										return (
+											<ProjectListItem
+												isAssigned={isAssigned}
+												key={project.id}
+												onAssign={handleProjectAssign}
+												onRoleChange={handleRoleChange}
+												onUnassign={handleProjectUnassign}
+												project={project}
+												role={assignment?.role ?? "VIEWER"}
+											/>
+										);
+									})}
 						</div>
 					</div>
 				)}
