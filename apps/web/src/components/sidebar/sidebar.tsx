@@ -2,10 +2,11 @@ import { Link } from "react-router-dom";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
-import { useLocation } from "~/hooks/hooks.js";
+import { useLocation, useModal } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
+import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
 const PROJECT_ICON_SIZE = 18;
 const MOBILE_NAV_ICON_SIZE = 16;
@@ -94,32 +95,47 @@ const NavRow = ({ icon, label, to }: NavItem) => {
 const Sidebar: React.FC<SidebarProperties> = ({
 	projectName,
 	role,
-}: SidebarProperties) => (
-	<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
-		<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
-			<Icon name="project" size={PROJECT_ICON_SIZE} />
-			<div>
-				<div className="text-sm font-medium">{projectName}</div>
-				<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
+}: SidebarProperties) => {
+	const { hideModal, isOpen, showModal } = useModal();
+
+	const canAddKnowledge = role !== "VIEWER";
+
+	return (
+		<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
+			<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
+				<Icon name="project" size={PROJECT_ICON_SIZE} />
+				<div>
+					<div className="text-sm font-medium">{projectName}</div>
+					<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
+				</div>
 			</div>
-		</div>
 
-		<nav className="flex flex-col gap-0.5">
-			{primaryNavItems.map((item) => (
-				<NavRow key={item.id} {...item} />
-			))}
-		</nav>
-
-		<div className="hidden desktop:flex mt-auto flex-col gap-2.5 border-t border-border-subtle pt-3.5">
-			<Button>Add Knowledge</Button>
-			<div className="flex flex-col gap-0.5">
-				{utilityNavItems.map((item) => (
+			<nav className="flex flex-col gap-0.5">
+				{primaryNavItems.map((item) => (
 					<NavRow key={item.id} {...item} />
 				))}
+			</nav>
+
+			<div className="hidden desktop:flex mt-auto flex-col gap-2.5 border-t border-border-subtle pt-3.5">
+				{canAddKnowledge && (
+					<>
+						<Button onClick={showModal}>Add Knowledge</Button>
+						<AddKnowledgeModal
+							isOpen={isOpen}
+							onClose={hideModal}
+							projectName={projectName}
+						/>
+					</>
+				)}
+				<div className="flex flex-col gap-0.5">
+					{utilityNavItems.map((item) => (
+						<NavRow key={item.id} {...item} />
+					))}
+				</div>
 			</div>
-		</div>
-	</aside>
-);
+		</aside>
+	);
+};
 
 const MobileNav: React.FC = () => {
 	const { pathname } = useLocation();

@@ -12,6 +12,7 @@ import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
 import { AccountSettingsPage } from "~/modules/users/components/account-settings-page.js";
 
 import { App } from "./app.js";
+import { GlobalErrorNotifications } from "./global-error-notifications.js";
 import { AppLayout } from "./layouts/app-layout.js";
 import { AuthLayout } from "./layouts/auth-layout.js";
 import { PublicLayout } from "./layouts/public-layout.js";
@@ -21,6 +22,7 @@ import { RouterProvider } from "./router-provider.js";
 createRoot(document.querySelector("#root") as HTMLElement).render(
 	<StrictMode>
 		<StoreProvider store={store.instance}>
+			<GlobalErrorNotifications />
 			<RouterProvider
 				routes={[
 					{
