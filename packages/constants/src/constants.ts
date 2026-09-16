@@ -15,6 +15,7 @@ export {
 	DocumentStatus,
 	DocumentValidationRule,
 } from "./modules/documents/documents.js";
+export { ProjectMemberRole } from "./modules/projects/projects.js";
 export {
 	UsersApiPath,
 	UserValidationMessage,

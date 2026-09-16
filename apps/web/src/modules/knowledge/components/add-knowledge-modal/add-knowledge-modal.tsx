@@ -1,10 +1,11 @@
 import { type JSX, useCallback, useState } from "react";
 
-import { Button, Icon, Modal } from "~/components/components.js";
-import { useAppSelector } from "~/hooks/hooks.js";
+import { Button, Icon, type IconName, Modal } from "~/components/components.js";
+import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
+import { actions } from "../../knowledge.js";
 import { DocumentProcessingStatus } from "../../libs/enums/enums.js";
 import { DocumentUpload } from "../document-upload.js";
 import { DestinationBadge } from "./destination-badge.js";
@@ -22,19 +23,25 @@ type Properties = {
 	projectName?: string;
 };
 
-const TAB_ITEMS = [
+type TabItem = {
+	iconName: IconName;
+	id: ValueOf<typeof AddKnowledgeTab>;
+	label: string;
+};
+
+const TAB_ITEMS: TabItem[] = [
 	{
-		iconName: "upload" as const,
+		iconName: "upload",
 		id: AddKnowledgeTab.UPLOAD,
 		label: "Upload files",
 	},
 	{
-		iconName: "paste-text" as const,
+		iconName: "paste-text",
 		id: AddKnowledgeTab.TEXT,
 		label: "Paste text",
 	},
 	{
-		iconName: "link" as const,
+		iconName: "link",
 		id: AddKnowledgeTab.LINK,
 		label: "Web link",
 	},
@@ -57,12 +64,27 @@ const getCountLabel = ({
 	return "No files added yet";
 };
 
+const tabToContent: Record<ValueOf<typeof AddKnowledgeTab>, JSX.Element> = {
+	[AddKnowledgeTab.LINK]: (
+		<div className="flex flex-col items-center justify-center py-12 text-center text-sm text-text-muted">
+			Web link will be available soon.
+		</div>
+	),
+	[AddKnowledgeTab.TEXT]: (
+		<div className="flex flex-col items-center justify-center py-12 text-center text-sm text-text-muted">
+			Paste text will be available soon.
+		</div>
+	),
+	[AddKnowledgeTab.UPLOAD]: <DocumentUpload />,
+};
+
 const AddKnowledgeModal = ({
 	branchName = "Main",
 	isOpen,
 	onClose,
 	projectName = "Project Alpha",
 }: Properties): JSX.Element => {
+	const dispatch = useAppDispatch();
 	const [activeTab, setActiveTab] = useState<ValueOf<typeof AddKnowledgeTab>>(
 		AddKnowledgeTab.UPLOAD,
 	);
@@ -74,6 +96,12 @@ const AddKnowledgeModal = ({
 		},
 		[],
 	);
+
+	const handleClose = useCallback((): void => {
+		dispatch(actions.resetState());
+		setActiveTab(AddKnowledgeTab.UPLOAD);
+		onClose();
+	}, [dispatch, onClose]);
 
 	const isReadyToAdd = Boolean(
 		selectedFile &&
@@ -90,7 +118,7 @@ const AddKnowledgeModal = ({
 		<Modal
 			hasCloseButton
 			isOpen={isOpen}
-			onClose={onClose}
+			onClose={handleClose}
 			size="large"
 			title="Add Knowledge"
 		>
@@ -122,27 +150,15 @@ const AddKnowledgeModal = ({
 					})}
 				</div>
 
-				<div>
-					{activeTab === AddKnowledgeTab.UPLOAD && <DocumentUpload />}
-					{activeTab === AddKnowledgeTab.TEXT && (
-						<div className="flex flex-col items-center justify-center py-12 text-center text-sm text-text-muted">
-							Paste text will be available soon.
-						</div>
-					)}
-					{activeTab === AddKnowledgeTab.LINK && (
-						<div className="flex flex-col items-center justify-center py-12 text-center text-sm text-text-muted">
-							Web link will be available soon.
-						</div>
-					)}
-				</div>
+				<div>{tabToContent[activeTab]}</div>
 
 				<div className="-mx-7 -mb-7 mt-6 flex items-center justify-between border-t border-border bg-bg/50 px-7 py-4">
 					<span className="text-xs text-text-muted">{countLabel}</span>
 					<div className="flex items-center gap-3">
-						<Button onClick={onClose} variant="ghost">
+						<Button onClick={handleClose} variant="ghost">
 							Cancel
 						</Button>
-						<Button disabled={!isReadyToAdd} onClick={onClose}>
+						<Button disabled={!isReadyToAdd} onClick={handleClose}>
 							Add to Knowledge Tree
 						</Button>
 					</div>

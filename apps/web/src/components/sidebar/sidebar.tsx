@@ -1,3 +1,4 @@
+import { ProjectMemberRole } from "@knowledgeprism/constants";
 import React from "react";
 
 import { Button } from "~/components/button/button.js";
@@ -83,7 +84,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 }: SidebarProperties) => {
 	const { hideModal, isOpen, showModal } = useModal();
 
-	const canAddKnowledge = role !== "VIEWER";
+	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
 
 	return (
 		<aside

@@ -11,6 +11,8 @@ import {
 import { Icon } from "~/components/components.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
+import { SUPPORTED_FILE_EXTENSIONS } from "../libs/constants/constants.js";
+
 const FIRST_FILE_INDEX = 0;
 
 type Properties = {
@@ -35,9 +37,13 @@ const FileDropzone = ({
 		[disabled],
 	);
 
-	const handleDragLeave = useCallback((): void => {
-		setIsDragActive(false);
-	}, []);
+	const handleDragLeave = useCallback(
+		(event: DragEvent<HTMLDivElement>): void => {
+			event.preventDefault();
+			setIsDragActive(false);
+		},
+		[],
+	);
 
 	const handleDrop = useCallback(
 		(event: DragEvent<HTMLDivElement>): void => {
@@ -105,7 +111,7 @@ const FileDropzone = ({
 			</div>
 
 			<input
-				accept=".pdf,.txt"
+				accept={SUPPORTED_FILE_EXTENSIONS.join(",")}
 				className="hidden"
 				disabled={disabled}
 				onChange={handleInputChange}

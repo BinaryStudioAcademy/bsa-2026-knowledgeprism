@@ -101,4 +101,4 @@ const Icon: React.FC<IconProperties> = ({
 	return <SvgIcon size={size} />;
 };
 
-export { Icon };
+export { type IconName, Icon };

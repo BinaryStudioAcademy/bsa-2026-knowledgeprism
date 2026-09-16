@@ -1,5 +1,7 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
+import { config } from "~/lib/config/config.js";
+import { AppEnvironment } from "~/lib/enums/enums.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
 import {
@@ -17,6 +19,8 @@ type ProcessDocumentPayload = {
 	size: number;
 };
 
+const FAILURE_KEYWORDS = ["fail", "error"] as const;
+
 const processDocument = createAsyncThunk<
 	UploadedDocumentItem,
 	ProcessDocumentPayload,
@@ -28,10 +32,13 @@ const processDocument = createAsyncThunk<
 		}, MOCK_PROCESSING_DELAY_MS);
 	});
 
-	if (
-		name.toLowerCase().includes("fail") ||
-		name.toLowerCase().includes("error")
-	) {
+	const isDevelopment =
+		config.ENV.APP.ENVIRONMENT === AppEnvironment.DEVELOPMENT;
+	const hasFailureKeyword =
+		isDevelopment &&
+		FAILURE_KEYWORDS.some((keyword) => name.toLowerCase().includes(keyword));
+
+	if (hasFailureKeyword) {
 		throw new Error(DocumentValidationMessage.PROCESSING_FAILED);
 	}
 
