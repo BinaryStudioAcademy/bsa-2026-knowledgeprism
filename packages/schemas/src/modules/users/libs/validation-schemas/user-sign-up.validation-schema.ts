@@ -8,6 +8,7 @@ import { z } from "zod";
 import { email } from "./email.validation-schema.js";
 
 const DIGIT_PATTERN = /\d/u;
+const EMOJI_PATTERN = /(?:\p{Emoji_Presentation}|\p{Extended_Pictographic})/u;
 const SPECIAL_CHARACTER_PATTERN = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/u;
 const VALID_PASSWORD_CHARACTERS_PATTERN =
 	/^[\dA-Za-z!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]*$/u;
@@ -27,6 +28,14 @@ const createRequiredNameField = (
 		});
 };
 
+const hasEmoji = (value: string): boolean => {
+	return EMOJI_PATTERN.test(value);
+};
+
+const hasInvalidPasswordCharacters = (password: string): boolean => {
+	return !VALID_PASSWORD_CHARACTERS_PATTERN.test(password);
+};
+
 const hasNameDigit = (name: string): boolean => {
 	return DIGIT_PATTERN.test(name);
 };
@@ -37,10 +46,6 @@ const hasPasswordDigit = (password: string): boolean => {
 
 const hasPasswordSpecialCharacter = (password: string): boolean => {
 	return SPECIAL_CHARACTER_PATTERN.test(password);
-};
-
-const hasInvalidPasswordCharacters = (password: string): boolean => {
-	return !VALID_PASSWORD_CHARACTERS_PATTERN.test(password);
 };
 
 const userSignUp = z
@@ -69,46 +74,80 @@ const userSignUp = z
 			}),
 	})
 	.required()
-	.superRefine(({ firstName, lastName, password }, context) => {
-		if (hasNameDigit(firstName)) {
-			context.addIssue({
-				code: "custom",
-				message: AuthValidationMessage.FIRST_NAME_DIGIT_WRONG,
-				path: ["firstName"],
-			});
-		}
+	.superRefine(
+		({ firstName, lastName, organisationName, password }, context) => {
+			if (hasNameDigit(firstName)) {
+				context.addIssue({
+					code: "custom",
+					message: AuthValidationMessage.FIRST_NAME_DIGIT_WRONG,
+					path: ["firstName"],
+				});
+			}
 
-		if (hasNameDigit(lastName)) {
-			context.addIssue({
-				code: "custom",
-				message: AuthValidationMessage.LAST_NAME_DIGIT_WRONG,
-				path: ["lastName"],
-			});
-		}
+			if (hasEmoji(firstName)) {
+				context.addIssue({
+					code: "custom",
+					message: AuthValidationMessage.FIRST_NAME_EMOJI_WRONG,
+					path: ["firstName"],
+				});
+			}
 
-		if (!hasPasswordDigit(password)) {
-			context.addIssue({
-				code: "custom",
-				message: UserValidationMessage.PASSWORD_DIGIT_REQUIRE,
-				path: ["password"],
-			});
-		}
+			if (hasNameDigit(lastName)) {
+				context.addIssue({
+					code: "custom",
+					message: AuthValidationMessage.LAST_NAME_DIGIT_WRONG,
+					path: ["lastName"],
+				});
+			}
 
-		if (!hasPasswordSpecialCharacter(password)) {
-			context.addIssue({
-				code: "custom",
-				message: UserValidationMessage.PASSWORD_SPECIAL_CHARACTER_REQUIRE,
-				path: ["password"],
-			});
-		}
+			if (hasEmoji(lastName)) {
+				context.addIssue({
+					code: "custom",
+					message: AuthValidationMessage.LAST_NAME_EMOJI_WRONG,
+					path: ["lastName"],
+				});
+			}
 
-		if (hasInvalidPasswordCharacters(password)) {
-			context.addIssue({
-				code: "custom",
-				message: UserValidationMessage.PASSWORD_INVALID_CHARACTERS,
-				path: ["password"],
-			});
-		}
-	});
+			if (hasEmoji(organisationName)) {
+				context.addIssue({
+					code: "custom",
+					message: AuthValidationMessage.ORGANISATION_NAME_EMOJI_WRONG,
+					path: ["organisationName"],
+				});
+			}
+
+			if (!hasPasswordDigit(password)) {
+				context.addIssue({
+					code: "custom",
+					message: UserValidationMessage.PASSWORD_DIGIT_REQUIRE,
+					path: ["password"],
+				});
+			}
+
+			if (hasEmoji(password)) {
+				context.addIssue({
+					code: "custom",
+					message: UserValidationMessage.PASSWORD_EMOJI_WRONG,
+					path: ["password"],
+				});
+			}
+
+			if (!hasPasswordSpecialCharacter(password)) {
+				context.addIssue({
+					code: "custom",
+					message: UserValidationMessage.PASSWORD_SPECIAL_CHARACTER_REQUIRE,
+					path: ["password"],
+				});
+			}
+
+			if (hasInvalidPasswordCharacters(password)) {
+				context.addIssue({
+					code: "custom",
+					message: UserValidationMessage.PASSWORD_INVALID_CHARACTERS,
+					path: ["password"],
+				});
+			}
+		},
+	);
 
 export { userSignUp };
