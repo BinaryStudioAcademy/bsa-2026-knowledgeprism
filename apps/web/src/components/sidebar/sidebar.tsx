@@ -30,7 +30,6 @@ const primaryNavItems: NavItem[] = [
 	{
 		icon: <Icon name="glossary" />,
 		id: "glossary",
-		isActive: true,
 		label: "Glossary",
 	},
 	{ icon: <Icon name="ask-prism" />, id: "ask-prism", label: "Ask Prism" },
@@ -39,6 +38,12 @@ const primaryNavItems: NavItem[] = [
 const utilityNavItems: NavItem[] = [
 	{ icon: <Icon name="help" />, id: "help", label: "Help" },
 	{ icon: <Icon name="settings" />, id: "settings", label: "Settings" },
+	{
+		icon: <Icon name="users" />,
+		id: "users",
+		isActive: true,
+		label: "Users",
+	},
 ];
 
 const mobileNavItems: NavItem[] = [
@@ -50,7 +55,6 @@ const mobileNavItems: NavItem[] = [
 	{
 		icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "glossary",
-		isActive: true,
 		label: "Glossary",
 	},
 	{
