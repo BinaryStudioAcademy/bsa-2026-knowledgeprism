@@ -1,11 +1,11 @@
 import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-
-import { getDocument, GlobalWorkerOptions } from "pdfjs-dist";
+import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 import {
 	FIRST_PDF_PAGE_NUMBER,
+	PDF_PAGE_NUMBER_STEP,
 	PdfJsResourceDirectory,
 	URL_PATH_SEPARATOR,
 } from "../constants/pdfjs-resource.constant.js";
@@ -22,10 +22,6 @@ const PDFJS_PACKAGE_DIRECTORY = path.dirname(
 const buildPdfJsResourceUrl = (resourceDirectoryName: string): string => {
 	return `${pathToFileURL(path.join(PDFJS_PACKAGE_DIRECTORY, resourceDirectoryName)).href}${URL_PATH_SEPARATOR}`;
 };
-
-GlobalWorkerOptions.workerSrc = pathToFileURL(
-	require.resolve("pdfjs-dist/build/pdf.worker.mjs"),
-).href;
 
 const CMAP_URL = buildPdfJsResourceUrl(PdfJsResourceDirectory.CMAPS);
 const ICC_URL = buildPdfJsResourceUrl(PdfJsResourceDirectory.ICCS);
@@ -51,7 +47,7 @@ const parsePdfPages = async (bytes: Uint8Array): Promise<ParsedPageBlock[]> => {
 		for (
 			let pageNumber = FIRST_PDF_PAGE_NUMBER;
 			pageNumber <= pdf.numPages;
-			pageNumber += 1
+			pageNumber += PDF_PAGE_NUMBER_STEP
 		) {
 			const page = await pdf.getPage(pageNumber);
 			const textContent = await page.getTextContent();

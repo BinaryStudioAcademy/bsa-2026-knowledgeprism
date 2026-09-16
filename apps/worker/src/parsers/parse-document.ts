@@ -12,14 +12,11 @@ const parseDocument = async ({
 	bytes,
 	contentType,
 }: ParseDocumentPayload): Promise<ParsedPageBlock[]> => {
-	switch (contentType) {
-		case DocumentContentType.PDF: {
-			return parsePdfPages(bytes);
-		}
-		default: {
-			throw new UnsupportedDocumentFormatError({ contentType });
-		}
+	if (contentType === DocumentContentType.PDF) {
+		return await parsePdfPages(bytes);
 	}
+
+	throw new UnsupportedDocumentFormatError({ contentType });
 };
 
 export { parseDocument };
