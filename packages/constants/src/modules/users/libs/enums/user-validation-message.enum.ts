@@ -6,6 +6,7 @@ const UserValidationMessage = {
 	FIRST_NAME_REQUIRE: "First name is required",
 	LAST_NAME_REQUIRE: "Last name is required",
 	PASSWORD_DIGIT_REQUIRE: "Password must contain at least one digit",
+	PASSWORD_EMOJI_WRONG: "Password must not contain emojis",
 	PASSWORD_MAXIMUM_LENGTH: "Password must be at most 32 characters long",
 	PASSWORD_MINIMUM_LENGTH: "Password must be at least 8 characters long",
 	PASSWORD_REQUIRE: "Password is required",

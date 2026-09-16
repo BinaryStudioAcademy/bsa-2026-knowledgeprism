@@ -2,10 +2,11 @@ import { Link } from "react-router-dom";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
-import { useLocation } from "~/hooks/hooks.js";
+import { useLocation, useModal } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
+import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
 const PROJECT_ICON_SIZE = 18;
 const MOBILE_NAV_ICON_SIZE = 16;
@@ -103,6 +104,10 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	projectName,
 	role,
 }: SidebarProperties) => {
+	const { hideModal, isOpen, showModal } = useModal();
+
+	const canAddKnowledge = role !== "VIEWER";
+
 	return (
 		<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
 			<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
@@ -120,7 +125,18 @@ const Sidebar: React.FC<SidebarProperties> = ({
 			</nav>
 
 			<div className="mt-auto flex flex-col gap-2.5 border-t border-border-subtle pt-3.5">
-				<Button className="hidden desktop:inline-flex">Add Knowledge</Button>
+				{canAddKnowledge && (
+					<>
+						<Button className="hidden desktop:inline-flex" onClick={showModal}>
+							Add Knowledge
+						</Button>
+						<AddKnowledgeModal
+							isOpen={isOpen}
+							onClose={hideModal}
+							projectName={projectName}
+						/>
+					</>
+				)}
 				<div className="flex flex-col gap-0.5">
 					{utilityNavItems.map((item) => (
 						<NavRow key={item.id} {...item} />
