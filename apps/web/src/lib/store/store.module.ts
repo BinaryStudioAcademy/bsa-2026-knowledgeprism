@@ -17,6 +17,7 @@ import { serializeError } from "~/lib/helpers/serialize-error.helper.js";
 import { storage } from "~/lib/storage/storage.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
+import { reducer as knowledgeReducer } from "~/modules/knowledge/knowledge.js";
 import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
 
 import { errorMiddleware } from "./error.middleware.js";
@@ -29,6 +30,7 @@ type ExtraArguments = {
 
 type RootReducer = {
 	auth: ReturnType<typeof authReducer>;
+	knowledge: ReturnType<typeof knowledgeReducer>;
 	users: ReturnType<typeof usersReducer>;
 };
 
@@ -53,6 +55,7 @@ class Store {
 			},
 			reducer: {
 				auth: authReducer,
+				knowledge: knowledgeReducer,
 				users: usersReducer,
 			},
 		});
