@@ -1,6 +1,11 @@
+import { Link } from "react-router-dom";
+
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
+import { useLocation } from "~/hooks/hooks.js";
+import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { type ValueOf } from "~/lib/types/types.js";
 
 const PROJECT_ICON_SIZE = 18;
 const MOBILE_NAV_ICON_SIZE = 16;
@@ -8,8 +13,8 @@ const MOBILE_NAV_ICON_SIZE = 16;
 type NavItem = {
 	icon: React.ReactNode;
 	id: string;
-	isActive?: boolean;
 	label: string;
+	to?: ValueOf<typeof AppRoute>;
 };
 
 type SidebarProperties = {
@@ -33,11 +38,15 @@ const primaryNavItems: NavItem[] = [
 
 const utilityNavItems: NavItem[] = [
 	{ icon: <Icon name="help" />, id: "help", label: "Help" },
-	{ icon: <Icon name="settings" />, id: "settings", label: "Settings" },
+	{
+		icon: <Icon name="settings" />,
+		id: "settings",
+		label: "Settings",
+		to: AppRoute.SETTINGS,
+	},
 	{
 		icon: <Icon name="users" />,
 		id: "users",
-		isActive: true,
 		label: "Users",
 	},
 ];
@@ -60,16 +69,30 @@ const mobileNavItems: NavItem[] = [
 	},
 ];
 
-const NavRow = ({ icon, isActive, label }: NavItem) => {
+const NavRow = ({ icon, label, to }: NavItem) => {
+	const { pathname } = useLocation();
+	const isActive = Boolean(to) && pathname === to;
+
+	const className = getValidClassNames(
+		"nav-item tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5",
+		{ "is-active": isActive },
+	);
+
+	if (to) {
+		return (
+			<Link
+				aria-current={isActive ? "page" : undefined}
+				className={className}
+				to={to}
+			>
+				{icon}
+				<span className="hidden desktop:inline">{label}</span>
+			</Link>
+		);
+	}
+
 	return (
-		<button
-			aria-current={isActive ? "page" : undefined}
-			className={getValidClassNames(
-				"nav-item tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5",
-				{ "is-active": isActive },
-			)}
-			type="button"
-		>
+		<button className={className} type="button">
 			{icon}
 			<span className="hidden desktop:inline">{label}</span>
 		</button>
@@ -96,8 +119,8 @@ const Sidebar: React.FC<SidebarProperties> = ({
 				))}
 			</nav>
 
-			<div className="hidden desktop:flex mt-auto flex-col gap-2.5 border-t border-border-subtle pt-3.5">
-				<Button>Add Knowledge</Button>
+			<div className="mt-auto flex flex-col gap-2.5 border-t border-border-subtle pt-3.5">
+				<Button className="hidden desktop:inline-flex">Add Knowledge</Button>
 				<div className="flex flex-col gap-0.5">
 					{utilityNavItems.map((item) => (
 						<NavRow key={item.id} {...item} />
@@ -108,17 +131,31 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	);
 };
 
-const MobileNavRow = ({ icon, id, isActive, label }: NavItem) => {
+const MobileNavRow = ({ icon, id, label, to }: NavItem) => {
+	const { pathname } = useLocation();
+	const isActive = Boolean(to) && pathname === to;
+
+	const className = getValidClassNames(
+		"flex flex-1 flex-col items-center gap-0.75 py-2.25 text-2xs border-none bg-transparent cursor-pointer font-sans",
+		{ "text-accent": isActive, "text-text-muted": !isActive },
+	);
+
+	if (to) {
+		return (
+			<Link
+				aria-current={isActive ? "page" : undefined}
+				className={className}
+				key={id}
+				to={to}
+			>
+				{icon}
+				{label}
+			</Link>
+		);
+	}
+
 	return (
-		<button
-			aria-current={isActive ? "page" : undefined}
-			className={getValidClassNames(
-				"flex flex-1 flex-col items-center gap-0.75 py-2.25 text-2xs border-none bg-transparent cursor-pointer font-sans",
-				{ "text-accent": isActive, "text-text-muted": !isActive },
-			)}
-			key={id}
-			type="button"
-		>
+		<button className={className} key={id} type="button">
 			{icon}
 			{label}
 		</button>

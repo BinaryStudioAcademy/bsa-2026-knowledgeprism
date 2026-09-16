@@ -1,74 +1,115 @@
+import { type ProjectAssignmentDto } from "@knowledgeprism/types";
+
 import {
-	Button,
 	Heading,
-	Icon,
+	Loader,
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
 import {
+	useAppDispatch,
 	useAppForm,
+	useAppSelector,
 	useCallback,
 	useEffect,
 	useNavigate,
 	useState,
 } from "~/hooks/hooks.js";
-import { AppRoute } from "~/lib/enums/enums.js";
+import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
+import { actions as userActions } from "~/modules/users/users.js";
 
-import {
-	DangerZoneSection,
-	MobilePreferences,
-	NotificationsSection,
-	ProfileSection,
-	ProfileSummary,
-	SecuritySection,
-} from "./components.js";
-import {
-	DEFAULT_ACCOUNT_PREFERENCES,
-	DEFAULT_ACCOUNT_SETTINGS_PAYLOAD,
-	TOAST_DISMISS_DELAY_MS,
-} from "./libs/constants.js";
-import {
-	type AccountPreferences,
-	type AccountSettingsFormValues,
-} from "./libs/types.js";
+import { userUpdateFrontendValidationSchema } from "./user-edit-page/libs/validation-schemas.js";
+import { UserForm } from "./user-form/user-form.js";
 
-const TOAST_ICON_SIZE = 14;
+// NOTE: Projects are currently mocked. When GET /projects endpoint is implemented, this should consume actual project data.
+const MOCKED_PROJECTS = [
+	{ id: 1, name: "Knowledge Base Alpha" },
+	{ id: 2, name: "Marketing Site" },
+];
+
+type AccountSettingsFormValues = {
+	assignedProjects: ProjectAssignmentDto[];
+	email: string;
+	firstName: string;
+	isActive?: boolean;
+	lastName: string;
+	password?: string;
+};
 
 const AccountSettingsPage: React.FC = () => {
+	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
-	const { control, handleSubmit } = useAppForm<AccountSettingsFormValues>({
-		defaultValues: DEFAULT_ACCOUNT_SETTINGS_PAYLOAD,
-	});
+	const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
-	const [preferences, setPreferences] = useState<AccountPreferences>(
-		DEFAULT_ACCOUNT_PREFERENCES,
+	const { currentUserId, selectedUser, selectedUserStatus } = useAppSelector(
+		({ auth, users }) => ({
+			currentUserId: auth.user?.user.id,
+			selectedUser: users.selectedUser,
+			selectedUserStatus: users.selectedUserStatus,
+		}),
 	);
-	const [isToastVisible, setIsToastVisible] = useState(false);
 
 	useEffect(() => {
-		const timeout = isToastVisible
-			? setTimeout(() => {
-					setIsToastVisible(false);
-				}, TOAST_DISMISS_DELAY_MS)
-			: null;
+		if (currentUserId) {
+			void dispatch(userActions.loadUserById(currentUserId));
+		}
+	}, [dispatch, currentUserId]);
 
-		return (): void => {
-			if (timeout !== null) {
-				clearTimeout(timeout);
+	const { control, handleSubmit, reset } =
+		useAppForm<AccountSettingsFormValues>({
+			defaultValues: {
+				assignedProjects: [],
+				email: "",
+				firstName: "",
+				isActive: true,
+				lastName: "",
+				password: "",
+			},
+			validationSchema: userUpdateFrontendValidationSchema,
+		});
+
+	useEffect(() => {
+		if (selectedUser) {
+			reset({
+				assignedProjects: selectedUser.assignedProjects,
+				email: selectedUser.email,
+				firstName: selectedUser.firstName ?? "",
+				isActive: selectedUser.status === "active",
+				lastName: selectedUser.lastName ?? "",
+				password: "",
+			});
+		}
+	}, [selectedUser, reset]);
+
+	const handleValidSubmit = useCallback(
+		(values: AccountSettingsFormValues): void => {
+			if (!currentUserId) {
+				return;
 			}
-		};
-	}, [isToastVisible]);
 
-	const handlePreferenceChange = useCallback(
-		(key: keyof AccountPreferences, isChecked: boolean): void => {
-			setPreferences((previous) => ({ ...previous, [key]: isChecked }));
+			setErrorMessage(undefined);
+
+			void dispatch(
+				userActions.updateUser({
+					id: currentUserId,
+					payload: {
+						email: values.email,
+						firstName: values.firstName,
+						lastName: values.lastName,
+						...(values.password && { password: values.password }),
+					},
+				}),
+			)
+				.unwrap()
+				.catch((error: unknown) => {
+					const message =
+						(error as { message?: string }).message ??
+						"An unexpected error occurred";
+					setErrorMessage(message);
+				});
 		},
-		[],
+		[dispatch, currentUserId],
 	);
-
-	const handleValidSubmit = useCallback((): void => {
-		setIsToastVisible(true);
-	}, []);
 
 	const handleFormSubmit = useCallback(
 		(event_: React.BaseSyntheticEvent): void => {
@@ -77,69 +118,37 @@ const AccountSettingsPage: React.FC = () => {
 		[handleSubmit, handleValidSubmit],
 	);
 
-	const handleCancelClick = useCallback((): void => {
-		void navigate(AppRoute.ROOT);
+	const handleCancel = useCallback((): void => {
+		void navigate(AppRoute.WORKSPACE);
 	}, [navigate]);
-
-	const handleDeleteAccountClick = useCallback((): void => {
-		// confirmation modal arrives with kp-34
-	}, []);
 
 	return (
 		<div className="relative flex flex-1 justify-center overflow-auto p-4 tablet:p-7 desktop:px-11 desktop:py-10">
-			{isToastVisible && (
-				<div
-					aria-live="polite"
-					className="absolute right-8 top-4.5 z-20 flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 font-sans text-sm font-medium text-primary-fg shadow-lg"
-					role="status"
-				>
-					<Icon name="toast-check" size={TOAST_ICON_SIZE} />
-					Changes saved
-				</div>
-			)}
-
-			<form
-				className="flex w-full flex-col gap-3.5 tablet:w-130 tablet:gap-4.5 desktop:w-160 desktop:gap-6"
-				onSubmit={handleFormSubmit}
-			>
+			<div className="flex w-full flex-col gap-3.5 tablet:w-130 tablet:gap-4.5 desktop:w-160 desktop:gap-6">
 				<div>
 					<Heading level="2">Account Settings</Heading>
 					<Paragraph
 						className="mt-1.5 hidden text-text-muted desktop:block"
 						size={ParagraphSize.BODY_SMALL}
 					>
-						Manage your profile, security and notification preferences.
+						Manage your profile details.
 					</Paragraph>
 				</div>
 
-				<ProfileSummary />
-				<ProfileSection control={control} />
+				{selectedUserStatus === DataStatus.PENDING && <Loader />}
 
-				<SecuritySection
-					control={control}
-					onPreferenceChange={handlePreferenceChange}
-					preferences={preferences}
-				/>
-
-				<NotificationsSection
-					onPreferenceChange={handlePreferenceChange}
-					preferences={preferences}
-				/>
-
-				<MobilePreferences
-					onPreferenceChange={handlePreferenceChange}
-					preferences={preferences}
-				/>
-
-				<DangerZoneSection onDeleteAccountClick={handleDeleteAccountClick} />
-
-				<div className="hidden justify-end gap-2.5 desktop:flex">
-					<Button onClick={handleCancelClick} variant="secondary">
-						Cancel
-					</Button>
-					<Button type="submit">Save Changes</Button>
-				</div>
-			</form>
+				{selectedUserStatus === DataStatus.FULFILLED && selectedUser && (
+					<UserForm
+						availableProjects={MOCKED_PROJECTS}
+						control={control}
+						errorMessage={errorMessage}
+						isEditMode={true}
+						isReadOnly={true}
+						onCancel={handleCancel}
+						onSubmit={handleFormSubmit}
+					/>
+				)}
+			</div>
 		</div>
 	);
 };
