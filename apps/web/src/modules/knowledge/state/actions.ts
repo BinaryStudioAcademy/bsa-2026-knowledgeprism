@@ -15,6 +15,7 @@ import { name as sliceName } from "./knowledge.slice.js";
 
 type ProcessDocumentPayload = {
 	id: string;
+	isRetry?: boolean;
 	name: string;
 	size: number;
 };
@@ -25,31 +26,39 @@ const processDocument = createAsyncThunk<
 	UploadedDocumentItem,
 	ProcessDocumentPayload,
 	AsyncThunkConfig
->(`${sliceName}/process-document`, async ({ id, name, size }) => {
-	await new Promise<void>((resolve) => {
-		setTimeout(() => {
-			resolve();
-		}, MOCK_PROCESSING_DELAY_MS);
-	});
+>(
+	`${sliceName}/process-document`,
+	async ({ id, isRetry = false, name, size }) => {
+		const isDevelopment =
+			config.ENV.APP.ENVIRONMENT === AppEnvironment.DEVELOPMENT;
 
-	const isDevelopment =
-		config.ENV.APP.ENVIRONMENT === AppEnvironment.DEVELOPMENT;
-	const hasFailureKeyword =
-		isDevelopment &&
-		FAILURE_KEYWORDS.some((keyword) => name.toLowerCase().includes(keyword));
+		if (!isDevelopment) {
+			throw new Error(DocumentValidationMessage.PROCESSING_FAILED);
+		}
 
-	if (hasFailureKeyword) {
-		throw new Error(DocumentValidationMessage.PROCESSING_FAILED);
-	}
+		await new Promise<void>((resolve) => {
+			setTimeout(() => {
+				resolve();
+			}, MOCK_PROCESSING_DELAY_MS);
+		});
 
-	return {
-		id,
-		name,
-		progress: 100,
-		size,
-		sizeLabel: formatFileSize(size),
-		status: DocumentProcessingStatus.SUCCESS,
-	};
-});
+		const hasFailureKeyword =
+			!isRetry &&
+			FAILURE_KEYWORDS.some((keyword) => name.toLowerCase().includes(keyword));
+
+		if (hasFailureKeyword) {
+			throw new Error(DocumentValidationMessage.PROCESSING_FAILED);
+		}
+
+		return {
+			id,
+			name,
+			progress: 100,
+			size,
+			sizeLabel: formatFileSize(size),
+			status: DocumentProcessingStatus.SUCCESS,
+		};
+	},
+);
 
 export { processDocument };
