@@ -44,10 +44,10 @@ const KnowledgeSearchPage: React.FC = () => {
 
 			<div className="flex flex-col gap-4 desktop:max-w-205">
 				{filteredEntries.length === EMPTY_RESULTS_LENGTH ? (
-					<EmptyState query={query} />
+					<EmptyState />
 				) : (
 					filteredEntries.map((entry) => (
-						<KnowledgeEntryCard entry={entry} key={entry.id} />
+						<KnowledgeEntryCard entry={entry} key={entry.id} query={query} />
 					))
 				)}
 			</div>
