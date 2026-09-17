@@ -1,4 +1,5 @@
 import {
+	type UserGetCurrentResponseDto,
 	type UserSignInRequestDto,
 	type UserSignInResponseDto,
 	type UserSignUpRequestDto,
@@ -38,4 +39,13 @@ const logout = createAppAsyncThunk<null, undefined>(
 	},
 );
 
-export { logout, signIn, signUp };
+const loadCurrentUser = createAppAsyncThunk<
+	UserGetCurrentResponseDto,
+	undefined
+>(`${sliceName}/load-current-user`, (_, { extra }) => {
+	const { authApi } = extra;
+
+	return authApi.getCurrentUser();
+});
+
+export { loadCurrentUser, logout, signIn, signUp };

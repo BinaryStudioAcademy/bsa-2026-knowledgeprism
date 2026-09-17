@@ -32,6 +32,7 @@ const SignInForm = ({ isLoading = false, onSubmit }: Properties) => {
 			onSubmit({
 				email: values.email,
 				password: values.password,
+				rememberMe: values.rememberMe,
 			});
 		},
 		[onSubmit],

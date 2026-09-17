@@ -8,8 +8,10 @@ import { z } from "zod";
 import { email } from "./email.validation-schema.js";
 
 const DIGIT_PATTERN = /\d/u;
-const SPECIAL_CHARACTER_PATTERN = /[^A-Za-z0-9]/u;
 const EMOJI_PATTERN = /(?:\p{Emoji_Presentation}|\p{Extended_Pictographic})/u;
+const SPECIAL_CHARACTER_PATTERN = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/u;
+const VALID_PASSWORD_CHARACTERS_PATTERN =
+	/^[\dA-Za-z!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]*$/u;
 
 const createRequiredNameField = (
 	requiredError: string,
@@ -26,12 +28,16 @@ const createRequiredNameField = (
 		});
 };
 
-const hasNameDigit = (name: string): boolean => {
-	return DIGIT_PATTERN.test(name);
-};
-
 const hasEmoji = (value: string): boolean => {
 	return EMOJI_PATTERN.test(value);
+};
+
+const hasInvalidPasswordCharacters = (password: string): boolean => {
+	return !VALID_PASSWORD_CHARACTERS_PATTERN.test(password);
+};
+
+const hasNameDigit = (name: string): boolean => {
+	return DIGIT_PATTERN.test(name);
 };
 
 const hasPasswordDigit = (password: string): boolean => {
@@ -130,6 +136,14 @@ const userSignUp = z
 				context.addIssue({
 					code: "custom",
 					message: UserValidationMessage.PASSWORD_SPECIAL_CHARACTER_REQUIRE,
+					path: ["password"],
+				});
+			}
+
+			if (hasInvalidPasswordCharacters(password)) {
+				context.addIssue({
+					code: "custom",
+					message: UserValidationMessage.PASSWORD_INVALID_CHARACTERS,
 					path: ["password"],
 				});
 			}
