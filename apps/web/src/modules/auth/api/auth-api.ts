@@ -9,7 +9,7 @@ import {
 
 import { BaseHTTPApi } from "~/api/api.js";
 import { APIPath, ContentType } from "~/lib/enums/enums.js";
-import { type HTTP, HTTPCode, HTTPError } from "~/lib/http/http.js";
+import { type HTTP } from "~/lib/http/http.js";
 import { type Storage } from "~/lib/storage/storage.js";
 
 type Constructor = {
@@ -23,28 +23,14 @@ class AuthApi extends BaseHTTPApi {
 		super({ baseUrl, http, path: APIPath.AUTH, storage });
 	}
 
-	public async getCurrentUser(): Promise<null | UserGetCurrentResponseDto> {
-		try {
-			const response = await this.load(
-				this.getFullEndpoint(AuthApiPath.ME, {}),
-				{
-					contentType: ContentType.JSON,
-					hasAuth: false,
-					method: "GET",
-				},
-			);
+	public async getCurrentUser(): Promise<UserGetCurrentResponseDto> {
+		const response = await this.load(this.getFullEndpoint(AuthApiPath.ME, {}), {
+			contentType: ContentType.JSON,
+			hasAuth: true,
+			method: "GET",
+		});
 
-			return await response.json<UserGetCurrentResponseDto>();
-		} catch (error: unknown) {
-			if (
-				error instanceof HTTPError &&
-				error.status === HTTPCode.UNAUTHORIZED
-			) {
-				return null;
-			}
-
-			throw error;
-		}
+		return await response.json<UserGetCurrentResponseDto>();
 	}
 
 	public async logout(): Promise<void> {
@@ -52,7 +38,6 @@ class AuthApi extends BaseHTTPApi {
 			contentType: ContentType.JSON,
 			hasAuth: false,
 			method: "POST",
-			payload: JSON.stringify({}),
 		});
 	}
 

@@ -15,7 +15,7 @@ const HowItWorksStep: React.FC<HowItWorksStepProperties> = ({
 	return (
 		<div
 			className={getValidClassNames(
-				"min-w-[220px] flex-1 rounded-xl p-6",
+				"rounded-xl p-6",
 				isHighlight
 					? "border border-primary bg-primary"
 					: "border border-border bg-surface",

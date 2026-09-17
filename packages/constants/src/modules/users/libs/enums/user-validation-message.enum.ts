@@ -7,6 +7,8 @@ const UserValidationMessage = {
 	LAST_NAME_REQUIRE: "Last name is required",
 	PASSWORD_DIGIT_REQUIRE: "Password must contain at least one digit",
 	PASSWORD_EMOJI_WRONG: "Password must not contain emojis",
+	PASSWORD_INVALID_CHARACTERS:
+		"Password can only contain Latin letters, numbers, and special characters",
 	PASSWORD_MAXIMUM_LENGTH: "Password must be at most 32 characters long",
 	PASSWORD_MINIMUM_LENGTH: "Password must be at least 8 characters long",
 	PASSWORD_REQUIRE: "Password is required",
@@ -21,8 +23,6 @@ const UserValidationMessage = {
 	USER_CANNOT_DEACTIVATE_SELF: "You cannot deactivate your own account",
 	USER_CANNOT_REMOVE_SELF_FROM_PROJECTS:
 		"You cannot remove yourself from projects",
-	USER_CANNOT_UPDATE_EMAIL: "You cannot update your own email",
-	USER_CANNOT_UPDATE_STATUS: "You cannot update your own status",
 	USER_NOT_FOUND: "User not found",
 } as const;
 

@@ -54,6 +54,7 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 		void dispatch(
 			actions.processDocument({
 				id: selectedFile.id,
+				isRetry: true,
 				name: selectedFile.name,
 				size: selectedFile.size,
 			}),

@@ -63,11 +63,6 @@ const LandingHeader: React.FC = () => {
 		void navigate(AppRoute.ROOT);
 	}, [dispatch, handleCloseMenu, navigate]);
 
-	useEffect(() => {
-		if (!hasUser) {
-			void dispatch(authActions.getCurrentUser());
-		}
-	}, [dispatch, hasUser]);
 	const handleLogoClick = useCallback((): void => {
 		window.scrollTo(SCROLL_TO_TOP_POSITION, SCROLL_TO_TOP_POSITION);
 	}, []);

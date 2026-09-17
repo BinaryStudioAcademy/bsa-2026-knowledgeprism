@@ -10,15 +10,6 @@ import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 
 import { name as sliceName } from "./auth.slice.js";
 
-const getCurrentUser = createAppAsyncThunk<
-	null | UserGetCurrentResponseDto,
-	undefined
->(`${sliceName}/get-current-user`, (_payload, { extra }) => {
-	const { authApi } = extra;
-
-	return authApi.getCurrentUser();
-});
-
 const signIn = createAppAsyncThunk<UserSignInResponseDto, UserSignInRequestDto>(
 	`${sliceName}/sign-in`,
 	(loginPayload, { extra }) => {
@@ -48,4 +39,13 @@ const logout = createAppAsyncThunk<null, undefined>(
 	},
 );
 
-export { getCurrentUser, logout, signIn, signUp };
+const loadCurrentUser = createAppAsyncThunk<
+	UserGetCurrentResponseDto,
+	undefined
+>(`${sliceName}/load-current-user`, (_, { extra }) => {
+	const { authApi } = extra;
+
+	return authApi.getCurrentUser();
+});
+
+export { loadCurrentUser, logout, signIn, signUp };
