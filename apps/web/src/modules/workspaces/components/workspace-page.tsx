@@ -141,8 +141,7 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	project,
 	totalCount,
 }) => {
-	const canEdit =
-		isOrgAdmin || project.role === "ADMIN" || project.role === "EDITOR";
+	const canEdit = isOrgAdmin || project.role === "ADMIN";
 	const canDelete = isOrgAdmin || project.role === "ADMIN";
 
 	const handleDelete = useCallback((): void => {
