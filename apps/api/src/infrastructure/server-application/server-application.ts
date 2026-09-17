@@ -17,6 +17,7 @@ const apiV1 = new BaseServerApplicationApi(
 	...documentController.routes,
 	...knowledgeController.routes,
 	...authController.routes,
+	...knowledgeController.routes,
 	...userController.routes,
 );
 const serverApplication = new BaseServerApplication({
