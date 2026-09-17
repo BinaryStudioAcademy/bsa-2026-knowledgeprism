@@ -1,5 +1,6 @@
 import { logger } from "~/infrastructure/logger/logger.js";
 import { generatePresignedUploadUrl } from "~/infrastructure/s3/presigned-url.js";
+import { projectService } from "~/modules/projects/projects.js";
 
 import { DocumentController } from "./controllers/document.controller.js";
 import { DocumentModel } from "./models/document.model.js";
@@ -11,6 +12,7 @@ const documentService = new DocumentService({
 	documentRepository,
 	generatePresignedUploadUrl,
 	logger,
+	projectService,
 });
 const documentController = new DocumentController(logger, documentService);
 

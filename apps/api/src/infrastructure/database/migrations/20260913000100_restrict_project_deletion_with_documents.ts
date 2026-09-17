@@ -1,45 +1,76 @@
 import { type Knex } from "knex";
 
-async function down(knex: Knex): Promise<void> {
-	await knex.raw(`
-		ALTER TABLE documents
-			DROP CONSTRAINT documents_project_id_foreign;
+const ColumnName = {
+	ID: "id",
+	PROJECT_ID: "project_id",
+} as const;
 
-		ALTER TABLE documents
-			ALTER COLUMN project_id TYPE varchar(255)
-			USING project_id::text;
-	`);
+const ConstraintName = {
+	DOCUMENTS_PROJECT_ID_FOREIGN: "documents_project_id_foreign",
+} as const;
+
+const INVALID_PROJECT_REFERENCE_ERROR =
+	"Documents have invalid or missing project references. Reconcile them before retrying this migration.";
+
+const TableAlias = {
+	DOCUMENT: "document",
+	PROJECT: "project",
+} as const;
+
+const TableName = {
+	DOCUMENTS: "documents",
+	PROJECTS: "projects",
+} as const;
+
+async function down(knex: Knex): Promise<void> {
+	await knex.schema.alterTable(TableName.DOCUMENTS, (table) => {
+		table.dropForeign(
+			[ColumnName.PROJECT_ID],
+			ConstraintName.DOCUMENTS_PROJECT_ID_FOREIGN,
+		);
+	});
+
+	await knex.schema.alterTable(TableName.DOCUMENTS, (table) => {
+		table.string(ColumnName.PROJECT_ID).notNullable().alter();
+	});
 }
 
 async function up(knex: Knex): Promise<void> {
-	await knex.raw(`
-		LOCK TABLE projects, documents IN ACCESS EXCLUSIVE MODE;
+	await knex.raw("LOCK TABLE ??, ?? IN ACCESS EXCLUSIVE MODE", [
+		TableName.PROJECTS,
+		TableName.DOCUMENTS,
+	]);
 
-		DO $migration$
-		BEGIN
-			IF EXISTS (
-				SELECT 1
-				FROM documents AS document
-				LEFT JOIN projects AS project
-					ON document.project_id = project.id::text
-				WHERE project.id IS NULL
-			) THEN
-				RAISE EXCEPTION
-					'Documents have invalid or missing project references. Reconcile them before retrying this migration.';
-			END IF;
-		END;
-		$migration$;
+	const invalidDocument = await knex(
+		`${TableName.DOCUMENTS} as ${TableAlias.DOCUMENT}`,
+	)
+		.leftJoin(
+			`${TableName.PROJECTS} as ${TableAlias.PROJECT}`,
+			`${TableAlias.DOCUMENT}.${ColumnName.PROJECT_ID}`,
+			knex.raw("??::text", [`${TableAlias.PROJECT}.${ColumnName.ID}`]),
+		)
+		.whereNull(`${TableAlias.PROJECT}.${ColumnName.ID}`)
+		.select(`${TableAlias.DOCUMENT}.${ColumnName.ID}`)
+		.first<undefined | { id: number }>();
 
-		ALTER TABLE documents
-			ALTER COLUMN project_id TYPE integer
-			USING project_id::integer;
+	if (invalidDocument) {
+		throw new Error(INVALID_PROJECT_REFERENCE_ERROR);
+	}
 
-		ALTER TABLE documents
-			ADD CONSTRAINT documents_project_id_foreign
-			FOREIGN KEY (project_id)
-			REFERENCES projects(id)
-			ON DELETE NO ACTION;
-	`);
+	await knex.schema.alterTable(TableName.DOCUMENTS, (table) => {
+		table.integer(ColumnName.PROJECT_ID).notNullable().alter();
+	});
+
+	await knex.schema.alterTable(TableName.DOCUMENTS, (table) => {
+		table
+			.foreign(
+				ColumnName.PROJECT_ID,
+				ConstraintName.DOCUMENTS_PROJECT_ID_FOREIGN,
+			)
+			.references(ColumnName.ID)
+			.inTable(TableName.PROJECTS)
+			.onDelete("NO ACTION");
+	});
 }
 
 export { down, up };

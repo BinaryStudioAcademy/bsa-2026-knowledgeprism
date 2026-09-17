@@ -64,26 +64,26 @@ class ProjectMemberRepository {
 			])
 			.where("p.id", projectId)
 			.where("p.organisationId", organisationId)
-			.whereIn("pm.role", [ProjectMemberRole.EDITOR, ProjectMemberRole.VIEWER])
 			.orderBy("u.id", "asc")
 			.castTo<ProjectMemberResponseDto[]>()
 			.execute();
 	}
 
-	public async findByProjectIdAndUserId(
+	public async findRole(
 		projectId: number,
 		userId: number,
 		transaction?: Transaction,
-	): Promise<null | ProjectMemberModel> {
+	): Promise<null | ProjectMemberModel["role"]> {
 		const member = await this.projectMemberModel
 			.query(transaction)
 			.findOne({
 				projectId,
 				userId,
 			})
+			.select("role")
 			.execute();
 
-		return member ?? null;
+		return member?.role ?? null;
 	}
 }
 

@@ -154,7 +154,11 @@ class ProjectService {
 				userId: payload.userId,
 			});
 		} catch (error) {
-			if (error instanceof UniqueViolationError) {
+			if (
+				error instanceof UniqueViolationError &&
+				error.constraint ===
+					DatabaseConstraintName.PROJECT_MEMBERS_PROJECT_ID_USER_ID_UNIQUE
+			) {
 				throw new HTTPError({
 					cause: error,
 					message: ProjectValidationMessage.MEMBER_ALREADY_EXISTS,
@@ -177,24 +181,46 @@ class ProjectService {
 		};
 	}
 
-	public async assertProjectAccess(
+	public async assertCanAddKnowledge(
 		projectId: number,
 		context: ProjectAccessContext,
 	): Promise<void> {
-		await this.findProjectOrThrow(projectId, context.organisationId);
-
 		const user = await this.findActor(context);
+
+		await this.findProjectOrThrow(projectId, context.organisationId);
 
 		if (user.isOrganisationAdmin()) {
 			return;
 		}
 
-		const isProjectMember = await this.projectMemberRepository.exists(
+		const role = await this.projectMemberRepository.findRole(
 			projectId,
 			context.userId,
 		);
 
-		if (!isProjectMember) {
+		if (role !== ProjectMemberRole.ADMIN && role !== ProjectMemberRole.EDITOR) {
+			this.throwAccessForbidden();
+		}
+	}
+
+	public async assertProjectAccess(
+		projectId: number,
+		context: ProjectAccessContext,
+	): Promise<void> {
+		const user = await this.findActor(context);
+
+		await this.findProjectOrThrow(projectId, context.organisationId);
+
+		if (user.isOrganisationAdmin()) {
+			return;
+		}
+
+		const role = await this.projectMemberRepository.findRole(
+			projectId,
+			context.userId,
+		);
+
+		if (!role) {
 			this.throwAccessForbidden();
 		}
 	}
@@ -203,30 +229,7 @@ class ProjectService {
 		projectId: number,
 		context: ProjectAccessContext,
 	): Promise<void> {
-		await this.findProjectOrThrow(projectId, context.organisationId);
-
-		const user = await this.findActor(context);
-
-		if (user.isOrganisationAdmin()) {
-			return;
-		}
-
-		const member = await this.projectMemberRepository.findByProjectIdAndUserId(
-			projectId,
-			context.userId,
-		);
-
-		if (!member) {
-			this.throwAccessForbidden();
-		}
-
-		const hasEditAccess =
-			member.role === ProjectMemberRole.ADMIN ||
-			member.role === ProjectMemberRole.EDITOR;
-
-		if (!hasEditAccess) {
-			this.throwAccessForbidden();
-		}
+		await this.assertCanAddKnowledge(projectId, context);
 	}
 
 	public async create(
@@ -297,8 +300,8 @@ class ProjectService {
 		id: number,
 		context: ProjectAccessContext,
 	): Promise<ProjectMembersResponseDto> {
+		await this.assertOrganisationAdmin(context);
 		await this.findProjectOrThrow(id, context.organisationId);
-		await this.assertProjectAccess(id, context);
 
 		return {
 			items:

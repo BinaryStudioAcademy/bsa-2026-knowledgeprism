@@ -83,7 +83,9 @@ class DocumentController extends BaseController {
 	 * @swagger
 	 * /projects/{projectId}/documents/upload-url:
 	 *    post:
-	 *      description: Create a document upload intent and return a presigned S3 upload URL
+	 *      description: Create a document upload intent. Requires an active organisation administrator or an ADMIN/EDITOR project member.
+	 *      security:
+	 *        - sessionAuth: []
 	 *      parameters:
 	 *        - in: path
 	 *          name: projectId
@@ -99,15 +101,19 @@ class DocumentController extends BaseController {
 	 *            schema:
 	 *              $ref: "#/components/schemas/DocumentUploadIntentRequest"
 	 *      responses:
-	 *        201:
+	 *        '201':
 	 *          description: Upload intent created
 	 *          content:
 	 *            application/json:
 	 *              schema:
 	 *                $ref: "#/components/schemas/DocumentUploadIntentResponse"
-	 *        404:
-	 *          description: Project not found
-	 *        422:
+	 *        '401':
+	 *          description: Session is missing or unauthenticated
+	 *        '403':
+	 *          description: User cannot add knowledge to this project
+	 *        '404':
+	 *          description: Project not found in the current organisation
+	 *        '422':
 	 *          description: Invalid project ID or upload request
 	 */
 	private async createUploadIntent(
@@ -118,6 +124,7 @@ class DocumentController extends BaseController {
 	): Promise<APIHandlerResponse> {
 		return {
 			payload: await this.documentService.createUploadIntent({
+				context: this.getAuthenticatedSessionContext(options),
 				payload: options.body,
 				routeParameters: options.params,
 			}),
