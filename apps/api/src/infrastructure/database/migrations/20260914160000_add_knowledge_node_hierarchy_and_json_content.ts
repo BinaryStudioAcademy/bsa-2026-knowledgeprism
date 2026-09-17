@@ -5,8 +5,6 @@ const TABLE_NAME = "knowledge_nodes";
 const DEFAULT_NODE_POSITION = 0;
 
 const ColumnName = {
-	CONTENT: "content",
-	CONTENT_JSON: "content_json",
 	PARENT_ID: "parent_id",
 	POSITION: "position",
 	TYPE: "type",
@@ -14,8 +12,6 @@ const ColumnName = {
 
 function down(knex: Knex): Promise<void> {
 	return knex.schema.alterTable(TABLE_NAME, (table) => {
-		table.text(ColumnName.CONTENT).notNullable().defaultTo("");
-		table.dropColumn(ColumnName.CONTENT_JSON);
 		table.dropColumn(ColumnName.POSITION);
 		table.dropColumn(ColumnName.TYPE);
 		table.dropColumn(ColumnName.PARENT_ID);
@@ -39,11 +35,6 @@ async function up(knex: Knex): Promise<void> {
 			.notNullable()
 			.defaultTo(KnowledgeNodeType.ENTRY);
 		table.integer(ColumnName.POSITION).notNullable().defaultTo(DEFAULT_NODE_POSITION);
-		table.jsonb(ColumnName.CONTENT_JSON).nullable();
-	});
-
-	await knex.schema.alterTable(TABLE_NAME, (table) => {
-		table.dropColumn(ColumnName.CONTENT);
 	});
 }
 
