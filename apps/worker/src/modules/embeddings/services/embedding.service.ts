@@ -13,6 +13,7 @@ import { type SimilarityMatch } from "../libs/types/similarity-match.type.js";
 const EMPTY_TEXTS_COUNT = 0;
 const NOT_FOUND_INDEX = -1;
 const FIRST_MATCH_INDEX = 0;
+const MIN_TOP_K = 1;
 
 const embed = async (
 	texts: string[],
@@ -65,6 +66,10 @@ const search = <T>(
 		queryVector,
 		topK = SemanticSearchDefault.TOP_K,
 	} = parameters;
+
+	if (!Number.isSafeInteger(topK) || topK < MIN_TOP_K) {
+		throw new Error(`Top K must be a positive integer, got ${topK.toString()}`);
+	}
 
 	const matches = candidates.map((candidate) => {
 		return {
