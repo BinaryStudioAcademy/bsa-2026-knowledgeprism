@@ -1,5 +1,5 @@
 import { ProjectMemberRole } from "@knowledgeprism/constants";
-import React from "react";
+import React, { useCallback } from "react";
 import { Link } from "react-router-dom";
 
 import { Button } from "~/components/components.js";
@@ -21,6 +21,7 @@ type NavItem = {
 };
 
 type SidebarProperties = {
+	onAddKnowledge?: () => void;
 	projectName: string;
 	role: string;
 };
@@ -30,6 +31,7 @@ const primaryNavItems: NavItem[] = [
 		icon: <Icon name="knowledge-tree" />,
 		id: "knowledge-tree",
 		label: "Knowledge Tree",
+		to: AppRoute.KNOWLEDGE_TREE,
 	},
 	{
 		icon: <Icon name="glossary" />,
@@ -103,15 +105,26 @@ const NavRow = ({ icon, label, to }: NavItem) => {
 };
 
 const Sidebar: React.FC<SidebarProperties> = ({
+	onAddKnowledge,
 	projectName,
 	role,
 }: SidebarProperties) => {
 	const { hideModal, isOpen, showModal } = useModal();
+	const canAddKnowledge =
+		role.trim().toUpperCase() !== ProjectMemberRole.VIEWER.toUpperCase();
 
-	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
+	const handleAddClick = useCallback((): void => {
+		if (onAddKnowledge) {
+			onAddKnowledge();
+
+			return;
+		}
+
+		showModal();
+	}, [onAddKnowledge, showModal]);
 
 	return (
-		<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
+		<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
 			<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
 				<Icon name="project" size={PROJECT_ICON_SIZE} />
 				<div>
@@ -126,12 +139,10 @@ const Sidebar: React.FC<SidebarProperties> = ({
 				))}
 			</nav>
 
-			<div className="mt-auto flex flex-col gap-2.5 border-t border-border-subtle pt-3.5">
+			<div className="hidden desktop:flex mt-auto flex-col gap-2.5 border-t border-border-subtle pt-3.5">
 				{canAddKnowledge && (
 					<>
-						<Button className="hidden desktop:inline-flex" onClick={showModal}>
-							Add Knowledge
-						</Button>
+						<Button onClick={handleAddClick}>Add Knowledge</Button>
 						<AddKnowledgeModal
 							isOpen={isOpen}
 							onClose={hideModal}
@@ -149,43 +160,12 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	);
 };
 
-const MobileNavRow = ({ icon, label, to }: NavItem) => {
-	const { pathname } = useLocation();
-	const isActive = Boolean(to) && pathname === to;
+const MobileNav: React.FC = () => (
+	<nav className="flex shrink-0 tablet:hidden border-t border-border bg-surface">
+		{mobileNavItems.map((item) => (
+			<NavRow key={item.id} {...item} />
+		))}
+	</nav>
+);
 
-	const className = getValidClassNames(
-		"flex flex-1 flex-col items-center gap-0.75 py-2.25 text-2xs border-none bg-transparent cursor-pointer font-sans",
-		{ "text-accent": isActive, "text-text-muted": !isActive },
-	);
-
-	if (to) {
-		return (
-			<Link
-				aria-current={isActive ? "page" : undefined}
-				className={className}
-				to={to}
-			>
-				{icon}
-				{label}
-			</Link>
-		);
-	}
-
-	return (
-		<button className={className} type="button">
-			{icon}
-			{label}
-		</button>
-	);
-};
-
-const MobileNav: React.FC = () => {
-	return (
-		<nav className="flex flex-shrink-0 tablet:hidden border-t border-border bg-surface">
-			{mobileNavItems.map((item) => (
-				<MobileNavRow key={item.id} {...item} />
-			))}
-		</nav>
-	);
-};
 export { MobileNav, Sidebar };
