@@ -87,13 +87,11 @@ class KnowledgeService {
 		entryId,
 		payload,
 		projectId,
-		userId,
 	}: {
 		context: ProjectAccessContext;
 		entryId: number;
 		payload: KnowledgeEntryUpdateRequestDto;
 		projectId: number;
-		userId: number;
 	}): Promise<KnowledgeEntryResponseDto> {
 		await this.projectService.assertProjectEditAccess(projectId, context);
 
@@ -114,11 +112,11 @@ class KnowledgeService {
 			contentJson: payload.contentJson,
 			id: entryId,
 			title: payload.title,
-			updatedBy: userId,
+			updatedBy: context.userId,
 		});
 
 		this.logger.info(
-			`User ${String(userId)} updated knowledge entry ${String(entryId)}`,
+			`User ${String(context.userId)} updated knowledge entry ${String(entryId)}`,
 		);
 
 		return updatedKnowledgeNode.toObject();

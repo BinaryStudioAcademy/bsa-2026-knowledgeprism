@@ -267,7 +267,6 @@ class KnowledgeController extends BaseController {
 				entryId: Number(options.params.id),
 				payload: options.body,
 				projectId: Number(options.params.projectId),
-				userId,
 			});
 
 		return {
