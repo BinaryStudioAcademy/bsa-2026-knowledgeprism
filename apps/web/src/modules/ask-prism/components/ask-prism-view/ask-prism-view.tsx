@@ -1,4 +1,3 @@
-import { type AskPrismSourceDto } from "@knowledgeprism/types";
 import {
 	type BaseSyntheticEvent,
 	type ChangeEvent,
@@ -10,7 +9,7 @@ import {
 } from "react";
 
 import { Heading, Icon, Paragraph } from "~/components/components.js";
-import { useAppDispatch, useAppSelector, useNavigate } from "~/hooks/hooks.js";
+import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 import { DataStatus } from "~/lib/enums/enums.js";
 
 import { actions as askPrismActions } from "../../state/state.js";
@@ -21,7 +20,6 @@ const QUESTION_PLACEHOLDER = "Ask anything about your knowledge base...";
 
 const AskPrismView = (): JSX.Element => {
 	const dispatch = useAppDispatch();
-	const navigate = useNavigate();
 	const [query, setQuery] = useState("");
 
 	const {
@@ -94,15 +92,8 @@ const AskPrismView = (): JSX.Element => {
 		void dispatch(askPrismActions.askQuestion({ query: submittedQuery }));
 	}, [dispatch, submittedQuery]);
 
-	const handleSourceSelect = useCallback(
-		(source: AskPrismSourceDto): void => {
-			void navigate(`/knowledge#${String(source.nodeId)}`);
-		},
-		[navigate],
-	);
-
 	return (
-		<div className="mx-auto flex w-full max-w-[680px] flex-col gap-6 px-4 pt-8 pb-48">
+		<div className="mx-auto flex w-full max-w-[680px] flex-col gap-6 px-4 pt-8 pb-56 tablet:pb-48">
 			<div className="flex flex-col gap-1.5 border-b border-border pb-4">
 				<div className="flex items-center gap-2 text-accent">
 					<Icon name="ask-prism" size={24} />
@@ -119,13 +110,12 @@ const AskPrismView = (): JSX.Element => {
 					dataStatus={dataStatus}
 					errorType={errorType}
 					onRetry={handleRetry}
-					onSourceSelect={handleSourceSelect}
 					query={submittedQuery}
 					sources={sources}
 				/>
 			</div>
 
-			<div className="fixed bottom-0 left-0 right-0 z-20 pointer-events-none tablet:left-14 desktop:left-58">
+			<div className="fixed bottom-14 left-0 right-0 z-20 pointer-events-none tablet:bottom-0 tablet:left-14 desktop:left-58">
 				<div className="pointer-events-auto mx-auto flex w-full max-w-[680px] flex-col gap-2 bg-bg px-4 pt-2 pb-6">
 					<div className="flex flex-wrap items-center gap-1.5">
 						<span className="font-sans text-xs text-text-faint">

@@ -113,20 +113,32 @@ const AnswerCard = ({
 
 						{sources.length > EMPTY_COUNT && (
 							<div className="flex flex-wrap items-center gap-1.5 pt-1">
-								{sources.map((source) => (
-									<button
-										className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs transition-all duration-200 hover:scale-[1.03] hover:border-accent hover:bg-accent hover:text-white active:scale-[0.98]"
-										key={String(source.id)}
-										onClick={handleSourceClick(source)}
-										title={`Jump to ${source.sectionTitle}`}
-										type="button"
-									>
-										<Icon name="file" size={11} />
-										<span>{source.title}</span>
-										<span className="opacity-60">·</span>
-										<span className="opacity-85">{source.sectionTitle}</span>
-									</button>
-								))}
+								{sources.map((source) =>
+									onSourceSelect ? (
+										<button
+											className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs transition-all duration-200 hover:scale-[1.03] hover:border-accent hover:bg-accent hover:text-white active:scale-[0.98]"
+											key={String(source.id)}
+											onClick={handleSourceClick(source)}
+											title={`Jump to ${source.sectionTitle}`}
+											type="button"
+										>
+											<Icon name="file" size={11} />
+											<span>{source.title}</span>
+											<span className="opacity-60">·</span>
+											<span className="opacity-85">{source.sectionTitle}</span>
+										</button>
+									) : (
+										<span
+											className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs"
+											key={String(source.id)}
+										>
+											<Icon name="file" size={11} />
+											<span>{source.title}</span>
+											<span className="opacity-60">·</span>
+											<span className="opacity-85">{source.sectionTitle}</span>
+										</span>
+									),
+								)}
 							</div>
 						)}
 					</div>
