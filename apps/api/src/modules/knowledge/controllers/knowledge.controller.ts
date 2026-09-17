@@ -49,6 +49,7 @@ type SessionContext = {
  *            type: array
  *            items:
  *              type: object
+ *            example: [{"type": "paragraph", "content": []}]
  *      KnowledgeEntryResponse:
  *        type: object
  *        properties:
@@ -70,6 +71,7 @@ type SessionContext = {
  *            type: array
  *            items:
  *              type: object
+ *            example: [{"type": "paragraph", "content": []}]
  *          createdAt:
  *            type: string
  *            format: date-time
