@@ -3,11 +3,12 @@ import {
 	type UserSignUpRequestDto,
 } from "@knowledgeprism/types";
 
-import { Logo } from "~/components/components.js";
+import { Loader, Logo } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
 	useCallback,
+	useEffect,
 	useLocation,
 	useNavigate,
 } from "~/hooks/hooks.js";
@@ -18,12 +19,19 @@ import { SignInForm, SignUpForm } from "./components.js";
 
 const AuthPage: React.FC = () => {
 	const dispatch = useAppDispatch();
-	const { error, isAuthPending } = useAppSelector(({ auth }) => ({
+	const { error, hasUser, isAuthPending } = useAppSelector(({ auth }) => ({
 		error: auth.error,
+		hasUser: Boolean(auth.user),
 		isAuthPending: auth.dataStatus === DataStatus.PENDING,
 	}));
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
+
+	useEffect(() => {
+		if (hasUser) {
+			void navigate(AppRoute.WORKSPACE, { replace: true });
+		}
+	}, [hasUser, navigate]);
 
 	const handleSignInSubmit = useCallback(
 		(payload: UserSignInRequestDto): void => {
@@ -51,6 +59,10 @@ const AuthPage: React.FC = () => {
 		[dispatch, navigate],
 	);
 
+	if (isAuthPending) {
+		return <Loader />;
+	}
+
 	const getScreen = (screen: string): React.JSX.Element => {
 		if (screen === AppRoute.SIGN_UP) {
 			return <SignUpForm onSubmit={handleSignUpSubmit} />;
@@ -63,8 +75,8 @@ const AuthPage: React.FC = () => {
 
 	return (
 		<div className="flex min-h-screen flex-col tablet:flex-row">
-			<aside className="flex shrink-0 flex-col justify-between gap-2.5 bg-primary px-6 py-7 text-primary-fg tablet:flex-[0.8] tablet:p-11 desktop:flex-1 desktop:p-16">
-				<Logo variant="inverted" />
+			<aside className="flex flex-shrink-0 flex-col justify-between gap-2.5 bg-primary px-6 py-7 text-primary-fg tablet:flex-[0.8] tablet:p-11 desktop:flex-1 desktop:p-16">
+				<Logo to={AppRoute.ROOT} variant="inverted" />
 
 				<div className="max-w-95">
 					<p className="font-serif text-h3 leading-tight desktop:text-h2">

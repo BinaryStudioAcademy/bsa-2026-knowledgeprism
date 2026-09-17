@@ -22,7 +22,7 @@ const HowItWorksSection: React.FC = () => (
 					{HOW_IT_WORKS_SECTION_COPY.heading}
 				</h2>
 			</div>
-			<div className="flex flex-wrap gap-5">
+			<div className="grid grid-cols-1 gap-5 mobile:grid-cols-2 tablet:grid-cols-4">
 				{HOW_IT_WORKS_STEPS.map((step) => (
 					<HowItWorksStep key={step.number} {...step} />
 				))}

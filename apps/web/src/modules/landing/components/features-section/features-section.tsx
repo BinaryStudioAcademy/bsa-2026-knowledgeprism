@@ -30,17 +30,35 @@ const FeaturesSection: React.FC = () => {
 			</div>
 			<div className="flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-surface tablet:flex-row">
 				<div className="flex w-full min-w-0 flex-1 flex-col tablet:min-w-[280px]">
-					{FEATURES_LIST.map((feature) => (
-						<FeatureTab
-							feature={feature}
-							isActive={feature.id === activeFeature}
-							isLast={feature.id === FeatureId.SECURITY}
-							key={feature.id}
-							onSelect={setActiveFeature}
-						/>
-					))}
+					{FEATURES_LIST.map((feature) => {
+						const isActive = feature.id === activeFeature;
+						const isLast = feature.id === FeatureId.SECURITY;
+
+						return (
+							<div key={feature.id}>
+								<FeatureTab
+									feature={feature}
+									isActive={isActive}
+									isLast={isLast}
+									onSelect={setActiveFeature}
+								/>
+								{isActive && (
+									<div
+										className={getValidClassNames(
+											"tablet:hidden",
+											!isLast && "border-b border-border",
+										)}
+									>
+										<FeaturePreview activeFeature={activeFeature} />
+									</div>
+								)}
+							</div>
+						);
+					})}
 				</div>
-				<FeaturePreview activeFeature={activeFeature} />
+				<div className="hidden min-w-0 tablet:flex tablet:flex-[1.3]">
+					<FeaturePreview activeFeature={activeFeature} />
+				</div>
 			</div>
 		</section>
 	);
