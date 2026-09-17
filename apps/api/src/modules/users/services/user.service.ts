@@ -39,21 +39,19 @@ class UserService implements Service {
 			return;
 		}
 
-		if (payload.status) {
+		if (payload.status === "inactive") {
 			throw new HTTPError({
-				message: UserValidationMessage.USER_CANNOT_UPDATE_STATUS,
+				message: UserValidationMessage.USER_CANNOT_DEACTIVATE_SELF,
 				status: HTTPCode.BAD_REQUEST,
 			});
 		}
 
-		if (payload.email) {
-			throw new HTTPError({
-				message: UserValidationMessage.USER_CANNOT_UPDATE_EMAIL,
-				status: HTTPCode.BAD_REQUEST,
-			});
-		}
+		const EMPTY_LENGTH = 0;
 
-		if (payload.assignedProjects) {
+		if (
+			payload.assignedProjects &&
+			payload.assignedProjects.length === EMPTY_LENGTH
+		) {
 			throw new HTTPError({
 				message: UserValidationMessage.USER_CANNOT_REMOVE_SELF_FROM_PROJECTS,
 				status: HTTPCode.BAD_REQUEST,
