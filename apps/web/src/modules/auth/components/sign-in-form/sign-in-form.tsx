@@ -27,18 +27,20 @@ const SignInForm = ({
 	isLoading = false,
 	onSubmit,
 }: Properties) => {
-	const { control, handleSubmit, setError } = useAppForm<SignInFormValues>({
-		defaultValues: DEFAULT_SIGN_IN_PAYLOAD,
-		validationSchema: signInFormValidationSchema,
-	});
+	const { clearErrors, control, handleSubmit, setError } =
+		useAppForm<SignInFormValues>({
+			defaultValues: DEFAULT_SIGN_IN_PAYLOAD,
+			validationSchema: signInFormValidationSchema,
+		});
 
 	useEffect(() => {
 		if (!hasServerError) {
+			clearErrors(["email", "password"]);
 			return;
 		}
 		setError("email", { type: "server" });
 		setError("password", { type: "server" });
-	}, [hasServerError, setError]);
+	}, [clearErrors, hasServerError, setError]);
 
 	const handleValidSubmit = useCallback(
 		(values: SignInFormValues): void => {
