@@ -17,6 +17,7 @@ import {
 	HEADER_MENU_ICON_WIDTH,
 	HEADER_NAV_ID,
 	HEADER_SECTION_LINKS,
+	SCROLL_TO_TOP_POSITION,
 } from "./libs/constants.js";
 
 const LandingHeader: React.FC = () => {
@@ -40,6 +41,10 @@ const LandingHeader: React.FC = () => {
 		handleCloseMenu();
 		void navigate(AppRoute.SIGN_UP);
 	}, [handleCloseMenu, navigate]);
+
+	const handleLogoClick = useCallback((): void => {
+		window.scrollTo(SCROLL_TO_TOP_POSITION, SCROLL_TO_TOP_POSITION);
+	}, []);
 
 	useEffect(() => {
 		if (typeof matchMedia !== "function") {
@@ -82,6 +87,7 @@ const LandingHeader: React.FC = () => {
 						"hover:text-text hover:no-underline",
 						LANDING_FOCUS_RING,
 					)}
+					onClick={handleLogoClick}
 					to={AppRoute.ROOT}
 				>
 					<Logo />

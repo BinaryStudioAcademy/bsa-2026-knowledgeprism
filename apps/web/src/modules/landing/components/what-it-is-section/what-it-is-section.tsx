@@ -13,8 +13,7 @@ const WhatItIsSection: React.FC = () => (
 		)}
 		id="what"
 	>
-		<KnowledgeTreePreview />
-		<div className="min-w-[320px] flex-1">
+		<div className="min-w-[320px] flex-1 tablet:order-2">
 			<SectionEyebrow>{WHAT_IT_IS_SECTION_COPY.eyebrow}</SectionEyebrow>
 			<h2 className="mb-4 mt-3 font-serif text-[clamp(26px,3.2vw,34px)] font-normal leading-[1.2] text-text">
 				{WHAT_IT_IS_SECTION_COPY.heading}
@@ -23,6 +22,7 @@ const WhatItIsSection: React.FC = () => (
 				{WHAT_IT_IS_SECTION_COPY.body}
 			</p>
 		</div>
+		<KnowledgeTreePreview />
 	</section>
 );
 
