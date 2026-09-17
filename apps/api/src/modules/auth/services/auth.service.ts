@@ -80,7 +80,7 @@ class AuthService {
 
 		if (!user) {
 			throw new HTTPError({
-				message: "Invalid email or password",
+				message: "Incorrect email or password. Please try again.",
 				status: HTTPCode.UNAUTHORIZED,
 			});
 		}
@@ -92,7 +92,7 @@ class AuthService {
 
 		if (!isPasswordValid) {
 			throw new HTTPError({
-				message: "Invalid email or password",
+				message: "Incorrect email or password. Please try again.",
 				status: HTTPCode.UNAUTHORIZED,
 			});
 		}

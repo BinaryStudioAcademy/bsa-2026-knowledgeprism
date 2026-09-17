@@ -69,7 +69,11 @@ const AuthPage: React.FC = () => {
 		}
 
 		return (
-			<SignInForm isLoading={isAuthPending} onSubmit={handleSignInSubmit} />
+			<SignInForm
+				hasServerError={Boolean(error)}
+				isLoading={isAuthPending}
+				onSubmit={handleSignInSubmit}
+			/>
 		);
 	};
 
@@ -95,9 +99,6 @@ const AuthPage: React.FC = () => {
 
 			<main className="flex flex-1 items-center justify-center px-5.5 py-7 tablet:p-11 desktop:p-16">
 				<div className="flex w-full max-w-85 flex-col gap-4 desktop:max-w-95">
-					{error && (
-						<span className="font-sans text-sm text-error">{error}</span>
-					)}
 					{getScreen(pathname)}
 				</div>
 			</main>
