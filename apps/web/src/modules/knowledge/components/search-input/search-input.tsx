@@ -22,7 +22,7 @@ const SearchInput: React.FC<Properties> = ({
 	);
 
 	return (
-		<div className="flex h-10 flex-1 items-center gap-2 rounded-md border border-border bg-surface px-3.5 desktop:max-w-90">
+		<div className="flex h-12 items-center gap-2 rounded-md border border-border bg-surface px-3.5 desktop:max-w-90 desktop:flex-1">
 			<span className="text-text-faint">
 				<Icon name="search" size={SEARCH_ICON_SIZE} />
 			</span>
