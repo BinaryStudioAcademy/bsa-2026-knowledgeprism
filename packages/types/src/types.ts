@@ -14,6 +14,9 @@ export {
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
+	type ManualTextCreateRequestDto,
+	type ManualTextResponseDto,
+	type ManualTextRouteParametersDto,
 } from "./modules/documents/documents.js";
 export {
 	type ProjectCreateRequestDto,
@@ -24,6 +27,11 @@ export {
 	type ProjectRouteParametersDto,
 	type ProjectUpdateRequestDto,
 } from "./modules/projects/projects.js";
+export {
+	type KnowledgeEntryResponseDto,
+	type KnowledgeEntryRouteParametersDto,
+	type KnowledgeEntryUpdateRequestDto,
+} from "./modules/knowledge/knowledge.js";
 export {
 	type ProjectAssignmentDto,
 	type UserCreateRequestDto,

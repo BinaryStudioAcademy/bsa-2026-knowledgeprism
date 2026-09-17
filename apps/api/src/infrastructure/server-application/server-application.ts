@@ -5,6 +5,7 @@ import { logger } from "~/infrastructure/logger/logger.js";
 import { s3Client } from "~/infrastructure/s3/s3.js";
 import { authController } from "~/modules/auth/auth.js";
 import { documentController } from "~/modules/documents/documents.js";
+import { knowledgeController } from "~/modules/knowledge/knowledge.js";
 import { projectController } from "~/modules/projects/projects.js";
 import { userController } from "~/modules/users/users.js";
 
@@ -17,6 +18,7 @@ const apiV1 = new BaseServerApplicationApi(
 	...documentController.routes,
 	...authController.routes,
 	...projectController.routes,
+	...knowledgeController.routes,
 	...userController.routes,
 );
 const serverApplication = new BaseServerApplication({
