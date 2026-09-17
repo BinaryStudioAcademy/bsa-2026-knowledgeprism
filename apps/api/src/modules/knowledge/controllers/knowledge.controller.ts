@@ -47,7 +47,6 @@ type SessionContext = {
  *            example: "Youth Center Grand Opening"
  *          contentJson:
  *            type: array
- *            nullable: true
  *            items:
  *              type: object
  *      KnowledgeEntryResponse:
@@ -69,7 +68,6 @@ type SessionContext = {
  *            enum: [SECTION, PAGE, ENTRY]
  *          contentJson:
  *            type: array
- *            nullable: true
  *            items:
  *              type: object
  *          createdAt:

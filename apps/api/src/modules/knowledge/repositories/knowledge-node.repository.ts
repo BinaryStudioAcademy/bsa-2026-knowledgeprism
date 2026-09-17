@@ -67,7 +67,7 @@ class KnowledgeNodeRepository {
 		title,
 		updatedBy,
 	}: {
-		contentJson: KnowledgeNodeContentDto | null;
+		contentJson: KnowledgeNodeContentDto;
 		id: number;
 		title: string;
 		updatedBy: number;

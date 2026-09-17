@@ -14,7 +14,7 @@ const knowledgeNodeContent = z
 
 const knowledgeEntryUpdate = z
 	.object({
-		contentJson: knowledgeNodeContent.nullable(),
+		contentJson: knowledgeNodeContent,
 		title: z
 			.string()
 			.trim()

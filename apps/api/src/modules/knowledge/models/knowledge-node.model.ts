@@ -10,7 +10,7 @@ import {
 } from "~/infrastructure/database/database.js";
 
 class KnowledgeNodeModel extends AbstractModel {
-	public contentJson!: KnowledgeNodeContentDto | null;
+	public contentJson!: KnowledgeNodeContentDto;
 
 	public createdBy!: null | number;
 

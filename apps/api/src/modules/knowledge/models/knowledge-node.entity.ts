@@ -8,7 +8,7 @@ import {
 import { type Entity } from "~/shared/types/types.js";
 
 type KnowledgeNodeObject = {
-	contentJson: KnowledgeNodeContentDto | null;
+	contentJson: KnowledgeNodeContentDto;
 	createdAt: string;
 	id: number;
 	parentId: null | number;
@@ -20,7 +20,7 @@ type KnowledgeNodeObject = {
 };
 
 class KnowledgeNodeEntity implements Entity {
-	private contentJson: KnowledgeNodeContentDto | null;
+	private contentJson: KnowledgeNodeContentDto;
 	private createdAt: Date;
 	private id: null | number;
 	private parentId: null | number;
@@ -41,7 +41,7 @@ class KnowledgeNodeEntity implements Entity {
 		type,
 		updatedAt,
 	}: {
-		contentJson: KnowledgeNodeContentDto | null;
+		contentJson: KnowledgeNodeContentDto;
 		createdAt?: Date;
 		id: null | number;
 		parentId: null | number;
@@ -63,7 +63,7 @@ class KnowledgeNodeEntity implements Entity {
 	}
 
 	public static initialize(data: {
-		contentJson: KnowledgeNodeContentDto | null;
+		contentJson: KnowledgeNodeContentDto;
 		createdAt: Date;
 		id: number;
 		parentId: null | number;
@@ -77,7 +77,7 @@ class KnowledgeNodeEntity implements Entity {
 	}
 
 	public toNewObject(): {
-		contentJson: KnowledgeNodeContentDto | null;
+		contentJson: KnowledgeNodeContentDto;
 		parentId: null | number;
 		position: number;
 		projectId: number;

@@ -4,7 +4,7 @@ import { type ValueOf } from "../../../../libs/types/types.js";
 import { type KnowledgeNodeContentDto } from "./knowledge-node-content-dto.type.js";
 
 type KnowledgeEntryResponseDto = {
-	contentJson: KnowledgeNodeContentDto | null;
+	contentJson: KnowledgeNodeContentDto;
 	createdAt: string;
 	id: number;
 	parentId: null | number;
