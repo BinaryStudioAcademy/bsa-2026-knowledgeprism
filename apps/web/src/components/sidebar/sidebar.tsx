@@ -1,5 +1,9 @@
+import { useCallback } from "react";
+
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
+import { useNavigate } from "~/hooks/hooks.js";
+import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 const PROJECT_ICON_SIZE = 18;
@@ -13,6 +17,7 @@ type NavItem = {
 };
 
 type SidebarProperties = {
+	onAddKnowledge?: () => void;
 	projectName: string;
 	role: string;
 };
@@ -71,37 +76,52 @@ const NavRow = ({ icon, isActive, label }: NavItem) => (
 );
 
 const Sidebar: React.FC<SidebarProperties> = ({
+	onAddKnowledge,
 	projectName,
 	role,
-}: SidebarProperties) => (
-	<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
-		<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
-			<Icon name="project" size={PROJECT_ICON_SIZE} />
-			<div>
-				<div className="text-sm font-medium">{projectName}</div>
-				<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
+}: SidebarProperties) => {
+	const navigate = useNavigate();
+	const isViewer = role.trim().toUpperCase() === "VIEWER";
+
+	const handleAddClick = useCallback((): void => {
+		if (onAddKnowledge) {
+			onAddKnowledge();
+
+			return;
+		}
+		void navigate(AppRoute.KNOWLEDGE_ADD);
+	}, [navigate, onAddKnowledge]);
+
+	return (
+		<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
+			<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
+				<Icon name="project" size={PROJECT_ICON_SIZE} />
+				<div>
+					<div className="text-sm font-medium">{projectName}</div>
+					<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
+				</div>
 			</div>
-		</div>
 
-		<nav className="flex flex-col gap-0.5">
-			{primaryNavItems.map((item) => (
-				<NavRow key={item.id} {...item} />
-			))}
-		</nav>
-
-		<div className="hidden desktop:flex mt-auto flex-col gap-2.5 border-t border-border-subtle pt-3.5">
-			<Button>Add Knowledge</Button>
-			<div className="flex flex-col gap-0.5">
-				{utilityNavItems.map((item) => (
+			<nav className="flex flex-col gap-0.5">
+				{primaryNavItems.map((item) => (
 					<NavRow key={item.id} {...item} />
 				))}
+			</nav>
+
+			<div className="hidden desktop:flex mt-auto flex-col gap-2.5 border-t border-border-subtle pt-3.5">
+				{!isViewer && <Button onClick={handleAddClick}>Add Knowledge</Button>}
+				<div className="flex flex-col gap-0.5">
+					{utilityNavItems.map((item) => (
+						<NavRow key={item.id} {...item} />
+					))}
+				</div>
 			</div>
-		</div>
-	</aside>
-);
+		</aside>
+	);
+};
 
 const MobileNav: React.FC = () => (
-	<nav className="flex flex-shrink-0 tablet:hidden border-t border-border bg-surface">
+	<nav className="flex shrink-0 tablet:hidden border-t border-border bg-surface">
 		{mobileNavItems.map(({ icon, id, isActive, label }) => (
 			<button
 				aria-current={isActive ? "page" : undefined}
@@ -118,4 +138,5 @@ const MobileNav: React.FC = () => (
 		))}
 	</nav>
 );
+
 export { MobileNav, Sidebar };
