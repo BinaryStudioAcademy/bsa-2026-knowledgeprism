@@ -1,8 +1,9 @@
-import { logout, signIn, signUp } from "./actions.js";
+import { loadCurrentUser, logout, signIn, signUp } from "./actions.js";
 import { actions } from "./auth.slice.js";
 
 const allActions = {
 	...actions,
+	loadCurrentUser,
 	logout,
 	signIn,
 	signUp,
