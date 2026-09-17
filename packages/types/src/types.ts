@@ -15,6 +15,7 @@ export {
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
 } from "./modules/documents/documents.js";
+export { type KnowledgeSearchResponseDto } from "./modules/knowledge/knowledge.js";
 export {
 	type ProjectAssignmentDto,
 	type UserCreateRequestDto,
