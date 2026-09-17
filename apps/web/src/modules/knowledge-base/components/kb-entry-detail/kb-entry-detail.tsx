@@ -32,61 +32,79 @@ const HTTP_STATUS_LOCKED = 423;
 type BlockNoteEditorType = BlockNoteViewProperties["editor"];
 type BlockNoteViewProperties = ComponentProps<typeof BlockNoteView>;
 
+const extractPlainText = (content: unknown): string => {
+	if (!content) {
+		return "";
+	}
+
+	if (typeof content === "string") {
+		const trimmed = content.trim();
+		if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) {
+			return trimmed;
+		}
+
+		try {
+			const parsed: unknown = JSON.parse(trimmed);
+			return extractPlainText(parsed);
+		} catch {
+			return trimmed;
+		}
+	}
+
+	if (!Array.isArray(content)) {
+		return "";
+	}
+
+	return content
+		.map((block: unknown) => {
+			if (typeof block !== "object" || block === null) {
+				return "";
+			}
+
+			const candidate = block as {
+				children?: unknown;
+				content?: unknown;
+			};
+
+			let text = "";
+
+			if (Array.isArray(candidate.content)) {
+				text = candidate.content
+					.map((item: unknown) => {
+						if (typeof item === "string") {
+							return item;
+						}
+						if (
+							typeof item === "object" &&
+							item !== null &&
+							"text" in item &&
+							typeof item.text === "string"
+						) {
+							return item.text;
+						}
+						return "";
+					})
+					.join("");
+			} else if (typeof candidate.content === "string") {
+				text = candidate.content;
+			}
+
+			const nested = Array.isArray(candidate.children)
+				? extractPlainText(candidate.children)
+				: "";
+
+			return `${text} ${nested}`.trim();
+		})
+		.filter(Boolean)
+		.join(" ");
+};
+
 const isBlockArray = (value: unknown): value is PartialBlock[] => {
 	return Array.isArray(value);
 };
 
 const isBlockNoteEmpty = (document: unknown): boolean => {
-	if (!Array.isArray(document) || document.length === EMPTY_COUNT) {
-		return true;
-	}
-
-	const extractText = (blocks: unknown[]): string => {
-		return blocks
-			.map((block) => {
-				if (typeof block !== "object" || block === null) {
-					return "";
-				}
-				const candidate = block as {
-					children?: unknown;
-					content?: unknown;
-				};
-				let text = "";
-
-				if (Array.isArray(candidate.content)) {
-					text += candidate.content
-						.map((item: unknown) => {
-							if (typeof item === "string") {
-								return item;
-							}
-							if (
-								typeof item === "object" &&
-								item !== null &&
-								"text" in item &&
-								typeof item.text === "string"
-							) {
-								return item.text;
-							}
-							return "";
-						})
-						.join("");
-				} else if (typeof candidate.content === "string") {
-					text += candidate.content;
-				}
-
-				if (
-					Array.isArray(candidate.children) &&
-					candidate.children.length > EMPTY_COUNT
-				) {
-					text += extractText(candidate.children);
-				}
-
-				return text;
-			})
-			.join("");
-	};
-
-	return extractText(document).trim().length === EMPTY_COUNT;
+	return extractPlainText(document).length === EMPTY_COUNT;
 };
 
 const parseInitialContent = (content?: unknown): PartialBlock[] | undefined => {
@@ -303,53 +321,6 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 	);
 };
 
-const getReadablePreviewText = (content: unknown): string => {
-	if (typeof content !== "string") {
-		return "";
-	}
-	const trimmed = content.trim();
-
-	if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
-		try {
-			const parsed: unknown = JSON.parse(trimmed);
-			if (Array.isArray(parsed)) {
-				return parsed
-					.map((block: unknown) => {
-						if (typeof block !== "object" || block === null) {
-							return "";
-						}
-						const candidate = block as { content?: unknown };
-						if (Array.isArray(candidate.content)) {
-							return candidate.content
-								.map((item: unknown) => {
-									if (typeof item === "string") {
-										return item;
-									}
-									if (
-										typeof item === "object" &&
-										item !== null &&
-										"text" in item &&
-										typeof item.text === "string"
-									) {
-										return item.text;
-									}
-									return "";
-								})
-								.join("");
-						}
-						return typeof candidate.content === "string"
-							? candidate.content
-							: "";
-					})
-					.join(" ");
-			}
-		} catch {
-			return trimmed;
-		}
-	}
-	return trimmed;
-};
-
 interface ConflictModalProperties {
 	clientPayload: UpdateKbEntryPayload;
 	onCancel: () => void;
@@ -375,11 +346,11 @@ const ConflictModal = ({
 	}, [serverEntry.content]);
 
 	const clientPreview = useMemo(() => {
-		return getReadablePreviewText(clientPayload.content);
+		return extractPlainText(clientPayload.content);
 	}, [clientPayload.content]);
 
 	const serverPreview = useMemo(() => {
-		return getReadablePreviewText(serverContentString);
+		return extractPlainText(serverContentString);
 	}, [serverContentString]);
 
 	const handleApply = useCallback((): void => {
