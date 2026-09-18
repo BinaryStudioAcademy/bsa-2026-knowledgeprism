@@ -1,11 +1,13 @@
-import { RouterOutlet } from "~/components/components.js";
+import { Header, RouterOutlet } from "~/components/components.js";
 
 const AppLayout: React.FC = () => {
 	return (
 		<div className="flex min-h-screen flex-col bg-bg">
-			<main className="flex-1">
+			<Header>Header</Header>
+
+			<div className="min-h-0 flex-1">
 				<RouterOutlet />
-			</main>
+			</div>
 		</div>
 	);
 };

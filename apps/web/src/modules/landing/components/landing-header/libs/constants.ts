@@ -1,9 +1,11 @@
 const HEADER_LABEL = {
+	GO_TO_WORKSPACE: "Go to Workspace",
+	LOG_OUT: "Log Out",
 	MENU: "Menu",
 	MOBILE_NAV: "Mobile",
 	PRIMARY_NAV: "Primary",
-	SIGN_IN: "Sign in",
-	SIGN_UP: "Sign up",
+	SIGN_IN: "Log In",
+	SIGN_UP: "Register Organisation",
 } as const;
 
 const HEADER_MENU_ICON_HEIGHT = 14;
@@ -15,8 +17,11 @@ const HEADER_NAV_ID = "header-nav";
 const HEADER_SECTION_LINKS = [
 	{ href: "#what", label: "Product" },
 	{ href: "#how", label: "How it works" },
-	{ href: "#features", label: "Features" },
+	// Restored in weeks 5–6 with FeaturesSection:
+	// { href: "#features", label: "Features" },
 ] as const;
+
+const SCROLL_TO_TOP_POSITION = 0;
 
 export {
 	HEADER_LABEL,
@@ -25,4 +30,5 @@ export {
 	HEADER_MENU_ICON_WIDTH,
 	HEADER_NAV_ID,
 	HEADER_SECTION_LINKS,
+	SCROLL_TO_TOP_POSITION,
 };

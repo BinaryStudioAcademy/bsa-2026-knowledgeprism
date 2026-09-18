@@ -1,24 +1,42 @@
 import {
+	type AsyncThunk,
+	type AsyncThunkOptions,
+	type AsyncThunkPayloadCreator,
 	type ThunkMiddleware,
 	type Tuple,
 	type UnknownAction,
 } from "@reduxjs/toolkit";
-import { configureStore } from "@reduxjs/toolkit";
+import {
+	configureStore,
+	createAsyncThunk as createReduxAsyncThunk,
+} from "@reduxjs/toolkit";
 
 import { type Config } from "~/lib/config/config.js";
 import { AppEnvironment } from "~/lib/enums/enums.js";
+import { serializeError } from "~/lib/helpers/serialize-error.helper.js";
 import { storage } from "~/lib/storage/storage.js";
+import { type AsyncThunkConfig } from "~/lib/types/types.js";
+import {
+	askPrismApi,
+	reducer as askPrismReducer,
+} from "~/modules/ask-prism/ask-prism.js";
 import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
+import { reducer as knowledgeReducer } from "~/modules/knowledge/knowledge.js";
 import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
 
+import { errorMiddleware } from "./error.middleware.js";
+
 type ExtraArguments = {
+	askPrismApi: typeof askPrismApi;
 	authApi: typeof authApi;
 	storage: typeof storage;
 	userApi: typeof userApi;
 };
 
 type RootReducer = {
+	askPrism: ReturnType<typeof askPrismReducer>;
 	auth: ReturnType<typeof authReducer>;
+	knowledge: ReturnType<typeof knowledgeReducer>;
 	users: ReturnType<typeof usersReducer>;
 };
 
@@ -39,10 +57,12 @@ class Store {
 					thunk: {
 						extraArgument: this.extraArguments,
 					},
-				});
+				}).concat(errorMiddleware);
 			},
 			reducer: {
+				askPrism: askPrismReducer,
 				auth: authReducer,
+				knowledge: knowledgeReducer,
 				users: usersReducer,
 			},
 		});
@@ -50,6 +70,7 @@ class Store {
 
 	public get extraArguments(): ExtraArguments {
 		return {
+			askPrismApi,
 			authApi,
 			storage,
 			userApi,
@@ -57,4 +78,26 @@ class Store {
 	}
 }
 
-export { Store };
+function createAppAsyncThunk<Returned, ThunkArgument = void>(
+	typePrefix: string,
+	payloadCreator: AsyncThunkPayloadCreator<
+		Returned,
+		ThunkArgument,
+		AsyncThunkConfig
+	>,
+	options?: Omit<
+		AsyncThunkOptions<ThunkArgument, AsyncThunkConfig>,
+		"serializeError"
+	>,
+): AsyncThunk<Returned, ThunkArgument, AsyncThunkConfig> {
+	return createReduxAsyncThunk<Returned, ThunkArgument, AsyncThunkConfig>(
+		typePrefix,
+		payloadCreator,
+		{
+			...options,
+			serializeError,
+		},
+	);
+}
+
+export { createAppAsyncThunk, Store };

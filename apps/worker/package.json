@@ -12,6 +12,16 @@
 		"start": "node ./src/index.js"
 	},
 	"devDependencies": {
+		"@types/node": "26.1.2",
 		"tsx": "4.23.1"
+	},
+	"dependencies": {
+		"@aws-sdk/client-bedrock-runtime": "3.1120.0",
+		"@aws-sdk/client-s3": "3.1120.0",
+		"@knowledgeprism/config": "*",
+		"dotenv": "17.4.2",
+		"pdfjs-dist": "6.3.289",
+		"pino": "10.3.1",
+		"pino-pretty": "13.1.3"
 	}
 }
