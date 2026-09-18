@@ -1,5 +1,7 @@
 export {
 	type ProjectCreateRequestDto,
+	type ProjectGetAllItemResponseDto,
+	type ProjectGetAllResponseDto,
 	type ProjectMemberCreateRequestDto,
 	type ProjectMemberResponseDto,
 	type ProjectMembersResponseDto,

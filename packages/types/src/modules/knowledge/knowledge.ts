@@ -3,6 +3,7 @@ export {
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeNodeContentDto,
+	type KnowledgeRecentResponseDto,
 	type KnowledgeTreeItemResponseDto,
 	type KnowledgeTreeResponseDto,
 	type KnowledgeTreeRouteParametersDto,

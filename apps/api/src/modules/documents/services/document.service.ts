@@ -270,7 +270,7 @@ class DocumentService {
 	}): Promise<DocumentUploadIntentResponseDto> {
 		const projectId = Number(routeParameters.projectId);
 
-		await this.projectService.assertCanAddKnowledge(projectId, context);
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
 
 		const storageKey = buildDocumentStorageKey({
 			fileName: payload.fileName,

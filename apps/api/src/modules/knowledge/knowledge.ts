@@ -2,6 +2,7 @@ import { logger } from "~/infrastructure/logger/logger.js";
 import { projectService } from "~/modules/projects/projects.js";
 
 import { KnowledgeController } from "./controllers/knowledge.controller.js";
+import { RecentKnowledgeController } from "./controllers/recent-knowledge.controller.js";
 import { KnowledgeNodeModel } from "./models/knowledge-node.model.js";
 import { KnowledgeNodeRepository } from "./repositories/knowledge-node.repository.js";
 import { KnowledgeService } from "./services/knowledge.service.js";
@@ -13,5 +14,9 @@ const knowledgeService = new KnowledgeService({
 	projectService,
 });
 const knowledgeController = new KnowledgeController(logger, knowledgeService);
+const recentKnowledgeController = new RecentKnowledgeController(
+	logger,
+	knowledgeService,
+);
 
-export { knowledgeController };
+export { knowledgeController, recentKnowledgeController };

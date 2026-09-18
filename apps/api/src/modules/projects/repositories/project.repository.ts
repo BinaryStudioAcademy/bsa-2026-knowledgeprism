@@ -1,7 +1,20 @@
 import { type Transaction } from "objection";
 
+import { DatabaseTableName } from "~/infrastructure/database/database.js";
 import { ProjectEntity } from "~/modules/projects/models/project.entity.js";
 import { type ProjectModel } from "~/modules/projects/models/project.model.js";
+
+type ProjectWorkspaceDatabaseRow = {
+	description: null | string;
+	id: number;
+	latestKnowledgeUpdatedAt: Date | null;
+	name: string;
+	updatedAt: Date;
+};
+
+type ProjectWorkspaceMemberDatabaseRow = ProjectWorkspaceDatabaseRow & {
+	role: "ADMIN" | "EDITOR" | "VIEWER";
+};
 
 type UpdateByIdAndOrganisationIdParameters = {
 	id: number;
@@ -56,6 +69,53 @@ class ProjectRepository {
 		return Boolean(deletedProjectsCount);
 	}
 
+	public async findAllByOrganisationId(
+		organisationId: number,
+		transaction?: Transaction,
+	): Promise<ProjectWorkspaceDatabaseRow[]> {
+		return await this.projectModel
+			.query(transaction)
+			.alias("p")
+			.leftJoin(
+				`${DatabaseTableName.KNOWLEDGE_NODES} as kn`,
+				"kn.projectId",
+				"p.id",
+			)
+			.select(["p.description", "p.id", "p.name", "p.updatedAt"])
+			.max("kn.updatedAt as latestKnowledgeUpdatedAt")
+			.where("p.organisationId", organisationId)
+			.groupBy(["p.description", "p.id", "p.name", "p.updatedAt"])
+			.castTo<ProjectWorkspaceDatabaseRow[]>()
+			.execute();
+	}
+
+	public async findAllByOrganisationIdAndUserId(
+		organisationId: number,
+		userId: number,
+		transaction?: Transaction,
+	): Promise<ProjectWorkspaceMemberDatabaseRow[]> {
+		return await this.projectModel
+			.query(transaction)
+			.alias("p")
+			.innerJoin(
+				`${DatabaseTableName.PROJECT_MEMBERS} as pm`,
+				"pm.projectId",
+				"p.id",
+			)
+			.leftJoin(
+				`${DatabaseTableName.KNOWLEDGE_NODES} as kn`,
+				"kn.projectId",
+				"p.id",
+			)
+			.select(["p.description", "p.id", "p.name", "p.updatedAt", "pm.role"])
+			.max("kn.updatedAt as latestKnowledgeUpdatedAt")
+			.where("p.organisationId", organisationId)
+			.where("pm.userId", userId)
+			.groupBy(["p.description", "p.id", "p.name", "p.updatedAt", "pm.role"])
+			.castTo<ProjectWorkspaceMemberDatabaseRow[]>()
+			.execute();
+	}
+
 	public async findByIdAndOrganisationId(
 		id: number,
 		organisationId: number,
@@ -70,6 +130,42 @@ class ProjectRepository {
 			.execute();
 
 		return project ? ProjectEntity.initialize(project) : null;
+	}
+
+	public async findIdsByOrganisationId(
+		organisationId: number,
+		transaction?: Transaction,
+	): Promise<number[]> {
+		const projects = await this.projectModel
+			.query(transaction)
+			.select("id")
+			.where({ organisationId })
+			.castTo<{ id: number }[]>()
+			.execute();
+
+		return projects.map((project) => project.id);
+	}
+
+	public async findIdsByOrganisationIdAndUserId(
+		organisationId: number,
+		userId: number,
+		transaction?: Transaction,
+	): Promise<number[]> {
+		const projects = await this.projectModel
+			.query(transaction)
+			.alias("p")
+			.innerJoin(
+				`${DatabaseTableName.PROJECT_MEMBERS} as pm`,
+				"pm.projectId",
+				"p.id",
+			)
+			.select("p.id")
+			.where("p.organisationId", organisationId)
+			.where("pm.userId", userId)
+			.castTo<{ id: number }[]>()
+			.execute();
+
+		return projects.map((project) => project.id);
 	}
 
 	public async updateByIdAndOrganisationId({

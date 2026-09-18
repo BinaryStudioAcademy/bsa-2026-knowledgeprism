@@ -28,12 +28,15 @@ export {
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeNodeContentDto,
+	type KnowledgeRecentResponseDto,
 	type KnowledgeTreeItemResponseDto,
 	type KnowledgeTreeResponseDto,
 	type KnowledgeTreeRouteParametersDto,
 } from "./modules/knowledge/knowledge.js";
 export {
 	type ProjectCreateRequestDto,
+	type ProjectGetAllItemResponseDto,
+	type ProjectGetAllResponseDto,
 	type ProjectMemberCreateRequestDto,
 	type ProjectMemberResponseDto,
 	type ProjectMembersResponseDto,

@@ -5,6 +5,7 @@ import {
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeRecentResponseDto,
 	type KnowledgeTreeResponseDto,
 } from "@knowledgeprism/types";
 
@@ -64,6 +65,24 @@ class KnowledgeService {
 		return entry.toObject();
 	}
 
+	public async findRecent(
+		context: ProjectAccessContext,
+	): Promise<KnowledgeRecentResponseDto> {
+		const projectIds =
+			await this.projectService.findAccessibleProjectIds(context);
+		const entries =
+			await this.knowledgeNodeRepository.findRecentByProjectIds(projectIds);
+
+		return {
+			items: entries.map((entry) => ({
+				id: entry.id,
+				projectId: entry.projectId,
+				title: entry.title,
+				updatedAt: entry.updatedAt.toISOString(),
+			})),
+		};
+	}
+
 	public async findTree({
 		context,
 		projectId,
@@ -93,7 +112,7 @@ class KnowledgeService {
 		payload: KnowledgeEntryUpdateRequestDto;
 		projectId: number;
 	}): Promise<KnowledgeEntryResponseDto> {
-		await this.projectService.assertProjectEditAccess(projectId, context);
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
 
 		const existingEntry =
 			await this.knowledgeNodeRepository.findByIdAndProjectId(

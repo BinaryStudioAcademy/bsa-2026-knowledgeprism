@@ -1,9 +1,4 @@
-import {
-	APIPath,
-	AuthValidationMessage,
-	HTTPCode,
-	KnowledgeApiPath,
-} from "@knowledgeprism/constants";
+import { APIPath, HTTPCode, KnowledgeApiPath } from "@knowledgeprism/constants";
 import {
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
@@ -21,15 +16,9 @@ import {
 	type APIHandlerResponse,
 	BaseController,
 } from "~/infrastructure/controller/controller.js";
-import { HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 
 import { type KnowledgeService } from "../services/knowledge.service.js";
-
-type SessionContext = {
-	organisationId: number;
-	userId: number;
-};
 
 /**
  * @swagger
@@ -162,14 +151,9 @@ class KnowledgeController extends BaseController {
 			params: KnowledgeEntryRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { organisationId, userId } = this.getSessionContext(options);
-
 		return {
 			payload: await this.knowledgeService.findEntry({
-				context: {
-					organisationId,
-					userId,
-				},
+				context: this.getAuthenticatedSessionContext(options),
 				entryId: Number(options.params.id),
 				projectId: Number(options.params.projectId),
 			}),
@@ -182,33 +166,12 @@ class KnowledgeController extends BaseController {
 			params: KnowledgeTreeRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { organisationId, userId } = this.getSessionContext(options);
-
 		return {
 			payload: await this.knowledgeService.findTree({
-				context: {
-					organisationId,
-					userId,
-				},
+				context: this.getAuthenticatedSessionContext(options),
 				projectId: Number(options.params.projectId),
 			}),
 			status: HTTPCode.OK,
-		};
-	}
-
-	private getSessionContext(options: APIHandlerOptions): SessionContext {
-		const { organisationId, userId } = options.session;
-
-		if (!organisationId || !userId) {
-			throw new HTTPError({
-				message: AuthValidationMessage.UNAUTHORIZED,
-				status: HTTPCode.UNAUTHORIZED,
-			});
-		}
-
-		return {
-			organisationId,
-			userId,
 		};
 	}
 
@@ -256,14 +219,9 @@ class KnowledgeController extends BaseController {
 			params: KnowledgeEntryRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { organisationId, userId } = this.getSessionContext(options);
-
 		const updatedEntry: KnowledgeEntryResponseDto =
 			await this.knowledgeService.updateEntry({
-				context: {
-					organisationId,
-					userId,
-				},
+				context: this.getAuthenticatedSessionContext(options),
 				entryId: Number(options.params.id),
 				payload: options.body,
 				projectId: Number(options.params.projectId),

@@ -2,6 +2,7 @@ export { type KnowledgeEntryResponseDto } from "./knowledge-entry-response-dto.t
 export { type KnowledgeEntryRouteParametersDto } from "./knowledge-entry-route-parameters-dto.type.js";
 export { type KnowledgeEntryUpdateRequestDto } from "./knowledge-entry-update-request-dto.type.js";
 export { type KnowledgeNodeContentDto } from "./knowledge-node-content-dto.type.js";
+export { type KnowledgeRecentResponseDto } from "./knowledge-recent-response-dto.type.js";
 export { type KnowledgeTreeItemResponseDto } from "./knowledge-tree-item-response-dto.type.js";
 export { type KnowledgeTreeResponseDto } from "./knowledge-tree-response-dto.type.js";
 export { type KnowledgeTreeRouteParametersDto } from "./knowledge-tree-route-parameters-dto.type.js";
