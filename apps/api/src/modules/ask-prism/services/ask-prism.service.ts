@@ -4,10 +4,10 @@ import { embed, EmbeddingInputType, search } from "@knowledgeprism/worker";
 import { invokeRagGeneration } from "../libs/helpers/invoke-rag-generation.helper.js";
 
 // TODO: Replace this with the real ProjectAccessContext exported from project.service.ts when PR #118 is merged
-type ProjectAccessContext = {
-	organisationId: number;
-	userId: number;
-};
+// type ProjectAccessContext = {
+// 	organisationId: number;
+// 	userId: number;
+// };
 
 class AskPrismService {
 	/*

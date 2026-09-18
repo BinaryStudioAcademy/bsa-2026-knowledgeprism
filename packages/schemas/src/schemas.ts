@@ -1,4 +1,8 @@
 export {
+	askPrismRequestValidationSchema,
+	askPrismRouteParametersValidationSchema,
+} from "./modules/ask-prism/ask-prism.js";
+export {
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
 	manualTextCreateValidationSchema,
@@ -14,7 +18,3 @@ export {
 	userSignUpValidationSchema,
 	userUpdateValidationSchema,
 } from "./modules/users/users.js";
-export {
-	askPrismRequestValidationSchema,
-	askPrismRouteParametersValidationSchema,
-} from "./modules/ask-prism/ask-prism.js";
