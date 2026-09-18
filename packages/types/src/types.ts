@@ -11,6 +11,11 @@ export {
 	type ValueOf,
 } from "./libs/types/types.js";
 export {
+	type AskPrismRequestDto,
+	type AskPrismResponseDto,
+	type AskPrismSourceDto,
+} from "./modules/ask-prism/ask-prism.js";
+export {
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
@@ -22,9 +27,12 @@ export {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeRecentResponseDto,
 } from "./modules/knowledge/knowledge.js";
 export {
 	type ProjectCreateRequestDto,
+	type ProjectGetAllItemResponseDto,
+	type ProjectGetAllResponseDto,
 	type ProjectMemberCreateRequestDto,
 	type ProjectMemberResponseDto,
 	type ProjectMembersResponseDto,

@@ -9,7 +9,7 @@ import {
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
-import { useAppForm, useCallback } from "~/hooks/hooks.js";
+import { useAppForm, useCallback, useEffect } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/app-route.enum.js";
 
 import { DEFAULT_SIGN_IN_PAYLOAD } from "./libs/constant.js";
@@ -17,15 +17,30 @@ import { SignInFormValues } from "./libs/type.js";
 import { signInFormValidationSchema } from "./libs/validation-schema.js";
 
 type Properties = {
+	hasServerError?: boolean;
 	isLoading?: boolean;
 	onSubmit: (values: UserSignInRequestDto) => void;
 };
 
-const SignInForm = ({ isLoading = false, onSubmit }: Properties) => {
-	const { control, handleSubmit } = useAppForm<SignInFormValues>({
-		defaultValues: DEFAULT_SIGN_IN_PAYLOAD,
-		validationSchema: signInFormValidationSchema,
-	});
+const SignInForm = ({
+	hasServerError = false,
+	isLoading = false,
+	onSubmit,
+}: Properties) => {
+	const { clearErrors, control, handleSubmit, setError } =
+		useAppForm<SignInFormValues>({
+			defaultValues: DEFAULT_SIGN_IN_PAYLOAD,
+			validationSchema: signInFormValidationSchema,
+		});
+
+	useEffect(() => {
+		if (!hasServerError) {
+			clearErrors(["email", "password"]);
+			return;
+		}
+		setError("email", { type: "server" });
+		setError("password", { type: "server" });
+	}, [clearErrors, hasServerError, setError]);
 
 	const handleValidSubmit = useCallback(
 		(values: SignInFormValues): void => {

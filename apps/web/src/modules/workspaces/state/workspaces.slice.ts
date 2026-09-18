@@ -1,8 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import { type WorkspacesApi } from "../api/workspaces-api.js";
-import { MOCK_PROJECTS } from "../libs/constants/mock-data.constants.js";
-import { type ProjectItem } from "../types/types.js";
+import { type ProjectItem, type RecentDocumentItem } from "../types/types.js";
 import { createProject, updateProject } from "./action.js";
 
 interface WorkspacesState {
@@ -10,8 +9,10 @@ interface WorkspacesState {
 	error: null | string;
 	isCreating: boolean;
 	isLoading: boolean;
+	isLoadingRecent: boolean;
 	isUpdating: boolean;
 	projects: ProjectItem[];
+	recentDocuments: RecentDocumentItem[];
 	updateError: null | string;
 }
 
@@ -20,19 +21,24 @@ const initialState: WorkspacesState = {
 	error: null,
 	isCreating: false,
 	isLoading: false,
+	isLoadingRecent: false,
 	isUpdating: false,
-	projects: MOCK_PROJECTS,
+	projects: [],
+	recentDocuments: [],
 	updateError: null,
 };
 
 const fetchProjects = createAsyncThunk(
 	"workspaces/fetchProjects",
 	async (api: WorkspacesApi) => {
-		try {
-			return await api.getProjects();
-		} catch {
-			return MOCK_PROJECTS;
-		}
+		return await api.getProjects();
+	},
+);
+
+const fetchRecentDocuments = createAsyncThunk(
+	"workspaces/fetchRecentDocuments",
+	async (api: WorkspacesApi) => {
+		return await api.getRecentDocuments();
 	},
 );
 
@@ -49,7 +55,16 @@ const workspacesSlice = createSlice({
 			})
 			.addCase(fetchProjects.rejected, (state) => {
 				state.isLoading = false;
-				state.projects = MOCK_PROJECTS;
+			})
+			.addCase(fetchRecentDocuments.pending, (state) => {
+				state.isLoadingRecent = true;
+			})
+			.addCase(fetchRecentDocuments.fulfilled, (state, action) => {
+				state.isLoadingRecent = false;
+				state.recentDocuments = action.payload;
+			})
+			.addCase(fetchRecentDocuments.rejected, (state) => {
+				state.isLoadingRecent = false;
 			})
 			.addCase(createProject.pending, (state) => {
 				state.isCreating = true;
@@ -72,7 +87,7 @@ const workspacesSlice = createSlice({
 				state.isUpdating = false;
 				state.projects = state.projects.map((project) =>
 					project.id === action.payload.id
-						? { ...project, ...action.payload }
+						? { ...project, ...action.payload, role: project.role }
 						: project,
 				);
 			})
@@ -89,4 +104,4 @@ const workspacesSlice = createSlice({
 const workspacesReducer = workspacesSlice.reducer;
 
 export { createProject, updateProject } from "./action.js";
-export { fetchProjects, workspacesReducer };
+export { fetchProjects, fetchRecentDocuments, workspacesReducer };

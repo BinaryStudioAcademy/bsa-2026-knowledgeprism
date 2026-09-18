@@ -16,6 +16,10 @@ import { AppEnvironment } from "~/lib/enums/enums.js";
 import { serializeError } from "~/lib/helpers/serialize-error.helper.js";
 import { storage } from "~/lib/storage/storage.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
+import {
+	askPrismApi,
+	reducer as askPrismReducer,
+} from "~/modules/ask-prism/ask-prism.js";
 import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
 import { reducer as knowledgeReducer } from "~/modules/knowledge/knowledge.js";
 import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
@@ -25,6 +29,7 @@ import { workspacesApi } from "~/modules/workspaces/workspaces.js";
 import { errorMiddleware } from "./error.middleware.js";
 
 type ExtraArguments = {
+	askPrismApi: typeof askPrismApi;
 	authApi: typeof authApi;
 	storage: typeof storage;
 	userApi: typeof userApi;
@@ -32,6 +37,7 @@ type ExtraArguments = {
 };
 
 type RootReducer = {
+	askPrism: ReturnType<typeof askPrismReducer>;
 	auth: ReturnType<typeof authReducer>;
 	knowledge: ReturnType<typeof knowledgeReducer>;
 	users: ReturnType<typeof usersReducer>;
@@ -58,6 +64,7 @@ class Store {
 				}).concat(errorMiddleware);
 			},
 			reducer: {
+				askPrism: askPrismReducer,
 				auth: authReducer,
 				knowledge: knowledgeReducer,
 				users: usersReducer,
@@ -68,6 +75,7 @@ class Store {
 
 	public get extraArguments(): ExtraArguments {
 		return {
+			askPrismApi,
 			authApi,
 			storage,
 			userApi,

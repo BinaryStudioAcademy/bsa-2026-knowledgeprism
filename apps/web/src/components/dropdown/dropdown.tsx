@@ -1,9 +1,11 @@
-import { type RefObject } from "react";
+import { type ReactNode, type RefObject } from "react";
 import { useOnClickOutside } from "usehooks-ts";
 
 import { Button } from "~/components/button/button.js";
 import { useCallback, useEffect, useRef, useState } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+
+import { Icon, IconName } from "../components.js";
 
 type DropdownItem = {
 	isDanger?: boolean;
@@ -17,13 +19,20 @@ type MenuItemProperties = {
 };
 
 type Properties = {
+	className?: string;
+	iconName?: IconName;
 	items: DropdownItem[];
-	label: string;
+	label: ReactNode;
 };
 
 const escapeKey = "Escape";
 
-const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
+const Dropdown = ({
+	className,
+	iconName,
+	items,
+	label,
+}: Properties): React.JSX.Element => {
 	const [isOpen, setIsOpen] = useState(false);
 	const containerReference = useRef<HTMLDivElement>(null);
 	const triggerReference = useRef<HTMLButtonElement>(null);
@@ -67,7 +76,10 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 	}, [isOpen, handleDismiss]);
 
 	return (
-		<div className="relative w-fit" ref={containerReference}>
+		<div
+			className={getValidClassNames("relative w-fit", className)}
+			ref={containerReference}
+		>
 			<Button
 				aria-expanded={isOpen}
 				aria-haspopup="menu"
@@ -76,7 +88,10 @@ const Dropdown = ({ items, label }: Properties): React.JSX.Element => {
 				ref={triggerReference}
 				variant="secondary"
 			>
-				{label}
+				<span className="flex items-center gap-2">
+					{iconName && <Icon name={iconName} size={14} />}
+					<span>{label}</span>
+				</span>
 			</Button>
 			{isOpen && (
 				<div className="dropdown-menu" role="menu">

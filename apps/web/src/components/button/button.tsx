@@ -5,6 +5,13 @@ const buttonStyles = tv({
 	compoundVariants: [
 		{
 			class: {
+				base: "opacity-85 disabled:!bg-accent disabled:!text-primary-fg",
+			},
+			isLoading: true,
+			variant: "accent",
+		},
+		{
+			class: {
 				base: "opacity-85 disabled:!bg-error disabled:!text-primary-fg",
 			},
 			isLoading: true,
@@ -56,7 +63,7 @@ const buttonStyles = tv({
 			"focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35",
 			"cursor-pointer disabled:cursor-not-allowed",
 		],
-		content: "",
+		content: "inline-flex items-center gap-2",
 		spinner:
 			"inline-block size-3.5 animate-spin rounded-full border-2 border-current/20 border-t-current",
 	},
@@ -66,6 +73,14 @@ const buttonStyles = tv({
 			true: {},
 		},
 		variant: {
+			accent: {
+				base: [
+					"bg-accent text-primary-fg",
+					"hover:bg-accent-hover",
+					"disabled:bg-border-subtle disabled:text-text-faint",
+				],
+				spinner: "border-white/35 border-t-white",
+			},
 			destructive: {
 				base: [
 					"bg-error text-primary-fg",

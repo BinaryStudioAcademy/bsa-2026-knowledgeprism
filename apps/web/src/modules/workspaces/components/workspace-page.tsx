@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 
 import { Button, Heading, Icon, Modal } from "~/components/components.js";
 import { ProjectFormValue } from "~/modules/project-managment-modal/components/project-managment-modal-form/lib/type.js";
@@ -8,15 +8,25 @@ import {
 	CreateProjectPayload,
 	UpdateProjectPayload,
 } from "../api/workspaces-api.js";
-import { FILTER_ROLE_OPTIONS } from "../libs/constants/mock-data.constants.js";
 import { createProject, updateProject } from "../state/workspaces.slice.js";
-import { type ProjectItem, type ProjectRole } from "../types/types.js";
+import {
+	type ProjectItem,
+	type RecentDocumentItem,
+	type RoleFilter,
+} from "../types/types.js";
 import { ProjectCard } from "./project-card.js";
-import { WorkspaceHeader } from "./workspace-header.js";
+import { RecentDocuments } from "./recent-documents.js";
 
 const EMPTY_LENGTH = 0;
 const EVEN_MODULO = 2;
 const INDEX_OFFSET = 1;
+
+const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
+	{ label: "All roles", value: "ALL" },
+	{ label: "Admin", value: "ADMIN" },
+	{ label: "Editor", value: "EDITOR" },
+	{ label: "Viewer", value: "VIEWER" },
+];
 
 interface CreateProjectModalProperties {
 	error: null | string;
@@ -35,6 +45,19 @@ interface EditProjectModalProperties {
 	project: ProjectItem;
 }
 
+interface EmptyStateViewProperties {
+	hasProjects: boolean;
+	isOrgAdmin: boolean;
+	onOpenCreateModal: () => void;
+	selectedRole: RoleFilter;
+}
+
+interface FilterOptionProperties {
+	filter: { label: string; value: RoleFilter };
+	isSelected: boolean;
+	onSelect: (role: RoleFilter) => void;
+}
+
 interface ProjectItemCardProperties {
 	index: number;
 	isOrgAdmin: boolean;
@@ -47,12 +70,10 @@ interface ProjectItemCardProperties {
 
 interface WorkspacePageProperties {
 	creationError?: null | string;
-	firstName: string;
 	isCreating?: boolean;
-	isLoading?: boolean;
+	isLoadingRecent?: boolean;
 	isOrgAdmin?: boolean;
 	isUpdating?: boolean;
-	lastName: string;
 	onCreateProject?: (
 		payload: CreateProjectPayload,
 	) => Promise<unknown> | undefined;
@@ -60,11 +81,10 @@ interface WorkspacePageProperties {
 	onEditProject?: (
 		payload: UpdateProjectPayload,
 	) => Promise<unknown> | undefined;
-	onLogOut: () => void;
-	onOpenSettings?: () => void;
+	onSelectDocument?: (document: RecentDocumentItem) => void;
 	onSelectProject: (id: string) => void;
-	organizationName: string;
 	projects: ProjectItem[];
+	recentDocuments?: RecentDocumentItem[];
 	updateError?: null | string;
 }
 
@@ -132,6 +152,62 @@ const EditProjectModal: React.FC<EditProjectModalProperties> = ({
 	);
 };
 
+const FilterOption: React.FC<FilterOptionProperties> = ({
+	filter,
+	isSelected,
+	onSelect,
+}) => {
+	const handleClick = useCallback((): void => {
+		onSelect(filter.value);
+	}, [filter.value, onSelect]);
+
+	return (
+		<button
+			className={`dropdown-item w-full px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-secondary ${
+				isSelected ? "font-semibold text-text" : "text-text-muted"
+			}`}
+			onClick={handleClick}
+			role="menuitem"
+			type="button"
+		>
+			{filter.label}
+		</button>
+	);
+};
+
+const EmptyStateView: React.FC<EmptyStateViewProperties> = ({
+	hasProjects,
+	isOrgAdmin,
+	onOpenCreateModal,
+	selectedRole,
+}) => {
+	if (!hasProjects) {
+		if (isOrgAdmin) {
+			return (
+				<div className="flex flex-col items-center gap-4">
+					<p className="text-sm">
+						No projects yet. Create your first project to get started.
+					</p>
+					<Button onClick={onOpenCreateModal}>
+						<span className="flex items-center gap-1.5">
+							<Icon name="plus" size={10} />
+							<span>Create new project</span>
+						</span>
+					</Button>
+				</div>
+			);
+		}
+
+		return <p className="text-sm">No projects assigned to you yet.</p>;
+	}
+
+	return (
+		<p className="text-sm">
+			No projects found for the selected role filter &quot;{selectedRole}&quot;.
+		</p>
+	);
+};
+
 const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	index,
 	isOrgAdmin,
@@ -164,7 +240,7 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 				name={project.name}
 				onSelect={onSelect}
 				role={project.role}
-				updatedAt={project.updatedAt}
+				updatedAt={project.lastActivityAt ?? project.updatedAt}
 				{...(canDelete ? { onDelete: handleDelete } : {})}
 				{...(canEdit ? { onEdit: handleEdit } : {})}
 			/>
@@ -174,20 +250,17 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 
 const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	creationError = null,
-	firstName,
 	isCreating = false,
-	isLoading = false,
+	isLoadingRecent = false,
 	isOrgAdmin = false,
 	isUpdating = false,
-	lastName,
 	onCreateProject,
 	onDeleteProject,
 	onEditProject,
-	onLogOut,
-	onOpenSettings,
+	onSelectDocument,
 	onSelectProject,
-	organizationName,
 	projects: initialProjects,
+	recentDocuments = [],
 	updateError = null,
 }) => {
 	const [localProjects, setLocalProjects] =
@@ -200,7 +273,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		setLocalProjects(initialProjects);
 	}
 
-	const [selectedRole, setSelectedRole] = useState<"ALL" | ProjectRole>("ALL");
+	const [selectedRole, setSelectedRole] = useState<RoleFilter>("ALL");
 	const [isFilterOpen, setIsFilterOpen] = useState(false);
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [editingProject, setEditingProject] = useState<null | ProjectItem>(
@@ -210,6 +283,8 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		null,
 	);
 
+	const filterContainerReference = useRef<HTMLDivElement>(null);
+
 	const filteredProjects = useMemo(() => {
 		if (selectedRole === "ALL") {
 			return localProjects;
@@ -218,22 +293,26 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		return localProjects.filter((project) => project.role === selectedRole);
 	}, [localProjects, selectedRole]);
 
+	const filterLabel = useMemo(() => {
+		if (selectedRole === "ALL") {
+			return "Filter";
+		}
+
+		const currentFilter = ROLE_FILTERS.find(
+			(filter) => filter.value === selectedRole,
+		);
+
+		return `Filter: ${currentFilter?.label ?? selectedRole}`;
+	}, [selectedRole]);
+
 	const handleToggleFilter = useCallback((): void => {
 		setIsFilterOpen((previous) => !previous);
 	}, []);
 
-	const handleCloseFilter = useCallback((): void => {
+	const handleSelectRole = useCallback((role: RoleFilter): void => {
+		setSelectedRole(role);
 		setIsFilterOpen(false);
 	}, []);
-
-	const handleSelectRole = useCallback(
-		(event: React.MouseEvent<HTMLButtonElement>): void => {
-			const role = event.currentTarget.dataset["role"] as "ALL" | ProjectRole;
-			setSelectedRole(role);
-			setIsFilterOpen(false);
-		},
-		[],
-	);
 
 	const handleOpenCreateModal = useCallback((): void => {
 		setIsCreateModalOpen(true);
@@ -301,99 +380,68 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 	return (
 		<div className="workspace-page relative min-h-screen bg-bg">
-			<WorkspaceHeader
-				firstName={firstName}
-				isLoading={isLoading}
-				lastName={lastName}
-				onLogOut={onLogOut}
-				onOpenSettings={onOpenSettings}
-				organizationName={organizationName}
-			/>
-			<main className="workspace-content mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-				<div className="mb-6 flex flex-col justify-between gap-4 sm:mb-7 sm:flex-row sm:items-center">
+			<main className="workspace-content mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+				<div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 sm:flex-row sm:items-center">
 					<div>
-						<span className="block text-(length:--text-xs) font-semibold uppercase tracking-wider text-text-muted">
-							WORKSPACE
-						</span>
-						<Heading className="mt-0.5" level="2">
-							Your projects
-						</Heading>
+						<Heading level="2">Your Workspaces</Heading>
+						<p className="mt-1 text-sm text-text-muted">
+							Manage your product documentation and engineering specs.
+						</p>
 					</div>
 
 					{hasProjects && (
-						<div className="flex w-full flex-col items-stretch gap-2.5 sm:w-auto sm:flex-row sm:items-center">
+						<div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+							<div
+								className="relative w-full sm:w-auto"
+								ref={filterContainerReference}
+							>
+								<Button
+									aria-expanded={isFilterOpen}
+									aria-haspopup="menu"
+									className="w-full cursor-pointer justify-center sm:w-auto"
+									onClick={handleToggleFilter}
+									variant="secondary"
+								>
+									<span className="flex items-center gap-2">
+										<Icon name="filter" size={14} />
+										<span>{filterLabel}</span>
+									</span>
+								</Button>
+
+								{isFilterOpen && (
+									<div
+										className="dropdown-menu absolute left-0 right-0 top-full z-20 mt-1 rounded-md border border-border bg-surface py-1 shadow-lg sm:left-auto sm:right-0 sm:min-w-36"
+										role="menu"
+									>
+										{ROLE_FILTERS.map((filter) => (
+											<FilterOption
+												filter={filter}
+												isSelected={selectedRole === filter.value}
+												key={filter.value}
+												onSelect={handleSelectRole}
+											/>
+										))}
+									</div>
+								)}
+							</div>
+
 							{isOrgAdmin && (
 								<Button
-									className="order-1 w-full sm:order-2 sm:w-auto"
+									className="w-full justify-center bg-neutral-900 text-white hover:bg-neutral-800 sm:w-auto"
 									onClick={handleOpenCreateModal}
 								>
 									<span className="flex items-center gap-1.5">
-										<Icon name="plus" size={10} />
+										<Icon name="plus" size={12} />
 										<span>New Project</span>
 									</span>
 								</Button>
 							)}
-
-							<div className="relative order-2 w-full sm:order-1 sm:w-auto">
-								<button
-									aria-expanded={isFilterOpen}
-									aria-haspopup="true"
-									aria-label="Filter projects by role"
-									className="inline-flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border bg-white px-3.5 py-2 text-(length:--text-xs) font-medium text-text shadow-sm transition-colors hover:bg-surface sm:w-auto sm:px-4"
-									onClick={handleToggleFilter}
-									type="button"
-								>
-									<svg
-										aria-hidden="true"
-										className="text-text-muted"
-										fill="currentColor"
-										height="8"
-										viewBox="0 0 13.5 9"
-										width="12"
-									>
-										<path d="M0 0h13.5L8.5 5.5v3h-3v-3z" />
-									</svg>
-									Filter {selectedRole !== "ALL" && `(${selectedRole})`}
-								</button>
-
-								{isFilterOpen && (
-									<>
-										<div
-											aria-hidden="true"
-											className="fixed inset-0 z-20"
-											onClick={handleCloseFilter}
-										/>
-										<div
-											className="absolute left-0 z-30 mt-2 w-full rounded-lg border border-border bg-white p-1.5 shadow-xl sm:right-0 sm:left-auto sm:w-40"
-											role="menu"
-										>
-											{FILTER_ROLE_OPTIONS.map((role) => (
-												<button
-													aria-checked={selectedRole === role}
-													className={`w-full rounded-md px-3 py-1.5 text-left text-(length:--text-xs) transition-colors ${
-														selectedRole === role
-															? "bg-text font-medium text-white"
-															: "text-text hover:bg-surface"
-													}`}
-													data-role={role}
-													key={role}
-													onClick={handleSelectRole}
-													role="menuitemradio"
-													type="button"
-												>
-													{role === "ALL" ? "All Roles" : role}
-												</button>
-											))}
-										</div>
-									</>
-								)}
-							</div>
 						</div>
 					)}
 				</div>
 
-				{hasProjects && (
-					<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+				{filteredProjects.length > EMPTY_LENGTH && (
+					<div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
 						{filteredProjects.map((project, index) => (
 							<ProjectItemCard
 								index={index}
@@ -409,29 +457,22 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 					</div>
 				)}
 
-				{!hasProjects && (
-					<div className="py-12 text-center text-control text-text-muted">
-						{isOrgAdmin && (
-							<div className="flex flex-col items-center gap-4">
-								<p>
-									No projects yet. Create your first project to get started.
-								</p>
-								<Button onClick={handleOpenCreateModal}>
-									<span className="flex items-center gap-1.5">
-										<Icon name="plus" size={10} />
-										<span>Create new project</span>
-									</span>
-								</Button>
-							</div>
-						)}
+				{filteredProjects.length === EMPTY_LENGTH && (
+					<div className="mb-10 py-16 text-center text-text-muted">
+						<EmptyStateView
+							hasProjects={hasProjects}
+							isOrgAdmin={isOrgAdmin}
+							onOpenCreateModal={handleOpenCreateModal}
+							selectedRole={selectedRole}
+						/>
 					</div>
 				)}
 
-				{hasProjects && filteredProjects.length === EMPTY_LENGTH && (
-					<div className="py-12 text-center text-control text-text-muted">
-						No projects found for the selected filter.
-					</div>
-				)}
+				<RecentDocuments
+					documents={recentDocuments}
+					isLoading={isLoadingRecent}
+					{...(onSelectDocument ? { onSelectDocument } : {})}
+				/>
 			</main>
 
 			{isCreateModalOpen && (

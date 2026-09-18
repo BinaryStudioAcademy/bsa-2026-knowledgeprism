@@ -1,9 +1,20 @@
-import { MOCK_PROJECTS } from "../libs/constants/mock-data.constants.js";
-import { type ProjectItem, type ProjectRole } from "../types/types.js";
+import {
+	type ProjectItem,
+	type ProjectRole,
+	type RecentDocumentItem,
+} from "../types/types.js";
 
 type CreateProjectPayload = {
 	description?: string;
 	name: string;
+};
+
+type ProjectListItemDto = {
+	description: null | string;
+	id: number;
+	lastActivityAt: string;
+	name: string;
+	role: ProjectRole;
 };
 
 type ProjectResponseDto = {
@@ -11,6 +22,14 @@ type ProjectResponseDto = {
 	id: number;
 	name: string;
 	updatedAt: string;
+};
+
+type ProjectsResponse =
+	| ProjectListItemDto[]
+	| { items?: ProjectListItemDto[]; projects?: ProjectListItemDto[] };
+
+type RecentDocumentsResponse = {
+	items: RecentDocumentItem[];
 };
 
 type UpdateProjectPayload = {
@@ -38,29 +57,23 @@ class WorkspacesApi {
 	public async createProject(
 		payload: CreateProjectPayload,
 	): Promise<ProjectItem> {
-		try {
-			const response = await fetch(`${this.#baseUrl}/projects`, {
-				body: JSON.stringify(payload),
-				headers: { "Content-Type": "application/json" },
-				method: "POST",
-			});
+		const response = await fetch(`${this.#baseUrl}/projects`, {
+			body: JSON.stringify(payload),
+			headers: { "Content-Type": "application/json" },
+			method: "POST",
+		});
 
-			if (!response.ok) {
-				throw await this.parseError(response);
-			}
-
-			const dto = (await response.json()) as ProjectResponseDto;
-			return mapProjectResponseToItem(dto, { role: "ADMIN" });
-		} catch (error) {
-			throw error instanceof Error
-				? error
-				: new Error("Failed to create project");
+		if (!response.ok) {
+			throw await this.parseError(response);
 		}
+
+		const dto = (await response.json()) as ProjectResponseDto;
+		return mapProjectResponseToItem(dto, { role: "ADMIN" });
 	}
 
 	public async getProjects(): Promise<ProjectItem[]> {
 		try {
-			const response = await fetch(`${this.#baseUrl}/workspaces/projects`, {
+			const response = await fetch(`${this.#baseUrl}/projects`, {
 				headers: {
 					"Content-Type": "application/json",
 				},
@@ -70,42 +83,87 @@ class WorkspacesApi {
 				throw new Error(`Failed to fetch projects: ${response.statusText}`);
 			}
 
-			const data = (await response.json()) as unknown;
-			if (!Array.isArray(data)) {
-				throw new TypeError("Invalid response format");
+			const data = (await response.json()) as ProjectsResponse;
+
+			if (Array.isArray(data)) {
+				return data.map((item) => mapProjectListItemToItem(item));
 			}
 
-			return data as ProjectItem[];
+			if ("items" in data && Array.isArray(data.items)) {
+				return data.items.map((item) => mapProjectListItemToItem(item));
+			}
+
+			if ("projects" in data && Array.isArray(data.projects)) {
+				return data.projects.map((item) => mapProjectListItemToItem(item));
+			}
+
+			return [];
 		} catch {
-			return MOCK_PROJECTS;
+			return [];
+		}
+	}
+
+	public async getRecentDocuments(): Promise<RecentDocumentItem[]> {
+		try {
+			const response = await fetch(`${this.#baseUrl}/knowledge/recent`, {
+				headers: {
+					"Content-Type": "application/json",
+				},
+			});
+
+			if (!response.ok) {
+				throw new Error(
+					`Failed to fetch recent documents: ${response.statusText}`,
+				);
+			}
+
+			const data = (await response.json()) as unknown;
+
+			if (
+				data &&
+				typeof data === "object" &&
+				"items" in data &&
+				Array.isArray((data as RecentDocumentsResponse).items)
+			) {
+				return (data as RecentDocumentsResponse).items;
+			}
+
+			return [];
+		} catch {
+			return [];
 		}
 	}
 
 	public async updateProject(
 		payload: UpdateProjectPayload,
 	): Promise<ProjectItem> {
-		try {
-			const response = await fetch(`${this.#baseUrl}/projects/${payload.id}`, {
-				body: JSON.stringify({
-					description: payload.description,
-					name: payload.name,
-				}),
-				headers: { "Content-Type": "application/json" },
-				method: "PATCH",
-			});
+		const response = await fetch(`${this.#baseUrl}/projects/${payload.id}`, {
+			body: JSON.stringify({
+				description: payload.description,
+				name: payload.name,
+			}),
+			headers: { "Content-Type": "application/json" },
+			method: "PATCH",
+		});
 
-			if (!response.ok) {
-				throw await this.parseError(response);
-			}
-
-			const dto = (await response.json()) as ProjectResponseDto;
-			return mapProjectResponseToItem(dto, {});
-		} catch (error) {
-			throw error instanceof Error
-				? error
-				: new Error("Failed to update project");
+		if (!response.ok) {
+			throw await this.parseError(response);
 		}
+
+		const dto = (await response.json()) as ProjectResponseDto;
+		return mapProjectResponseToItem(dto, {});
 	}
+}
+
+function mapProjectListItemToItem(dto: ProjectListItemDto): ProjectItem {
+	return {
+		description: dto.description,
+		id: String(dto.id),
+		lastActivityAt: dto.lastActivityAt,
+		name: dto.name,
+		role: dto.role,
+		updatedAt: dto.lastActivityAt,
+	};
 }
 
 function mapProjectResponseToItem(
@@ -113,7 +171,7 @@ function mapProjectResponseToItem(
 	context: { role?: ProjectRole },
 ): ProjectItem {
 	return {
-		...(dto.description != null && { description: dto.description }),
+		description: dto.description,
 		id: String(dto.id),
 		name: dto.name,
 		role: context.role ?? "ADMIN",

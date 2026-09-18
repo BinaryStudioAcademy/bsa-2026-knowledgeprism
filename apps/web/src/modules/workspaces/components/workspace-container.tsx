@@ -8,27 +8,21 @@ import { type AppDispatch, type RootState } from "~/lib/store/store.js";
 import {
 	type CreateProjectPayload,
 	type UpdateProjectPayload,
-	WorkspacesApi,
 } from "~/modules/workspaces/api/workspaces-api.js";
 import {
 	createProject,
 	fetchProjects,
+	fetchRecentDocuments,
 	updateProject,
 } from "~/modules/workspaces/state/workspaces.slice.js";
+import { workspacesApi } from "~/modules/workspaces/workspaces.js";
 
 import { WorkspacePage } from "./workspace-page.js";
 
-const api = new WorkspacesApi({ baseUrl: "/api" });
 const EMPTY_LENGTH = 0;
 
 type UserWithRole = {
-	email: string;
-	firstName: string;
-	id: number;
-	isOrgAdmin?: boolean;
-	lastName: string;
 	organisationRole?: "ADMIN" | "USER";
-	role?: string;
 };
 
 const WorkspaceContainer: React.FC = () => {
@@ -42,20 +36,19 @@ const WorkspaceContainer: React.FC = () => {
 		error,
 		isCreating,
 		isLoading,
+		isLoadingRecent,
 		isUpdating,
 		projects,
+		recentDocuments,
 		updateError,
 	} = useSelector((state: RootState) => state.workspaces);
 
 	const userObject = userResponse?.user as undefined | UserWithRole;
-
-	const firstName = userObject?.firstName ?? "";
 	const isOrgAdmin = userObject?.organisationRole === "ADMIN";
-	const lastName = userObject?.lastName ?? "";
-	const organizationName = userResponse?.organisation.name ?? "";
 
 	const handleFetchData = useCallback((): void => {
-		void dispatch(fetchProjects(api));
+		void dispatch(fetchProjects(workspacesApi));
+		void dispatch(fetchRecentDocuments(workspacesApi));
 	}, [dispatch]);
 
 	const handleCreateProject = useCallback(
@@ -71,15 +64,6 @@ const WorkspaceContainer: React.FC = () => {
 		},
 		[dispatch],
 	);
-
-	const handleLogOut = useCallback((): void => {
-		void navigate(AppRoute.ROOT);
-	}, [navigate]);
-
-	const handleOpenSettings = useCallback((): void => {
-		// TODO: Change destination for Admins once the Admin route is implemented
-		void navigate(AppRoute.SETTINGS);
-	}, [navigate]);
 
 	const handleSelectProject = useCallback(
 		(id: string): void => {
@@ -124,19 +108,15 @@ const WorkspaceContainer: React.FC = () => {
 	return (
 		<WorkspacePage
 			creationError={creationError}
-			firstName={firstName}
 			isCreating={isCreating}
-			isLoading={isLoading}
+			isLoadingRecent={isLoadingRecent}
 			isOrgAdmin={isOrgAdmin}
 			isUpdating={isUpdating}
-			lastName={lastName}
 			onCreateProject={handleCreateProject}
 			onEditProject={handleEditProject}
-			onLogOut={handleLogOut}
-			onOpenSettings={handleOpenSettings}
 			onSelectProject={handleSelectProject}
-			organizationName={organizationName}
 			projects={projects}
+			recentDocuments={recentDocuments}
 			updateError={updateError}
 		/>
 	);

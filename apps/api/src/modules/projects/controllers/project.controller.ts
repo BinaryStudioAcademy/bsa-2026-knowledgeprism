@@ -1,9 +1,4 @@
-import {
-	APIPath,
-	AuthValidationMessage,
-	HTTPCode,
-	ProjectsApiPath,
-} from "@knowledgeprism/constants";
+import { APIPath, HTTPCode, ProjectsApiPath } from "@knowledgeprism/constants";
 import {
 	projectCreateValidationSchema,
 	projectMemberCreateValidationSchema,
@@ -22,15 +17,9 @@ import {
 	type APIHandlerResponse,
 	BaseController,
 } from "~/infrastructure/controller/controller.js";
-import { HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 
 import { type ProjectService } from "../services/project.service.js";
-
-type SessionContext = {
-	organisationId: number;
-	userId: number;
-};
 
 class ProjectController extends BaseController {
 	/**
@@ -86,6 +75,23 @@ class ProjectController extends BaseController {
 	 *         description: { type: string, nullable: true }
 	 *         createdAt: { type: string, format: date-time }
 	 *         updatedAt: { type: string, format: date-time }
+	 *     ProjectWorkspaceItem:
+	 *       type: object
+	 *       required: [id, name, description, role, lastActivityAt]
+	 *       properties:
+	 *         id: { type: integer, minimum: 1, maximum: 2147483647 }
+	 *         name: { type: string }
+	 *         description: { type: string, nullable: true }
+	 *         role: { type: string, enum: [ADMIN, EDITOR, VIEWER] }
+	 *         lastActivityAt: { type: string, format: date-time }
+	 *     ProjectWorkspaceResponse:
+	 *       type: object
+	 *       required: [items]
+	 *       properties:
+	 *         items:
+	 *           type: array
+	 *           items:
+	 *             $ref: '#/components/schemas/ProjectWorkspaceItem'
 	 *     ProjectMemberCreateRequest:
 	 *       type: object
 	 *       required: [userId, role]
@@ -100,7 +106,7 @@ class ProjectController extends BaseController {
 	 *         email: { type: string, format: email }
 	 *         firstName: { type: string, nullable: true }
 	 *         lastName: { type: string, nullable: true }
-	 *         role: { type: string, enum: [EDITOR, VIEWER] }
+	 *         role: { type: string, enum: [ADMIN, EDITOR, VIEWER] }
 	 *         status: { type: string, enum: [active, inactive] }
 	 *     ProjectMembers:
 	 *       type: object
@@ -112,6 +118,23 @@ class ProjectController extends BaseController {
 	 *             $ref: '#/components/schemas/ProjectMember'
 	 * paths:
 	 *   /projects:
+	 *     get:
+	 *       tags: [Projects]
+	 *       summary: List accessible projects
+	 *       description: Organisation administrators receive all organisation projects. Regular users receive only assigned projects.
+	 *       security:
+	 *         - sessionAuth: []
+	 *       responses:
+	 *         '200':
+	 *           description: Accessible projects
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ProjectWorkspaceResponse'
+	 *         '401':
+	 *           $ref: '#/components/responses/ProjectUnauthorized'
+	 *         '403':
+	 *           $ref: '#/components/responses/ProjectForbidden'
 	 *     post:
 	 *       tags: [Projects]
 	 *       summary: Create a project
@@ -213,7 +236,7 @@ class ProjectController extends BaseController {
 	 *     get:
 	 *       tags: [Projects]
 	 *       summary: List project members
-	 *       description: Requires an active organisation administrator or project member. Returns EDITOR and VIEWER memberships.
+	 *       description: Requires an active organisation administrator. Returns explicit project memberships.
 	 *       security:
 	 *         - sessionAuth: []
 	 *       responses:
@@ -267,6 +290,12 @@ class ProjectController extends BaseController {
 		super(logger, APIPath.PROJECTS);
 
 		this.projectService = projectService;
+
+		this.addRoute({
+			handler: (options) => this.findAll(options),
+			method: "GET",
+			path: ProjectsApiPath.ROOT,
+		});
 
 		this.addRoute({
 			handler: (options) =>
@@ -367,7 +396,7 @@ class ProjectController extends BaseController {
 			payload: await this.projectService.addMember(
 				Number(options.params.id),
 				options.body,
-				this.getSessionContext(options),
+				this.getAuthenticatedSessionContext(options),
 			),
 			status: HTTPCode.CREATED,
 		};
@@ -381,7 +410,7 @@ class ProjectController extends BaseController {
 		return {
 			payload: await this.projectService.create(
 				options.body,
-				this.getSessionContext(options),
+				this.getAuthenticatedSessionContext(options),
 			),
 			status: HTTPCode.CREATED,
 		};
@@ -394,12 +423,23 @@ class ProjectController extends BaseController {
 	): Promise<APIHandlerResponse> {
 		await this.projectService.delete(
 			Number(options.params.id),
-			this.getSessionContext(options),
+			this.getAuthenticatedSessionContext(options),
 		);
 
 		return {
 			payload: null,
 			status: HTTPCode.NO_CONTENT,
+		};
+	}
+
+	private async findAll(
+		options: APIHandlerOptions,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.projectService.findAll(
+				this.getAuthenticatedSessionContext(options),
+			),
+			status: HTTPCode.OK,
 		};
 	}
 
@@ -411,7 +451,7 @@ class ProjectController extends BaseController {
 		return {
 			payload: await this.projectService.findById(
 				Number(options.params.id),
-				this.getSessionContext(options),
+				this.getAuthenticatedSessionContext(options),
 			),
 			status: HTTPCode.OK,
 		};
@@ -425,25 +465,9 @@ class ProjectController extends BaseController {
 		return {
 			payload: await this.projectService.findMembers(
 				Number(options.params.id),
-				this.getSessionContext(options),
+				this.getAuthenticatedSessionContext(options),
 			),
 			status: HTTPCode.OK,
-		};
-	}
-
-	private getSessionContext(options: APIHandlerOptions): SessionContext {
-		const { organisationId, userId } = options.session;
-
-		if (!organisationId || !userId) {
-			throw new HTTPError({
-				message: AuthValidationMessage.UNAUTHORIZED,
-				status: HTTPCode.UNAUTHORIZED,
-			});
-		}
-
-		return {
-			organisationId,
-			userId,
 		};
 	}
 
@@ -457,7 +481,7 @@ class ProjectController extends BaseController {
 			payload: await this.projectService.update(
 				Number(options.params.id),
 				options.body,
-				this.getSessionContext(options),
+				this.getAuthenticatedSessionContext(options),
 			),
 			status: HTTPCode.OK,
 		};

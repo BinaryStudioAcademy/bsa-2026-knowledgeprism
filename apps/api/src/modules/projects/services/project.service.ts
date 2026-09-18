@@ -1,11 +1,14 @@
 import {
 	HTTPCode,
+	ProjectMemberRole,
 	ProjectValidationMessage,
 	UserStatus,
 	UserValidationMessage,
 } from "@knowledgeprism/constants";
 import {
 	type ProjectCreateRequestDto,
+	type ProjectGetAllItemResponseDto,
+	type ProjectGetAllResponseDto,
 	type ProjectMemberCreateRequestDto,
 	type ProjectMemberResponseDto,
 	type ProjectMembersResponseDto,
@@ -31,6 +34,14 @@ type Constructor = {
 type ProjectAccessContext = {
 	organisationId: number;
 	userId: number;
+};
+
+type ProjectWorkspaceDatabaseRow = {
+	description: null | string;
+	id: number;
+	latestKnowledgeUpdatedAt: Date | null;
+	name: string;
+	updatedAt: Date;
 };
 
 class ProjectService {
@@ -130,6 +141,36 @@ class ProjectService {
 		};
 	}
 
+	private mapWorkspaceProject(
+		project: ProjectWorkspaceDatabaseRow,
+		role: ProjectGetAllItemResponseDto["role"],
+	): ProjectGetAllItemResponseDto {
+		const lastActivityAt =
+			project.latestKnowledgeUpdatedAt &&
+			project.latestKnowledgeUpdatedAt > project.updatedAt
+				? project.latestKnowledgeUpdatedAt
+				: project.updatedAt;
+
+		return {
+			description: project.description,
+			id: project.id,
+			lastActivityAt: lastActivityAt.toISOString(),
+			name: project.name,
+			role,
+		};
+	}
+
+	private sortWorkspaceProjects(
+		projects: ProjectGetAllItemResponseDto[],
+	): ProjectGetAllItemResponseDto[] {
+		return projects.toSorted((firstProject, secondProject) => {
+			return (
+				Date.parse(secondProject.lastActivityAt) -
+				Date.parse(firstProject.lastActivityAt)
+			);
+		});
+	}
+
 	private throwAccessForbidden(): never {
 		throw new HTTPError({
 			message: ProjectValidationMessage.ACCESS_FORBIDDEN,
@@ -173,7 +214,11 @@ class ProjectService {
 				userId: payload.userId,
 			});
 		} catch (error) {
-			if (error instanceof UniqueViolationError) {
+			if (
+				error instanceof UniqueViolationError &&
+				error.constraint ===
+					DatabaseConstraintName.PROJECT_MEMBERS_PROJECT_ID_USER_ID_UNIQUE
+			) {
 				throw new HTTPError({
 					cause: error,
 					message: ProjectValidationMessage.MEMBER_ALREADY_EXISTS,
@@ -194,6 +239,28 @@ class ProjectService {
 			status,
 			userId: id,
 		};
+	}
+
+	public async assertCanWriteKnowledge(
+		projectId: number,
+		context: ProjectAccessContext,
+	): Promise<void> {
+		const user = await this.findActor(context);
+
+		await this.findProjectOrThrow(projectId, context.organisationId);
+
+		if (user.isOrganisationAdmin()) {
+			return;
+		}
+
+		const role = await this.projectMemberRepository.findRole(
+			projectId,
+			context.userId,
+		);
+
+		if (role !== ProjectMemberRole.ADMIN && role !== ProjectMemberRole.EDITOR) {
+			this.throwAccessForbidden();
+		}
 	}
 
 	public async create(
@@ -249,6 +316,57 @@ class ProjectService {
 		}
 	}
 
+	public async findAccessibleProjectIds(
+		context: ProjectAccessContext,
+	): Promise<number[]> {
+		const user = await this.findActor(context);
+
+		if (user.isOrganisationAdmin()) {
+			return await this.projectRepository.findIdsByOrganisationId(
+				context.organisationId,
+			);
+		}
+
+		return await this.projectRepository.findIdsByOrganisationIdAndUserId(
+			context.organisationId,
+			context.userId,
+		);
+	}
+
+	public async findAll(
+		context: ProjectAccessContext,
+	): Promise<ProjectGetAllResponseDto> {
+		const user = await this.findActor(context);
+
+		if (user.isOrganisationAdmin()) {
+			const projects = await this.projectRepository.findAllByOrganisationId(
+				context.organisationId,
+			);
+
+			return {
+				items: this.sortWorkspaceProjects(
+					projects.map((project) =>
+						this.mapWorkspaceProject(project, ProjectMemberRole.ADMIN),
+					),
+				),
+			};
+		}
+
+		const projects =
+			await this.projectRepository.findAllByOrganisationIdAndUserId(
+				context.organisationId,
+				context.userId,
+			);
+
+		return {
+			items: this.sortWorkspaceProjects(
+				projects.map((project) =>
+					this.mapWorkspaceProject(project, project.role),
+				),
+			),
+		};
+	}
+
 	public async findById(
 		id: number,
 		context: ProjectAccessContext,
@@ -264,8 +382,8 @@ class ProjectService {
 		id: number,
 		context: ProjectAccessContext,
 	): Promise<ProjectMembersResponseDto> {
+		await this.assertOrganisationAdmin(context);
 		await this.findProjectOrThrow(id, context.organisationId);
-		await this.assertProjectAccess(id, context);
 
 		return {
 			items:
@@ -307,4 +425,4 @@ class ProjectService {
 	}
 }
 
-export { ProjectService };
+export { type ProjectAccessContext, ProjectService };

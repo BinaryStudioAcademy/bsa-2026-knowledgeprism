@@ -6,7 +6,7 @@ type ManualTextResponseDto = {
 	createdAt: string;
 	errorMessage: null | string;
 	id: number;
-	projectId: string;
+	projectId: number;
 	sourceType: ValueOf<typeof DocumentSourceType>;
 	status: ValueOf<typeof DocumentStatus>;
 	title: null | string;
