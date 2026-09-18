@@ -7,6 +7,7 @@ import { AppRoute } from "~/lib/enums/enums.js";
 import { type AppDispatch, type RootState } from "~/lib/store/store.js";
 import { WorkspacesApi } from "~/modules/workspaces/api/workspaces-api.js";
 import {
+	deleteProject,
 	fetchProjects,
 	fetchRecentDocuments,
 } from "~/modules/workspaces/state/workspaces.slice.js";
@@ -35,6 +36,13 @@ const WorkspaceContainer: React.FC = () => {
 		useSelector((state: RootState) => state.workspaces);
 
 	const handleCreateProject = useCallback((): void => {}, []);
+
+	const handleDeleteProject = useCallback(
+		(id: string): void => {
+			void dispatch(deleteProject({ api, id }));
+		},
+		[dispatch],
+	);
 
 	const handleFetchData = useCallback((): void => {
 		void dispatch(fetchProjects(api));
@@ -103,6 +111,7 @@ const WorkspaceContainer: React.FC = () => {
 			isOrgAdmin={isOrgAdmin}
 			lastName={lastName}
 			onCreateProject={handleCreateProject}
+			onDeleteProject={handleDeleteProject}
 			onLogOut={handleLogOut}
 			onOpenSettings={handleOpenSettings}
 			onSelectProject={handleSelectProject}

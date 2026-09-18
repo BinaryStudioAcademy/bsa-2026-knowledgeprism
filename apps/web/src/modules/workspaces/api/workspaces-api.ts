@@ -50,6 +50,21 @@ class WorkspacesApi {
 		}
 	}
 
+	public async deleteProject(id: string): Promise<boolean> {
+		try {
+			const response = await fetch(`${this.#baseUrl}/projects/${id}`, {
+				headers: {
+					"Content-Type": "application/json",
+				},
+				method: "DELETE",
+			});
+
+			return response.ok;
+		} catch {
+			return false;
+		}
+	}
+
 	public async getProjects(): Promise<ProjectItem[]> {
 		try {
 			const response = await fetch(`${this.#baseUrl}/projects`, {

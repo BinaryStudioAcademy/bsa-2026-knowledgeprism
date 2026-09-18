@@ -41,6 +41,21 @@ const createProject = createAsyncThunk<
 	},
 );
 
+const deleteProject = createAsyncThunk<
+	string,
+	{
+		api: WorkspacesApi;
+		id: string;
+	}
+>(
+	"workspaces/deleteProject",
+	async ({ api, id }: { api: WorkspacesApi; id: string }) => {
+		await api.deleteProject(id);
+
+		return id;
+	},
+);
+
 const fetchProjects = createAsyncThunk(
 	"workspaces/fetchProjects",
 	async (api: WorkspacesApi) => {
@@ -60,6 +75,11 @@ const workspacesSlice = createSlice({
 		builder
 			.addCase(createProject.fulfilled, (state, action) => {
 				state.projects.unshift(action.payload);
+			})
+			.addCase(deleteProject.fulfilled, (state, action) => {
+				state.projects = state.projects.filter(
+					(project) => project.id !== action.payload,
+				);
 			})
 			.addCase(fetchProjects.pending, (state) => {
 				state.isLoading = true;
@@ -90,4 +110,9 @@ const workspacesSlice = createSlice({
 
 const workspacesReducer = workspacesSlice.reducer;
 
-export { fetchProjects, fetchRecentDocuments, workspacesReducer };
+export {
+	deleteProject,
+	fetchProjects,
+	fetchRecentDocuments,
+	workspacesReducer,
+};
