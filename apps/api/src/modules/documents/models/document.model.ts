@@ -20,7 +20,7 @@ class DocumentModel extends AbstractModel {
 
 	public name!: string;
 
-	public projectId!: string;
+	public projectId!: number;
 
 	public s3Key!: null | string;
 

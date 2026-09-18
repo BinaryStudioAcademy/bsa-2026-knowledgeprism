@@ -33,7 +33,7 @@ const AppLayout: React.FC = () => {
 	}, [navigate]);
 
 	return (
-		<div className="flex min-h-screen flex-col bg-bg">
+		<div className="flex h-dvh flex-col bg-bg">
 			<WorkspaceHeader
 				firstName={userObject?.firstName ?? null}
 				lastName={userObject?.lastName ?? null}
@@ -42,7 +42,7 @@ const AppLayout: React.FC = () => {
 				organizationName={userResponse?.organisation.name ?? null}
 			/>
 
-			<main className="min-h-0 flex-1">
+			<main className="flex min-h-0 flex-1 flex-col">
 				<RouterOutlet />
 			</main>
 		</div>

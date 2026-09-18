@@ -1,5 +1,8 @@
 import type { FastifyReply, FastifyRequest } from "fastify";
 
+import { AuthValidationMessage } from "@knowledgeprism/constants";
+
+import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { type ServerApplicationRouteParameters } from "~/infrastructure/server-application/server-application.js";
 
@@ -21,6 +24,25 @@ class BaseController implements Controller {
 		this.logger = logger;
 		this.apiUrl = apiPath;
 		this.routes = [];
+	}
+
+	protected getAuthenticatedSessionContext(options: APIHandlerOptions): {
+		organisationId: number;
+		userId: number;
+	} {
+		const { organisationId, userId } = options.session;
+
+		if (!organisationId || !userId) {
+			throw new HTTPError({
+				message: AuthValidationMessage.UNAUTHORIZED,
+				status: HTTPCode.UNAUTHORIZED,
+			});
+		}
+
+		return {
+			organisationId,
+			userId,
+		};
 	}
 
 	private async mapHandler(

@@ -1,3 +1,4 @@
+import { OrganisationRole } from "@knowledgeprism/constants";
 import { Model, type RelationMappings } from "objection";
 
 import {
@@ -18,6 +19,9 @@ class UserModel extends AbstractModel {
 	public organisation?: OrganisationModel;
 
 	public organisationId!: number;
+
+	public organisationRole!:
+		(typeof OrganisationRole)[keyof typeof OrganisationRole] | null;
 
 	public passwordHash!: string;
 

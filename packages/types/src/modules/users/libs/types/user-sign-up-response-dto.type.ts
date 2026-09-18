@@ -1,3 +1,5 @@
+import { type OrganisationRole } from "@knowledgeprism/constants";
+
 type UserSignUpResponseDto = {
 	organisation: {
 		id: number;
@@ -8,6 +10,8 @@ type UserSignUpResponseDto = {
 		firstName: string;
 		id: number;
 		lastName: string;
+		organisationRole:
+			null | typeof OrganisationRole.ADMIN | typeof OrganisationRole.USER;
 	};
 };
 

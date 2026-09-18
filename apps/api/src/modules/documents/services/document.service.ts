@@ -2,6 +2,7 @@ import {
 	DocumentErrorMessage,
 	DocumentSourceType,
 	DocumentStatus,
+	ProjectValidationMessage,
 } from "@knowledgeprism/constants";
 import {
 	type DocumentUploadIntentRequestDto,
@@ -10,7 +11,9 @@ import {
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
 } from "@knowledgeprism/types";
+import { ForeignKeyViolationError } from "objection";
 
+import { DatabaseConstraintName } from "~/infrastructure/database/libs/enums/database-constraint-name.enum.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/helpers.js";
@@ -20,6 +23,10 @@ import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helper
 import { isUniqueViolation } from "~/modules/documents/libs/helpers/is-unique-violation.helper.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
+import {
+	type ProjectAccessContext,
+	type ProjectService,
+} from "~/modules/projects/services/project.service.js";
 
 import { type DocumentAccessService } from "./document-access.service.js";
 import { type DocumentProcessor } from "./document-processor.js";
@@ -33,6 +40,7 @@ type Constructor = {
 	documentRepository: DocumentRepository;
 	generatePresignedUploadUrl: GeneratePresignedUploadUrl;
 	logger: Logger;
+	projectService: ProjectService;
 };
 
 class DocumentService {
@@ -46,18 +54,22 @@ class DocumentService {
 
 	private logger: Logger;
 
+	private projectService: ProjectService;
+
 	public constructor({
 		documentAccessService,
 		documentProcessor,
 		documentRepository,
 		generatePresignedUploadUrl,
 		logger,
+		projectService,
 	}: Constructor) {
 		this.documentAccessService = documentAccessService;
 		this.documentProcessor = documentProcessor;
 		this.documentRepository = documentRepository;
 		this.generatePresignedUploadUrl = generatePresignedUploadUrl;
 		this.logger = logger;
+		this.projectService = projectService;
 	}
 
 	private async completeProcessing(id: number): Promise<void> {
@@ -84,7 +96,7 @@ class DocumentService {
 		projectId,
 	}: {
 		id: number;
-		projectId: string;
+		projectId: number;
 	}): Promise<DocumentEntity> {
 		const document = await this.documentRepository.findByIdAndProjectId({
 			id,
@@ -123,7 +135,7 @@ class DocumentService {
 		const documentObject = document.toObject();
 
 		return {
-			createdAt: documentObject.createdAt,
+			createdAt: documentObject.createdAt.toISOString(),
 			errorMessage: documentObject.errorMessage,
 			id: documentObject.id,
 			projectId: documentObject.projectId,
@@ -133,7 +145,7 @@ class DocumentService {
 				documentObject.name === UNTITLED_MANUAL_DOCUMENT_NAME
 					? null
 					: documentObject.name,
-			updatedAt: documentObject.updatedAt,
+			updatedAt: documentObject.updatedAt.toISOString(),
 		};
 	}
 
@@ -152,7 +164,7 @@ class DocumentService {
 		});
 		await this.findOwnedDocument({
 			id,
-			projectId,
+			projectId: Number(projectId),
 		});
 
 		const cancelledDocument =
@@ -182,6 +194,8 @@ class DocumentService {
 		projectId: string;
 		userId: number;
 	}): Promise<ManualTextResponseDto> {
+		const numericProjectId = Number(projectId);
+
 		await this.documentAccessService.assertCanAddKnowledge({
 			projectId,
 			userId,
@@ -192,7 +206,7 @@ class DocumentService {
 		const inFlightDocument = await this.documentRepository.findProcessingByHash(
 			{
 				contentHash,
-				projectId,
+				projectId: numericProjectId,
 				uploadedBy: userId,
 			},
 		);
@@ -211,7 +225,7 @@ class DocumentService {
 					errorMessage: null,
 					mimeType: MANUAL_TEXT_MIME_TYPE,
 					name: title ?? UNTITLED_MANUAL_DOCUMENT_NAME,
-					projectId,
+					projectId: Number(projectId),
 					s3Key: null,
 					sizeInBytes: null,
 					sourceType: DocumentSourceType.MANUAL,
@@ -227,7 +241,7 @@ class DocumentService {
 			const existingDocument =
 				await this.documentRepository.findProcessingByHash({
 					contentHash,
-					projectId,
+					projectId: numericProjectId,
 					uploadedBy: userId,
 				});
 
@@ -246,12 +260,18 @@ class DocumentService {
 	}
 
 	public async createUploadIntent({
+		context,
 		payload,
 		routeParameters,
 	}: {
+		context: ProjectAccessContext;
 		payload: DocumentUploadIntentRequestDto;
 		routeParameters: DocumentUploadIntentRouteParametersDto;
 	}): Promise<DocumentUploadIntentResponseDto> {
+		const projectId = Number(routeParameters.projectId);
+
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
+
 		const storageKey = buildDocumentStorageKey({
 			fileName: payload.fileName,
 			projectId: routeParameters.projectId,
@@ -287,15 +307,26 @@ class DocumentService {
 					errorMessage: null,
 					mimeType: payload.contentType,
 					name: payload.fileName,
-					projectId: routeParameters.projectId,
+					projectId,
 					s3Key: storageKey,
 					sizeInBytes: payload.sizeInBytes ?? null,
 					sourceType: DocumentSourceType.UPLOAD,
 					status: DocumentStatus.UPLOADED,
-					uploadedBy: null,
+					uploadedBy: context.userId,
 				}),
 			);
 		} catch (error) {
+			if (
+				error instanceof ForeignKeyViolationError &&
+				error.constraint === DatabaseConstraintName.DOCUMENTS_PROJECT_ID_FOREIGN
+			) {
+				throw new HTTPError({
+					cause: error,
+					message: ProjectValidationMessage.NOT_FOUND,
+					status: HTTPCode.NOT_FOUND,
+				});
+			}
+
 			this.logger.error("Failed to create document upload intent.", {
 				error,
 				storageKey,
@@ -333,7 +364,7 @@ class DocumentService {
 		});
 		const document = await this.findOwnedDocument({
 			id,
-			projectId,
+			projectId: Number(projectId),
 		});
 
 		return this.toManualTextResponse(document);
@@ -354,7 +385,7 @@ class DocumentService {
 		});
 		await this.findOwnedDocument({
 			id,
-			projectId,
+			projectId: Number(projectId),
 		});
 
 		const retriedDocument = await this.documentRepository.compareAndSwapStatus({

@@ -1,9 +1,4 @@
-import {
-	APIPath,
-	AuthValidationMessage,
-	HTTPCode,
-	KnowledgeApiPath,
-} from "@knowledgeprism/constants";
+import { APIPath, HTTPCode, KnowledgeApiPath } from "@knowledgeprism/constants";
 import {
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
@@ -19,7 +14,6 @@ import {
 	type APIHandlerResponse,
 	BaseController,
 } from "~/infrastructure/controller/controller.js";
-import { HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 
 import { type KnowledgeService } from "../services/knowledge.service.js";
@@ -133,21 +127,12 @@ class KnowledgeController extends BaseController {
 			params: KnowledgeEntryRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const userId = options.session.userId;
-
-		if (!userId) {
-			throw new HTTPError({
-				message: AuthValidationMessage.UNAUTHORIZED,
-				status: HTTPCode.UNAUTHORIZED,
-			});
-		}
-
 		const updatedEntry: KnowledgeEntryResponseDto =
 			await this.knowledgeService.updateEntry({
+				context: this.getAuthenticatedSessionContext(options),
 				entryId: Number(options.params.id),
 				payload: options.body,
 				projectId: Number(options.params.projectId),
-				userId,
 			});
 
 		return {
