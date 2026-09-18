@@ -11,6 +11,7 @@ import {
 } from "~/modules/workspaces/api/workspaces-api.js";
 import {
 	createProject,
+	deleteProject,
 	fetchProjects,
 	fetchRecentDocuments,
 	updateProject,
@@ -65,6 +66,13 @@ const WorkspaceContainer: React.FC = () => {
 		[dispatch],
 	);
 
+	const handleDeleteProject = useCallback(
+		(id: string): void => {
+			void dispatch(deleteProject(id));
+		},
+		[dispatch],
+	);
+
 	const handleSelectProject = useCallback(
 		(id: string): void => {
 			void navigate(`${AppRoute.WORKSPACES}/${id}`);
@@ -113,6 +121,7 @@ const WorkspaceContainer: React.FC = () => {
 			isOrgAdmin={isOrgAdmin}
 			isUpdating={isUpdating}
 			onCreateProject={handleCreateProject}
+			onDeleteProject={handleDeleteProject}
 			onEditProject={handleEditProject}
 			onSelectProject={handleSelectProject}
 			projects={projects}

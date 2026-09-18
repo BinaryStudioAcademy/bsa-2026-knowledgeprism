@@ -2,7 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
 import { type WorkspacesApi } from "../api/workspaces-api.js";
 import { type ProjectItem, type RecentDocumentItem } from "../types/types.js";
-import { createProject, updateProject } from "./action.js";
+import { createProject, deleteProject, updateProject } from "./action.js";
 
 interface WorkspacesState {
 	creationError: null | string;
@@ -79,6 +79,11 @@ const workspacesSlice = createSlice({
 				state.creationError =
 					action.error.message ?? "Failed to create project";
 			})
+			.addCase(deleteProject.fulfilled, (state, action) => {
+				state.projects = state.projects.filter(
+					(project) => project.id !== action.payload,
+				);
+			})
 			.addCase(updateProject.pending, (state) => {
 				state.isUpdating = true;
 				state.updateError = null;
@@ -103,5 +108,5 @@ const workspacesSlice = createSlice({
 
 const workspacesReducer = workspacesSlice.reducer;
 
-export { createProject, updateProject } from "./action.js";
+export { createProject, deleteProject, updateProject } from "./action.js";
 export { fetchProjects, fetchRecentDocuments, workspacesReducer };

@@ -71,6 +71,18 @@ class WorkspacesApi {
 		return mapProjectResponseToItem(dto, { role: "ADMIN" });
 	}
 
+	public async deleteProject(id: string): Promise<boolean> {
+		try {
+			const response = await fetch(`${this.#baseUrl}/projects/${id}`, {
+				method: "DELETE",
+			});
+
+			return response.ok;
+		} catch {
+			return false;
+		}
+	}
+
 	public async getProjects(): Promise<ProjectItem[]> {
 		try {
 			const response = await fetch(`${this.#baseUrl}/projects`, {

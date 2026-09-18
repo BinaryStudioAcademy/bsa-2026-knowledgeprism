@@ -18,6 +18,20 @@ const createProject = createAsyncThunk<
 	return workspacesApi.createProject(payload);
 });
 
+const deleteProject = createAsyncThunk<string, string, AsyncThunkConfig>(
+	"workspace/delete-project",
+	async (id, { extra }) => {
+		const { workspacesApi } = extra;
+		const wasDeleted = await workspacesApi.deleteProject(id);
+
+		if (!wasDeleted) {
+			throw new Error("Failed to delete project");
+		}
+
+		return id;
+	},
+);
+
 const updateProject = createAsyncThunk<
 	ProjectItem,
 	UpdateProjectPayload,
@@ -28,4 +42,4 @@ const updateProject = createAsyncThunk<
 	return workspacesApi.updateProject(payload);
 });
 
-export { createProject, updateProject };
+export { createProject, deleteProject, updateProject };
