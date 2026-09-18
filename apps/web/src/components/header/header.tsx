@@ -152,7 +152,7 @@ const DefaultHeader: React.FC = () => {
 };
 
 const Header: React.FC<Properties> = ({ children }: Properties) => {
-	if (Boolean(children)) {
+	if (children) {
 		return <CustomHeader>{children}</CustomHeader>;
 	}
 
