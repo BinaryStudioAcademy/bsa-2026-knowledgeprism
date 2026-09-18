@@ -34,7 +34,10 @@ async function up(knex: Knex): Promise<void> {
 			])
 			.notNullable()
 			.defaultTo(KnowledgeNodeType.ENTRY);
-		table.integer(ColumnName.POSITION).notNullable().defaultTo(DEFAULT_NODE_POSITION);
+		table
+			.integer(ColumnName.POSITION)
+			.notNullable()
+			.defaultTo(DEFAULT_NODE_POSITION);
 	});
 }
 

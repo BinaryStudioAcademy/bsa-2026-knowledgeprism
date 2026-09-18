@@ -92,9 +92,8 @@ class KnowledgeService {
 	}): Promise<KnowledgeTreeResponseDto> {
 		await this.projectService.assertProjectAccess(projectId, context);
 
-		const nodes = await this.knowledgeNodeRepository.findAllByProjectId(
-			projectId,
-		);
+		const nodes =
+			await this.knowledgeNodeRepository.findAllByProjectId(projectId);
 
 		return {
 			items: nodes.map((node) => node.toTreeItem()),
