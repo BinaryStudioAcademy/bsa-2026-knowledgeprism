@@ -151,7 +151,7 @@ const DefaultHeader: React.FC = () => {
 };
 
 const Header: React.FC<Properties> = ({ children }: Properties) => {
-	if (children !== undefined) {
+	if (Boolean(children)) {
 		return <CustomHeader>{children}</CustomHeader>;
 	}
 
