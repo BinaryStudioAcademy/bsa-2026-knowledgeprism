@@ -6,8 +6,10 @@ import { Alert, Loader } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { type AppDispatch, type RootState } from "~/lib/store/store.js";
 import { WorkspacesApi } from "~/modules/workspaces/api/workspaces-api.js";
-import { MOCK_RECENT_DOCUMENTS } from "~/modules/workspaces/libs/constants/mock-data.constants.js";
-import { fetchProjects } from "~/modules/workspaces/state/workspaces.slice.js";
+import {
+	fetchProjects,
+	fetchRecentDocuments,
+} from "~/modules/workspaces/state/workspaces.slice.js";
 
 import { WorkspacePage } from "./components.js";
 
@@ -29,14 +31,14 @@ const WorkspaceContainer: React.FC = () => {
 
 	const userResponse = useSelector((state: RootState) => state.auth.user);
 
-	const { error, isLoading, projects } = useSelector(
-		(state: RootState) => state.workspaces,
-	);
+	const { error, isLoading, isLoadingRecent, projects, recentDocuments } =
+		useSelector((state: RootState) => state.workspaces);
 
 	const handleCreateProject = useCallback((): void => {}, []);
 
 	const handleFetchData = useCallback((): void => {
 		void dispatch(fetchProjects(api));
+		void dispatch(fetchRecentDocuments(api));
 	}, [dispatch]);
 
 	const handleLogOut = useCallback((): void => {
@@ -44,7 +46,6 @@ const WorkspaceContainer: React.FC = () => {
 	}, [navigate]);
 
 	const handleOpenSettings = useCallback((): void => {
-		// TODO: Change destination for Admins once the Admin route is implemented
 		void navigate(AppRoute.SETTINGS);
 	}, [navigate]);
 
@@ -98,6 +99,7 @@ const WorkspaceContainer: React.FC = () => {
 		<WorkspacePage
 			firstName={firstName}
 			isLoading={isLoading}
+			isLoadingRecent={isLoadingRecent}
 			isOrgAdmin={isOrgAdmin}
 			lastName={lastName}
 			onCreateProject={handleCreateProject}
@@ -106,7 +108,7 @@ const WorkspaceContainer: React.FC = () => {
 			onSelectProject={handleSelectProject}
 			organizationName={organizationName}
 			projects={projects}
-			recentDocuments={MOCK_RECENT_DOCUMENTS}
+			recentDocuments={recentDocuments}
 		/>
 	);
 };

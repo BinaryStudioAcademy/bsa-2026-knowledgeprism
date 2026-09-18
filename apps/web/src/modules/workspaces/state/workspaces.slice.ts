@@ -4,19 +4,22 @@ import {
 	type CreateProjectPayload,
 	type WorkspacesApi,
 } from "../api/workspaces-api.js";
-import { MOCK_PROJECTS } from "../libs/constants/mock-data.constants.js";
-import { type ProjectItem } from "../types/types.js";
+import { type ProjectItem, type RecentDocumentItem } from "../types/types.js";
 
 interface WorkspacesState {
 	error: null | string;
 	isLoading: boolean;
+	isLoadingRecent: boolean;
 	projects: ProjectItem[];
+	recentDocuments: RecentDocumentItem[];
 }
 
 const initialState: WorkspacesState = {
 	error: null,
 	isLoading: false,
-	projects: MOCK_PROJECTS,
+	isLoadingRecent: false,
+	projects: [],
+	recentDocuments: [],
 };
 
 const createProject = createAsyncThunk<
@@ -34,28 +37,21 @@ const createProject = createAsyncThunk<
 		api: WorkspacesApi;
 		payload: CreateProjectPayload;
 	}) => {
-		try {
-			return await api.createProject(payload);
-		} catch {
-			return {
-				description: payload.description ?? "",
-				id: `proj-${String(Date.now())}`,
-				name: payload.name,
-				role: "ADMIN",
-				updatedAt: "JUST NOW",
-			};
-		}
+		return await api.createProject(payload);
 	},
 );
 
 const fetchProjects = createAsyncThunk(
 	"workspaces/fetchProjects",
 	async (api: WorkspacesApi) => {
-		try {
-			return await api.getProjects();
-		} catch {
-			return MOCK_PROJECTS;
-		}
+		return await api.getProjects();
+	},
+);
+
+const fetchRecentDocuments = createAsyncThunk(
+	"workspaces/fetchRecentDocuments",
+	async (api: WorkspacesApi) => {
+		return await api.getRecentDocuments();
 	},
 );
 
@@ -64,16 +60,6 @@ const workspacesSlice = createSlice({
 		builder
 			.addCase(createProject.fulfilled, (state, action) => {
 				state.projects.unshift(action.payload);
-			})
-			.addCase(createProject.rejected, (state, action) => {
-				const { payload } = action.meta.arg;
-				state.projects.unshift({
-					description: payload.description ?? "",
-					id: `proj-${String(Date.now())}`,
-					name: payload.name,
-					role: "ADMIN",
-					updatedAt: "JUST NOW",
-				});
 			})
 			.addCase(fetchProjects.pending, (state) => {
 				state.isLoading = true;
@@ -85,7 +71,16 @@ const workspacesSlice = createSlice({
 			})
 			.addCase(fetchProjects.rejected, (state) => {
 				state.isLoading = false;
-				state.projects = MOCK_PROJECTS;
+			})
+			.addCase(fetchRecentDocuments.pending, (state) => {
+				state.isLoadingRecent = true;
+			})
+			.addCase(fetchRecentDocuments.fulfilled, (state, action) => {
+				state.isLoadingRecent = false;
+				state.recentDocuments = action.payload;
+			})
+			.addCase(fetchRecentDocuments.rejected, (state) => {
+				state.isLoadingRecent = false;
 			});
 	},
 	initialState,
@@ -95,5 +90,4 @@ const workspacesSlice = createSlice({
 
 const workspacesReducer = workspacesSlice.reducer;
 
-/** @public */
-export { createProject, fetchProjects, workspacesReducer };
+export { fetchProjects, fetchRecentDocuments, workspacesReducer };

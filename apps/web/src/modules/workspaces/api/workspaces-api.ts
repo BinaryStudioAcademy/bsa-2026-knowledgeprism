@@ -1,7 +1,3 @@
-import {
-	MOCK_PROJECTS,
-	MOCK_RECENT_DOCUMENTS,
-} from "../libs/constants/mock-data.constants.js";
 import { type ProjectItem, type RecentDocumentItem } from "../types/types.js";
 
 type CreateProjectPayload = {
@@ -80,9 +76,9 @@ class WorkspacesApi {
 				return data.projects;
 			}
 
-			return MOCK_PROJECTS;
+			return [];
 		} catch {
-			return MOCK_PROJECTS;
+			return [];
 		}
 	}
 
@@ -111,9 +107,9 @@ class WorkspacesApi {
 				return (data as RecentDocumentsResponse).items;
 			}
 
-			return MOCK_RECENT_DOCUMENTS;
+			return [];
 		} catch {
-			return MOCK_RECENT_DOCUMENTS;
+			return [];
 		}
 	}
 }
