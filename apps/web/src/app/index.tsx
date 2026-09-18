@@ -49,6 +49,11 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								element: <AuthPage />,
 								path: AppRoute.SIGN_UP,
 							},
+						],
+						element: <AuthLayout />,
+					},
+					{
+						children: [
 							{
 								element: <WorkspaceContainer />,
 								path: AppRoute.WORKSPACES,
@@ -56,15 +61,6 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 							{
 								element: <ProjectDetailsPage />,
 								path: AppRoute.WORKSPACE_DETAILS,
-							},
-						],
-						element: <AuthLayout />,
-					},
-					{
-						children: [
-							{
-								element: <p>Organisation Workspace</p>,
-								path: AppRoute.WORKSPACE,
 							},
 							{
 								children: [

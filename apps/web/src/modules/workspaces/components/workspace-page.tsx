@@ -1,13 +1,24 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 
 import { Button, Heading, Icon, Modal } from "~/components/components.js";
 
-import { type ProjectItem } from "../types/types.js";
-import { ProjectCard, WorkspaceHeader } from "./components.js";
+import {
+	type ProjectItem,
+	type RecentDocumentItem,
+	type RoleFilter,
+} from "../types/types.js";
+import { ProjectCard, RecentDocuments } from "./components.js";
 
 const EMPTY_LENGTH = 0;
 const EVEN_MODULO = 2;
 const INDEX_OFFSET = 1;
+
+const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
+	{ label: "All roles", value: "ALL" },
+	{ label: "Admin", value: "ADMIN" },
+	{ label: "Editor", value: "EDITOR" },
+	{ label: "Viewer", value: "VIEWER" },
+];
 
 interface CreateProjectModalProperties {
 	isOpen: boolean;
@@ -22,6 +33,19 @@ interface EditProjectModalProperties {
 	project: ProjectItem;
 }
 
+interface EmptyStateViewProperties {
+	hasProjects: boolean;
+	isOrgAdmin: boolean;
+	onOpenCreateModal: () => void;
+	selectedRole: RoleFilter;
+}
+
+interface FilterOptionProperties {
+	filter: { label: string; value: RoleFilter };
+	isSelected: boolean;
+	onSelect: (role: RoleFilter) => void;
+}
+
 interface ProjectItemCardProperties {
 	index: number;
 	isOrgAdmin: boolean;
@@ -33,23 +57,82 @@ interface ProjectItemCardProperties {
 }
 
 interface WorkspacePageProperties {
-	firstName: string;
+	firstName?: string;
 	isLoading?: boolean;
+	isLoadingRecent?: boolean;
 	isOrgAdmin?: boolean;
-	lastName: string;
+	lastName?: string;
 	onCreateProject?: () => void;
 	onDeleteProject?: (id: string) => void;
 	onEditProject?: (project: ProjectItem) => void;
-	onLogOut: () => void;
+	onLogOut?: () => void;
 	onOpenSettings?: () => void;
+	onSelectDocument?: (document: RecentDocumentItem) => void;
 	onSelectProject: (id: string) => void;
-	organizationName: string;
+	organizationName?: string;
 	projects: ProjectItem[];
+	recentDocuments?: RecentDocumentItem[];
 }
 
 const CreateProjectModal: React.FC<CreateProjectModalProperties> = () => null;
 
 const EditProjectModal: React.FC<EditProjectModalProperties> = () => null;
+
+const FilterOption: React.FC<FilterOptionProperties> = ({
+	filter,
+	isSelected,
+	onSelect,
+}) => {
+	const handleClick = useCallback((): void => {
+		onSelect(filter.value);
+	}, [filter.value, onSelect]);
+
+	return (
+		<button
+			className={`dropdown-item w-full px-3 py-2 text-left text-xs font-medium transition-colors hover:bg-secondary ${
+				isSelected ? "font-semibold text-text" : "text-text-muted"
+			}`}
+			onClick={handleClick}
+			role="menuitem"
+			type="button"
+		>
+			{filter.label}
+		</button>
+	);
+};
+
+const EmptyStateView: React.FC<EmptyStateViewProperties> = ({
+	hasProjects,
+	isOrgAdmin,
+	onOpenCreateModal,
+	selectedRole,
+}) => {
+	if (!hasProjects) {
+		if (isOrgAdmin) {
+			return (
+				<div className="flex flex-col items-center gap-4">
+					<p className="text-sm">
+						No projects yet. Create your first project to get started.
+					</p>
+					<Button onClick={onOpenCreateModal}>
+						<span className="flex items-center gap-1.5">
+							<Icon name="plus" size={10} />
+							<span>Create new project</span>
+						</span>
+					</Button>
+				</div>
+			);
+		}
+
+		return <p className="text-sm">No projects assigned to you yet.</p>;
+	}
+
+	return (
+		<p className="text-sm">
+			No projects found for the selected role filter &quot;{selectedRole}&quot;.
+		</p>
+	);
+};
 
 const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	index,
@@ -83,7 +166,7 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 				name={project.name}
 				onSelect={onSelect}
 				role={project.role}
-				updatedAt={project.updatedAt}
+				updatedAt={project.lastActivityAt ?? project.updatedAt}
 				{...(canDelete ? { onDelete: handleDelete } : {})}
 				{...(canEdit ? { onEdit: handleEdit } : {})}
 			/>
@@ -92,19 +175,22 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 };
 
 const WorkspacePage: React.FC<WorkspacePageProperties> = ({
-	firstName,
-	isLoading = false,
+	isLoadingRecent = false,
 	isOrgAdmin = false,
-	lastName,
 	onCreateProject,
 	onDeleteProject,
 	onEditProject,
-	onLogOut,
-	onOpenSettings,
+	onSelectDocument,
 	onSelectProject,
-	organizationName,
-	projects: initialProjects,
+	projects,
+	recentDocuments = [],
 }) => {
+	const [deletedIds, setDeletedIds] = useState<string[]>([]);
+	const [addedProjects, setAddedProjects] = useState<ProjectItem[]>([]);
+	const [updatedProjects, setUpdatedProjects] = useState<
+		Record<string, ProjectItem>
+	>({});
+
 	const [deletingProjectId, setDeletingProjectId] = useState<null | string>(
 		null,
 	);
@@ -112,8 +198,47 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		null,
 	);
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-	const [localProjects, setLocalProjects] =
-		useState<ProjectItem[]>(initialProjects);
+	const [selectedRole, setSelectedRole] = useState<RoleFilter>("ALL");
+	const [isFilterOpen, setIsFilterOpen] = useState(false);
+
+	const filterContainerReference = useRef<HTMLDivElement>(null);
+
+	const currentProjects = useMemo(() => {
+		const list = [...addedProjects, ...projects].filter(
+			(item) => !deletedIds.includes(item.id),
+		);
+
+		return list.map((item) => updatedProjects[item.id] ?? item);
+	}, [addedProjects, projects, deletedIds, updatedProjects]);
+
+	const filteredProjects = useMemo(() => {
+		if (selectedRole === "ALL") {
+			return currentProjects;
+		}
+
+		return currentProjects.filter((project) => project.role === selectedRole);
+	}, [currentProjects, selectedRole]);
+
+	const filterLabel = useMemo(() => {
+		if (selectedRole === "ALL") {
+			return "Filter";
+		}
+
+		const currentFilter = ROLE_FILTERS.find(
+			(filter) => filter.value === selectedRole,
+		);
+
+		return `Filter: ${currentFilter?.label ?? selectedRole}`;
+	}, [selectedRole]);
+
+	const handleToggleFilter = useCallback((): void => {
+		setIsFilterOpen((previous) => !previous);
+	}, []);
+
+	const handleSelectRole = useCallback((role: RoleFilter): void => {
+		setSelectedRole(role);
+		setIsFilterOpen(false);
+	}, []);
 
 	const handleCancelDelete = useCallback((): void => {
 		setDeletingProjectId(null);
@@ -132,9 +257,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 			return;
 		}
 
-		setLocalProjects((previous) =>
-			previous.filter((item) => item.id !== deletingProjectId),
-		);
+		setDeletedIds((previous) => [...previous, deletingProjectId]);
 		onDeleteProject?.(deletingProjectId);
 		setDeletingProjectId(null);
 	}, [deletingProjectId, onDeleteProject]);
@@ -154,7 +277,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 	const handleSubmitCreateModal = useCallback(
 		(newProject: ProjectItem): void => {
-			setLocalProjects((previous) => [newProject, ...previous]);
+			setAddedProjects((previous) => [newProject, ...previous]);
 			setIsCreateModalOpen(false);
 		},
 		[],
@@ -162,11 +285,10 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 	const handleSubmitEditModal = useCallback(
 		(updatedProject: ProjectItem): void => {
-			setLocalProjects((previous) =>
-				previous.map((project) =>
-					project.id === updatedProject.id ? updatedProject : project,
-				),
-			);
+			setUpdatedProjects((previous) => ({
+				...previous,
+				[updatedProject.id]: updatedProject,
+			}));
 			onEditProject?.(updatedProject);
 			setEditingProject(null);
 		},
@@ -175,70 +297,97 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 	return (
 		<div className="workspace-page relative min-h-screen bg-bg">
-			<WorkspaceHeader
-				firstName={firstName}
-				isLoading={isLoading}
-				lastName={lastName}
-				onLogOut={onLogOut}
-				onOpenSettings={onOpenSettings}
-				organizationName={organizationName}
-			/>
-			<main className="workspace-content mx-auto max-w-7xl px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
-				<div className="mb-6 flex flex-col justify-between gap-4 sm:mb-7 sm:flex-row sm:items-center">
+			<main className="workspace-content mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+				<div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 sm:flex-row sm:items-center">
 					<div>
-						<span className="block text-(length:--text-xs) font-semibold uppercase tracking-wider text-text-muted">
-							WORKSPACE
-						</span>
-						<Heading className="mt-0.5" level="2">
-							Your projects
-						</Heading>
+						<Heading level="2">Your Workspaces</Heading>
+						<p className="mt-1 text-sm text-text-muted">
+							Manage your product documentation and engineering specs.
+						</p>
 					</div>
 
-					{isOrgAdmin && localProjects.length > EMPTY_LENGTH && (
-						<Button
-							className="w-full sm:w-auto"
-							onClick={handleOpenCreateModal}
+					<div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+						<div
+							className="relative w-full sm:w-auto"
+							ref={filterContainerReference}
 						>
-							<span className="flex items-center gap-1.5">
-								<Icon name="plus" size={10} />
-								<span>New Project</span>
-							</span>
-						</Button>
-					)}
-				</div>
+							<Button
+								aria-expanded={isFilterOpen}
+								aria-haspopup="menu"
+								className="w-full cursor-pointer justify-center sm:w-auto"
+								onClick={handleToggleFilter}
+								variant="secondary"
+							>
+								<span className="flex items-center gap-2">
+									<Icon name="filter" size={14} />
+									<span>{filterLabel}</span>
+								</span>
+							</Button>
 
-				<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
-					{localProjects.map((project, index) => (
-						<ProjectItemCard
-							index={index}
-							isOrgAdmin={isOrgAdmin}
-							key={project.id}
-							onDelete={handleSetDeletingProjectId}
-							onEdit={handleSetEditingProject}
-							onSelect={onSelectProject}
-							project={project}
-							totalCount={localProjects.length}
-						/>
-					))}
-				</div>
+							{isFilterOpen && (
+								<div
+									className="dropdown-menu absolute left-0 right-0 top-full z-20 mt-1 rounded-md border border-border bg-surface py-1 shadow-lg sm:left-auto sm:right-0 sm:min-w-36"
+									role="menu"
+								>
+									{ROLE_FILTERS.map((filter) => (
+										<FilterOption
+											filter={filter}
+											isSelected={selectedRole === filter.value}
+											key={filter.value}
+											onSelect={handleSelectRole}
+										/>
+									))}
+								</div>
+							)}
+						</div>
 
-				{localProjects.length === EMPTY_LENGTH && (
-					<div className="py-12 text-center text-control text-text-muted">
 						{isOrgAdmin && (
-							<div className="flex flex-col items-center gap-4">
-								<p>
-									No projects yet. Create your first project to get started.
-								</p>
-								<Button onClick={handleOpenCreateModal}>
-									<span className="flex items-center gap-1.5">
-										<Icon name="plus" size={10} />
-										<span>Create new project</span>
-									</span>
-								</Button>
-							</div>
+							<Button
+								className="w-full justify-center bg-neutral-900 text-white hover:bg-neutral-800 sm:w-auto"
+								onClick={handleOpenCreateModal}
+							>
+								<span className="flex items-center gap-1.5">
+									<Icon name="plus" size={12} />
+									<span>New Project</span>
+								</span>
+							</Button>
 						)}
 					</div>
+				</div>
+
+				{filteredProjects.length > EMPTY_LENGTH && (
+					<div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+						{filteredProjects.map((project, index) => (
+							<ProjectItemCard
+								index={index}
+								isOrgAdmin={isOrgAdmin}
+								key={project.id}
+								onDelete={handleSetDeletingProjectId}
+								onEdit={handleSetEditingProject}
+								onSelect={onSelectProject}
+								project={project}
+								totalCount={filteredProjects.length}
+							/>
+						))}
+					</div>
 				)}
+
+				{filteredProjects.length === EMPTY_LENGTH && (
+					<div className="mb-10 py-16 text-center text-text-muted">
+						<EmptyStateView
+							hasProjects={currentProjects.length > EMPTY_LENGTH}
+							isOrgAdmin={isOrgAdmin}
+							onOpenCreateModal={handleOpenCreateModal}
+							selectedRole={selectedRole}
+						/>
+					</div>
+				)}
+
+				<RecentDocuments
+					documents={recentDocuments}
+					isLoading={isLoadingRecent}
+					{...(onSelectDocument ? { onSelectDocument } : {})}
+				/>
 			</main>
 
 			{isCreateModalOpen && (

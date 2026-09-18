@@ -6,6 +6,7 @@ import { Alert, Loader } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { type AppDispatch, type RootState } from "~/lib/store/store.js";
 import { WorkspacesApi } from "~/modules/workspaces/api/workspaces-api.js";
+import { MOCK_RECENT_DOCUMENTS } from "~/modules/workspaces/libs/constants/mock-data.constants.js";
 import { fetchProjects } from "~/modules/workspaces/state/workspaces.slice.js";
 
 import { WorkspacePage } from "./components.js";
@@ -31,13 +32,6 @@ const WorkspaceContainer: React.FC = () => {
 	const { error, isLoading, projects } = useSelector(
 		(state: RootState) => state.workspaces,
 	);
-
-	const userObject = userResponse?.user as undefined | UserWithRole;
-
-	const firstName = userObject?.firstName ?? "";
-	const isOrgAdmin = userObject?.isOrgAdmin ?? userObject?.role === "ADMIN";
-	const lastName = userObject?.lastName ?? "";
-	const organizationName = userResponse?.organisation.name ?? "";
 
 	const handleCreateProject = useCallback((): void => {}, []);
 
@@ -94,6 +88,12 @@ const WorkspaceContainer: React.FC = () => {
 		);
 	}
 
+	const userObject = userResponse?.user as undefined | UserWithRole;
+	const firstName = userObject?.firstName ?? "";
+	const isOrgAdmin = userObject?.isOrgAdmin ?? userObject?.role === "ADMIN";
+	const lastName = userObject?.lastName ?? "";
+	const organizationName = userResponse?.organisation.name ?? "";
+
 	return (
 		<WorkspacePage
 			firstName={firstName}
@@ -106,6 +106,7 @@ const WorkspaceContainer: React.FC = () => {
 			onSelectProject={handleSelectProject}
 			organizationName={organizationName}
 			projects={projects}
+			recentDocuments={MOCK_RECENT_DOCUMENTS}
 		/>
 	);
 };

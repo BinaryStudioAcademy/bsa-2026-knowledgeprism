@@ -90,11 +90,12 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	}, []);
 
 	return (
-		<div className="sticky top-0 z-30 w-full bg-(--color-surface)">
+		<div className="sticky top-0 z-30 w-full bg-surface">
 			<Header>
-				<div className="flex h-full w-full items-center justify-between py-3 sm:py-5">
+				<div className="flex h-full w-full items-center justify-between">
 					<div className="flex min-w-0 items-center gap-3">
 						<Logo to={AppRoute.ROOT} />
+
 						{isLoading && (
 							<div className="hidden items-center gap-3 sm:flex">
 								<span className="text-(length:--text-sm) font-light text-border">
@@ -103,6 +104,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 								<div className="h-4 w-28 animate-pulse rounded bg-(--color-border-subtle)" />
 							</div>
 						)}
+
 						{!isLoading && trimmedOrgName && (
 							<div className="hidden items-center gap-3 sm:flex">
 								<span className="text-(length:--text-sm) font-light text-border">
@@ -148,7 +150,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 											type="button"
 										/>
 
-										<div className="fixed inset-x-0 bottom-0 z-50 flex w-full flex-col rounded-t-2xl border-t border-(--color-border-subtle) bg-(--color-surface) px-3.5 pb-3 pt-2 shadow-2xl transition-all duration-300 ease-out animate-in slide-in-from-bottom sm:absolute sm:bottom-auto sm:left-auto sm:-right-2 sm:top-full sm:mt-2 sm:w-36 sm:rounded-xl sm:border sm:p-2.5 sm:shadow-xl sm:slide-in-from-top-2">
+										<div className="fixed inset-x-0 bottom-0 z-50 flex w-full flex-col rounded-t-2xl border-t border-(--color-border-subtle) bg-surface px-3.5 pb-3 pt-2 shadow-2xl transition-all duration-300 ease-out animate-in slide-in-from-bottom sm:absolute sm:bottom-auto sm:left-auto sm:-right-2 sm:top-full sm:mt-2 sm:w-36 sm:rounded-xl sm:border sm:p-2.5 sm:shadow-xl sm:slide-in-from-top-2">
 											<div className="mx-auto mb-2 h-1 w-8 rounded-full bg-border sm:hidden" />
 
 											<div className="mb-2 flex items-center gap-2.5 border-b border-(--color-border-subtle) pb-2 sm:hidden">
@@ -157,7 +159,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 													initials={initials}
 													{...(avatarUrl ? { src: avatarUrl } : {})}
 												/>
-												<div className="flex flex-col min-w-0">
+												<div className="flex min-w-0 flex-col">
 													<span className="truncate text-xs font-semibold text-text">
 														{fullName}
 													</span>
