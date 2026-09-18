@@ -130,4 +130,4 @@ const AddTermModal = ({
 	);
 };
 
-export { AddTermModal };
+export { type AddTermPayload, AddTermModal };

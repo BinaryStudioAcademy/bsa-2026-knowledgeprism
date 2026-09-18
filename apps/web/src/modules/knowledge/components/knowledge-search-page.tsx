@@ -3,6 +3,7 @@ import { useCallback, useModal, useState } from "~/hooks/hooks.js";
 
 import {
 	AddTermModal,
+	type AddTermPayload,
 	EmptyState,
 	KnowledgeEntryCard,
 	SearchInput,
@@ -38,7 +39,7 @@ const KnowledgeSearchPage: React.FC = () => {
 		: entries;
 
 	const handleAddTerm = useCallback(
-		(payload: { content: string; tag: string; title: string }): void => {
+		(payload: AddTermPayload): void => {
 			setEntries((currentEntries) => [
 				{
 					author: NEW_ENTRY_AUTHOR,
