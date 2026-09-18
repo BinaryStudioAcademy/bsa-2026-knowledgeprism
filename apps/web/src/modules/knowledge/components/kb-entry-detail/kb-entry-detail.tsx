@@ -18,7 +18,7 @@ import { useAppForm } from "~/hooks/hooks.js";
 import {
 	type KbEntry,
 	type UpdateKbEntryPayload,
-} from "~/modules/knowledge-base/types/types.js";
+} from "~/modules/knowledge/libs/types/types.js";
 
 import { kbEntryValidationSchema } from "./libs/validation-schema.js";
 
@@ -31,6 +31,14 @@ const HTTP_STATUS_LOCKED = 423;
 
 type BlockNoteEditorType = BlockNoteViewProperties["editor"];
 type BlockNoteViewProperties = ComponentProps<typeof BlockNoteView>;
+
+type TextNode = {
+	text: string;
+};
+
+const isTextNode = (item: unknown): item is TextNode => {
+	return typeof (item as Record<string, unknown>)["text"] === "string";
+};
 
 const extractPlainText = (content: unknown): string => {
 	if (!content) {
@@ -74,12 +82,10 @@ const extractPlainText = (content: unknown): string => {
 						if (typeof item === "string") {
 							return item;
 						}
-						if (
-							typeof item === "object" &&
-							item !== null &&
-							"text" in item &&
-							typeof item.text === "string"
-						) {
+						if (typeof item === "string") {
+							return item;
+						}
+						if (isTextNode(item)) {
 							return item.text;
 						}
 						return "";

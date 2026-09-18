@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 import { fn } from "@storybook/test";
 
-import { type UpdateKbEntryPayload } from "~/modules/knowledge-base/types/types.js";
+import { type UpdateKbEntryPayload } from "~/modules/knowledge/libs/types/types.js";
 
 import { KbEntryDetail } from "./kb-entry-detail.js";
 
@@ -31,7 +31,7 @@ const meta: Meta<typeof KbEntryDetail> = {
 		}),
 	},
 	component: KbEntryDetail,
-	title: "KnowledgeBase/KbEntryDetail",
+	title: "Features/Knowledge/KbEntryDetail",
 };
 
 type Story = StoryObj<typeof KbEntryDetail>;
