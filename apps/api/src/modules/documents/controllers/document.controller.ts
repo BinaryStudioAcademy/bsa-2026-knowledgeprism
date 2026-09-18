@@ -232,9 +232,12 @@ class DocumentController extends BaseController {
 			params: DocumentConfirmUploadRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
+		const { userId } = this.getProjectContext(options);
+
 		return {
 			payload: await this.documentService.confirmUpload({
 				routeParameters: options.params,
+				userId,
 			}),
 			status: HTTPCode.OK,
 		};

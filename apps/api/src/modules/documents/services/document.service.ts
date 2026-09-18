@@ -202,9 +202,16 @@ class DocumentService {
 
 	public async confirmUpload({
 		routeParameters,
+		userId,
 	}: {
 		routeParameters: DocumentConfirmUploadRouteParametersDto;
+		userId: number;
 	}): Promise<DocumentConfirmUploadResponseDto> {
+		await this.documentAccessService.assertCanAddKnowledge({
+			projectId: routeParameters.projectId,
+			userId,
+		});
+
 		const { documentId } = routeParameters;
 		const document = await this.documentRepository.findById(documentId);
 		const documentObject = document?.toObject();
