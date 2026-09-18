@@ -240,25 +240,21 @@ class DocumentService {
 			status: DocumentStatus.PROCESSING,
 		});
 
-		let isObjectPresent: boolean;
-
 		try {
-			isObjectPresent = await this.checkDocumentObjectExists({
+			const isObjectPresent = await this.checkDocumentObjectExists({
 				key: s3Key,
 			});
-		} catch (error) {
-			return await this.failAndThrow(
-				documentId,
-				"Failed to verify uploaded document in S3.",
-				error,
-			);
-		}
 
-		if (!isObjectPresent) {
+			if (!isObjectPresent) {
+				throw new S3ObjectNotFoundError("S3 object missing");
+			}
+		} catch (error) {
 			await this.failAndThrow(
 				documentId,
-				"Uploaded document was not found in S3.",
-				new Error("S3 object missing"),
+				error instanceof S3ObjectNotFoundError
+					? "Uploaded document was not found in S3."
+					: "Failed to verify uploaded document in S3.",
+				error,
 			);
 		}
 
@@ -476,5 +472,7 @@ class DocumentService {
 		return this.toManualTextResponse(retriedDocument);
 	}
 }
+
+class S3ObjectNotFoundError extends Error {}
 
 export { DocumentService };
