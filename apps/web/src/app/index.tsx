@@ -1,7 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import "~/styles/styles.css";
 import { StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
@@ -16,6 +15,11 @@ import {
 	UserEditPage,
 	UserManagementHubPage,
 } from "~/modules/users/components/components.js";
+import {
+	ProjectDetailsPage,
+	WorkspaceContainer,
+} from "~/modules/workspaces/components/components.js";
+import "~/styles/styles.css";
 
 import { GlobalErrorNotifications } from "./global-error-notifications.js";
 import { AppLayout } from "./layouts/app-layout.js";
@@ -51,8 +55,12 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 					{
 						children: [
 							{
-								element: <p>Organisation Workspace</p>,
-								path: AppRoute.WORKSPACE,
+								element: <WorkspaceContainer />,
+								path: AppRoute.WORKSPACES,
+							},
+							{
+								element: <ProjectDetailsPage />,
+								path: AppRoute.WORKSPACE_DETAILS,
 							},
 							{
 								children: [
