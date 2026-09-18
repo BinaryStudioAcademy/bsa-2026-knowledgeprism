@@ -5,9 +5,9 @@ const AppLayout: React.FC = () => {
 		<div className="flex min-h-screen flex-col bg-bg">
 			<Header>Header</Header>
 
-			<main className="flex-1">
+			<div className="min-h-0 flex-1">
 				<RouterOutlet />
-			</main>
+			</div>
 		</div>
 	);
 };

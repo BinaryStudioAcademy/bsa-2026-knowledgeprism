@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
+import { AskPrismView } from "~/modules/ask-prism/ask-prism.js";
 import { actions as authActions } from "~/modules/auth/auth.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { LandingPage } from "~/modules/landing/components/landing-page.js";
@@ -20,11 +21,9 @@ import {
 } from "~/modules/workspaces/components/components.js";
 import "~/styles/styles.css";
 
-import { App } from "./app.js";
 import { GlobalErrorNotifications } from "./global-error-notifications.js";
 import { AppLayout } from "./layouts/app-layout.js";
 import { AuthLayout } from "./layouts/auth-layout.js";
-import { PublicLayout } from "./layouts/public-layout.js";
 import { SidebarLayout } from "./layouts/sidebar-layout.js";
 import { RouterProvider } from "./router-provider.js";
 
@@ -39,14 +38,6 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 					{
 						element: <LandingPage />,
 						path: AppRoute.ROOT,
-					},
-					{
-						children: [
-							{
-								element: <App />,
-							},
-						],
-						element: <PublicLayout />,
 					},
 					{
 						children: [
@@ -72,7 +63,15 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 					{
 						children: [
 							{
+								element: <p>Organisation Workspace</p>,
+								path: AppRoute.WORKSPACE,
+							},
+							{
 								children: [
+									{
+										element: <AskPrismView />,
+										path: AppRoute.ASK_PRISM,
+									},
 									{
 										element: <AccountSettingsPage />,
 										path: AppRoute.SETTINGS,
