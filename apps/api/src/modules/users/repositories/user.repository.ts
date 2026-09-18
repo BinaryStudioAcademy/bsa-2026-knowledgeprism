@@ -14,6 +14,7 @@ type UserDatabaseRow = {
 	id: number;
 	lastName: string;
 	organisationId: number;
+	organisationRole: ReturnType<UserEntity["toNewObject"]>["organisationRole"];
 	passwordHash: string;
 	projectMembers?: ProjectMemberModel[];
 	status: "active" | "inactive";
@@ -62,8 +63,15 @@ class UserRepository implements Repository {
 		entity: UserEntity,
 		transaction?: Transaction,
 	): Promise<UserEntity> {
-		const { email, firstName, lastName, organisationId, passwordHash, status } =
-			entity.toNewObject();
+		const {
+			email,
+			firstName,
+			lastName,
+			organisationId,
+			organisationRole,
+			passwordHash,
+			status,
+		} = entity.toNewObject();
 
 		const user = await this.userModel
 			.query(transaction)
@@ -72,6 +80,7 @@ class UserRepository implements Repository {
 				firstName,
 				lastName,
 				organisationId,
+				organisationRole,
 				passwordHash,
 				status,
 			})
@@ -90,8 +99,15 @@ class UserRepository implements Repository {
 		entity: UserEntity,
 		assignedProjects?: ProjectAssignmentDto[],
 	): Promise<UserEntity> {
-		const { email, firstName, lastName, organisationId, passwordHash, status } =
-			entity.toNewObject();
+		const {
+			email,
+			firstName,
+			lastName,
+			organisationId,
+			organisationRole,
+			passwordHash,
+			status,
+		} = entity.toNewObject();
 		const EMPTY_LENGTH = 0;
 
 		const user = await this.userModel.transaction(async (trx) => {
@@ -102,6 +118,7 @@ class UserRepository implements Repository {
 					firstName,
 					lastName,
 					organisationId,
+					organisationRole,
 					passwordHash,
 					status,
 				})
