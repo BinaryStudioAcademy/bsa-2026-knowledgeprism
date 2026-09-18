@@ -75,6 +75,23 @@ class ProjectController extends BaseController {
 	 *         description: { type: string, nullable: true }
 	 *         createdAt: { type: string, format: date-time }
 	 *         updatedAt: { type: string, format: date-time }
+	 *     ProjectWorkspaceItem:
+	 *       type: object
+	 *       required: [id, name, description, role, lastActivityAt]
+	 *       properties:
+	 *         id: { type: integer, minimum: 1, maximum: 2147483647 }
+	 *         name: { type: string }
+	 *         description: { type: string, nullable: true }
+	 *         role: { type: string, enum: [ADMIN, EDITOR, VIEWER] }
+	 *         lastActivityAt: { type: string, format: date-time }
+	 *     ProjectWorkspaceResponse:
+	 *       type: object
+	 *       required: [items]
+	 *       properties:
+	 *         items:
+	 *           type: array
+	 *           items:
+	 *             $ref: '#/components/schemas/ProjectWorkspaceItem'
 	 *     ProjectMemberCreateRequest:
 	 *       type: object
 	 *       required: [userId, role]
@@ -101,6 +118,23 @@ class ProjectController extends BaseController {
 	 *             $ref: '#/components/schemas/ProjectMember'
 	 * paths:
 	 *   /projects:
+	 *     get:
+	 *       tags: [Projects]
+	 *       summary: List accessible projects
+	 *       description: Organisation administrators receive all organisation projects. Regular users receive only assigned projects.
+	 *       security:
+	 *         - sessionAuth: []
+	 *       responses:
+	 *         '200':
+	 *           description: Accessible projects
+	 *           content:
+	 *             application/json:
+	 *               schema:
+	 *                 $ref: '#/components/schemas/ProjectWorkspaceResponse'
+	 *         '401':
+	 *           $ref: '#/components/responses/ProjectUnauthorized'
+	 *         '403':
+	 *           $ref: '#/components/responses/ProjectForbidden'
 	 *     post:
 	 *       tags: [Projects]
 	 *       summary: Create a project
@@ -258,6 +292,12 @@ class ProjectController extends BaseController {
 		this.projectService = projectService;
 
 		this.addRoute({
+			handler: (options) => this.findAll(options),
+			method: "GET",
+			path: ProjectsApiPath.ROOT,
+		});
+
+		this.addRoute({
 			handler: (options) =>
 				this.create(
 					options as APIHandlerOptions<{
@@ -389,6 +429,17 @@ class ProjectController extends BaseController {
 		return {
 			payload: null,
 			status: HTTPCode.NO_CONTENT,
+		};
+	}
+
+	private async findAll(
+		options: APIHandlerOptions,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.projectService.findAll(
+				this.getAuthenticatedSessionContext(options),
+			),
+			status: HTTPCode.OK,
 		};
 	}
 

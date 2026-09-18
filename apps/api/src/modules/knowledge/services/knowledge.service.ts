@@ -1,69 +1,67 @@
 import {
 	HTTPCode,
 	KnowledgeValidationMessage,
-	ProjectMemberRole,
 } from "@knowledgeprism/constants";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeRecentResponseDto,
 } from "@knowledgeprism/types";
 
 import { HTTPError } from "~/infrastructure/http/http.js";
-import { type Logger } from "~/infrastructure/logger/logger.js";
-import { ProjectMemberModel } from "~/modules/projects/models/project-member.model.js";
+import {
+	type ProjectAccessContext,
+	type ProjectService,
+} from "~/modules/projects/services/project.service.js";
 
 import { type KnowledgeNodeRepository } from "../repositories/knowledge-node.repository.js";
 
 class KnowledgeService {
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
 
-	private logger: Logger;
+	private projectService: ProjectService;
 
 	public constructor({
 		knowledgeNodeRepository,
-		logger,
+		projectService,
 	}: {
 		knowledgeNodeRepository: KnowledgeNodeRepository;
-		logger: Logger;
+		projectService: ProjectService;
 	}) {
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
-		this.logger = logger;
+		this.projectService = projectService;
+	}
+
+	public async findRecent(
+		context: ProjectAccessContext,
+	): Promise<KnowledgeRecentResponseDto> {
+		const projectIds =
+			await this.projectService.findAccessibleProjectIds(context);
+		const entries =
+			await this.knowledgeNodeRepository.findRecentByProjectIds(projectIds);
+
+		return {
+			items: entries.map((entry) => ({
+				id: entry.id,
+				projectId: entry.projectId,
+				title: entry.title,
+				updatedAt: entry.updatedAt.toISOString(),
+			})),
+		};
 	}
 
 	public async updateEntry({
+		context,
 		entryId,
 		payload,
 		projectId,
-		userId,
 	}: {
+		context: ProjectAccessContext;
 		entryId: number;
 		payload: KnowledgeEntryUpdateRequestDto;
 		projectId: number;
-		userId: number;
 	}): Promise<KnowledgeEntryResponseDto> {
-		const member = await ProjectMemberModel.query()
-			.findOne({ projectId, userId })
-			.execute();
-
-		if (!member) {
-			this.logger.warn(
-				`User ${String(userId)} is not a member of project ${String(projectId)}`,
-			);
-			throw new HTTPError({
-				message: KnowledgeValidationMessage.FORBIDDEN,
-				status: HTTPCode.FORBIDDEN,
-			});
-		}
-
-		if (member.role === ProjectMemberRole.VIEWER) {
-			this.logger.warn(
-				`User ${String(userId)} with role VIEWER attempted to edit entry ${String(entryId)}`,
-			);
-			throw new HTTPError({
-				message: KnowledgeValidationMessage.FORBIDDEN,
-				status: HTTPCode.FORBIDDEN,
-			});
-		}
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
 
 		const existingEntry = await this.knowledgeNodeRepository.findById(entryId);
 
@@ -78,7 +76,7 @@ class KnowledgeService {
 			contentJson: payload.contentJson,
 			id: entryId,
 			title: payload.title,
-			updatedBy: userId,
+			updatedBy: context.userId,
 		});
 
 		return updatedKnowledgeNode.toObject();

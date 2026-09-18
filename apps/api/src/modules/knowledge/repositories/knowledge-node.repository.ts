@@ -1,6 +1,15 @@
 import { KnowledgeNodeEntity } from "../models/knowledge-node.entity.js";
 import { type KnowledgeNodeModel } from "../models/knowledge-node.model.js";
 
+type RecentKnowledgeDatabaseRow = {
+	id: number;
+	projectId: number;
+	title: string;
+	updatedAt: Date;
+};
+
+const EMPTY_LENGTH = 0;
+
 class KnowledgeNodeRepository {
 	private knowledgeNodeModel: typeof KnowledgeNodeModel;
 
@@ -23,6 +32,22 @@ class KnowledgeNodeRepository {
 			title: node.title,
 			updatedAt: node.updatedAt.toISOString(),
 		});
+	}
+
+	public async findRecentByProjectIds(
+		projectIds: number[],
+	): Promise<RecentKnowledgeDatabaseRow[]> {
+		if (projectIds.length === EMPTY_LENGTH) {
+			return [];
+		}
+
+		return await this.knowledgeNodeModel
+			.query()
+			.select(["id", "projectId", "title", "updatedAt"])
+			.whereIn("projectId", projectIds)
+			.orderBy("updatedAt", "desc")
+			.castTo<RecentKnowledgeDatabaseRow[]>()
+			.execute();
 	}
 
 	public async update({
