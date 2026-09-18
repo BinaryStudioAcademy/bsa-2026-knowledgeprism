@@ -1,15 +1,41 @@
-import { type ProjectItem, type RecentDocumentItem } from "../types/types.js";
+import {
+	type ProjectItem,
+	type ProjectRole,
+	type RecentDocumentItem,
+} from "../types/types.js";
 
 type CreateProjectPayload = {
 	description?: string;
 	name: string;
 };
 
+type ProjectListItemDto = {
+	description: null | string;
+	id: number;
+	lastActivityAt: string;
+	name: string;
+	role: ProjectRole;
+};
+
+type ProjectResponseDto = {
+	description: null | string;
+	id: number;
+	name: string;
+	updatedAt: string;
+};
+
 type ProjectsResponse =
-	ProjectItem[] | { items?: ProjectItem[]; projects?: ProjectItem[] };
+	| ProjectListItemDto[]
+	| { items?: ProjectListItemDto[]; projects?: ProjectListItemDto[] };
 
 type RecentDocumentsResponse = {
 	items: RecentDocumentItem[];
+};
+
+type UpdateProjectPayload = {
+	description?: string;
+	id: string;
+	name: string;
 };
 
 class WorkspacesApi {
@@ -19,35 +45,30 @@ class WorkspacesApi {
 		this.#baseUrl = baseUrl;
 	}
 
+	private async parseError(response: Response): Promise<Error> {
+		try {
+			const body = (await response.json()) as { message?: string };
+			return new Error(body.message ?? response.statusText);
+		} catch {
+			return new Error(response.statusText);
+		}
+	}
+
 	public async createProject(
 		payload: CreateProjectPayload,
 	): Promise<ProjectItem> {
-		try {
-			const response = await fetch(`${this.#baseUrl}/projects`, {
-				body: JSON.stringify(payload),
-				headers: {
-					"Content-Type": "application/json",
-				},
-				method: "POST",
-			});
+		const response = await fetch(`${this.#baseUrl}/projects`, {
+			body: JSON.stringify(payload),
+			headers: { "Content-Type": "application/json" },
+			method: "POST",
+		});
 
-			if (!response.ok) {
-				throw new Error(`Failed to create project: ${response.statusText}`);
-			}
-
-			const data = (await response.json()) as unknown;
-			if (!data || typeof data !== "object") {
-				throw new Error("Invalid response format");
-			}
-
-			return data as ProjectItem;
-		} catch {
-			return {
-				description: payload.description ?? "",
-				id: String(Date.now()),
-				name: payload.name,
-			} as ProjectItem;
+		if (!response.ok) {
+			throw await this.parseError(response);
 		}
+
+		const dto = (await response.json()) as ProjectResponseDto;
+		return mapProjectResponseToItem(dto, { role: "ADMIN" });
 	}
 
 	public async deleteProject(id: string): Promise<boolean> {
@@ -77,15 +98,15 @@ class WorkspacesApi {
 			const data = (await response.json()) as ProjectsResponse;
 
 			if (Array.isArray(data)) {
-				return data;
+				return data.map((item) => mapProjectListItemToItem(item));
 			}
 
 			if ("items" in data && Array.isArray(data.items)) {
-				return data.items;
+				return data.items.map((item) => mapProjectListItemToItem(item));
 			}
 
 			if ("projects" in data && Array.isArray(data.projects)) {
-				return data.projects;
+				return data.projects.map((item) => mapProjectListItemToItem(item));
 			}
 
 			return [];
@@ -124,6 +145,50 @@ class WorkspacesApi {
 			return [];
 		}
 	}
+
+	public async updateProject(
+		payload: UpdateProjectPayload,
+	): Promise<ProjectItem> {
+		const response = await fetch(`${this.#baseUrl}/projects/${payload.id}`, {
+			body: JSON.stringify({
+				description: payload.description,
+				name: payload.name,
+			}),
+			headers: { "Content-Type": "application/json" },
+			method: "PATCH",
+		});
+
+		if (!response.ok) {
+			throw await this.parseError(response);
+		}
+
+		const dto = (await response.json()) as ProjectResponseDto;
+		return mapProjectResponseToItem(dto, {});
+	}
 }
 
-export { type CreateProjectPayload, WorkspacesApi };
+function mapProjectListItemToItem(dto: ProjectListItemDto): ProjectItem {
+	return {
+		description: dto.description,
+		id: String(dto.id),
+		lastActivityAt: dto.lastActivityAt,
+		name: dto.name,
+		role: dto.role,
+		updatedAt: dto.lastActivityAt,
+	};
+}
+
+function mapProjectResponseToItem(
+	dto: ProjectResponseDto,
+	context: { role?: ProjectRole },
+): ProjectItem {
+	return {
+		description: dto.description,
+		id: String(dto.id),
+		name: dto.name,
+		role: context.role ?? "ADMIN",
+		updatedAt: dto.updatedAt,
+	};
+}
+
+export { type CreateProjectPayload, type UpdateProjectPayload, WorkspacesApi };

@@ -5,25 +5,25 @@ import { useNavigate } from "react-router-dom";
 import { Alert, Loader } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { type AppDispatch, type RootState } from "~/lib/store/store.js";
-import { WorkspacesApi } from "~/modules/workspaces/api/workspaces-api.js";
 import {
+	type CreateProjectPayload,
+	type UpdateProjectPayload,
+} from "~/modules/workspaces/api/workspaces-api.js";
+import {
+	createProject,
 	deleteProject,
 	fetchProjects,
 	fetchRecentDocuments,
+	updateProject,
 } from "~/modules/workspaces/state/workspaces.slice.js";
+import { workspacesApi } from "~/modules/workspaces/workspaces.js";
 
-import { WorkspacePage } from "./components.js";
+import { WorkspacePage } from "./workspace-page.js";
 
-const api = new WorkspacesApi({ baseUrl: "/api/v1" });
 const EMPTY_LENGTH = 0;
 
 type UserWithRole = {
-	email: string;
-	firstName: string;
-	id: number;
-	isOrgAdmin?: boolean;
-	lastName: string;
-	role?: string;
+	organisationRole?: "ADMIN" | "USER";
 };
 
 const WorkspaceContainer: React.FC = () => {
@@ -32,30 +32,46 @@ const WorkspaceContainer: React.FC = () => {
 
 	const userResponse = useSelector((state: RootState) => state.auth.user);
 
-	const { error, isLoading, isLoadingRecent, projects, recentDocuments } =
-		useSelector((state: RootState) => state.workspaces);
+	const {
+		creationError,
+		error,
+		isCreating,
+		isLoading,
+		isLoadingRecent,
+		isUpdating,
+		projects,
+		recentDocuments,
+		updateError,
+	} = useSelector((state: RootState) => state.workspaces);
 
-	const handleCreateProject = useCallback((): void => {}, []);
+	const userObject = userResponse?.user as undefined | UserWithRole;
+	const isOrgAdmin = userObject?.organisationRole === "ADMIN";
 
-	const handleDeleteProject = useCallback(
-		(id: string): void => {
-			void dispatch(deleteProject({ api, id }));
+	const handleFetchData = useCallback((): void => {
+		void dispatch(fetchProjects(workspacesApi));
+		void dispatch(fetchRecentDocuments(workspacesApi));
+	}, [dispatch]);
+
+	const handleCreateProject = useCallback(
+		(payload: CreateProjectPayload) => {
+			return dispatch(createProject(payload));
 		},
 		[dispatch],
 	);
 
-	const handleFetchData = useCallback((): void => {
-		void dispatch(fetchProjects(api));
-		void dispatch(fetchRecentDocuments(api));
-	}, [dispatch]);
+	const handleEditProject = useCallback(
+		(payload: UpdateProjectPayload) => {
+			return dispatch(updateProject(payload));
+		},
+		[dispatch],
+	);
 
-	const handleLogOut = useCallback((): void => {
-		void navigate(AppRoute.ROOT);
-	}, [navigate]);
-
-	const handleOpenSettings = useCallback((): void => {
-		void navigate(AppRoute.SETTINGS);
-	}, [navigate]);
+	const handleDeleteProject = useCallback(
+		(id: string): void => {
+			void dispatch(deleteProject(id));
+		},
+		[dispatch],
+	);
 
 	const handleSelectProject = useCallback(
 		(id: string): void => {
@@ -86,7 +102,7 @@ const WorkspaceContainer: React.FC = () => {
 						variant="error"
 					/>
 					<button
-						className="text-sm font-medium text-text-muted transition-colors hover:text-text underline"
+						className="text-sm font-medium text-text-muted underline transition-colors hover:text-text"
 						onClick={handleFetchData}
 						type="button"
 					>
@@ -97,27 +113,20 @@ const WorkspaceContainer: React.FC = () => {
 		);
 	}
 
-	const userObject = userResponse?.user as undefined | UserWithRole;
-	const firstName = userObject?.firstName ?? "";
-	const isOrgAdmin = userObject?.isOrgAdmin ?? userObject?.role === "ADMIN";
-	const lastName = userObject?.lastName ?? "";
-	const organizationName = userResponse?.organisation.name ?? "";
-
 	return (
 		<WorkspacePage
-			firstName={firstName}
-			isLoading={isLoading}
+			creationError={creationError}
+			isCreating={isCreating}
 			isLoadingRecent={isLoadingRecent}
 			isOrgAdmin={isOrgAdmin}
-			lastName={lastName}
+			isUpdating={isUpdating}
 			onCreateProject={handleCreateProject}
 			onDeleteProject={handleDeleteProject}
-			onLogOut={handleLogOut}
-			onOpenSettings={handleOpenSettings}
+			onEditProject={handleEditProject}
 			onSelectProject={handleSelectProject}
-			organizationName={organizationName}
 			projects={projects}
 			recentDocuments={recentDocuments}
+			updateError={updateError}
 		/>
 	);
 };
