@@ -211,6 +211,8 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		return list.map((item) => updatedProjects[item.id] ?? item);
 	}, [addedProjects, projects, deletedIds, updatedProjects]);
 
+	const hasProjects = currentProjects.length > EMPTY_LENGTH;
+
 	const filteredProjects = useMemo(() => {
 		if (selectedRole === "ALL") {
 			return currentProjects;
@@ -306,53 +308,55 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 						</p>
 					</div>
 
-					<div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-						<div
-							className="relative w-full sm:w-auto"
-							ref={filterContainerReference}
-						>
-							<Button
-								aria-expanded={isFilterOpen}
-								aria-haspopup="menu"
-								className="w-full cursor-pointer justify-center sm:w-auto"
-								onClick={handleToggleFilter}
-								variant="secondary"
+					{hasProjects && (
+						<div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
+							<div
+								className="relative w-full sm:w-auto"
+								ref={filterContainerReference}
 							>
-								<span className="flex items-center gap-2">
-									<Icon name="filter" size={14} />
-									<span>{filterLabel}</span>
-								</span>
-							</Button>
-
-							{isFilterOpen && (
-								<div
-									className="dropdown-menu absolute left-0 right-0 top-full z-20 mt-1 rounded-md border border-border bg-surface py-1 shadow-lg sm:left-auto sm:right-0 sm:min-w-36"
-									role="menu"
+								<Button
+									aria-expanded={isFilterOpen}
+									aria-haspopup="menu"
+									className="w-full cursor-pointer justify-center sm:w-auto"
+									onClick={handleToggleFilter}
+									variant="secondary"
 								>
-									{ROLE_FILTERS.map((filter) => (
-										<FilterOption
-											filter={filter}
-											isSelected={selectedRole === filter.value}
-											key={filter.value}
-											onSelect={handleSelectRole}
-										/>
-									))}
-								</div>
+									<span className="flex items-center gap-2">
+										<Icon name="filter" size={14} />
+										<span>{filterLabel}</span>
+									</span>
+								</Button>
+
+								{isFilterOpen && (
+									<div
+										className="dropdown-menu absolute left-0 right-0 top-full z-20 mt-1 rounded-md border border-border bg-surface py-1 shadow-lg sm:left-auto sm:right-0 sm:min-w-36"
+										role="menu"
+									>
+										{ROLE_FILTERS.map((filter) => (
+											<FilterOption
+												filter={filter}
+												isSelected={selectedRole === filter.value}
+												key={filter.value}
+												onSelect={handleSelectRole}
+											/>
+										))}
+									</div>
+								)}
+							</div>
+
+							{isOrgAdmin && (
+								<Button
+									className="w-full justify-center bg-neutral-900 text-white hover:bg-neutral-800 sm:w-auto"
+									onClick={handleOpenCreateModal}
+								>
+									<span className="flex items-center gap-1.5">
+										<Icon name="plus" size={12} />
+										<span>New Project</span>
+									</span>
+								</Button>
 							)}
 						</div>
-
-						{isOrgAdmin && (
-							<Button
-								className="w-full justify-center bg-neutral-900 text-white hover:bg-neutral-800 sm:w-auto"
-								onClick={handleOpenCreateModal}
-							>
-								<span className="flex items-center gap-1.5">
-									<Icon name="plus" size={12} />
-									<span>New Project</span>
-								</span>
-							</Button>
-						)}
-					</div>
+					)}
 				</div>
 
 				{filteredProjects.length > EMPTY_LENGTH && (
@@ -375,7 +379,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 				{filteredProjects.length === EMPTY_LENGTH && (
 					<div className="mb-10 py-16 text-center text-text-muted">
 						<EmptyStateView
-							hasProjects={currentProjects.length > EMPTY_LENGTH}
+							hasProjects={hasProjects}
 							isOrgAdmin={isOrgAdmin}
 							onOpenCreateModal={handleOpenCreateModal}
 							selectedRole={selectedRole}
