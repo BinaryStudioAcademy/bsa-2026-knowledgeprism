@@ -135,43 +135,20 @@ const LandingHeader: React.FC = () => {
 						</a>
 					))}
 					<div className={getValidClassNames("flex items-center gap-2.5")}>
-						{hasUser ? (
-							<>
-								<Button
-									className={getValidClassNames(
-										"px-3.5 py-[9px] text-error hover:text-error-hover",
-									)}
-									onClick={handleLogout}
-									variant="ghost"
-								>
-									{HEADER_LABEL.LOG_OUT}
-								</Button>
-								<Button
-									className={getValidClassNames("px-[18px] py-[9px]")}
-									onClick={handleGoToWorkspace}
-									variant="primary"
-								>
-									{HEADER_LABEL.GO_TO_WORKSPACE}
-								</Button>
-							</>
-						) : (
-							<>
-								<Button
-									className={getValidClassNames("px-3.5 py-[9px]")}
-									onClick={handleSignIn}
-									variant="ghost"
-								>
-									{HEADER_LABEL.SIGN_IN}
-								</Button>
-								<Button
-									className={getValidClassNames("px-[18px] py-[9px]")}
-									onClick={handleSignUp}
-									variant="primary"
-								>
-									{HEADER_LABEL.SIGN_UP}
-								</Button>
-							</>
-						)}
+						<Button
+							className={getValidClassNames("px-3.5 py-2.25")}
+							onClick={handleSignIn}
+							variant="ghost"
+						>
+							{HEADER_LABEL.SIGN_IN}
+						</Button>
+						<Button
+							className={getValidClassNames("px-4.5 py-2.25")}
+							onClick={handleSignUp}
+							variant="primary"
+						>
+							{HEADER_LABEL.SIGN_UP}
+						</Button>
 					</div>
 				</nav>
 
