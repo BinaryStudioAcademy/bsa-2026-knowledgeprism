@@ -2,10 +2,10 @@ import { Header, RouterOutlet } from "~/components/components.js";
 
 const AppLayout: React.FC = () => {
 	return (
-		<div className="flex min-h-screen flex-col bg-bg">
+		<div className="flex h-dvh flex-col bg-bg">
 			<Header>Header</Header>
 
-			<div className="min-h-0 flex-1">
+			<div className="flex min-h-0 flex-1 flex-col">
 				<RouterOutlet />
 			</div>
 		</div>
