@@ -11,6 +11,12 @@ export {
 	knowledgeEntryUpdateValidationSchema,
 } from "./modules/knowledge/knowledge.js";
 export {
+	projectCreateValidationSchema,
+	projectMemberCreateValidationSchema,
+	projectRouteParametersValidationSchema,
+	projectUpdateValidationSchema,
+} from "./modules/projects/projects.js";
+export {
 	userCreateValidationSchema,
 	userSignInValidationSchema,
 	userSignUpValidationSchema,

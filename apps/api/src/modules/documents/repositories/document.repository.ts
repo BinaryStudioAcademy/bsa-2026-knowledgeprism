@@ -72,7 +72,7 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		projectId,
 	}: {
 		id: number;
-		projectId: string;
+		projectId: number;
 	}): Promise<DocumentEntity | null> {
 		const document = await this.documentModel
 			.query()
@@ -95,7 +95,7 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		uploadedBy,
 	}: {
 		contentHash: string;
-		projectId: string;
+		projectId: number;
 		uploadedBy: number;
 	}): Promise<DocumentEntity | null> {
 		const document = await this.documentModel

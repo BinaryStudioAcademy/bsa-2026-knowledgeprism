@@ -58,7 +58,7 @@ import { type DocumentService } from "~/modules/documents/services/document.serv
  *            example: https://s3.amazonaws.com/bucket/key
  *          storageKey:
  *            type: string
- *            example: projects/project-1/docs/1788354738034-25181d2e-7f78-4e6b-9a8f-f8da61fdc7b5-file.pdf
+ *            example: projects/1/docs/1788354738034-25181d2e-7f78-4e6b-9a8f-f8da61fdc7b5-file.pdf
  *          expiresInSeconds:
  *            type: number
  *            example: 900
@@ -300,13 +300,17 @@ class DocumentController extends BaseController {
 	 * @swagger
 	 * /projects/{projectId}/documents/upload-url:
 	 *    post:
-	 *      description: Create a document upload intent and return a presigned S3 upload URL
+	 *      description: Create a document upload intent. Requires an active organisation administrator or an ADMIN/EDITOR project member.
+	 *      security:
+	 *        - sessionAuth: []
 	 *      parameters:
 	 *        - in: path
 	 *          name: projectId
 	 *          required: true
 	 *          schema:
-	 *            type: string
+	 *            type: integer
+	 *            minimum: 1
+	 *            maximum: 2147483647
 	 *      requestBody:
 	 *        required: true
 	 *        content:
@@ -314,12 +318,20 @@ class DocumentController extends BaseController {
 	 *            schema:
 	 *              $ref: "#/components/schemas/DocumentUploadIntentRequest"
 	 *      responses:
-	 *        201:
+	 *        '201':
 	 *          description: Upload intent created
 	 *          content:
 	 *            application/json:
 	 *              schema:
 	 *                $ref: "#/components/schemas/DocumentUploadIntentResponse"
+	 *        '401':
+	 *          description: Session is missing or unauthenticated
+	 *        '403':
+	 *          description: User cannot add knowledge to this project
+	 *        '404':
+	 *          description: Project not found in the current organisation
+	 *        '422':
+	 *          description: Invalid project ID or upload request
 	 */
 	private async createUploadIntent(
 		options: APIHandlerOptions<{
@@ -329,6 +341,7 @@ class DocumentController extends BaseController {
 	): Promise<APIHandlerResponse> {
 		return {
 			payload: await this.documentService.createUploadIntent({
+				context: this.getAuthenticatedSessionContext(options),
 				payload: options.body,
 				routeParameters: options.params,
 			}),

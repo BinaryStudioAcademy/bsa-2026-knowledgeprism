@@ -30,7 +30,19 @@ export {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeRecentResponseDto,
 } from "./modules/knowledge/knowledge.js";
+export {
+	type ProjectCreateRequestDto,
+	type ProjectGetAllItemResponseDto,
+	type ProjectGetAllResponseDto,
+	type ProjectMemberCreateRequestDto,
+	type ProjectMemberResponseDto,
+	type ProjectMembersResponseDto,
+	type ProjectResponseDto,
+	type ProjectRouteParametersDto,
+	type ProjectUpdateRequestDto,
+} from "./modules/projects/projects.js";
 export {
 	type ProjectAssignmentDto,
 	type UserCreateRequestDto,

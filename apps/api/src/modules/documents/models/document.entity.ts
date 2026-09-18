@@ -9,34 +9,34 @@ import { type Entity } from "~/shared/types/types.js";
 type DocumentEntityPayload = {
 	content: null | string;
 	contentHash: null | string;
-	createdAt: null | string;
+	createdAt: Date | null;
 	errorMessage: null | string;
 	id: null | number;
 	mimeType: string;
 	name: string;
-	projectId: string;
+	projectId: number;
 	s3Key: null | string;
 	sizeInBytes: null | number;
 	sourceType: ValueOf<typeof DocumentSourceType>;
 	status: ValueOf<typeof DocumentStatus>;
-	updatedAt: null | string;
+	updatedAt: Date | null;
 	uploadedBy: null | number;
 };
 
 type DocumentObject = {
 	content: null | string;
 	contentHash: null | string;
-	createdAt: string;
+	createdAt: Date;
 	errorMessage: null | string;
 	id: number;
 	mimeType: string;
 	name: string;
-	projectId: string;
+	projectId: number;
 	s3Key: null | string;
 	sizeInBytes: null | number;
 	sourceType: ValueOf<typeof DocumentSourceType>;
 	status: ValueOf<typeof DocumentStatus>;
-	updatedAt: string;
+	updatedAt: Date;
 	uploadedBy: null | number;
 };
 
@@ -45,7 +45,7 @@ class DocumentEntity implements Entity {
 
 	private contentHash: null | string;
 
-	private createdAt: null | string;
+	private createdAt: Date | null;
 
 	private errorMessage: null | string;
 
@@ -55,7 +55,7 @@ class DocumentEntity implements Entity {
 
 	private name: string;
 
-	private projectId: string;
+	private projectId: number;
 
 	private s3Key: null | string;
 
@@ -65,7 +65,7 @@ class DocumentEntity implements Entity {
 
 	private status: ValueOf<typeof DocumentStatus>;
 
-	private updatedAt: null | string;
+	private updatedAt: Date | null;
 
 	private uploadedBy: null | number;
 
@@ -119,17 +119,17 @@ class DocumentEntity implements Entity {
 	}: {
 		content: null | string;
 		contentHash: null | string;
-		createdAt: string;
+		createdAt: Date;
 		errorMessage: null | string;
 		id: number;
 		mimeType: string;
 		name: string;
-		projectId: string;
+		projectId: number;
 		s3Key: null | string;
 		sizeInBytes: null | number;
 		sourceType: ValueOf<typeof DocumentSourceType>;
 		status: ValueOf<typeof DocumentStatus>;
-		updatedAt: string;
+		updatedAt: Date;
 		uploadedBy: null | number;
 	}): DocumentEntity {
 		return new DocumentEntity({
@@ -168,7 +168,7 @@ class DocumentEntity implements Entity {
 		errorMessage: null | string;
 		mimeType: string;
 		name: string;
-		projectId: string;
+		projectId: number;
 		s3Key: null | string;
 		sizeInBytes: null | number;
 		sourceType: ValueOf<typeof DocumentSourceType>;
@@ -199,7 +199,7 @@ class DocumentEntity implements Entity {
 		errorMessage: null | string;
 		mimeType: string;
 		name: string;
-		projectId: string;
+		projectId: number;
 		s3Key: null | string;
 		sizeInBytes: null | number;
 		sourceType: ValueOf<typeof DocumentSourceType>;
@@ -225,7 +225,7 @@ class DocumentEntity implements Entity {
 		return {
 			content: this.content,
 			contentHash: this.contentHash,
-			createdAt: this.createdAt as string,
+			createdAt: this.createdAt as Date,
 			errorMessage: this.errorMessage,
 			id: this.id as number,
 			mimeType: this.mimeType,
@@ -235,7 +235,7 @@ class DocumentEntity implements Entity {
 			sizeInBytes: this.sizeInBytes,
 			sourceType: this.sourceType,
 			status: this.status,
-			updatedAt: this.updatedAt as string,
+			updatedAt: this.updatedAt as Date,
 			uploadedBy: this.uploadedBy,
 		};
 	}

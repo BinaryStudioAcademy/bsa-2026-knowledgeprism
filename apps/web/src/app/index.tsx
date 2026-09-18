@@ -17,11 +17,9 @@ import {
 	UserManagementHubPage,
 } from "~/modules/users/components/components.js";
 
-import { App } from "./app.js";
 import { GlobalErrorNotifications } from "./global-error-notifications.js";
 import { AppLayout } from "./layouts/app-layout.js";
 import { AuthLayout } from "./layouts/auth-layout.js";
-import { PublicLayout } from "./layouts/public-layout.js";
 import { SidebarLayout } from "./layouts/sidebar-layout.js";
 import { RouterProvider } from "./router-provider.js";
 
@@ -40,14 +38,6 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 					{
 						children: [
 							{
-								element: <App />,
-							},
-						],
-						element: <PublicLayout />,
-					},
-					{
-						children: [
-							{
 								element: <AuthPage />,
 								path: AppRoute.SIGN_IN,
 							},
@@ -55,15 +45,15 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								element: <AuthPage />,
 								path: AppRoute.SIGN_UP,
 							},
-							{
-								element: <p>Organisation Workspace</p>,
-								path: AppRoute.WORKSPACE,
-							},
 						],
 						element: <AuthLayout />,
 					},
 					{
 						children: [
+							{
+								element: <p>Organisation Workspace</p>,
+								path: AppRoute.WORKSPACE,
+							},
 							{
 								children: [
 									{

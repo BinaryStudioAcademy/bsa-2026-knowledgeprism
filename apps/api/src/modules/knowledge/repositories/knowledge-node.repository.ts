@@ -1,6 +1,15 @@
 import { KnowledgeNodeEntity } from "../models/knowledge-node.entity.js";
 import { type KnowledgeNodeModel } from "../models/knowledge-node.model.js";
 
+type RecentKnowledgeDatabaseRow = {
+	id: number;
+	projectId: number;
+	title: string;
+	updatedAt: Date;
+};
+
+const EMPTY_LENGTH = 0;
+
 class KnowledgeNodeRepository {
 	private knowledgeNodeModel: typeof KnowledgeNodeModel;
 
@@ -17,12 +26,28 @@ class KnowledgeNodeRepository {
 
 		return KnowledgeNodeEntity.initialize({
 			contentJson: node.contentJson,
-			createdAt: node.createdAt,
+			createdAt: node.createdAt.toISOString(),
 			id: node.id,
 			projectId: node.projectId,
 			title: node.title,
-			updatedAt: node.updatedAt,
+			updatedAt: node.updatedAt.toISOString(),
 		});
+	}
+
+	public async findRecentByProjectIds(
+		projectIds: number[],
+	): Promise<RecentKnowledgeDatabaseRow[]> {
+		if (projectIds.length === EMPTY_LENGTH) {
+			return [];
+		}
+
+		return await this.knowledgeNodeModel
+			.query()
+			.select(["id", "projectId", "title", "updatedAt"])
+			.whereIn("projectId", projectIds)
+			.orderBy("updatedAt", "desc")
+			.castTo<RecentKnowledgeDatabaseRow[]>()
+			.execute();
 	}
 
 	public async update({
@@ -41,18 +66,18 @@ class KnowledgeNodeRepository {
 			.patchAndFetchById(id, {
 				contentJson,
 				title,
-				updatedAt: new Date().toISOString(),
+				updatedAt: new Date(),
 				updatedBy,
 			})
 			.execute();
 
 		return KnowledgeNodeEntity.initialize({
 			contentJson: updatedNode.contentJson,
-			createdAt: updatedNode.createdAt,
+			createdAt: updatedNode.createdAt.toISOString(),
 			id: updatedNode.id,
 			projectId: updatedNode.projectId,
 			title: updatedNode.title,
-			updatedAt: updatedNode.updatedAt,
+			updatedAt: updatedNode.updatedAt.toISOString(),
 		});
 	}
 }
