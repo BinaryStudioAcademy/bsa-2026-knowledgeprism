@@ -22,7 +22,7 @@ const processDocument = createAsyncThunk<
 
 	const { documentId, uploadUrl } = await documentsApi.createUploadIntent({
 		payload: {
-			contentType: "application/pdf",
+			contentType: file.type,
 			fileName: file.name,
 			sizeInBytes: file.size,
 		},

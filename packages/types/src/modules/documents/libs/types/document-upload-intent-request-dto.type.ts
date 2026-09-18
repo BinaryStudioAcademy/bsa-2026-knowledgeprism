@@ -1,5 +1,5 @@
 type DocumentUploadIntentRequestDto = {
-	contentType: "application/pdf";
+	contentType: string;
 	fileName: string;
 	sizeInBytes?: number;
 };
