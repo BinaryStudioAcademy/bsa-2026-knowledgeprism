@@ -213,35 +213,24 @@ class DocumentService {
 	}
 
 	public async confirmUpload({
+		context,
 		routeParameters,
-		userId,
 	}: {
+		context: ProjectAccessContext;
 		routeParameters: DocumentConfirmUploadRouteParametersDto;
-		userId: number;
 	}): Promise<DocumentConfirmUploadResponseDto> {
-		await this.documentAccessService.assertCanAddKnowledge({
-			projectId: routeParameters.projectId,
-			userId,
-		});
+		const projectId = Number(routeParameters.projectId);
+
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
 
 		const { documentId } = routeParameters;
 		const document = await this.documentRepository.findById(documentId);
 		const documentObject = document?.toObject();
 
-		if (
-			!documentObject ||
-			documentObject.projectId !== Number(routeParameters.projectId)
-		) {
+		if (!documentObject || documentObject.projectId !== projectId) {
 			throw new HTTPError({
 				message: "Document not found.",
 				status: HTTPCode.NOT_FOUND,
-			});
-		}
-
-		if (documentObject.status !== DocumentStatus.UPLOADED) {
-			throw new HTTPError({
-				message: `Document cannot be confirmed from status "${documentObject.status}".`,
-				status: HTTPCode.CONFLICT,
 			});
 		}
 
@@ -254,10 +243,20 @@ class DocumentService {
 			});
 		}
 
-		await this.documentRepository.updateStatus({
-			id: documentId,
-			status: DocumentStatus.PROCESSING,
-		});
+		const transitionedDocument =
+			await this.documentRepository.updateStatusIfCurrentIn({
+				allowedStatuses: [DocumentStatus.UPLOADED],
+				errorMessage: null,
+				id: documentId,
+				status: DocumentStatus.PROCESSING,
+			});
+
+		if (!transitionedDocument) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.CONFIRM_NOT_ALLOWED,
+				status: HTTPCode.CONFLICT,
+			});
+		}
 
 		try {
 			const isObjectPresent = await this.checkDocumentObjectExists({

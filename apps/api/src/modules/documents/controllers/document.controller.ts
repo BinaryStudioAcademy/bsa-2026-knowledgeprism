@@ -207,7 +207,7 @@ class DocumentController extends BaseController {
 	 * @swagger
 	 * /projects/{projectId}/documents/{documentId}/confirm-upload:
 	 *    post:
-	 *      description: Confirm a document was uploaded to S3 and trigger parsing into blocks
+	 *      description: Confirm a document was uploaded to S3 and update its status
 	 *      parameters:
 	 *        - in: path
 	 *          name: projectId
@@ -221,7 +221,7 @@ class DocumentController extends BaseController {
 	 *            type: number
 	 *      responses:
 	 *        200:
-	 *          description: Document parsed successfully
+	 *          description: Document upload confirmed
 	 *          content:
 	 *            application/json:
 	 *              schema:
@@ -232,12 +232,10 @@ class DocumentController extends BaseController {
 			params: DocumentConfirmUploadRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { userId } = this.getProjectContext(options);
-
 		return {
 			payload: await this.documentService.confirmUpload({
+				context: this.getAuthenticatedSessionContext(options),
 				routeParameters: options.params,
-				userId,
 			}),
 			status: HTTPCode.OK,
 		};
