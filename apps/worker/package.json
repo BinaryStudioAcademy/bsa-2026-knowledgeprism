@@ -2,6 +2,8 @@
 	"name": "@knowledgeprism/worker",
 	"type": "module",
 	"version": "1.0.0",
+	"main": "build/index.js",
+	"types": "build/index.d.ts",
 	"scripts": {
 		"lint:type": "npx tsc --noEmit",
 		"lint:js": "npx eslint . --max-warnings=0",
