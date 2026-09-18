@@ -45,7 +45,6 @@ const primaryNavItems: NavItem[] = [
 ];
 
 const utilityNavItems: NavItem[] = [
-	{ icon: <Icon name="help" />, id: "help", label: "Help" },
 	{
 		icon: <Icon name="settings" />,
 		id: "settings",
@@ -140,7 +139,12 @@ const Sidebar: React.FC<SidebarProperties> = ({
 			<div className="mt-auto flex flex-col gap-2.5 border-t border-border-subtle pt-3.5">
 				{canAddKnowledge && (
 					<>
-						<Button className="hidden desktop:inline-flex" onClick={showModal}>
+						<Button
+							className="hidden desktop:inline-flex"
+							onClick={showModal}
+							variant="accent"
+						>
+							<Icon name="plus" size={16} />
 							Add Knowledge
 						</Button>
 						<AddKnowledgeModal
