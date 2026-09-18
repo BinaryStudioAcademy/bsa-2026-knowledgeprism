@@ -10,7 +10,7 @@ import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
-const PROJECT_ICON_SIZE = 18;
+// const PROJECT_ICON_SIZE = 18;
 const MOBILE_NAV_ICON_SIZE = 16;
 
 type NavItem = {
@@ -56,6 +56,7 @@ const utilityNavItems: NavItem[] = [
 		icon: <Icon name="users" />,
 		id: "users",
 		label: "Users",
+		to: AppRoute.USERS,
 	},
 ];
 
@@ -117,7 +118,10 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
 
 	return (
-		<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
+		<aside className="hidden h-full tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
+			{/*
+			TODO: restore when the projects API lands
+			const PROJECT_ICON_SIZE = 18;
 			<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
 				<Icon name="project" size={PROJECT_ICON_SIZE} />
 				<div>
@@ -125,6 +129,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 					<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
 				</div>
 			</div>
+			*/}
 
 			<nav className="flex flex-col gap-0.5">
 				{primaryNavItems.map((item) => (
