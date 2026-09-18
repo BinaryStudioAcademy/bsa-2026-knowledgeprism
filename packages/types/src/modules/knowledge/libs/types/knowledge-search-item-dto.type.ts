@@ -1,5 +1,5 @@
 type KnowledgeSearchItemDto = {
-	content: string;
+	content: Record<string, unknown>[];
 	id: number;
 	title: string;
 };

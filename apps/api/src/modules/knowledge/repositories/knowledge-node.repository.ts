@@ -1,3 +1,5 @@
+import { KnowledgeValidationRule } from "@knowledgeprism/constants";
+
 import { KnowledgeNodeEntity } from "../models/knowledge-node.entity.js";
 import { type KnowledgeNodeModel } from "../models/knowledge-node.model.js";
 
@@ -23,6 +25,42 @@ class KnowledgeNodeRepository {
 			title: node.title,
 			updatedAt: node.updatedAt,
 		});
+	}
+
+	public async searchByTitleOrKeyword({
+		projectId,
+		query,
+	}: {
+		projectId: number;
+		query: string;
+	}): Promise<KnowledgeNodeEntity[]> {
+		const escapedQuery = query
+			.replaceAll("%", String.raw`\%`)
+			.replaceAll("_", String.raw`\_`);
+		const pattern = `%${escapedQuery}%`;
+
+		const nodes = await this.knowledgeNodeModel
+			.query()
+			.where({ projectId })
+			.andWhere((builder) => {
+				void builder
+					.where("title", "ilike", pattern)
+					.orWhereRaw("content_json::text ILIKE ?", [pattern]);
+			})
+			.orderBy("title", "asc")
+			.limit(KnowledgeValidationRule.SEARCH_RESULTS_MAXIMUM_COUNT)
+			.execute();
+
+		return nodes.map((node) =>
+			KnowledgeNodeEntity.initialize({
+				contentJson: node.contentJson,
+				createdAt: node.createdAt,
+				id: node.id,
+				projectId: node.projectId,
+				title: node.title,
+				updatedAt: node.updatedAt,
+			}),
+		);
 	}
 
 	public async update({

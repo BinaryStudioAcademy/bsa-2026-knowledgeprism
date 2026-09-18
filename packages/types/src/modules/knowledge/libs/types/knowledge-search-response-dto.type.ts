@@ -4,4 +4,4 @@ type KnowledgeSearchResponseDto = {
 	items: KnowledgeSearchItemDto[];
 };
 
-export { KnowledgeSearchResponseDto };
+export { type KnowledgeSearchResponseDto };

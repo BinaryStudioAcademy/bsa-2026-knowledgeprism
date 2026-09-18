@@ -31,10 +31,37 @@ class KnowledgeService {
 		this.logger = logger;
 	}
 
-	// Stub: will query knowledge_nodes by title/keyword once search is implemented.
-	public search(): KnowledgeSearchResponseDto {
+	public async search({
+		projectId,
+		query,
+		userId,
+	}: {
+		projectId: number;
+		query: string;
+		userId: number;
+	}): Promise<KnowledgeSearchResponseDto> {
+		const member = await ProjectMemberModel.query()
+			.findOne({ projectId, userId })
+			.execute();
+
+		if (!member) {
+			throw new HTTPError({
+				message: KnowledgeValidationMessage.FORBIDDEN,
+				status: HTTPCode.FORBIDDEN,
+			});
+		}
+
+		const nodes = await this.knowledgeNodeRepository.searchByTitleOrKeyword({
+			projectId,
+			query,
+		});
+
 		return {
-			items: [],
+			items: nodes.map((node) => {
+				const { contentJson, id, title } = node.toObject();
+
+				return { content: contentJson, id, title };
+			}),
 		};
 	}
 

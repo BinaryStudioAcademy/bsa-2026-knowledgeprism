@@ -14,6 +14,8 @@ import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
+	KnowledgeSearchQueryDto,
+	KnowledgeSearchRouteParametersDto,
 } from "@knowledgeprism/types";
 
 import {
@@ -75,7 +77,13 @@ class KnowledgeController extends BaseController {
 		this.knowledgeService = knowledgeService;
 
 		this.addRoute({
-			handler: () => this.search(),
+			handler: (options) =>
+				this.search(
+					options as APIHandlerOptions<{
+						params: KnowledgeSearchRouteParametersDto;
+						query: KnowledgeSearchQueryDto;
+					}>,
+				),
 			method: "GET",
 			path: KnowledgeApiPath.SEARCH,
 			validation: {
@@ -83,6 +91,7 @@ class KnowledgeController extends BaseController {
 				query: knowledgeSearchQueryValidationSchema,
 			},
 		});
+
 		this.addRoute({
 			handler: (options) =>
 				this.updateEntry(
@@ -120,10 +129,25 @@ class KnowledgeController extends BaseController {
 	 *        200:
 	 *          description: Knowledge search results
 	 */
-	// Validates projectId and q, but returns empty results until search logic is connected.
-	private search(): APIHandlerResponse {
+	private async search(
+		options: APIHandlerOptions<{
+			params: KnowledgeSearchRouteParametersDto;
+			query: KnowledgeSearchQueryDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		const userId = options.session.userId;
+		if (!userId) {
+			throw new HTTPError({
+				message: AuthValidationMessage.UNAUTHORIZED,
+				status: HTTPCode.UNAUTHORIZED,
+			});
+		}
 		return {
-			payload: this.knowledgeService.search(),
+			payload: await this.knowledgeService.search({
+				projectId: Number(options.params.projectId),
+				query: options.query.q,
+				userId,
+			}),
 			status: HTTPCode.OK,
 		};
 	}
