@@ -13,7 +13,7 @@ import {
 	type APIHandlerResponse,
 	BaseController,
 } from "~/infrastructure/controller/controller.js";
-import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
+import { HTTPCode } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 
 import { type AskPrismService } from "../services/ask-prism.service.js";
@@ -104,23 +104,14 @@ class AskPrismController extends BaseController {
 			params: AskPrismRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { organisationId, userId } = options.session;
-
-		if (!organisationId || !userId) {
-			throw new HTTPError({
-				message: "Unauthorized",
-				status: HTTPCode.UNAUTHORIZED,
-			});
-		}
+		// Mock session unused currently since assertProjectAccess is disabled in Phase 3.
+		// TODO: Restore these when integrating with project permissions in Phase 4.
+		// const { organisationId, userId } = options.session;
 
 		// TODO: Add basic rate limiting to protect GPU capacity as recommended in Technical Documentation
 
 		return {
-			payload: await this.askPrismService.generateAnswer(
-				options.params.projectId,
-				options.body.query,
-				{ organisationId, userId },
-			),
+			payload: await this.askPrismService.generateAnswer(options.body.query),
 			status: HTTPCode.OK,
 		};
 	}
