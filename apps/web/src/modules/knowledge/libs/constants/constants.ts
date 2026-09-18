@@ -9,12 +9,13 @@ const DocumentValidationMessage = {
 		"Unsupported file format. Please upload a PDF or TXT file.",
 } as const;
 
-const MOCK_PROCESSING_DELAY_MS = 1400;
+// TODO: replace with the real active project id once project routing/context lands.
+const TEMPORARY_PROJECT_ID = "1";
 
 export {
 	DocumentValidationMessage,
-	MOCK_PROCESSING_DELAY_MS,
 	SUPPORTED_FILE_EXTENSIONS,
 	SUPPORTED_FILE_MIME_TYPES,
+	TEMPORARY_PROJECT_ID,
 };
 export { FileValidationRule } from "@knowledgeprism/constants";
