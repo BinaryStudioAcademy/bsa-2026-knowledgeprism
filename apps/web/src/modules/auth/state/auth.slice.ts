@@ -75,7 +75,11 @@ const { actions, name, reducer } = createSlice({
 	},
 	initialState,
 	name: "auth",
-	reducers: {},
+	reducers: {
+		clearError(state) {
+			state.error = null;
+		},
+	},
 });
 
 export { actions, name, reducer };

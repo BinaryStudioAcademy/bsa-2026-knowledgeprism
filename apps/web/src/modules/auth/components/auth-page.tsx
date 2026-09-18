@@ -28,6 +28,10 @@ const AuthPage: React.FC = () => {
 	const navigate = useNavigate();
 
 	useEffect(() => {
+		dispatch(authActions.clearError());
+	}, [dispatch, pathname]);
+
+	useEffect(() => {
 		if (hasUser) {
 			void navigate(AppRoute.WORKSPACE, { replace: true });
 		}

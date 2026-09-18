@@ -17,20 +17,17 @@ async function down(knex: Knex): Promise<void> {
 }
 
 async function up(knex: Knex): Promise<void> {
-	await knex.raw(
-		`
-			CREATE UNIQUE INDEX ${INDEX_NAME}
-			ON ${TABLE_NAME} (
-				${ColumnName.PROJECT_ID},
-				${ColumnName.UPLOADED_BY},
-				${ColumnName.CONTENT_HASH}
-			)
-			WHERE ${ColumnName.STATUS} = ?
-				AND ${ColumnName.SOURCE_TYPE} = ?
-				AND ${ColumnName.CONTENT_HASH} IS NOT NULL
-		`,
-		[DocumentStatus.PROCESSING, DocumentSourceType.MANUAL],
-	);
+	await knex.raw(`
+		CREATE UNIQUE INDEX ${INDEX_NAME}
+		ON ${TABLE_NAME} (
+			${ColumnName.PROJECT_ID},
+			${ColumnName.UPLOADED_BY},
+			${ColumnName.CONTENT_HASH}
+		)
+		WHERE ${ColumnName.STATUS} = '${DocumentStatus.PROCESSING}'
+			AND ${ColumnName.SOURCE_TYPE} = '${DocumentSourceType.MANUAL}'
+			AND ${ColumnName.CONTENT_HASH} IS NOT NULL
+	`);
 }
 
 export { down, up };
