@@ -6,7 +6,11 @@ import { s3Client } from "~/infrastructure/s3/s3.js";
 import { askPrismController } from "~/modules/ask-prism/ask-prism.js";
 import { authController } from "~/modules/auth/auth.js";
 import { documentController } from "~/modules/documents/documents.js";
-import { knowledgeController } from "~/modules/knowledge/knowledge.js";
+import {
+	knowledgeController,
+	recentKnowledgeController,
+} from "~/modules/knowledge/knowledge.js";
+import { projectController } from "~/modules/projects/projects.js";
 import { userController } from "~/modules/users/users.js";
 
 import { BaseServerApplicationApi } from "./base-server-application-api.js";
@@ -17,7 +21,9 @@ const apiV1 = new BaseServerApplicationApi(
 	config,
 	...documentController.routes,
 	...authController.routes,
+	...projectController.routes,
 	...knowledgeController.routes,
+	...recentKnowledgeController.routes,
 	...userController.routes,
 	...askPrismController.routes,
 );

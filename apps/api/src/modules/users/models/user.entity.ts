@@ -1,7 +1,10 @@
-import { type ProjectAssignmentDto } from "@knowledgeprism/types";
+import { OrganisationRole } from "@knowledgeprism/constants";
+import { type ProjectAssignmentDto, type ValueOf } from "@knowledgeprism/types";
 
 import { type EncryptService } from "~/libs/services/encrypt/encrypt.service.js";
 import { type Entity } from "~/shared/types/types.js";
+
+type OrganisationRoleValue = ValueOf<typeof OrganisationRole>;
 
 const ID_REQUIRED_MESSAGE = "User id is required";
 
@@ -20,6 +23,8 @@ class UserEntity implements Entity {
 
 	private organisationId: number;
 
+	private organisationRole: null | OrganisationRoleValue;
+
 	private status: "active" | "inactive";
 
 	private constructor({
@@ -29,6 +34,7 @@ class UserEntity implements Entity {
 		id,
 		lastName,
 		organisationId,
+		organisationRole,
 		passwordHash,
 		status,
 	}: {
@@ -38,6 +44,7 @@ class UserEntity implements Entity {
 		id: null | number;
 		lastName: string;
 		organisationId: number;
+		organisationRole: null | OrganisationRoleValue;
 		passwordHash: string;
 		status: "active" | "inactive";
 	}) {
@@ -47,6 +54,7 @@ class UserEntity implements Entity {
 		this.id = id;
 		this.lastName = lastName;
 		this.organisationId = organisationId;
+		this.organisationRole = organisationRole;
 		this._passwordHash = passwordHash;
 		this.status = status;
 	}
@@ -58,6 +66,7 @@ class UserEntity implements Entity {
 		id,
 		lastName,
 		organisationId,
+		organisationRole,
 		passwordHash,
 		status,
 	}: {
@@ -67,6 +76,7 @@ class UserEntity implements Entity {
 		id: number;
 		lastName: string;
 		organisationId: number;
+		organisationRole: null | OrganisationRoleValue;
 		passwordHash: string;
 		status: "active" | "inactive";
 	}): UserEntity {
@@ -77,6 +87,7 @@ class UserEntity implements Entity {
 			id,
 			lastName,
 			organisationId,
+			organisationRole,
 			passwordHash,
 			status,
 		});
@@ -88,6 +99,7 @@ class UserEntity implements Entity {
 		firstName,
 		lastName,
 		organisationId,
+		organisationRole,
 		passwordHash,
 		status,
 	}: {
@@ -96,6 +108,7 @@ class UserEntity implements Entity {
 		firstName: string;
 		lastName: string;
 		organisationId: number;
+		organisationRole: OrganisationRoleValue;
 		passwordHash: string;
 		status: "active" | "inactive";
 	}): UserEntity {
@@ -106,6 +119,7 @@ class UserEntity implements Entity {
 			id: null,
 			lastName,
 			organisationId,
+			organisationRole,
 			passwordHash,
 			status,
 		});
@@ -119,11 +133,32 @@ class UserEntity implements Entity {
 		return this.id;
 	}
 
+	public isOrganisationAdmin(): boolean {
+		return this.organisationRole === OrganisationRole.ADMIN;
+	}
+
+	public toAuthObject(): {
+		email: string;
+		firstName: string;
+		id: number;
+		lastName: string;
+		organisationRole: null | OrganisationRoleValue;
+	} {
+		return {
+			email: this.email,
+			firstName: this.firstName,
+			id: this.getId(),
+			lastName: this.lastName,
+			organisationRole: this.organisationRole,
+		};
+	}
+
 	public toNewObject(): {
 		email: string;
 		firstName: string;
 		lastName: string;
 		organisationId: number;
+		organisationRole: null | OrganisationRoleValue;
 		passwordHash: string;
 		status: "active" | "inactive";
 	} {
@@ -132,6 +167,7 @@ class UserEntity implements Entity {
 			firstName: this.firstName,
 			lastName: this.lastName,
 			organisationId: this.organisationId,
+			organisationRole: this.organisationRole,
 			passwordHash: this._passwordHash,
 			status: this.status,
 		};
@@ -154,20 +190,6 @@ class UserEntity implements Entity {
 			lastName: this.lastName,
 			organisationId: this.organisationId,
 			status: this.status,
-		};
-	}
-
-	public toSignUpObject(): {
-		email: string;
-		firstName: string;
-		id: number;
-		lastName: string;
-	} {
-		return {
-			email: this.email,
-			firstName: this.firstName,
-			id: this.getId(),
-			lastName: this.lastName,
 		};
 	}
 
