@@ -37,6 +37,7 @@ class DocumentsApi extends BaseHTTPApi {
 				contentType: ContentType.JSON,
 				hasAuth: true,
 				method: "POST",
+				payload: JSON.stringify({}),
 			},
 		);
 
