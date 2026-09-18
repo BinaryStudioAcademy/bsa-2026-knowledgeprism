@@ -53,9 +53,6 @@ class WorkspacesApi {
 	public async deleteProject(id: string): Promise<boolean> {
 		try {
 			const response = await fetch(`${this.#baseUrl}/projects/${id}`, {
-				headers: {
-					"Content-Type": "application/json",
-				},
 				method: "DELETE",
 			});
 
