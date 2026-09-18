@@ -7,11 +7,15 @@ import {
 import {
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
+	knowledgeSearchQueryValidationSchema,
+	knowledgeSearchRouteParametersValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
+	KnowledgeSearchQueryDto,
+	KnowledgeSearchRouteParametersDto,
 } from "@knowledgeprism/types";
 
 import {
@@ -74,6 +78,22 @@ class KnowledgeController extends BaseController {
 
 		this.addRoute({
 			handler: (options) =>
+				this.search(
+					options as APIHandlerOptions<{
+						params: KnowledgeSearchRouteParametersDto;
+						query: KnowledgeSearchQueryDto;
+					}>,
+				),
+			method: "GET",
+			path: KnowledgeApiPath.SEARCH,
+			validation: {
+				params: knowledgeSearchRouteParametersValidationSchema,
+				query: knowledgeSearchQueryValidationSchema,
+			},
+		});
+
+		this.addRoute({
+			handler: (options) =>
 				this.updateEntry(
 					options as APIHandlerOptions<{
 						body: KnowledgeEntryUpdateRequestDto;
@@ -87,6 +107,49 @@ class KnowledgeController extends BaseController {
 				params: knowledgeEntryRouteParametersValidationSchema,
 			},
 		});
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/knowledge/search:
+	 *    get:
+	 *      description: Search project knowledge base
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: string
+	 *        - in: query
+	 *          name: q
+	 *          required: true
+	 *          schema:
+	 *            type: string
+	 *      responses:
+	 *        200:
+	 *          description: Knowledge search results
+	 */
+	private async search(
+		options: APIHandlerOptions<{
+			params: KnowledgeSearchRouteParametersDto;
+			query: KnowledgeSearchQueryDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		const userId = options.session.userId;
+		if (!userId) {
+			throw new HTTPError({
+				message: AuthValidationMessage.UNAUTHORIZED,
+				status: HTTPCode.UNAUTHORIZED,
+			});
+		}
+		return {
+			payload: await this.knowledgeService.search({
+				projectId: Number(options.params.projectId),
+				query: options.query.q,
+				userId,
+			}),
+			status: HTTPCode.OK,
+		};
 	}
 
 	/**

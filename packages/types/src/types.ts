@@ -27,6 +27,9 @@ export {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeSearchQueryDto,
+	type KnowledgeSearchResponseDto,
+	type KnowledgeSearchRouteParametersDto,
 } from "./modules/knowledge/knowledge.js";
 export {
 	type ProjectAssignmentDto,

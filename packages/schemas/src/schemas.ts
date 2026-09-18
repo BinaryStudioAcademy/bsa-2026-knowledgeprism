@@ -7,6 +7,8 @@ export {
 export {
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
+	knowledgeSearchQueryValidationSchema,
+	knowledgeSearchRouteParametersValidationSchema,
 } from "./modules/knowledge/knowledge.js";
 export {
 	userCreateValidationSchema,

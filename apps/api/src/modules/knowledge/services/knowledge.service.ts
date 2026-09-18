@@ -6,6 +6,7 @@ import {
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeSearchResponseDto,
 } from "@knowledgeprism/types";
 
 import { HTTPError } from "~/infrastructure/http/http.js";
@@ -28,6 +29,40 @@ class KnowledgeService {
 	}) {
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
 		this.logger = logger;
+	}
+
+	public async search({
+		projectId,
+		query,
+		userId,
+	}: {
+		projectId: number;
+		query: string;
+		userId: number;
+	}): Promise<KnowledgeSearchResponseDto> {
+		const member = await ProjectMemberModel.query()
+			.findOne({ projectId, userId })
+			.execute();
+
+		if (!member) {
+			throw new HTTPError({
+				message: KnowledgeValidationMessage.FORBIDDEN,
+				status: HTTPCode.FORBIDDEN,
+			});
+		}
+
+		const nodes = await this.knowledgeNodeRepository.searchByTitleOrKeyword({
+			projectId,
+			query,
+		});
+
+		return {
+			items: nodes.map((node) => {
+				const { contentJson, id, title } = node.toObject();
+
+				return { content: contentJson, id, title };
+			}),
+		};
 	}
 
 	public async updateEntry({
