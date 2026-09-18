@@ -39,7 +39,7 @@ const { actions, name, reducer } = createSlice({
 			}
 
 			state.errorMessage = null;
-			state.processingStatus = DocumentProcessingStatus.SUCCESS;
+			state.processingStatus = DocumentProcessingStatus.READY;
 			state.selectedFile = action.payload;
 		});
 		builder.addCase(processDocument.rejected, (state, action) => {

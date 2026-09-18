@@ -6,6 +6,7 @@ const IGNORED_ACTION_TYPES = new Set([
 	"askPrism/ask-question/rejected",
 	"askPrism/load-suggested-questions/rejected",
 	"auth/load-current-user/rejected",
+	"knowledge/process-document/rejected",
 ]);
 
 const handleRejectedAction: ReturnType<Middleware> = (next) => (action) => {

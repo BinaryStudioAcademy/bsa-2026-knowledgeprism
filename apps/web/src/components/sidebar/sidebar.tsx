@@ -136,7 +136,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	const primaryNavItems = buildPrimaryNavItems(projectId);
 	const canAddKnowledge =
 		Boolean(projectId) &&
-		role.trim().toUpperCase() !== ProjectMemberRole.VIEWER.toUpperCase();
+		(role === ProjectMemberRole.ADMIN || role === ProjectMemberRole.EDITOR);
 
 	const handleAddClick = useCallback((): void => {
 		if (onAddKnowledge) {

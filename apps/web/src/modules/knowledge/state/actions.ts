@@ -89,7 +89,7 @@ const processDocument = createAsyncThunk<
 			progress: 100,
 			size: file.size,
 			sizeLabel: formatFileSize(file.size),
-			status: DocumentProcessingStatus.SUCCESS,
+			status: DocumentProcessingStatus.READY,
 			uploadUrl: resolvedUploadUrl,
 		};
 	},
