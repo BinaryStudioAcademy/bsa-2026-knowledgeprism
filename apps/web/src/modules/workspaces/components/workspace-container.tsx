@@ -13,7 +13,7 @@ import {
 
 import { WorkspacePage } from "./components.js";
 
-const api = new WorkspacesApi({ baseUrl: "/api" });
+const api = new WorkspacesApi({ baseUrl: "/api/v1" });
 const EMPTY_LENGTH = 0;
 
 type UserWithRole = {
