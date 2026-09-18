@@ -4,7 +4,6 @@ import { type DocumentProcessingStatus } from "../enums/enums.js";
 
 type KnowledgeState = {
 	errorMessage: null | string;
-	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
 	selectedFile: null | UploadedDocumentItem;
 };
 

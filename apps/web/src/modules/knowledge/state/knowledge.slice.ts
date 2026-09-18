@@ -10,7 +10,6 @@ type State = KnowledgeState;
 
 const initialState: State = {
 	errorMessage: null,
-	processingStatus: DocumentProcessingStatus.IDLE,
 	selectedFile: null,
 };
 
@@ -21,22 +20,22 @@ const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
 		builder.addCase(processDocument.pending, (state) => {
 			state.errorMessage = null;
-			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 
 			if (state.selectedFile) {
 				state.selectedFile.status = DocumentProcessingStatus.PROCESSING;
 				state.selectedFile.progress = IN_PROGRESS_PERCENTAGE;
 			}
 		});
+
 		builder.addCase(processDocument.fulfilled, (state, action) => {
 			if (!state.selectedFile || state.selectedFile.id !== action.meta.arg.id) {
 				return;
 			}
 
 			state.errorMessage = null;
-			state.processingStatus = DocumentProcessingStatus.SUCCESS;
 			state.selectedFile = action.payload;
 		});
+
 		builder.addCase(processDocument.rejected, (state, action) => {
 			if (!state.selectedFile || state.selectedFile.id !== action.meta.arg.id) {
 				return;
@@ -44,7 +43,6 @@ const { actions, name, reducer } = createSlice({
 
 			state.errorMessage =
 				action.error.message ?? DocumentValidationMessage.PROCESSING_FAILED;
-			state.processingStatus = DocumentProcessingStatus.FAILED;
 			state.selectedFile.status = DocumentProcessingStatus.FAILED;
 		});
 	},
@@ -56,7 +54,6 @@ const { actions, name, reducer } = createSlice({
 		},
 		removeDocument(state) {
 			state.errorMessage = null;
-			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFile = null;
 		},
 		resetState() {
@@ -64,7 +61,6 @@ const { actions, name, reducer } = createSlice({
 		},
 		setError(state, action: PayloadAction<string>) {
 			state.errorMessage = action.payload;
-			state.processingStatus = DocumentProcessingStatus.FAILED;
 			state.selectedFile = null;
 		},
 		startProcessing(
@@ -74,7 +70,6 @@ const { actions, name, reducer } = createSlice({
 			const { id, name, size } = action.payload;
 
 			state.errorMessage = null;
-			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 			state.selectedFile = {
 				id,
 				name,

@@ -12,6 +12,7 @@ import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-
 
 // const PROJECT_ICON_SIZE = 18;
 const MOBILE_NAV_ICON_SIZE = 16;
+const ADD_KNOWLEDGE_ICON_SIZE = 16;
 
 type NavItem = {
 	icon: React.ReactNode;
@@ -22,7 +23,7 @@ type NavItem = {
 
 type SidebarProperties = {
 	projectName: string;
-	role: string;
+	role: ValueOf<typeof ProjectMemberRole>;
 };
 
 const primaryNavItems: NavItem[] = [
@@ -114,7 +115,8 @@ const Sidebar: React.FC<SidebarProperties> = ({
 }: SidebarProperties) => {
 	const { hideModal, isOpen, showModal } = useModal();
 
-	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
+	const canAddKnowledge =
+		role === ProjectMemberRole.ADMIN || role === ProjectMemberRole.EDITOR;
 
 	return (
 		<aside className="hidden h-full tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
@@ -139,6 +141,15 @@ const Sidebar: React.FC<SidebarProperties> = ({
 			<div className="mt-auto flex flex-col gap-2.5 border-t border-border-subtle pt-3.5">
 				{canAddKnowledge && (
 					<>
+						<Button
+							aria-label="Add Knowledge"
+							className="hidden tablet:inline-flex desktop:hidden"
+							onClick={showModal}
+							variant="icon"
+						>
+							<Icon name="add-knowledge" size={ADD_KNOWLEDGE_ICON_SIZE} />
+						</Button>
+
 						<Button
 							className="hidden desktop:inline-flex"
 							onClick={showModal}
