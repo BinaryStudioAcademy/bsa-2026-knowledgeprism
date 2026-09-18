@@ -10,9 +10,6 @@ import { AppRoute } from "~/lib/enums/enums.js";
 
 const HEADER_BREAKPOINT_VARIABLE = "--breakpoint-tablet";
 
-const CUSTOM_HEADER_CLASS_NAME =
-	"h-[57px] shrink-0 border-b border-border bg-surface px-[18px] tablet:h-[65px] tablet:px-[28px]";
-
 type CustomHeaderProperties = {
 	children: ReactNode;
 };
@@ -37,7 +34,11 @@ const getHeaderClassName = tv({
 const CustomHeader: React.FC<CustomHeaderProperties> = ({
 	children,
 }: CustomHeaderProperties) => {
-	return <header className={CUSTOM_HEADER_CLASS_NAME}>{children}</header>;
+	return (
+		<header className="h-[57px] shrink-0 border-b border-border bg-surface px-[18px] tablet:h-[65px] tablet:px-[28px]">
+			{children}
+		</header>
+	);
 };
 
 const DefaultHeader: React.FC = () => {
