@@ -24,6 +24,11 @@ export {
 	type ManualTextRouteParametersDto,
 } from "./modules/documents/documents.js";
 export {
+	type KnowledgeEntryResponseDto,
+	type KnowledgeEntryRouteParametersDto,
+	type KnowledgeEntryUpdateRequestDto,
+} from "./modules/knowledge/knowledge.js";
+export {
 	type ProjectCreateRequestDto,
 	type ProjectMemberCreateRequestDto,
 	type ProjectMemberResponseDto,
@@ -32,11 +37,6 @@ export {
 	type ProjectRouteParametersDto,
 	type ProjectUpdateRequestDto,
 } from "./modules/projects/projects.js";
-export {
-	type KnowledgeEntryResponseDto,
-	type KnowledgeEntryRouteParametersDto,
-	type KnowledgeEntryUpdateRequestDto,
-} from "./modules/knowledge/knowledge.js";
 export {
 	type ProjectAssignmentDto,
 	type UserCreateRequestDto,
