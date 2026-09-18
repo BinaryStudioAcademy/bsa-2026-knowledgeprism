@@ -13,6 +13,7 @@ export {
 export {
 	type AskPrismRequestDto,
 	type AskPrismResponseDto,
+	type AskPrismRouteParametersDto,
 	type AskPrismSourceDto,
 } from "./modules/ask-prism/ask-prism.js";
 export {
