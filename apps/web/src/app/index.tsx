@@ -5,6 +5,7 @@ import "~/styles/styles.css";
 import { StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
+import { AskPrismView } from "~/modules/ask-prism/ask-prism.js";
 import { actions as authActions } from "~/modules/auth/auth.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { KnowledgeSearchPage } from "~/modules/knowledge/components/components.js";
@@ -66,6 +67,10 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 						children: [
 							{
 								children: [
+									{
+										element: <AskPrismView />,
+										path: AppRoute.ASK_PRISM,
+									},
 									{
 										element: <AccountSettingsPage />,
 										path: AppRoute.SETTINGS,

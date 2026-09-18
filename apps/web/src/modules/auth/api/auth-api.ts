@@ -38,6 +38,7 @@ class AuthApi extends BaseHTTPApi {
 			contentType: ContentType.JSON,
 			hasAuth: false,
 			method: "POST",
+			payload: JSON.stringify({}),
 		});
 	}
 
