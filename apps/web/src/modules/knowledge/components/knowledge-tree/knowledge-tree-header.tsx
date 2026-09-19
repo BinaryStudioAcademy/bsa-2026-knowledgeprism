@@ -1,7 +1,8 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React, { useCallback } from "react";
 
+import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
+import { useNavigate } from "~/hooks/hooks.js";
 
 type BreadcrumbsProperties = {
 	breadcrumbs: string[];
@@ -9,6 +10,7 @@ type BreadcrumbsProperties = {
 
 type Properties = {
 	breadcrumbs: string[];
+	canEdit?: boolean;
 	onOpenSidebar: () => void;
 };
 
@@ -38,37 +40,42 @@ const KnowledgeTreeBreadcrumbs: React.FC<BreadcrumbsProperties> = ({
 
 const KnowledgeTreeHeader: React.FC<Properties> = ({
 	breadcrumbs,
+	canEdit = false,
 	onOpenSidebar,
 }: Properties) => {
+	const navigate = useNavigate();
 	const INDEX_OFFSET = 1;
 	const currentFileName = breadcrumbs[breadcrumbs.length - INDEX_OFFSET];
+
+	const handleEditClick = useCallback(() => {
+		void navigate("edit");
+	}, [navigate]);
 
 	return (
 		<div className="relative flex items-center justify-between border-b border-border bg-surface px-4 py-4 @5xl:px-8">
 			{/* Mobile/Tablet: Left Button */}
-			<button
-				className="flex items-center justify-center p-2 text-text-muted transition-colors hover:text-text @5xl:hidden"
+			<Button
+				className="flex @5xl:hidden"
 				onClick={onOpenSidebar}
-				type="button"
+				variant="icon"
 			>
 				<Icon name="filter" size={16} />
-			</button>
+			</Button>
 
 			{/* Desktop: Breadcrumbs */}
 			<KnowledgeTreeBreadcrumbs breadcrumbs={breadcrumbs} />
 
 			{/* Mobile/Tablet: Centered Title */}
-			<div className="absolute left-1/2 -translate-x-1/2 text-control font-medium text-text @5xl:hidden">
+			<div className="absolute left-1/2 -translate-x-1/2 font-medium text-text text-control @5xl:hidden">
 				{currentFileName}
 			</div>
 
 			<div className="flex items-center gap-3.5">
-				<Link
-					className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 font-sans text-[13px] font-medium text-primary-fg transition-colors hover:bg-primary-hover"
-					to="edit"
-				>
-					Edit
-				</Link>
+				{canEdit && (
+					<Button onClick={handleEditClick} variant="primary">
+						Edit
+					</Button>
+				)}
 			</div>
 		</div>
 	);
