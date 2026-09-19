@@ -1,0 +1,75 @@
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper .bn-editor {
+	padding: 0;
+	background: transparent;
+}
+
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper
+	.bn-block-content[data-content-type="heading"][data-level="1"] {
+	margin-top: 24px;
+	margin-bottom: 14px;
+	font-family: var(--font-serif);
+	font-size: var(--text-h2);
+	font-weight: 400;
+	color: var(--color-text);
+}
+
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper
+	.bn-block-content[data-content-type="heading"][data-level="2"] {
+	margin-top: 20px;
+	margin-bottom: 12px;
+	font-family: var(--font-serif);
+	font-size: var(--text-h3);
+	font-weight: 400;
+	color: var(--color-text);
+}
+
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper
+	.bn-block-content[data-content-type="heading"][data-level="3"] {
+	margin-top: 16px;
+	margin-bottom: 10px;
+	font-family: var(--font-sans);
+	font-size: var(--text-h4);
+	font-weight: 500;
+	color: var(--color-text);
+}
+
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper
+	.bn-block-content[data-content-type="paragraph"],
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper
+	.bn-block-content[data-content-type="bulletListItem"],
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper
+	.bn-block-content[data-content-type="numberedListItem"],
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper
+	.bn-block-content[data-content-type="checkListItem"],
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper
+	.bn-block-content[data-content-type="toggleListItem"] {
+	margin-bottom: 12px;
+	font-family: var(--font-sans);
+	font-size: var(--text-body);
+	line-height: 1.7;
+	color: var(--color-text);
+}
+
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper
+	.bn-block-content[data-content-type="codeBlock"] {
+	margin-bottom: 16px;
+	font-family: var(--font-mono);
+	font-size: var(--text-sm);
+	color: var(--color-primary-fg);
+	background-color: var(--color-primary);
+}
+
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper
+	.bn-block-content[data-content-type="quote"] {
+	margin-bottom: 16px;
+	font-style: italic;
+	color: var(--color-text-muted);
+	border-left-color: var(--color-border);
+}
+
+.knowledge-tree-editor-wrapper.knowledge-tree-editor-wrapper
+	.bn-inline-content {
+	font-family: inherit;
+	font-size: inherit;
+	color: inherit;
+}

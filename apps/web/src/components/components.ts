@@ -25,3 +25,10 @@ export { Toggle } from "./toggle/toggle.js";
 export { type UploadFile, Upload } from "./upload/upload.js";
 export { Provider as StoreProvider } from "react-redux";
 export { Outlet as RouterOutlet } from "react-router-dom";
+
+// TODO: Remove these temporary exports once the Knowledge Base routing is merged
+export { KnowledgeTreeContent } from "~/modules/knowledge/components/knowledge-tree/knowledge-tree-content.js";
+export { KnowledgeTreeHeader } from "~/modules/knowledge/components/knowledge-tree/knowledge-tree-header.js";
+export { KnowledgeTreeLayout } from "~/modules/knowledge/components/knowledge-tree/knowledge-tree-layout.js";
+export { KnowledgeTreeSidebar } from "~/modules/knowledge/components/knowledge-tree/knowledge-tree-sidebar.js";
+export { mockKnowledgeTreeResponse } from "~/modules/knowledge/libs/mock-knowledge-tree.js";
