@@ -18,4 +18,8 @@ const recentKnowledgeController = new RecentKnowledgeController(
 	knowledgeService,
 );
 
-export { knowledgeController, recentKnowledgeController };
+export {
+	knowledgeController,
+	knowledgeNodeRepository,
+	recentKnowledgeController,
+};

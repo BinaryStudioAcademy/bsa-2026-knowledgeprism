@@ -17,6 +17,26 @@ class KnowledgeNodeRepository {
 		this.knowledgeNodeModel = knowledgeNodeModel;
 	}
 
+	public async findAllByProjectId(
+		projectId: number,
+	): Promise<KnowledgeNodeEntity[]> {
+		const nodes = await this.knowledgeNodeModel
+			.query()
+			.where("projectId", projectId)
+			.execute();
+
+		return nodes.map((node) =>
+			KnowledgeNodeEntity.initialize({
+				contentJson: node.contentJson,
+				createdAt: node.createdAt.toISOString(),
+				id: node.id,
+				projectId: node.projectId,
+				title: node.title,
+				updatedAt: node.updatedAt.toISOString(),
+			}),
+		);
+	}
+
 	public async findById(id: number): Promise<KnowledgeNodeEntity | null> {
 		const node = await this.knowledgeNodeModel.query().findById(id).execute();
 
