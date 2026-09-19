@@ -10,11 +10,13 @@ import { KnowledgeTreeHeader } from "./knowledge-tree-header.js";
 import { KnowledgeTreeSidebar } from "./knowledge-tree-sidebar.js";
 
 type Properties = {
+	canEdit?: boolean;
 	entries: Record<number, KnowledgeEntryResponseDto>;
 	items: KnowledgeTreeItemResponseDto[];
 };
 
 const KnowledgeTreeLayout: React.FC<Properties> = ({
+	canEdit = false,
 	entries,
 	items,
 }: Properties) => {
@@ -75,6 +77,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			<div className="flex min-w-0 flex-1 flex-col overflow-hidden">
 				<KnowledgeTreeHeader
 					breadcrumbs={breadcrumbs}
+					canEdit={canEdit}
 					onOpenSidebar={handleOpenSidebar}
 				/>
 				{selectedEntry ? (

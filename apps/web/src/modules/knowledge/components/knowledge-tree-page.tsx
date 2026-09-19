@@ -15,6 +15,7 @@ const mockEntries = {
 const KnowledgeTreePage: React.FC = () => {
 	return (
 		<KnowledgeTreeLayout
+			canEdit={true}
 			entries={mockEntries}
 			items={mockKnowledgeTreeResponse.items}
 		/>

@@ -13,6 +13,7 @@ type Properties = {
 	items: KnowledgeTreeItemResponseDto[];
 	level?: number | undefined;
 	onSelect: (id: number) => void;
+	searchQuery?: string | undefined;
 	selectedId?: number | undefined;
 };
 
@@ -21,6 +22,40 @@ const BASE_PADDING = 10;
 const LEVEL_MULTIPLIER = 16;
 const EMPTY_LENGTH = 0;
 const LEVEL_INCREMENT = 1;
+const NOT_FOUND_INDEX = -1;
+const START_INDEX = 0;
+
+type HighlightedTextProperties = {
+	highlight?: string | undefined;
+	text: string;
+};
+
+const HighlightedText: React.FC<HighlightedTextProperties> = ({
+	highlight = "",
+	text,
+}: HighlightedTextProperties) => {
+	if (!highlight) {
+		return <span className="truncate">{text}</span>;
+	}
+
+	const matchIndex = text.toLowerCase().indexOf(highlight.toLowerCase());
+
+	if (matchIndex === NOT_FOUND_INDEX) {
+		return <span className="truncate">{text}</span>;
+	}
+
+	const beforeString = text.slice(START_INDEX, matchIndex);
+	const matchString = text.slice(matchIndex, matchIndex + highlight.length);
+	const afterString = text.slice(matchIndex + highlight.length);
+
+	return (
+		<span className="truncate">
+			{beforeString}
+			<span className="bg-accent/20 text-accent">{matchString}</span>
+			{afterString}
+		</span>
+	);
+};
 
 const treeItemVariants = tv({
 	base: "flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-2 text-sm transition-colors",
@@ -37,6 +72,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 	items,
 	level = DEFAULT_LEVEL,
 	onSelect,
+	searchQuery = "",
 	selectedId,
 }: Properties) => {
 	const children = items
@@ -78,7 +114,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 				) : (
 					<Icon name="file-rounded" size={12} />
 				)}
-				<span className="truncate">{item.title}</span>
+				<HighlightedText highlight={searchQuery} text={item.title} />
 			</button>
 
 			{isSection && isExpanded && children.length > EMPTY_LENGTH && (
@@ -90,6 +126,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 							key={child.id}
 							level={level + LEVEL_INCREMENT}
 							onSelect={onSelect}
+							searchQuery={searchQuery}
 							selectedId={selectedId}
 						/>
 					))}

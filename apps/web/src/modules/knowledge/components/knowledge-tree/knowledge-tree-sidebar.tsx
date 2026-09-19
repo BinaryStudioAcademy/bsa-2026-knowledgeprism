@@ -95,6 +95,7 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 								items={filteredItems}
 								key={item.id}
 								onSelect={handleSelectPage}
+								searchQuery={searchQuery}
 								selectedId={selectedPageId}
 							/>
 						))
