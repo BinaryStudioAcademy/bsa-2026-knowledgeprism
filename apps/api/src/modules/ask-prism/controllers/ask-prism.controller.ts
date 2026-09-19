@@ -71,6 +71,20 @@ class AskPrismController extends BaseController {
 				params: askPrismRouteParametersValidationSchema,
 			},
 		});
+
+		this.addRoute({
+			handler: (options) =>
+				this.getSuggestedQuestions(
+					options as APIHandlerOptions<{
+						params: AskPrismRouteParametersDto;
+					}>,
+				),
+			method: "GET",
+			path: AskPrismApiPath.SUGGESTIONS,
+			validation: {
+				params: askPrismRouteParametersValidationSchema,
+			},
+		});
 	}
 
 	/**
@@ -104,14 +118,59 @@ class AskPrismController extends BaseController {
 			params: AskPrismRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		// Mock session unused currently since assertProjectAccess is disabled in Phase 3.
-		// TODO: Restore these when integrating with project permissions in Phase 4.
-		// const { organisationId, userId } = options.session;
+		const { organisationId, userId } = options.session;
 
 		// TODO: Add basic rate limiting to protect GPU capacity as recommended in Technical Documentation
 
 		return {
-			payload: await this.askPrismService.generateAnswer(options.body.query),
+			payload: await this.askPrismService.generateAnswer(
+				options.params.projectId,
+				options.body.query,
+				{
+					organisationId: organisationId as number,
+					userId: userId as number,
+				},
+			),
+			status: HTTPCode.OK,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/ask-prism/suggestions:
+	 *    get:
+	 *      description: Get suggested questions based on project knowledge
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: string
+	 *      responses:
+	 *        200:
+	 *          description: Suggestions generated successfully
+	 *          content:
+	 *            application/json:
+	 *              schema:
+	 *                type: array
+	 *                items:
+	 *                  type: string
+	 */
+	private async getSuggestedQuestions(
+		options: APIHandlerOptions<{
+			params: AskPrismRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		const { organisationId, userId } = options.session;
+
+		return {
+			payload: await this.askPrismService.getSuggestedQuestions(
+				options.params.projectId,
+				{
+					organisationId: organisationId as number,
+					userId: userId as number,
+				},
+			),
 			status: HTTPCode.OK,
 		};
 	}
