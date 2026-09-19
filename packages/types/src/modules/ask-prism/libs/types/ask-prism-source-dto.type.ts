@@ -1,4 +1,5 @@
 type AskPrismSourceDto = {
+	excerpt: string;
 	id: number | string;
 	nodeId: number | string;
 	sectionTitle: string;

@@ -148,6 +148,7 @@ class AskPrismService {
 		return {
 			answer,
 			sources: matches.map((match) => ({
+				excerpt: match.item.content,
 				id: match.item.id,
 				nodeId: match.item.nodeId,
 				sectionTitle: match.item.sectionTitle,
