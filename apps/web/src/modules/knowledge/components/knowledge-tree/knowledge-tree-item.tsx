@@ -69,8 +69,10 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 	const handleToggle = useCallback(
 		(event_: React.MouseEvent) => {
 			event_.stopPropagation();
-			if (isSection && !isSearching) {
-				setIsManuallyExpanded((previous) => !previous);
+			if (isSection) {
+				if (!isSearching) {
+					setIsManuallyExpanded((previous) => !previous);
+				}
 			} else {
 				onSelect(item.id);
 			}

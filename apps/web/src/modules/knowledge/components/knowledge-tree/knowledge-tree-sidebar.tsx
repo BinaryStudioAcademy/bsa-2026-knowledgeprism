@@ -1,9 +1,9 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { tv } from "tailwind-variants";
 
 import { filterKnowledgeTree } from "../../libs/helpers/helpers.js";
 import { type KnowledgeTreeItemResponseDto } from "../../libs/mock-knowledge-tree.js";
-import { EMPTY_LENGTH, MIN_INDEX } from "./constants.js";
+import { EMPTY_LENGTH, FALLBACK_TIMEOUT_MS, MIN_INDEX } from "./constants.js";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
 import { KnowledgeTreeSearchBar } from "./knowledge-tree-search-bar.js";
 
@@ -51,6 +51,30 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 	const currentFocusId = isFocusedNodeVisible
 		? (focusedNodeId ?? selectedPageId)
 		: rootItems[MIN_INDEX]?.id;
+
+	useEffect(() => {
+		if (currentFocusId === undefined) {
+			return;
+		}
+
+		const expectedFocusElement = document.querySelector(
+			`#knowledge-tree-root [data-id="${CSS.escape(String(currentFocusId))}"]`,
+		);
+
+		if (!expectedFocusElement) {
+			const firstVisibleItem = document.querySelector(
+				"#knowledge-tree-root [role='treeitem']",
+			);
+			if (firstVisibleItem) {
+				const fallbackId = Number(
+					(firstVisibleItem as HTMLElement).dataset["id"],
+				);
+				setTimeout(() => {
+					setFocusedNodeId(fallbackId);
+				}, FALLBACK_TIMEOUT_MS);
+			}
+		}
+	}, [currentFocusId, searchQuery]);
 
 	const handleSearchChange = useCallback(
 		(event_: React.ChangeEvent<HTMLInputElement>) => {
