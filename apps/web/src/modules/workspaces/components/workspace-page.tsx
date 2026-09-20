@@ -101,6 +101,14 @@ const CreateProjectModal: React.FC<CreateProjectModalProperties> = ({
 	onClose,
 	onSubmit,
 }) => {
+	const handleClose = useCallback((): void => {
+		if (isSubmitting) {
+			return;
+		}
+
+		onClose();
+	}, [isSubmitting, onClose]);
+
 	const handleCreate = useCallback(
 		(payload: ProjectFormValue): void => {
 			onSubmit({
@@ -112,7 +120,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProperties> = ({
 	);
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title="New Project">
+		<Modal isOpen={isOpen} onClose={handleClose} title="New Project">
 			<ProjectManagmentModalForm
 				error={error}
 				isSubmitting={isSubmitting}
@@ -131,6 +139,14 @@ const EditProjectModal: React.FC<EditProjectModalProperties> = ({
 	onSubmit,
 	project,
 }) => {
+	const handleClose = useCallback((): void => {
+		if (isSubmitting) {
+			return;
+		}
+
+		onClose();
+	}, [isSubmitting, onClose]);
+
 	const handleUpdate = useCallback(
 		(payload: ProjectFormValue): void => {
 			onSubmit({
@@ -143,7 +159,7 @@ const EditProjectModal: React.FC<EditProjectModalProperties> = ({
 	);
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose} title="Edit Project">
+		<Modal isOpen={isOpen} onClose={handleClose} title="Edit Project">
 			<ProjectManagmentModalForm
 				error={error}
 				initialValues={{
@@ -332,9 +348,13 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	}, []);
 
 	const handleCloseCreateModal = useCallback((): void => {
+		if (isCreating) {
+			return;
+		}
+
 		dispatch(workspacesActions.clearCreationError());
 		setIsCreateModalOpen(false);
-	}, [dispatch]);
+	}, [dispatch, isCreating]);
 
 	const handleSubmitCreateModal = useCallback(
 		(payload: CreateProjectPayload): void => {
@@ -350,9 +370,13 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	);
 
 	const handleCloseEditModal = useCallback((): void => {
+		if (isUpdating) {
+			return;
+		}
+
 		dispatch(workspacesActions.clearUpdateError());
 		setEditingProject(null);
-	}, [dispatch]);
+	}, [dispatch, isUpdating]);
 
 	const handleSubmitEditModal = useCallback(
 		(payload: UpdateProjectPayload): void => {
