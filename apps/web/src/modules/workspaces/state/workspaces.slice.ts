@@ -49,8 +49,15 @@ const deleteProject = createAsyncThunk<
 	}
 >(
 	"workspaces/deleteProject",
-	async ({ api, id }: { api: WorkspacesApi; id: string }) => {
-		await api.deleteProject(id);
+	async (
+		{ api, id }: { api: WorkspacesApi; id: string },
+		{ rejectWithValue },
+	) => {
+		const isDeleted = await api.deleteProject(id);
+
+		if (!isDeleted) {
+			return rejectWithValue(false);
+		}
 
 		return id;
 	},
