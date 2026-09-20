@@ -135,20 +135,32 @@ const LandingHeader: React.FC = () => {
 						</a>
 					))}
 					<div className={getValidClassNames("flex items-center gap-2.5")}>
-						<Button
-							className={getValidClassNames("px-3.5 py-2.25")}
-							onClick={handleSignIn}
-							variant="ghost"
-						>
-							{HEADER_LABEL.SIGN_IN}
-						</Button>
-						<Button
-							className={getValidClassNames("px-4.5 py-2.25")}
-							onClick={handleSignUp}
-							variant="primary"
-						>
-							{HEADER_LABEL.SIGN_UP}
-						</Button>
+						{hasUser ? (
+							<Button
+								className={getValidClassNames("flex-1 py-2.5")}
+								onClick={handleGoToWorkspace}
+								variant="primary"
+							>
+								{HEADER_LABEL.GO_TO_WORKSPACE}
+							</Button>
+						) : (
+							<>
+								<Button
+									className={getValidClassNames("px-3.5 py-2.25")}
+									onClick={handleSignIn}
+									variant="ghost"
+								>
+									{HEADER_LABEL.SIGN_IN}
+								</Button>
+								<Button
+									className={getValidClassNames("px-4.5 py-2.25")}
+									onClick={handleSignUp}
+									variant="primary"
+								>
+									{HEADER_LABEL.SIGN_UP}
+								</Button>
+							</>
+						)}
 					</div>
 				</nav>
 
@@ -206,18 +218,6 @@ const LandingHeader: React.FC = () => {
 					<div className={getValidClassNames("mt-1.5 flex gap-2.5")}>
 						{hasUser ? (
 							<>
-								<Button
-									className={getValidClassNames(
-										"flex-1",
-										"border border-border",
-										"py-2.5",
-										"text-error hover:text-error-hover",
-									)}
-									onClick={handleLogout}
-									variant="ghost"
-								>
-									{HEADER_LABEL.LOG_OUT}
-								</Button>
 								<Button
 									className={getValidClassNames("flex-1 py-2.5")}
 									onClick={handleGoToWorkspace}
