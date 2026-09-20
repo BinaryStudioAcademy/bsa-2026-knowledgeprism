@@ -7,7 +7,6 @@ import { type Logger } from "~/infrastructure/logger/logger.js";
 import { type ServerApplicationRouteParameters } from "~/infrastructure/server-application/server-application.js";
 
 import {
-	type APIHandler,
 	type APIHandlerOptions,
 	type Controller,
 	type ControllerRouteParameters,
@@ -46,14 +45,40 @@ class BaseController implements Controller {
 	}
 
 	private async mapHandler(
-		handler: APIHandler,
+		route: ControllerRouteParameters,
 		request: FastifyRequest,
 		reply: FastifyReply,
 	): Promise<void> {
 		this.logger.info(`${request.method.toUpperCase()} on ${request.url}`);
 
 		const handlerOptions = this.mapRequest(request);
-		const { payload, status } = await handler(handlerOptions);
+
+		if (route.allowedRoles) {
+			const { organisationRole, userId } = handlerOptions.session;
+
+			const isAllowedByRole = Boolean(
+				organisationRole && route.allowedRoles.includes(organisationRole),
+			);
+
+			const isSelf = Boolean(
+				userId &&
+				route.allowSelf &&
+				handlerOptions.params &&
+				typeof handlerOptions.params === "object" &&
+				"id" in handlerOptions.params &&
+				Number((handlerOptions.params as Record<string, unknown>)["id"]) ===
+					userId,
+			);
+
+			if (!isAllowedByRole && !isSelf) {
+				throw new HTTPError({
+					message: AuthValidationMessage.FORBIDDEN,
+					status: HTTPCode.FORBIDDEN,
+				});
+			}
+		}
+
+		const { payload, status } = await route.handler(handlerOptions);
 
 		return await reply.status(status).send(payload);
 	}
@@ -70,12 +95,12 @@ class BaseController implements Controller {
 	}
 
 	public addRoute(options: ControllerRouteParameters): void {
-		const { handler, path } = options;
+		const { path } = options;
 		const fullPath = this.apiUrl + path;
 
 		this.routes.push({
 			...options,
-			handler: (request, reply) => this.mapHandler(handler, request, reply),
+			handler: (request, reply) => this.mapHandler(options, request, reply),
 			path: fullPath,
 		});
 	}

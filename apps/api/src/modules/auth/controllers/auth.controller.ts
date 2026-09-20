@@ -150,6 +150,7 @@ class AuthController extends BaseController {
 		const authResult = await this.authService.signIn(options.body);
 		options.session.userId = authResult.user.id;
 		options.session.organisationId = authResult.organisation.id;
+		options.session.organisationRole = authResult.user.organisationRole;
 
 		if (options.body.rememberMe) {
 			options.session.options({ maxAge: TimeMs.DAY * SESSION_LIFETIME_DAYS });
@@ -159,7 +160,11 @@ class AuthController extends BaseController {
 			>[number]);
 		}
 
-		await options.session.regenerate(["userId", "organisationId"]);
+		await options.session.regenerate([
+			"userId",
+			"organisationId",
+			"organisationRole",
+		]);
 
 		return {
 			payload: authResult,
@@ -227,7 +232,12 @@ class AuthController extends BaseController {
 		const authResult = await this.authService.signUp(options.body);
 		options.session.userId = authResult.user.id;
 		options.session.organisationId = authResult.organisation.id;
-		await options.session.regenerate(["userId", "organisationId"]);
+		options.session.organisationRole = authResult.user.organisationRole;
+		await options.session.regenerate([
+			"userId",
+			"organisationId",
+			"organisationRole",
+		]);
 
 		return {
 			payload: authResult,
