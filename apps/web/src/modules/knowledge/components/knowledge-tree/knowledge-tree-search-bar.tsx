@@ -15,6 +15,7 @@ const KnowledgeTreeSearchBar: React.FC<Properties> = ({
 		<div className="px-3 pb-3">
 			<div className="relative w-full">
 				<input
+					aria-label="Search knowledge base"
 					className="block h-9 w-full appearance-none rounded-md border border-border bg-surface pl-8 pr-3 text-sm text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
 					onChange={onChange}
 					placeholder="Search knowledge base..."

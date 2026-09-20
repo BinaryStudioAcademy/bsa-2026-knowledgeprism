@@ -17,7 +17,7 @@ const KnowledgeTreeContent: React.FC<Properties> = ({ entry }: Properties) => {
 				<div className="mb-7 font-mono text-xs text-text-faint">
 					<span>
 						Last updated:{" "}
-						{new Date(entry.updatedAt).toLocaleDateString("en-GB")}
+						{new Date(entry.updatedAt).toLocaleDateString(undefined)}
 					</span>
 				</div>
 

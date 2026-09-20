@@ -7,54 +7,31 @@ import {
 	KnowledgeNodeType,
 	type KnowledgeTreeItemResponseDto,
 } from "../../libs/mock-knowledge-tree.js";
+import { EMPTY_LENGTH, KNOWLEDGE_TREE_ITEM_CONFIG } from "./constants.js";
+import { HighlightedText } from "./highlighted-text.js";
+import {
+	handleHorizontalNavigation,
+	handleVerticalNavigation,
+} from "./knowledge-tree-keyboard-navigation.js";
+
+const {
+	BASE_PADDING,
+	DEFAULT_LEVEL,
+	LEVEL_INCREMENT,
+	LEVEL_MULTIPLIER,
+	TAB_INDEX_FOCUSABLE,
+	TAB_INDEX_UNFOCUSABLE,
+} = KNOWLEDGE_TREE_ITEM_CONFIG;
 
 type Properties = {
+	focusedNodeId?: number | undefined;
 	item: KnowledgeTreeItemResponseDto;
 	items: KnowledgeTreeItemResponseDto[];
 	level?: number | undefined;
+	onFocus: (id: number) => void;
 	onSelect: (id: number) => void;
 	searchQuery?: string | undefined;
 	selectedId?: number | undefined;
-};
-
-const DEFAULT_LEVEL = 0;
-const BASE_PADDING = 10;
-const LEVEL_MULTIPLIER = 16;
-const EMPTY_LENGTH = 0;
-const LEVEL_INCREMENT = 1;
-const NOT_FOUND_INDEX = -1;
-const START_INDEX = 0;
-
-type HighlightedTextProperties = {
-	highlight?: string | undefined;
-	text: string;
-};
-
-const HighlightedText: React.FC<HighlightedTextProperties> = ({
-	highlight = "",
-	text,
-}: HighlightedTextProperties) => {
-	if (!highlight) {
-		return <span className="truncate">{text}</span>;
-	}
-
-	const matchIndex = text.toLowerCase().indexOf(highlight.toLowerCase());
-
-	if (matchIndex === NOT_FOUND_INDEX) {
-		return <span className="truncate">{text}</span>;
-	}
-
-	const beforeString = text.slice(START_INDEX, matchIndex);
-	const matchString = text.slice(matchIndex, matchIndex + highlight.length);
-	const afterString = text.slice(matchIndex + highlight.length);
-
-	return (
-		<span className="truncate">
-			{beforeString}
-			<span className="bg-accent/20 text-accent">{matchString}</span>
-			{afterString}
-		</span>
-	);
 };
 
 const treeItemVariants = tv({
@@ -68,9 +45,11 @@ const treeItemVariants = tv({
 });
 
 const KnowledgeTreeItem: React.FC<Properties> = ({
+	focusedNodeId,
 	item,
 	items,
 	level = DEFAULT_LEVEL,
+	onFocus,
 	onSelect,
 	searchQuery = "",
 	selectedId,
@@ -81,50 +60,83 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 
 	const isSection = item.type === KnowledgeNodeType.SECTION;
 	const isSelected = selectedId === item.id;
-	const [isExpanded, setIsExpanded] = useState(true);
+	const isFocused = focusedNodeId === item.id;
+	const isSearching = searchQuery.trim() !== "";
+	const [isManuallyExpanded, setIsManuallyExpanded] = useState(true);
+
+	const isExpanded = isSearching || isManuallyExpanded;
 
 	const handleToggle = useCallback(
 		(event_: React.MouseEvent) => {
 			event_.stopPropagation();
-			if (isSection) {
-				setIsExpanded((previous) => !previous);
+			if (isSection && !isSearching) {
+				setIsManuallyExpanded((previous) => !previous);
 			} else {
 				onSelect(item.id);
 			}
+			onFocus(item.id);
 		},
-		[isSection, item.id, onSelect],
+		[isSection, item.id, onSelect, onFocus, isSearching],
 	);
 
-	const paddingValue = Math.max(
-		BASE_PADDING,
-		level * LEVEL_MULTIPLIER + BASE_PADDING,
+	const handleKeyDown = useCallback(
+		(event_: React.KeyboardEvent<HTMLButtonElement>) => {
+			if (event_.key === "ArrowRight" || event_.key === "ArrowLeft") {
+				handleHorizontalNavigation({
+					children,
+					event_,
+					isExpanded,
+					isSection,
+					item,
+					onFocus,
+					setIsExpanded: setIsManuallyExpanded,
+				});
+				return;
+			}
+
+			if (event_.key === "ArrowDown" || event_.key === "ArrowUp") {
+				event_.preventDefault();
+				handleVerticalNavigation(item.id, event_.key, onFocus);
+			}
+		},
+		[isSection, isExpanded, children, item, onFocus],
 	);
+
+	const paddingValue = level * LEVEL_MULTIPLIER + BASE_PADDING;
 	const paddingLeftString = `${String(paddingValue)}px`;
 
 	return (
-		<div className="flex flex-col gap-0.5">
+		<div className="flex flex-col gap-0.5" role="none">
 			<button
+				aria-expanded={isSection ? isExpanded : undefined}
+				aria-selected={isSelected}
 				className={treeItemVariants({ isSelected })}
+				data-id={item.id}
 				onClick={handleToggle}
+				onKeyDown={handleKeyDown}
+				role="treeitem"
 				style={{ paddingLeft: paddingLeftString }}
+				tabIndex={isFocused ? TAB_INDEX_FOCUSABLE : TAB_INDEX_UNFOCUSABLE}
 				type="button"
 			>
 				{isSection ? (
-					<Icon name="folder" size={13} />
+					<Icon aria-hidden="true" name="folder" size={13} />
 				) : (
-					<Icon name="file-rounded" size={12} />
+					<Icon aria-hidden="true" name="file-rounded" size={12} />
 				)}
 				<HighlightedText highlight={searchQuery} text={item.title} />
 			</button>
 
 			{isSection && isExpanded && children.length > EMPTY_LENGTH && (
-				<div className="flex flex-col gap-0.5">
+				<div className="flex flex-col gap-0.5" role="group">
 					{children.map((child) => (
 						<KnowledgeTreeItem
+							focusedNodeId={focusedNodeId}
 							item={child}
 							items={items}
 							key={child.id}
 							level={level + LEVEL_INCREMENT}
+							onFocus={onFocus}
 							onSelect={onSelect}
 							searchQuery={searchQuery}
 							selectedId={selectedId}

@@ -1,3 +1,4 @@
+import { EMPTY_LENGTH } from "../../components/knowledge-tree/constants.js";
 import { type KnowledgeTreeItemResponseDto } from "../mock-knowledge-tree.js";
 
 const filterKnowledgeTree = (
@@ -28,8 +29,6 @@ const filterKnowledgeTree = (
 			current = items.find((item) => item.id === current)?.parentId ?? null;
 		}
 	}
-
-	const EMPTY_LENGTH = 0;
 
 	const queue = [...directMatches];
 	while (queue.length > EMPTY_LENGTH) {

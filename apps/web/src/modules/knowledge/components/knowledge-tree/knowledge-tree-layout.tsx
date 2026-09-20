@@ -4,6 +4,7 @@ import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
 } from "../../libs/mock-knowledge-tree.js";
+import { EMPTY_LENGTH } from "./constants.js";
 import { KnowledgeTreeContent } from "./knowledge-tree-content.js";
 import { KnowledgeTreeEmptyState } from "./knowledge-tree-empty-state.js";
 import { KnowledgeTreeHeader } from "./knowledge-tree-header.js";
@@ -13,16 +14,17 @@ type Properties = {
 	canEdit?: boolean;
 	entries: Record<number, KnowledgeEntryResponseDto>;
 	items: KnowledgeTreeItemResponseDto[];
+	onSelectPage: (id: number) => void;
+	selectedPageId?: number | undefined;
 };
 
 const KnowledgeTreeLayout: React.FC<Properties> = ({
 	canEdit = false,
 	entries,
 	items,
+	onSelectPage,
+	selectedPageId,
 }: Properties) => {
-	const [selectedPageId, setSelectedPageId] = useState<number | undefined>(
-		items.find((item) => item.type === "PAGE" || item.type === "ENTRY")?.id,
-	);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 	const breadcrumbs = useMemo(() => {
@@ -33,7 +35,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		let currentId: null | number = selectedPageId;
 
 		while (currentId !== null) {
-			const item = items.find((index) => index.id === currentId);
+			const item = items.find((item) => item.id === currentId);
 			if (item) {
 				path.unshift(item.title);
 				currentId = item.parentId;
@@ -53,8 +55,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		setIsSidebarOpen(false);
 	}, []);
 
-	const EMPTY_LENGTH = 0;
-
 	if (items.length === EMPTY_LENGTH) {
 		return (
 			<div className="flex h-full w-full bg-bg">
@@ -71,7 +71,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				isOpen={isSidebarOpen}
 				items={items}
 				onClose={handleCloseSidebar}
-				onSelectPage={setSelectedPageId}
+				onSelectPage={onSelectPage}
 				selectedPageId={selectedPageId}
 			/>
 			<div className="flex min-w-0 flex-1 flex-col overflow-hidden">

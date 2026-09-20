@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 import {
 	mockKnowledgeEntryCamera,
@@ -13,11 +13,23 @@ const mockEntries = {
 };
 
 const KnowledgeTreePage: React.FC = () => {
+	const [selectedPageId, setSelectedPageId] = useState<number | undefined>(
+		() => {
+			const firstPage = mockKnowledgeTreeResponse.items.find(
+				(item) => item.type === "PAGE" || item.type === "ENTRY",
+			);
+
+			return firstPage?.id;
+		},
+	);
+
 	return (
 		<KnowledgeTreeLayout
 			canEdit={true}
 			entries={mockEntries}
 			items={mockKnowledgeTreeResponse.items}
+			onSelectPage={setSelectedPageId}
+			selectedPageId={selectedPageId}
 		/>
 	);
 };

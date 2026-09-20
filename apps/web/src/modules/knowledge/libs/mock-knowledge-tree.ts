@@ -3,12 +3,6 @@
  *
  * This file contains mock data simulating the backend API responses from the
  * `38-feat-knowledge-base-tree` branch.
- *
- * When the backend is merged:
- * 1. Delete this file.
- * 2. In your components, replace imports of these mock types with the actual types
- *    exported from `@knowledgeprism/types`.
- * 3. Replace usage of the mock data with RTK Query hooks (e.g., `useGetKnowledgeTreeQuery()`).
  */
 
 const KnowledgeNodeType = {

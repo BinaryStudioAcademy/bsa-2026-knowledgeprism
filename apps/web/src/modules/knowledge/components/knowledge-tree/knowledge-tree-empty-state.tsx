@@ -1,8 +1,6 @@
 import { Icon } from "~/components/components.js";
 
-type Properties = Record<string, never>;
-
-const KnowledgeTreeEmptyState: React.FC<Properties> = () => {
+const KnowledgeTreeEmptyState = () => {
 	return (
 		<div className="flex flex-1 items-center justify-center p-6">
 			<div className="empty-state w-full max-w-sm">

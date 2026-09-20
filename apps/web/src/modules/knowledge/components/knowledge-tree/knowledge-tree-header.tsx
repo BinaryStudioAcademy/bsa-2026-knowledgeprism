@@ -4,9 +4,7 @@ import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
 import { useNavigate } from "~/hooks/hooks.js";
 
-type BreadcrumbsProperties = {
-	breadcrumbs: string[];
-};
+import { ARRAY_OFFSET } from "./constants.js";
 
 type Properties = {
 	breadcrumbs: string[];
@@ -14,27 +12,60 @@ type Properties = {
 	onOpenSidebar: () => void;
 };
 
-const KnowledgeTreeBreadcrumbs: React.FC<BreadcrumbsProperties> = ({
-	breadcrumbs,
-}: BreadcrumbsProperties) => {
-	const INDEX_OFFSET = 1;
+const MobileSidebarToggle = ({
+	onOpenSidebar,
+}: {
+	onOpenSidebar: () => void;
+}) => (
+	<Button
+		aria-label="Toggle sidebar"
+		className="flex @5xl:hidden"
+		onClick={onOpenSidebar}
+		variant="icon"
+	>
+		<Icon aria-hidden="true" name="filter" size={16} />
+	</Button>
+);
+
+const MobileCenteredTitle = ({ title }: { title: string | undefined }) => {
+	if (!title) {
+		return null;
+	}
 
 	return (
-		<div className="hidden items-center gap-2 text-[13px] text-text-muted @5xl:flex">
+		<div className="absolute left-1/2 -translate-x-1/2 font-medium text-text text-control @5xl:hidden">
+			{title}
+		</div>
+	);
+};
+
+const KnowledgeTreeBreadcrumbs = ({
+	breadcrumbs,
+}: {
+	breadcrumbs: string[];
+}) => {
+	return (
+		<nav
+			aria-label="Breadcrumb"
+			className="hidden items-center gap-2 text-[13px] text-text-muted @5xl:flex"
+		>
 			{breadcrumbs.map((breadcrumb, index) => {
-				const isLast = index === breadcrumbs.length - INDEX_OFFSET;
+				const isLast = index === breadcrumbs.length - ARRAY_OFFSET;
 				return (
-					<React.Fragment key={index}>
+					<React.Fragment key={breadcrumb}>
 						<span
+							aria-current={isLast ? "page" : undefined}
 							className={isLast ? "font-medium text-text" : "text-text-muted"}
 						>
 							{breadcrumb}
 						</span>
-						{!isLast && <Icon name="chevron-filled-right" size={10} />}
+						{!isLast && (
+							<Icon aria-hidden="true" name="chevron-filled-right" size={10} />
+						)}
 					</React.Fragment>
 				);
 			})}
-		</div>
+		</nav>
 	);
 };
 
@@ -44,8 +75,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 	onOpenSidebar,
 }: Properties) => {
 	const navigate = useNavigate();
-	const INDEX_OFFSET = 1;
-	const currentFileName = breadcrumbs[breadcrumbs.length - INDEX_OFFSET];
+	const currentFileName = breadcrumbs.at(-ARRAY_OFFSET);
 
 	const handleEditClick = useCallback(() => {
 		void navigate("edit");
@@ -53,22 +83,9 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 
 	return (
 		<div className="relative flex items-center justify-between border-b border-border bg-surface px-4 py-4 @5xl:px-8">
-			{/* Mobile/Tablet: Left Button */}
-			<Button
-				className="flex @5xl:hidden"
-				onClick={onOpenSidebar}
-				variant="icon"
-			>
-				<Icon name="filter" size={16} />
-			</Button>
-
-			{/* Desktop: Breadcrumbs */}
+			<MobileSidebarToggle onOpenSidebar={onOpenSidebar} />
 			<KnowledgeTreeBreadcrumbs breadcrumbs={breadcrumbs} />
-
-			{/* Mobile/Tablet: Centered Title */}
-			<div className="absolute left-1/2 -translate-x-1/2 font-medium text-text text-control @5xl:hidden">
-				{currentFileName}
-			</div>
+			<MobileCenteredTitle title={currentFileName} />
 
 			<div className="flex items-center gap-3.5">
 				{canEdit && (
