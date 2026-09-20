@@ -83,7 +83,7 @@ interface WorkspacePageProperties {
 	onCreateProject?: (
 		payload: CreateProjectPayload,
 	) => Promise<unknown> | undefined;
-	onDeleteProject?: (id: string) => void;
+	onDeleteProject?: (id: string) => Promise<boolean>;
 	onEditProject?: (
 		payload: UpdateProjectPayload,
 	) => Promise<unknown> | undefined;
@@ -290,16 +290,21 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	const [deletingProjectId, setDeletingProjectId] = useState<null | string>(
 		null,
 	);
+	const [deletedIds, setDeletedIds] = useState<string[]>([]);
 
 	const filterContainerReference = useRef<HTMLDivElement>(null);
 
+	const visibleProjects = useMemo(() => {
+		return localProjects.filter((project) => !deletedIds.includes(project.id));
+	}, [deletedIds, localProjects]);
+
 	const filteredProjects = useMemo(() => {
 		if (selectedRole === "ALL") {
-			return localProjects;
+			return visibleProjects;
 		}
 
-		return localProjects.filter((project) => project.role === selectedRole);
-	}, [localProjects, selectedRole]);
+		return visibleProjects.filter((project) => project.role === selectedRole);
+	}, [selectedRole, visibleProjects]);
 
 	const filterLabel = useMemo(() => {
 		if (selectedRole === "ALL") {
@@ -379,11 +384,19 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 			return;
 		}
 
-		setLocalProjects((previous) =>
-			previous.filter((item) => item.id !== deletingProjectId),
-		);
-		onDeleteProject?.(deletingProjectId);
-		setDeletingProjectId(null);
+		const projectIdToDelete = deletingProjectId;
+
+		void (async (): Promise<void> => {
+			try {
+				const isSuccess = await onDeleteProject?.(projectIdToDelete);
+
+				if (isSuccess) {
+					setDeletedIds((previous) => [...previous, projectIdToDelete]);
+				}
+			} finally {
+				setDeletingProjectId(null);
+			}
+		})();
 	}, [deletingProjectId, onDeleteProject]);
 
 	const hasProjects = localProjects.length > EMPTY_LENGTH;
