@@ -3,7 +3,7 @@ import {
 	type UserSignUpRequestDto,
 } from "@knowledgeprism/types";
 
-import { Loader, Logo } from "~/components/components.js";
+import { Logo } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -62,10 +62,6 @@ const AuthPage: React.FC = () => {
 		},
 		[dispatch, navigate],
 	);
-
-	if (isAuthPending) {
-		return <Loader />;
-	}
 
 	const getScreen = (screen: string): React.JSX.Element => {
 		if (screen === AppRoute.SIGN_UP) {
