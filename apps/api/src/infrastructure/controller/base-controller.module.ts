@@ -44,6 +44,27 @@ class BaseController implements Controller {
 		};
 	}
 
+	private isSelfRequest(
+		userId: number | undefined,
+		allowSelf: boolean | undefined,
+		parameters: unknown,
+	): boolean {
+		if (
+			!userId ||
+			!allowSelf ||
+			!parameters ||
+			typeof parameters !== "object"
+		) {
+			return false;
+		}
+
+		if (!("id" in parameters)) {
+			return false;
+		}
+
+		return Number((parameters as Record<string, unknown>)["id"]) === userId;
+	}
+
 	private async mapHandler(
 		route: ControllerRouteParameters,
 		request: FastifyRequest,
@@ -60,14 +81,10 @@ class BaseController implements Controller {
 				organisationRole && route.allowedRoles.includes(organisationRole),
 			);
 
-			const isSelf = Boolean(
-				userId &&
-				route.allowSelf &&
-				handlerOptions.params &&
-				typeof handlerOptions.params === "object" &&
-				"id" in handlerOptions.params &&
-				Number((handlerOptions.params as Record<string, unknown>)["id"]) ===
-					userId,
+			const isSelf = this.isSelfRequest(
+				userId,
+				route.allowSelf,
+				handlerOptions.params,
 			);
 
 			if (!isAllowedByRole && !isSelf) {
