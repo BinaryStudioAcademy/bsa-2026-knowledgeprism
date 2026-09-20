@@ -52,7 +52,7 @@ const KnowledgeTreeBreadcrumbs = ({
 			{breadcrumbs.map((breadcrumb, index) => {
 				const isLast = index === breadcrumbs.length - ARRAY_OFFSET;
 				return (
-					<React.Fragment key={breadcrumb}>
+					<React.Fragment key={`${String(index)}-${breadcrumb}`}>
 						<span
 							aria-current={isLast ? "page" : undefined}
 							className={isLast ? "font-medium text-text" : "text-text-muted"}

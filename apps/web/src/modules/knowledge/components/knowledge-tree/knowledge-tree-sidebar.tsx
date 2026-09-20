@@ -3,7 +3,11 @@ import { tv } from "tailwind-variants";
 
 import { filterKnowledgeTree } from "../../libs/helpers/helpers.js";
 import { type KnowledgeTreeItemResponseDto } from "../../libs/mock-knowledge-tree.js";
-import { EMPTY_LENGTH, FALLBACK_TIMEOUT_MS, MIN_INDEX } from "./constants.js";
+import {
+	EMPTY_LENGTH,
+	FALLBACK_DEFER_EXECUTION_MS,
+	MIN_INDEX,
+} from "./constants.js";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
 import { KnowledgeTreeSearchBar } from "./knowledge-tree-search-bar.js";
 
@@ -71,7 +75,7 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 				);
 				setTimeout(() => {
 					setFocusedNodeId(fallbackId);
-				}, FALLBACK_TIMEOUT_MS);
+				}, FALLBACK_DEFER_EXECUTION_MS);
 			}
 		}
 	}, [currentFocusId, searchQuery]);
