@@ -42,6 +42,21 @@ const fetchRecentDocuments = createAsyncThunk(
 	},
 );
 
+const getProjectLastActivityTimestamp = (project: ProjectItem): number => {
+	return Date.parse(project.lastActivityAt ?? project.updatedAt);
+};
+
+const sortProjectsByLastActivityDesc = (
+	projects: ProjectItem[],
+): ProjectItem[] => {
+	return projects.toSorted((firstProject, secondProject) => {
+		return (
+			getProjectLastActivityTimestamp(secondProject) -
+			getProjectLastActivityTimestamp(firstProject)
+		);
+	});
+};
+
 const workspacesSlice = createSlice({
 	extraReducers: (builder) => {
 		builder
@@ -90,15 +105,17 @@ const workspacesSlice = createSlice({
 			})
 			.addCase(updateProject.fulfilled, (state, action) => {
 				state.isUpdating = false;
-				state.projects = state.projects.map((project) =>
-					project.id === action.payload.id
-						? {
-								...project,
-								...action.payload,
-								lastActivityAt: action.payload.updatedAt,
-								role: project.role,
-							}
-						: project,
+				state.projects = sortProjectsByLastActivityDesc(
+					state.projects.map((project) =>
+						project.id === action.payload.id
+							? {
+									...project,
+									...action.payload,
+									lastActivityAt: action.payload.updatedAt,
+									role: project.role,
+								}
+							: project,
+					),
 				);
 			})
 			.addCase(updateProject.rejected, (state, action) => {

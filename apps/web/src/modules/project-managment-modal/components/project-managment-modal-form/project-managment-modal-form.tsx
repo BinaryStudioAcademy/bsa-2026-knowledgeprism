@@ -45,6 +45,8 @@ function ProjectManagmentModalForm({
 		[handleSubmit, handleValidSubmit],
 	);
 
+	const isFormDisabled = isSubmitting === true;
+
 	return (
 		<form
 			className="flex flex-col items-center gap-4"
@@ -52,6 +54,7 @@ function ProjectManagmentModalForm({
 		>
 			<Input
 				control={control}
+				disabled={isFormDisabled}
 				label="Project Name"
 				maxLength={ProjectValidationRule.NAME_MAXIMUM_LENGTH}
 				name="projectName"
@@ -59,6 +62,7 @@ function ProjectManagmentModalForm({
 			/>
 			<Textarea
 				control={control}
+				disabled={isFormDisabled}
 				label="Description (optional)"
 				name="description"
 				placeholder="Enter your description"
@@ -66,7 +70,7 @@ function ProjectManagmentModalForm({
 			{error && (
 				<p className="text-xs text-error w-full text-center">{error}</p>
 			)}
-			<Button disabled={isSubmitting} type="submit">
+			<Button disabled={isFormDisabled} type="submit">
 				{isSubmitting ? <Loader size="sm" /> : submitLabel}
 			</Button>
 		</form>
