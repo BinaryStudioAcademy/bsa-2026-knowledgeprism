@@ -13,6 +13,7 @@ type UserWithRole = {
 	firstName: string;
 	id: number;
 	lastName: string;
+	organisationRole?: string;
 	role?: string;
 };
 
@@ -22,7 +23,7 @@ const AppLayout: React.FC = () => {
 
 	const userResponse = useSelector((state: RootState) => state.auth.user);
 	const userObject = userResponse?.user as undefined | UserWithRole;
-	const isOrgAdmin = userObject?.role === "ADMIN";
+	const isOrgAdmin = userResponse?.user.organisationRole === "ADMIN";
 
 	const handleLogOut = useCallback((): void => {
 		void dispatch(authActions.logout());
