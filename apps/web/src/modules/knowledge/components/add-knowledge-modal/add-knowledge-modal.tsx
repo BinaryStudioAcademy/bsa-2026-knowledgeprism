@@ -110,7 +110,7 @@ const AddKnowledgeModal = ({
 
 	return (
 		<Modal
-			contentClassName="flex min-h-0 flex-1 flex-col"
+			contentClassName="flex min-h-0 flex-1 flex-col pb-0 tablet:pb-0 desktop:pb-0"
 			hasCloseButton
 			isFullScreenOnMobile
 			isOpen={isOpen}
@@ -152,9 +152,10 @@ const AddKnowledgeModal = ({
 					})}
 				</div>
 
-				<div className="min-h-0 flex-1" key={formSessionKey}>
+				<div className="flex min-h-0 flex-1 flex-col" key={formSessionKey}>
 					<div
 						className={getValidClassNames(
+							"flex flex-1 flex-col justify-between",
 							activeTab !== AddKnowledgeTab.UPLOAD && "hidden",
 						)}
 						role="tabpanel"
@@ -171,6 +172,7 @@ const AddKnowledgeModal = ({
 
 					<div
 						className={getValidClassNames(
+							"flex flex-1 flex-col",
 							activeTab !== AddKnowledgeTab.TEXT && "hidden",
 						)}
 						role="tabpanel"
