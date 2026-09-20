@@ -23,6 +23,8 @@ const UserValidationMessage = {
 	USER_CANNOT_DEACTIVATE_SELF: "You cannot deactivate your own account",
 	USER_CANNOT_REMOVE_SELF_FROM_PROJECTS:
 		"You cannot remove yourself from projects",
+	USER_CANNOT_UPDATE_RESTRICTED_FIELDS:
+		"You do not have permission to update email, status, or assigned projects.",
 	USER_NOT_FOUND: "User not found",
 } as const;
 
