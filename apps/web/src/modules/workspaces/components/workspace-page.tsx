@@ -1,6 +1,8 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useDispatch } from "react-redux";
 
 import { Button, Heading, Icon, Modal } from "~/components/components.js";
+import { type AppDispatch } from "~/lib/store/store.js";
 import { ProjectFormValue } from "~/modules/project-managment-modal/components/project-managment-modal-form/lib/type.js";
 import { ProjectManagmentModalForm } from "~/modules/project-managment-modal/components/project-managment-modal-form/project-managment-modal-form.js";
 
@@ -8,7 +10,11 @@ import {
 	CreateProjectPayload,
 	UpdateProjectPayload,
 } from "../api/workspaces-api.js";
-import { createProject, updateProject } from "../state/workspaces.slice.js";
+import {
+	createProject,
+	updateProject,
+	workspacesActions,
+} from "../state/workspaces.slice.js";
 import {
 	type ProjectItem,
 	type RecentDocumentItem,
@@ -263,6 +269,8 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	recentDocuments = [],
 	updateError = null,
 }) => {
+	const dispatch = useDispatch<AppDispatch>();
+
 	const [localProjects, setLocalProjects] =
 		useState<ProjectItem[]>(initialProjects);
 	const [previousInitialProjects, setPreviousInitialProjects] =
@@ -319,8 +327,9 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	}, []);
 
 	const handleCloseCreateModal = useCallback((): void => {
+		dispatch(workspacesActions.clearCreationError());
 		setIsCreateModalOpen(false);
-	}, []);
+	}, [dispatch]);
 
 	const handleSubmitCreateModal = useCallback(
 		(payload: CreateProjectPayload): void => {
@@ -336,8 +345,9 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	);
 
 	const handleCloseEditModal = useCallback((): void => {
+		dispatch(workspacesActions.clearUpdateError());
 		setEditingProject(null);
-	}, []);
+	}, [dispatch]);
 
 	const handleSubmitEditModal = useCallback(
 		(payload: UpdateProjectPayload): void => {

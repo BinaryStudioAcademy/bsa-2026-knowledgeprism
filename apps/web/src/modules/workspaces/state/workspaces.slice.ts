@@ -103,10 +103,23 @@ const workspacesSlice = createSlice({
 	},
 	initialState,
 	name: "workspaces",
-	reducers: {},
+	reducers: {
+		clearCreationError(state) {
+			state.creationError = null;
+		},
+		clearUpdateError(state) {
+			state.updateError = null;
+		},
+	},
 });
 
+const workspacesActions = workspacesSlice.actions;
 const workspacesReducer = workspacesSlice.reducer;
 
 export { createProject, deleteProject, updateProject } from "./action.js";
-export { fetchProjects, fetchRecentDocuments, workspacesReducer };
+export {
+	fetchProjects,
+	fetchRecentDocuments,
+	workspacesActions,
+	workspacesReducer,
+};

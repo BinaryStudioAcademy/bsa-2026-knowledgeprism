@@ -1,10 +1,21 @@
+import {
+	ProjectValidationMessage,
+	ProjectValidationRule,
+} from "@knowledgeprism/constants";
 import { z } from "zod";
 
-const MIN_PROJECT_NAME_LENGTH = 1;
 const ProjectFormValidationSchema = z.object({
-	description: z.string().optional(),
+	description: z.string().trim().optional(),
+
 	projectName: z
 		.string()
-		.min(MIN_PROJECT_NAME_LENGTH, "Project name is required"),
+		.trim()
+		.min(ProjectValidationRule.NAME_MINIMUM_LENGTH, {
+			error: ProjectValidationMessage.NAME_REQUIRE,
+		})
+		.max(ProjectValidationRule.NAME_MAXIMUM_LENGTH, {
+			error: ProjectValidationMessage.NAME_MAXIMUM_LENGTH,
+		}),
 });
+
 export { ProjectFormValidationSchema };
