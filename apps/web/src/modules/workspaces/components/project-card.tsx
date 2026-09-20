@@ -180,6 +180,10 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 
 	const handleKeyDown = useCallback(
 		(event_: React.KeyboardEvent) => {
+			if (event_.target !== event_.currentTarget) {
+				return;
+			}
+
 			if (event_.key !== "Enter" && event_.key !== " ") {
 				return;
 			}
