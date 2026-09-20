@@ -33,7 +33,7 @@ const AuthPage: React.FC = () => {
 
 	useEffect(() => {
 		if (hasUser) {
-			void navigate(AppRoute.WORKSPACE, { replace: true });
+			void navigate(AppRoute.WORKSPACES, { replace: true });
 		}
 	}, [hasUser, navigate]);
 

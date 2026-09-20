@@ -54,7 +54,7 @@ const LandingHeader: React.FC = () => {
 
 	const handleGoToWorkspace = useCallback((): void => {
 		handleCloseMenu();
-		void navigate(AppRoute.WORKSPACE);
+		void navigate(AppRoute.WORKSPACES);
 	}, [handleCloseMenu, navigate]);
 
 	const handleLogout = useCallback((): void => {

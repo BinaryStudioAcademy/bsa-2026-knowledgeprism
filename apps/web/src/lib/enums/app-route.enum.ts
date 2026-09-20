@@ -7,7 +7,6 @@ const AppRoute = {
 	USERS: "/users",
 	USERS_EDIT: "/users/:id/edit",
 	USERS_NEW: "/users/new",
-	WORKSPACE: "/workspace",
 	WORKSPACE_DETAILS: "/workspaces/:id",
 	WORKSPACES: "/workspaces",
 } as const;
