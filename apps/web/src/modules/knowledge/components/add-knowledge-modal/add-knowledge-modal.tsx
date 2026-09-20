@@ -10,7 +10,6 @@ import { DocumentProcessingStatus } from "../../libs/enums/enums.js";
 import { DocumentUpload } from "../document-upload.js";
 import { KnowledgeInputFooter } from "../knowledge-input-footer.js";
 import { ManualTextInput } from "../manual-text-input/manual-text-input.js";
-import { WebLinkInput } from "../web-link-input/web-link-input.js";
 import { DestinationBadge } from "./destination-badge.js";
 import { AddKnowledgeTab } from "./libs/enums/add-knowledge-tab.enum.js";
 
@@ -42,11 +41,6 @@ const TAB_ITEMS: TabItem[] = [
 		iconName: "paste-text",
 		id: AddKnowledgeTab.TEXT,
 		label: "Paste text",
-	},
-	{
-		iconName: "link",
-		id: AddKnowledgeTab.LINK,
-		label: "Web link",
 	},
 ];
 
@@ -185,15 +179,6 @@ const AddKnowledgeModal = ({
 							onCancel={handleClose}
 							onSubmit={handleManualTextSubmit}
 						/>
-					</div>
-
-					<div
-						className={getValidClassNames(
-							activeTab !== AddKnowledgeTab.LINK && "hidden",
-						)}
-						role="tabpanel"
-					>
-						<WebLinkInput onCancel={handleClose} onSubmit={handleClose} />
 					</div>
 				</div>
 			</div>
