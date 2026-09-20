@@ -125,7 +125,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 						{!isLoading && (
 							<div className="relative">
 								<button
-									className="flex cursor-pointer items-center gap-3 rounded-full border-none outline-none transition-opacity hover:opacity-80 focus:outline-none focus:ring-0 focus-visible:outline-none"
+									className="flex cursor-pointer items-center gap-3 rounded-full border-none outline-none transition-opacity hover:opacity-80 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
 									onClick={toggleDropdown}
 									type="button"
 								>
