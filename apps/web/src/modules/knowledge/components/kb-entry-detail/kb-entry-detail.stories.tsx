@@ -5,18 +5,20 @@ import { fn } from "@storybook/test";
 import { KbEntryDetail } from "./kb-entry-detail.js";
 
 const TIMEOUT_DELAY_MS = 300;
-const INITIAL_VERSION = 1;
-const SERVER_VERSION = 2;
 const HTTP_STATUS_CONFLICT = 409;
 const HTTP_STATUS_LOCKED = 423;
 
 const BASE_CONTENT = "Rule 1: Password must contain at least 8 characters.";
 
 const BASE_ENTRY = {
-	content: BASE_CONTENT,
-	id: "mock-entry-id",
+	contentJson: [
+		{
+			content: BASE_CONTENT,
+			type: "paragraph",
+		},
+	],
+	id: 1,
 	title: "Password Validation",
-	version: INITIAL_VERSION,
 };
 
 const meta: Meta<typeof KbEntryDetail> = {
@@ -61,11 +63,15 @@ const VersionConflict: Story = {
 				new Error("Version conflict on server"),
 				{
 					serverEntry: {
-						content:
-							"Rule 1: 8 characters.\nRule 2: At least one digit (from User 1).",
-						id: "mock-entry-id",
+						contentJson: [
+							{
+								content:
+									"Rule 1: 8 characters.\nRule 2: At least one digit (from User 1).",
+								type: "paragraph",
+							},
+						],
+						id: 1,
 						title: "Password Validation (Server v2 by User 1)",
-						version: SERVER_VERSION,
 					},
 					status: HTTP_STATUS_CONFLICT,
 				},

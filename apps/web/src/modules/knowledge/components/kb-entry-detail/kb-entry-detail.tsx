@@ -147,8 +147,8 @@ const KbEntryForm = ({
 	const [isMaxTitleReached, setIsMaxTitleReached] = useState(false);
 
 	const initialContent = useMemo(
-		() => parseInitialContent(entry.content),
-		[entry.content],
+		() => parseInitialContent(entry.contentJson),
+		[entry.contentJson],
 	);
 
 	const initialBlocks = useMemo(
@@ -323,11 +323,8 @@ const ConflictModal = ({
 	);
 
 	const serverContentString = useMemo(() => {
-		if (typeof serverEntry.content === "string") {
-			return serverEntry.content;
-		}
-		return JSON.stringify(serverEntry.content);
-	}, [serverEntry.content]);
+		return JSON.stringify(serverEntry.contentJson);
+	}, [serverEntry.contentJson]);
 
 	const clientPreview = useMemo(() => {
 		return extractPlainText(clientPayload.contentJson);
@@ -340,20 +337,14 @@ const ConflictModal = ({
 	const handleApply = useCallback((): void => {
 		const isClientChosen = selectedVersion === "client";
 		const serverBlocks = parseInitialContent(
-			serverEntry.content,
+			serverEntry.contentJson,
 		) as unknown as Record<string, unknown>[];
 
 		onResolve({
 			contentJson: isClientChosen ? clientPayload.contentJson : serverBlocks,
 			title: isClientChosen ? clientPayload.title : serverEntry.title,
 		});
-	}, [
-		clientPayload,
-		onResolve,
-		selectedVersion,
-		serverEntry.content,
-		serverEntry.title,
-	]);
+	}, [clientPayload, onResolve, selectedVersion, serverEntry]);
 
 	const handleSelectServer = useCallback((): void => {
 		setSelectedVersion("server");
@@ -403,7 +394,7 @@ const ConflictModal = ({
 							<div className="flex flex-1 flex-col gap-2">
 								<div className="flex items-center justify-between gap-2">
 									<span className="font-sans text-sm font-semibold text-text">
-										Server Version (v{serverEntry.version})
+										Server Version
 									</span>
 									<span className="badge badge--muted shrink-0">
 										Current in DB
@@ -510,10 +501,19 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 		clientPayload: KnowledgeEntryUpdateRequestDto;
 		serverEntry: KbEntry;
 	}>(null);
+	const [previousEntryId, setPreviousEntryId] = useState(entry.id);
+
+	if (entry.id !== previousEntryId) {
+		setPreviousEntryId(entry.id);
+		setConflictData(null);
+		setIsEditing(false);
+		setIsLockedByAi(false);
+		setSaveErrorMessage(null);
+	}
 
 	const readOnlyInitialContent = useMemo(
-		() => parseInitialContent(entry.content),
-		[entry.content],
+		() => parseInitialContent(entry.contentJson),
+		[entry.contentJson],
 	);
 
 	const handleCancel = useCallback((): void => {
@@ -643,7 +643,7 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 							<KnowledgeEditor
 								initialContent={readOnlyInitialContent}
 								isEditable={false}
-								key={[entry.id, String(entry.version)].join("-")}
+								key={String(entry.id)}
 							/>
 						</div>
 					</div>

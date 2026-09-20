@@ -5,12 +5,11 @@ import { type ValueOf } from "~/lib/types/types.js";
 import { type DocumentProcessingStatus } from "../enums/enums.js";
 
 interface KbEntry {
-	content: PartialBlock[] | string;
+	contentJson: PartialBlock[] | Record<string, unknown>[];
 	createdAt?: string;
-	id: string;
+	id: number;
 	title: string;
 	updatedAt?: string;
-	version: number;
 }
 
 type KnowledgeState = {
