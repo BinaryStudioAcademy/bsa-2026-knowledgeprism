@@ -3,7 +3,6 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { Button } from "~/components/button/button.js";
 import { Logo } from "~/components/logo/logo.js";
 import {
-	useAppDispatch,
 	useAppSelector,
 	useCallback,
 	useEffect,
@@ -11,7 +10,6 @@ import {
 } from "~/hooks/hooks.js";
 import { AppRoute, Breakpoint } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import { actions as authActions } from "~/modules/auth/auth.js";
 import {
 	LANDING_FOCUS_RING,
 	LANDING_SECTION_CONTAINER_CLASS,
@@ -29,7 +27,6 @@ import {
 
 const LandingHeader: React.FC = () => {
 	const navigate = useNavigate();
-	const dispatch = useAppDispatch();
 	const user = useAppSelector(({ auth }) => auth.user);
 	const hasUser = Boolean(user);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -56,12 +53,6 @@ const LandingHeader: React.FC = () => {
 		handleCloseMenu();
 		void navigate(AppRoute.WORKSPACE);
 	}, [handleCloseMenu, navigate]);
-
-	const handleLogout = useCallback((): void => {
-		handleCloseMenu();
-		void dispatch(authActions.logout());
-		void navigate(AppRoute.ROOT);
-	}, [dispatch, handleCloseMenu, navigate]);
 
 	const handleLogoClick = useCallback((): void => {
 		window.scrollTo(SCROLL_TO_TOP_POSITION, SCROLL_TO_TOP_POSITION);
