@@ -11,14 +11,12 @@ import {
 import { useAppForm } from "~/hooks/hooks.js";
 import {
 	type KbEntry,
-	type UpdateKbEntryPayload,
+	type KnowledgeEntryUpdateRequestDto,
 } from "~/modules/knowledge/libs/types/types.js";
 
 import { kbEntryValidationSchema } from "./libs/validation-schema.js";
 
 const EMPTY_COUNT = 0;
-const VERSION_INCREMENT = 1;
-const DEFAULT_VERSION = 1;
 const MAX_TITLE_CHARACTERS = 255;
 const HTTP_STATUS_CONFLICT = 409;
 const HTTP_STATUS_LOCKED = 423;
@@ -135,10 +133,16 @@ const parseInitialContent = (content?: unknown): PartialBlock[] => {
 interface KbEntryFormProperties {
 	entry: KbEntry;
 	onCancel: () => void;
-	onSave: (payload: UpdateKbEntryPayload) => Promise<boolean>;
+	onSave: (payload: KnowledgeEntryUpdateRequestDto) => Promise<boolean>;
+	saveErrorMessage: null | string;
 }
 
-const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
+const KbEntryForm = ({
+	entry,
+	onCancel,
+	onSave,
+	saveErrorMessage,
+}: KbEntryFormProperties) => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isMaxTitleReached, setIsMaxTitleReached] = useState(false);
 
@@ -147,22 +151,15 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 		[entry.content],
 	);
 
-	const initialContentString = useMemo(() => {
-		if (!entry.content) {
-			return "";
-		}
-		if (typeof entry.content === "string") {
-			return entry.content;
-		}
-		return JSON.stringify(entry.content);
-	}, [entry.content]);
+	const initialBlocks = useMemo(
+		() => initialContent as unknown as Record<string, unknown>[],
+		[initialContent],
+	);
 
-	const { control, handleSubmit } = useAppForm<UpdateKbEntryPayload>({
+	const { control, handleSubmit } = useAppForm<KnowledgeEntryUpdateRequestDto>({
 		defaultValues: {
-			content: initialContentString,
+			contentJson: initialBlocks,
 			title: entry.title,
-			version:
-				typeof entry.version === "number" ? entry.version : DEFAULT_VERSION,
 		},
 		mode: "onChange",
 		validationSchema: kbEntryValidationSchema,
@@ -170,7 +167,7 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 
 	const { errors } = useFormState({ control });
 	const currentTitle = useWatch({ control, name: "title" });
-	const currentContent = useWatch({ control, name: "content" });
+	const currentContentJson = useWatch({ control, name: "contentJson" });
 
 	const {
 		field: titleField,
@@ -180,27 +177,20 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 	const {
 		field: contentField,
 		fieldState: { error: contentError },
-	} = useController({ control, name: "content" });
+	} = useController({ control, name: "contentJson" });
 
 	const handleEditorChange = useCallback(
-		(blocks: unknown[]): void => {
-			const isDocumentEmpty = isBlockNoteEmpty(blocks);
-			contentField.onChange(isDocumentEmpty ? "" : JSON.stringify(blocks));
+		(blocks: unknown): void => {
+			contentField.onChange(blocks);
 		},
 		[contentField],
 	);
 
 	const handleValidSubmit = useCallback(
-		async (values: UpdateKbEntryPayload): Promise<void> => {
+		async (values: KnowledgeEntryUpdateRequestDto): Promise<void> => {
 			try {
 				setIsSubmitting(true);
-				const isDocumentEmpty = isBlockNoteEmpty(values.content);
-				const finalContent = isDocumentEmpty ? "" : values.content;
-
-				const isSuccess = await onSave({
-					...values,
-					content: finalContent || values.content,
-				});
+				const isSuccess = await onSave(values);
 
 				if (isSuccess) {
 					onCancel();
@@ -245,16 +235,10 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 	);
 
 	const isTitleEmpty = currentTitle.trim().length === EMPTY_COUNT;
-	const isContentEmpty =
-		currentContent.trim().length === EMPTY_COUNT ||
-		isBlockNoteEmpty(currentContent);
+	const isContentEmpty = isBlockNoteEmpty(currentContentJson);
 
 	const hasFormErrors = Boolean(
-		titleError ||
-		contentError ||
-		errors.title ||
-		errors.content ||
-		errors.version,
+		titleError || contentError || errors.title || errors.contentJson,
 	);
 
 	const isSaveDisabled =
@@ -270,6 +254,12 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 					Save
 				</Button>
 			</div>
+
+			{saveErrorMessage && (
+				<div className="rounded-md border border-error bg-error-bg p-3 text-sm text-error shadow-sm">
+					{saveErrorMessage}
+				</div>
+			)}
 
 			<div className="kb-body flex flex-col gap-4">
 				<div className="flex flex-col gap-1" onInput={handleTitleInput}>
@@ -289,20 +279,14 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 				<div className="flex flex-col gap-2">
 					<span
 						className={`font-sans text-sm font-medium ${
-							contentError ||
-							(isContentEmpty && currentContent.length > EMPTY_COUNT)
-								? "text-error"
-								: "text-text"
+							contentError || isContentEmpty ? "text-error" : "text-text"
 						}`}
 					>
 						Description
 					</span>
 					<div
 						className={`min-h-64 rounded-md border p-2 shadow-sm transition-colors ${
-							contentError ||
-							(isContentEmpty && currentContent.length > EMPTY_COUNT)
-								? "border-error"
-								: "border-border"
+							contentError || isContentEmpty ? "border-error" : "border-border"
 						}`}
 					>
 						<KnowledgeEditor
@@ -322,9 +306,9 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 };
 
 interface ConflictModalProperties {
-	clientPayload: UpdateKbEntryPayload;
+	clientPayload: KnowledgeEntryUpdateRequestDto;
 	onCancel: () => void;
-	onResolve: (resolvedPayload: UpdateKbEntryPayload) => void;
+	onResolve: (resolvedPayload: KnowledgeEntryUpdateRequestDto) => void;
 	serverEntry: KbEntry;
 }
 
@@ -346,8 +330,8 @@ const ConflictModal = ({
 	}, [serverEntry.content]);
 
 	const clientPreview = useMemo(() => {
-		return extractPlainText(clientPayload.content);
-	}, [clientPayload.content]);
+		return extractPlainText(clientPayload.contentJson);
+	}, [clientPayload.contentJson]);
 
 	const serverPreview = useMemo(() => {
 		return extractPlainText(serverContentString);
@@ -355,17 +339,20 @@ const ConflictModal = ({
 
 	const handleApply = useCallback((): void => {
 		const isClientChosen = selectedVersion === "client";
+		const serverBlocks = parseInitialContent(
+			serverEntry.content,
+		) as unknown as Record<string, unknown>[];
+
 		onResolve({
-			content: isClientChosen ? clientPayload.content : serverContentString,
+			contentJson: isClientChosen ? clientPayload.contentJson : serverBlocks,
 			title: isClientChosen ? clientPayload.title : serverEntry.title,
-			version: serverEntry.version,
 		});
 	}, [
 		clientPayload,
 		onResolve,
 		selectedVersion,
-		serverContentString,
-		serverEntry,
+		serverEntry.content,
+		serverEntry.title,
 	]);
 
 	const handleSelectServer = useCallback((): void => {
@@ -512,55 +499,42 @@ const ConflictModal = ({
 interface KbEntryDetailProperties {
 	canEdit: boolean;
 	entry: KbEntry;
-	onSave: (payload: UpdateKbEntryPayload) => Promise<void>;
+	onSave: (payload: KnowledgeEntryUpdateRequestDto) => Promise<void>;
 }
 
 const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 	const [isEditing, setIsEditing] = useState(false);
 	const [isLockedByAi, setIsLockedByAi] = useState(false);
-	const [savedEntry, setSavedEntry] = useState<KbEntry | null>(null);
+	const [saveErrorMessage, setSaveErrorMessage] = useState<null | string>(null);
 	const [conflictData, setConflictData] = useState<null | {
-		clientPayload: UpdateKbEntryPayload;
+		clientPayload: KnowledgeEntryUpdateRequestDto;
 		serverEntry: KbEntry;
 	}>(null);
-	const [previousEntryId, setPreviousEntryId] = useState(entry.id);
-
-	if (entry.id !== previousEntryId) {
-		setPreviousEntryId(entry.id);
-		setConflictData(null);
-		setIsEditing(false);
-		setIsLockedByAi(false);
-		setSavedEntry(null);
-	}
-
-	const displayEntry = savedEntry ?? entry;
 
 	const readOnlyInitialContent = useMemo(
-		() => parseInitialContent(displayEntry.content),
-		[displayEntry.content],
+		() => parseInitialContent(entry.content),
+		[entry.content],
 	);
 
 	const handleCancel = useCallback((): void => {
+		setSaveErrorMessage(null);
 		setIsEditing(false);
 	}, []);
 
 	const handleStartEdit = useCallback((): void => {
+		setSaveErrorMessage(null);
 		setIsEditing(true);
 	}, []);
 
 	const executeSave = useCallback(
-		async (payload: UpdateKbEntryPayload): Promise<boolean> => {
+		async (payload: KnowledgeEntryUpdateRequestDto): Promise<boolean> => {
 			try {
+				setSaveErrorMessage(null);
 				await onSave(payload);
-				setSavedEntry({
-					...displayEntry,
-					content: payload.content,
-					title: payload.title,
-					version: payload.version + VERSION_INCREMENT,
-				});
 				return true;
 			} catch (error: unknown) {
 				const candidate = error as {
+					message?: string;
 					serverEntry?: KbEntry;
 					status?: number;
 				};
@@ -580,20 +554,22 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 						serverEntry: candidate.serverEntry ?? {
 							...entry,
 							title: "Updated by another user on server",
-							version: (payload.version || DEFAULT_VERSION) + VERSION_INCREMENT,
 						},
 					});
 					return false;
 				}
 
+				setSaveErrorMessage(
+					candidate.message || "Failed to save changes. Please try again.",
+				);
 				return false;
 			}
 		},
-		[displayEntry, entry, onSave],
+		[entry, onSave],
 	);
 
 	const handleSave = useCallback(
-		async (payload: UpdateKbEntryPayload): Promise<boolean> => {
+		async (payload: KnowledgeEntryUpdateRequestDto): Promise<boolean> => {
 			return await executeSave(payload);
 		},
 		[executeSave],
@@ -604,7 +580,7 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 	}, []);
 
 	const handleResolveConflict = useCallback(
-		(resolvedPayload: UpdateKbEntryPayload): void => {
+		(resolvedPayload: KnowledgeEntryUpdateRequestDto): void => {
 			void executeSave(resolvedPayload).then((isSuccess) => {
 				if (!isSuccess) {
 					return;
@@ -645,9 +621,11 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 
 			{isEditing && !isLockedByAi ? (
 				<KbEntryForm
-					entry={displayEntry}
+					entry={entry}
+					key={entry.id}
 					onCancel={handleCancel}
 					onSave={handleSave}
+					saveErrorMessage={saveErrorMessage}
 				/>
 			) : (
 				<>
@@ -659,13 +637,13 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 						</div>
 					)}
 					<div className="kb-body">
-						<h1 className="mb-4 text-2xl font-bold">{displayEntry.title}</h1>
+						<h1 className="mb-4 text-2xl font-bold">{entry.title}</h1>
 
 						<div className="-mx-12">
 							<KnowledgeEditor
 								initialContent={readOnlyInitialContent}
 								isEditable={false}
-								key={[displayEntry.id, String(displayEntry.version)].join("-")}
+								key={[entry.id, String(entry.version)].join("-")}
 							/>
 						</div>
 					</div>

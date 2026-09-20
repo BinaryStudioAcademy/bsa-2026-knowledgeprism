@@ -19,12 +19,6 @@ type KnowledgeState = {
 	selectedFile: null | UploadedDocumentItem;
 };
 
-interface UpdateKbEntryPayload {
-	content: string;
-	title: string;
-	version: number;
-}
-
 type UploadedDocumentItem = {
 	id: string;
 	name: string;
@@ -34,9 +28,5 @@ type UploadedDocumentItem = {
 	status: ValueOf<typeof DocumentProcessingStatus>;
 };
 
-export {
-	type KbEntry,
-	type KnowledgeState,
-	type UpdateKbEntryPayload,
-	type UploadedDocumentItem,
-};
+export { type KnowledgeEntryUpdateRequestDto } from "@knowledgeprism/types";
+export { type KbEntry, type KnowledgeState, type UploadedDocumentItem };

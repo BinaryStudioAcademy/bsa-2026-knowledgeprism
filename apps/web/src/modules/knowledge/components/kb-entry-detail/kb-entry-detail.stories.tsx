@@ -2,8 +2,6 @@ import type { Meta, StoryObj } from "@storybook/react";
 
 import { fn } from "@storybook/test";
 
-import { type UpdateKbEntryPayload } from "~/modules/knowledge/libs/types/types.js";
-
 import { KbEntryDetail } from "./kb-entry-detail.js";
 
 const TIMEOUT_DELAY_MS = 300;
@@ -54,14 +52,10 @@ const VersionConflict: Story = {
 	args: {
 		canEdit: true,
 		entry: BASE_ENTRY,
-		onSave: fn(async (payload: UpdateKbEntryPayload) => {
+		onSave: fn(async () => {
 			await new Promise((resolve) => {
 				setTimeout(resolve, TIMEOUT_DELAY_MS);
 			});
-
-			if (payload.version > INITIAL_VERSION) {
-				return;
-			}
 
 			const conflictError = Object.assign(
 				new Error("Version conflict on server"),
