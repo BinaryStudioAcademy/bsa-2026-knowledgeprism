@@ -38,8 +38,13 @@ const WorkspaceContainer: React.FC = () => {
 	const handleCreateProject = useCallback((): void => {}, []);
 
 	const handleDeleteProject = useCallback(
-		(id: string): void => {
-			void dispatch(deleteProject({ api, id }));
+		async (id: string): Promise<boolean> => {
+			try {
+				await dispatch(deleteProject({ api, id })).unwrap();
+				return true;
+			} catch {
+				return false;
+			}
 		},
 		[dispatch],
 	);

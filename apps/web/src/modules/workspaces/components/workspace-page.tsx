@@ -63,7 +63,7 @@ interface WorkspacePageProperties {
 	isOrgAdmin?: boolean;
 	lastName?: string;
 	onCreateProject?: () => void;
-	onDeleteProject?: (id: string) => void;
+	onDeleteProject?: (id: string) => Promise<boolean>;
 	onEditProject?: (project: ProjectItem) => void;
 	onLogOut?: () => void;
 	onOpenSettings?: () => void;
@@ -261,13 +261,17 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 		const projectIdToDelete = deletingProjectId;
 
-		void Promise.resolve(onDeleteProject?.(projectIdToDelete))
-			.then(() => {
-				setDeletedIds((previous) => [...previous, projectIdToDelete]);
-			})
-			.finally(() => {
+		void (async (): Promise<void> => {
+			try {
+				const isSuccess = await onDeleteProject?.(projectIdToDelete);
+
+				if (isSuccess) {
+					setDeletedIds((previous) => [...previous, projectIdToDelete]);
+				}
+			} finally {
 				setDeletingProjectId(null);
-			});
+			}
+		})();
 	}, [deletingProjectId, onDeleteProject]);
 
 	const handleOpenCreateModal = useCallback((): void => {

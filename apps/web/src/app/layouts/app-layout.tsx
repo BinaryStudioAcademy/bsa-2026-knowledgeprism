@@ -22,6 +22,7 @@ const AppLayout: React.FC = () => {
 
 	const userResponse = useSelector((state: RootState) => state.auth.user);
 	const userObject = userResponse?.user as undefined | UserWithRole;
+	const isOrgAdmin = userObject?.role === "ADMIN";
 
 	const handleLogOut = useCallback((): void => {
 		void dispatch(authActions.logout());
@@ -29,8 +30,8 @@ const AppLayout: React.FC = () => {
 	}, [dispatch, navigate]);
 
 	const handleOpenSettings = useCallback((): void => {
-		void navigate(AppRoute.SETTINGS);
-	}, [navigate]);
+		void navigate(isOrgAdmin ? AppRoute.USERS : AppRoute.SETTINGS);
+	}, [isOrgAdmin, navigate]);
 
 	return (
 		<div className="flex h-dvh flex-col bg-bg">
