@@ -185,6 +185,7 @@ function mapProjectResponseToItem(
 	return {
 		description: dto.description,
 		id: String(dto.id),
+		lastActivityAt: dto.updatedAt,
 		name: dto.name,
 		role: context.role ?? "ADMIN",
 		updatedAt: dto.updatedAt,

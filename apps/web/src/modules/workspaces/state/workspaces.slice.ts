@@ -92,7 +92,12 @@ const workspacesSlice = createSlice({
 				state.isUpdating = false;
 				state.projects = state.projects.map((project) =>
 					project.id === action.payload.id
-						? { ...project, ...action.payload, role: project.role }
+						? {
+								...project,
+								...action.payload,
+								lastActivityAt: action.payload.updatedAt,
+								role: project.role,
+							}
 						: project,
 				);
 			})
