@@ -527,6 +527,9 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 
 	if (entry.id !== previousEntryId) {
 		setPreviousEntryId(entry.id);
+		setConflictData(null);
+		setIsEditing(false);
+		setIsLockedByAi(false);
 		setSavedEntry(null);
 	}
 
