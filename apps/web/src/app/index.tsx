@@ -2,7 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import "~/styles/styles.css";
-import { StoreProvider } from "~/components/components.js";
+import { AdminRoute, StoreProvider } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
 import { AskPrismView } from "~/modules/ask-prism/ask-prism.js";
@@ -65,16 +65,21 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 										path: AppRoute.SETTINGS,
 									},
 									{
-										element: <UserManagementHubPage />,
-										path: AppRoute.USERS,
-									},
-									{
-										element: <UserCreationPage />,
-										path: AppRoute.USERS_NEW,
-									},
-									{
-										element: <UserEditPage />,
-										path: AppRoute.USERS_EDIT,
+										children: [
+											{
+												element: <UserManagementHubPage />,
+												path: AppRoute.USERS,
+											},
+											{
+												element: <UserCreationPage />,
+												path: AppRoute.USERS_NEW,
+											},
+											{
+												element: <UserEditPage />,
+												path: AppRoute.USERS_EDIT,
+											},
+										],
+										element: <AdminRoute />,
 									},
 								],
 								element: <SidebarLayout />,

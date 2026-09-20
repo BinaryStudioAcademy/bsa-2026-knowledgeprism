@@ -103,9 +103,64 @@ const UserForm = <T extends FieldValues>({
 
 	const hasAssignableProjects = availableProjects.length > EMPTY_LENGTH;
 	const hasAssignedProjects = assignedProjects.length > EMPTY_LENGTH;
-	const shouldShowProjectsSection = isReadOnly
-		? hasAssignedProjects
-		: hasAssignableProjects;
+	const shouldShowProjectsSection = isReadOnly ? hasAssignedProjects : true;
+
+	const renderProjectsContent = (): React.ReactNode => {
+		if (isReadOnly) {
+			return (
+				<>
+					{assignedProjects.map((assignment) => {
+						const project = availableProjects.find(
+							(candidate) => candidate.id === assignment.projectId,
+						);
+
+						return project ? (
+							<div
+								className="flex items-center justify-between"
+								key={project.id}
+							>
+								<span className="font-medium text-text">{project.name}</span>
+								<span className="text-sm text-text-muted">
+									{assignment.role}
+								</span>
+							</div>
+						) : null;
+					})}
+				</>
+			);
+		}
+
+		if (hasAssignableProjects) {
+			return (
+				<>
+					{availableProjects.map((project) => {
+						const assignment = assignedProjects.find(
+							(candidate) => candidate.projectId === project.id,
+						);
+						const isAssigned = Boolean(assignment);
+
+						return (
+							<ProjectListItem
+								isAssigned={isAssigned}
+								key={project.id}
+								onAssign={handleProjectAssign}
+								onRoleChange={handleRoleChange}
+								onUnassign={handleProjectUnassign}
+								project={project}
+								role={assignment?.role ?? "VIEWER"}
+							/>
+						);
+					})}
+				</>
+			);
+		}
+
+		return (
+			<div className="text-sm text-text-muted">
+				No projects available in this organisation.
+			</div>
+		);
+	};
 
 	return (
 		<form className="flex w-full flex-col gap-6" onSubmit={onSubmit}>
@@ -181,44 +236,7 @@ const UserForm = <T extends FieldValues>({
 							</div>
 						</div>
 						<div className="flex flex-col gap-4 pt-2">
-							{isReadOnly
-								? assignedProjects.map((assignment) => {
-										const project = availableProjects.find(
-											(candidate) => candidate.id === assignment.projectId,
-										);
-
-										return project ? (
-											<div
-												className="flex items-center justify-between"
-												key={project.id}
-											>
-												<span className="font-medium text-text">
-													{project.name}
-												</span>
-												<span className="text-sm text-text-muted">
-													{assignment.role}
-												</span>
-											</div>
-										) : null;
-									})
-								: availableProjects.map((project) => {
-										const assignment = assignedProjects.find(
-											(candidate) => candidate.projectId === project.id,
-										);
-										const isAssigned = Boolean(assignment);
-
-										return (
-											<ProjectListItem
-												isAssigned={isAssigned}
-												key={project.id}
-												onAssign={handleProjectAssign}
-												onRoleChange={handleRoleChange}
-												onUnassign={handleProjectUnassign}
-												project={project}
-												role={assignment?.role ?? "VIEWER"}
-											/>
-										);
-									})}
+							{renderProjectsContent()}
 						</div>
 					</div>
 				)}

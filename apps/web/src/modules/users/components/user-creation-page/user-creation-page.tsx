@@ -4,11 +4,14 @@ import { Heading, Paragraph, ParagraphSize } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppForm,
+	useAppSelector,
 	useCallback,
+	useEffect,
 	useNavigate,
 	useState,
 } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
+import { actions as projectsActions } from "~/modules/projects/projects.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 import { UserForm } from "../user-form/user-form.js";
@@ -32,16 +35,15 @@ const DEFAULT_USER_CREATION_PAYLOAD: UserCreationFormValues = {
 	password: "",
 };
 
-// NOTE: Projects are currently mocked. When GET /projects endpoint is implemented, this should consume actual project data.
-const MOCKED_PROJECTS = [
-	{ id: 1, name: "Knowledge Base Alpha" },
-	{ id: 2, name: "Marketing Site" },
-];
-
 const UserCreationPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const [errorMessage, setErrorMessage] = useState<string | undefined>();
+	const availableProjects = useAppSelector((state) => state.projects.projects);
+
+	useEffect(() => {
+		void dispatch(projectsActions.loadAllProjects());
+	}, [dispatch]);
 
 	const { control, handleSubmit } = useAppForm<UserCreationFormValues>({
 		defaultValues: DEFAULT_USER_CREATION_PAYLOAD,
@@ -99,7 +101,7 @@ const UserCreationPage: React.FC = () => {
 				</div>
 
 				<UserForm
-					availableProjects={MOCKED_PROJECTS}
+					availableProjects={availableProjects}
 					control={control}
 					errorMessage={errorMessage}
 					onCancel={handleCancel}
