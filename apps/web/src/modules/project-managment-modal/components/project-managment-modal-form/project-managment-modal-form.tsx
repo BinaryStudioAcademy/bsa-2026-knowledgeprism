@@ -6,6 +6,7 @@ import { useAppForm } from "~/hooks/hooks.js";
 import { DEFAULT_PROJECT_MANAGMENT_MODAL_FORM_PAYLOAD } from "./lib/constant.js";
 import { ProjectFormValue } from "./lib/type.js";
 import { ProjectFormValidationSchema } from "./lib/validation-schema.js";
+import { ProjectValidationRule } from "@knowledgeprism/constants";
 
 type Properties = Readonly<{
 	error?: null | string;
@@ -54,6 +55,7 @@ function ProjectManagmentModalForm({
 				label="Project Name"
 				name="projectName"
 				placeholder="Enter your project name"
+				maxLength={ProjectValidationRule.NAME_MAXIMUM_LENGTH}
 			/>
 			<Textarea
 				control={control}
