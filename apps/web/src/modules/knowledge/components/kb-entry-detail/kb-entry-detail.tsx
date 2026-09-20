@@ -1,19 +1,13 @@
 import { type PartialBlock } from "@blocknote/core";
-import { BlockNoteView } from "@blocknote/mantine";
-import "@blocknote/core/fonts/inter.css";
-import "@blocknote/mantine/style.css";
-import { useCreateBlockNote } from "@blocknote/react";
-import {
-	type ComponentProps,
-	type SyntheticEvent,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import { type SyntheticEvent, useCallback, useMemo, useState } from "react";
 import { useController, useFormState, useWatch } from "react-hook-form";
 
-import { Button, Input, Modal } from "~/components/components.js";
+import {
+	Button,
+	Input,
+	KnowledgeEditor,
+	Modal,
+} from "~/components/components.js";
 import { useAppForm } from "~/hooks/hooks.js";
 import {
 	type KbEntry,
@@ -29,8 +23,11 @@ const MAX_TITLE_CHARACTERS = 255;
 const HTTP_STATUS_CONFLICT = 409;
 const HTTP_STATUS_LOCKED = 423;
 
-type BlockNoteEditorType = BlockNoteViewProperties["editor"];
-type BlockNoteViewProperties = ComponentProps<typeof BlockNoteView>;
+const DEFAULT_BLOCKS: PartialBlock[] = [
+	{
+		type: "paragraph",
+	},
+];
 
 type TextNode = {
 	text: string;
@@ -82,9 +79,6 @@ const extractPlainText = (content: unknown): string => {
 						if (typeof item === "string") {
 							return item;
 						}
-						if (typeof item === "string") {
-							return item;
-						}
 						if (isTextNode(item)) {
 							return item.text;
 						}
@@ -113,12 +107,12 @@ const isBlockNoteEmpty = (document: unknown): boolean => {
 	return extractPlainText(document).length === EMPTY_COUNT;
 };
 
-const parseInitialContent = (content?: unknown): PartialBlock[] | undefined => {
+const parseInitialContent = (content?: unknown): PartialBlock[] => {
 	if (!content) {
-		return undefined;
+		return DEFAULT_BLOCKS;
 	}
 	if (isBlockArray(content)) {
-		return content;
+		return content.length > EMPTY_COUNT ? content : DEFAULT_BLOCKS;
 	}
 	if (typeof content === "string") {
 		try {
@@ -127,25 +121,31 @@ const parseInitialContent = (content?: unknown): PartialBlock[] | undefined => {
 				return parsed;
 			}
 		} catch {
-			const paragraphBlock: PartialBlock = {
-				content,
-				type: "paragraph",
-			};
-			return [paragraphBlock];
+			return [
+				{
+					content,
+					type: "paragraph",
+				},
+			];
 		}
 	}
-	return undefined;
+	return DEFAULT_BLOCKS;
 };
 
 interface KbEntryFormProperties {
 	entry: KbEntry;
 	onCancel: () => void;
-	onSave: (payload: UpdateKbEntryPayload) => Promise<void>;
+	onSave: (payload: UpdateKbEntryPayload) => Promise<boolean>;
 }
 
 const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isMaxTitleReached, setIsMaxTitleReached] = useState(false);
+
+	const initialContent = useMemo(
+		() => parseInitialContent(entry.content),
+		[entry.content],
+	);
 
 	const initialContentString = useMemo(() => {
 		if (!entry.content) {
@@ -182,32 +182,34 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 		fieldState: { error: contentError },
 	} = useController({ control, name: "content" });
 
-	const initialContent = useMemo(
-		() => parseInitialContent(entry.content),
-		[entry.content],
+	const handleEditorChange = useCallback(
+		(blocks: unknown[]): void => {
+			const isDocumentEmpty = isBlockNoteEmpty(blocks);
+			contentField.onChange(isDocumentEmpty ? "" : JSON.stringify(blocks));
+		},
+		[contentField],
 	);
-
-	const editor = useCreateBlockNote(initialContent ? { initialContent } : {});
 
 	const handleValidSubmit = useCallback(
 		async (values: UpdateKbEntryPayload): Promise<void> => {
 			try {
 				setIsSubmitting(true);
-				const isDocumentEmpty = isBlockNoteEmpty(editor.document);
-				const finalContent = isDocumentEmpty
-					? ""
-					: JSON.stringify(editor.document);
+				const isDocumentEmpty = isBlockNoteEmpty(values.content);
+				const finalContent = isDocumentEmpty ? "" : values.content;
 
-				await onSave({
+				const isSuccess = await onSave({
 					...values,
 					content: finalContent || values.content,
 				});
-				onCancel();
+
+				if (isSuccess) {
+					onCancel();
+				}
 			} finally {
 				setIsSubmitting(false);
 			}
 		},
-		[editor, onCancel, onSave],
+		[onCancel, onSave],
 	);
 
 	const handleFormSubmit = useCallback(
@@ -242,17 +244,10 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 		[titleField],
 	);
 
-	const handleEditorChange = useCallback((): void => {
-		const isDocumentEmpty = isBlockNoteEmpty(editor.document);
-		contentField.onChange(
-			isDocumentEmpty ? "" : JSON.stringify(editor.document),
-		);
-	}, [contentField, editor]);
-
 	const isTitleEmpty = currentTitle.trim().length === EMPTY_COUNT;
 	const isContentEmpty =
 		currentContent.trim().length === EMPTY_COUNT ||
-		isBlockNoteEmpty(editor.document);
+		isBlockNoteEmpty(currentContent);
 
 	const hasFormErrors = Boolean(
 		titleError ||
@@ -310,10 +305,9 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 								: "border-border"
 						}`}
 					>
-						<BlockNoteView
-							editor={editor as unknown as BlockNoteEditorType}
+						<KnowledgeEditor
+							initialContent={initialContent}
 							onChange={handleEditorChange}
-							theme="light"
 						/>
 					</div>
 					{contentError && (
@@ -529,26 +523,19 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 		clientPayload: UpdateKbEntryPayload;
 		serverEntry: KbEntry;
 	}>(null);
+	const [previousEntryId, setPreviousEntryId] = useState(entry.id);
+
+	if (entry.id !== previousEntryId) {
+		setPreviousEntryId(entry.id);
+		setSavedEntry(null);
+	}
 
 	const displayEntry = savedEntry ?? entry;
 
-	const initialContent = useMemo(
+	const readOnlyInitialContent = useMemo(
 		() => parseInitialContent(displayEntry.content),
 		[displayEntry.content],
 	);
-
-	const readOnlyEditor = useCreateBlockNote(
-		initialContent ? { initialContent } : {},
-	);
-
-	useEffect(() => {
-		const blocks = parseInitialContent(displayEntry.content);
-		if (!blocks || blocks.length === EMPTY_COUNT) {
-			return;
-		}
-
-		readOnlyEditor.replaceBlocks(readOnlyEditor.document, blocks);
-	}, [displayEntry.content, readOnlyEditor]);
 
 	const handleCancel = useCallback((): void => {
 		setIsEditing(false);
@@ -595,15 +582,16 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 					});
 					return false;
 				}
-				throw error;
+
+				return false;
 			}
 		},
 		[displayEntry, entry, onSave],
 	);
 
 	const handleSave = useCallback(
-		async (payload: UpdateKbEntryPayload): Promise<void> => {
-			await executeSave(payload);
+		async (payload: UpdateKbEntryPayload): Promise<boolean> => {
+			return await executeSave(payload);
 		},
 		[executeSave],
 	);
@@ -671,10 +659,10 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 						<h1 className="mb-4 text-2xl font-bold">{displayEntry.title}</h1>
 
 						<div className="-mx-12">
-							<BlockNoteView
-								editable={false}
-								editor={readOnlyEditor as unknown as BlockNoteEditorType}
-								theme="light"
+							<KnowledgeEditor
+								initialContent={readOnlyInitialContent}
+								isEditable={false}
+								key={[displayEntry.id, String(displayEntry.version)].join("-")}
 							/>
 						</div>
 					</div>
