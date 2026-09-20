@@ -259,9 +259,15 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 			return;
 		}
 
-		setDeletedIds((previous) => [...previous, deletingProjectId]);
-		onDeleteProject?.(deletingProjectId);
-		setDeletingProjectId(null);
+		const projectIdToDelete = deletingProjectId;
+
+		void Promise.resolve(onDeleteProject?.(projectIdToDelete))
+			.then(() => {
+				setDeletedIds((previous) => [...previous, projectIdToDelete]);
+			})
+			.finally(() => {
+				setDeletingProjectId(null);
+			});
 	}, [deletingProjectId, onDeleteProject]);
 
 	const handleOpenCreateModal = useCallback((): void => {
