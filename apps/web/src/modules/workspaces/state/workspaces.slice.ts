@@ -1,67 +1,32 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 
-import {
-	type CreateProjectPayload,
-	type WorkspacesApi,
-} from "../api/workspaces-api.js";
+import { type WorkspacesApi } from "../api/workspaces-api.js";
 import { type ProjectItem, type RecentDocumentItem } from "../types/types.js";
+import { createProject, deleteProject, updateProject } from "./action.js";
 
 interface WorkspacesState {
+	creationError: null | string;
 	error: null | string;
+	isCreating: boolean;
 	isLoading: boolean;
 	isLoadingRecent: boolean;
+	isUpdating: boolean;
 	projects: ProjectItem[];
 	recentDocuments: RecentDocumentItem[];
+	updateError: null | string;
 }
 
 const initialState: WorkspacesState = {
+	creationError: null,
 	error: null,
+	isCreating: false,
 	isLoading: false,
 	isLoadingRecent: false,
+	isUpdating: false,
 	projects: [],
 	recentDocuments: [],
+	updateError: null,
 };
-
-const createProject = createAsyncThunk<
-	ProjectItem,
-	{
-		api: WorkspacesApi;
-		payload: CreateProjectPayload;
-	}
->(
-	"workspaces/createProject",
-	async ({
-		api,
-		payload,
-	}: {
-		api: WorkspacesApi;
-		payload: CreateProjectPayload;
-	}) => {
-		return await api.createProject(payload);
-	},
-);
-
-const deleteProject = createAsyncThunk<
-	string,
-	{
-		api: WorkspacesApi;
-		id: string;
-	}
->(
-	"workspaces/deleteProject",
-	async (
-		{ api, id }: { api: WorkspacesApi; id: string },
-		{ rejectWithValue },
-	) => {
-		const isDeleted = await api.deleteProject(id);
-
-		if (!isDeleted) {
-			return rejectWithValue(false);
-		}
-
-		return id;
-	},
-);
 
 const fetchProjects = createAsyncThunk(
 	"workspaces/fetchProjects",
@@ -77,17 +42,24 @@ const fetchRecentDocuments = createAsyncThunk(
 	},
 );
 
+const getProjectLastActivityTimestamp = (project: ProjectItem): number => {
+	return Date.parse(project.lastActivityAt ?? project.updatedAt);
+};
+
+const sortProjectsByLastActivityDesc = (
+	projects: ProjectItem[],
+): ProjectItem[] => {
+	return projects.toSorted((firstProject, secondProject) => {
+		return (
+			getProjectLastActivityTimestamp(secondProject) -
+			getProjectLastActivityTimestamp(firstProject)
+		);
+	});
+};
+
 const workspacesSlice = createSlice({
 	extraReducers: (builder) => {
 		builder
-			.addCase(createProject.fulfilled, (state, action) => {
-				state.projects.unshift(action.payload);
-			})
-			.addCase(deleteProject.fulfilled, (state, action) => {
-				state.projects = state.projects.filter(
-					(project) => project.id !== action.payload,
-				);
-			})
 			.addCase(fetchProjects.pending, (state) => {
 				state.isLoading = true;
 				state.error = null;
@@ -108,18 +80,68 @@ const workspacesSlice = createSlice({
 			})
 			.addCase(fetchRecentDocuments.rejected, (state) => {
 				state.isLoadingRecent = false;
+			})
+			.addCase(createProject.pending, (state) => {
+				state.isCreating = true;
+				state.creationError = null;
+			})
+			.addCase(createProject.fulfilled, (state, action) => {
+				state.isCreating = false;
+				state.projects.unshift(action.payload);
+			})
+			.addCase(createProject.rejected, (state, action) => {
+				state.isCreating = false;
+				state.creationError =
+					action.error.message ?? "Failed to create project";
+			})
+			.addCase(deleteProject.fulfilled, (state, action) => {
+				state.projects = state.projects.filter(
+					(project) => project.id !== action.payload,
+				);
+			})
+			.addCase(updateProject.pending, (state) => {
+				state.isUpdating = true;
+				state.updateError = null;
+			})
+			.addCase(updateProject.fulfilled, (state, action) => {
+				state.isUpdating = false;
+				state.projects = sortProjectsByLastActivityDesc(
+					state.projects.map((project) =>
+						project.id === action.payload.id
+							? {
+									...project,
+									...action.payload,
+									lastActivityAt: action.payload.updatedAt,
+									role: project.role,
+								}
+							: project,
+					),
+				);
+			})
+			.addCase(updateProject.rejected, (state, action) => {
+				state.isUpdating = false;
+				state.updateError = action.error.message ?? "Failed to update project";
 			});
 	},
 	initialState,
 	name: "workspaces",
-	reducers: {},
+	reducers: {
+		clearCreationError(state) {
+			state.creationError = null;
+		},
+		clearUpdateError(state) {
+			state.updateError = null;
+		},
+	},
 });
 
+const workspacesActions = workspacesSlice.actions;
 const workspacesReducer = workspacesSlice.reducer;
 
+export { createProject, deleteProject, updateProject } from "./action.js";
 export {
-	deleteProject,
 	fetchProjects,
 	fetchRecentDocuments,
+	workspacesActions,
 	workspacesReducer,
 };
