@@ -4,9 +4,7 @@ import { fn } from "@storybook/test";
 
 import { KbEntryDetail } from "./kb-entry-detail.js";
 
-const TIMEOUT_DELAY_MS = 300;
-const HTTP_STATUS_CONFLICT = 409;
-const HTTP_STATUS_LOCKED = 423;
+const TIMEOUT_DELAY_MS = 1500;
 
 const BASE_CONTENT = "Rule 1: Password must contain at least 8 characters.";
 
@@ -50,7 +48,7 @@ const ViewerMode: Story = {
 	},
 };
 
-const VersionConflict: Story = {
+const SaveError: Story = {
 	args: {
 		canEdit: true,
 		entry: BASE_ENTRY,
@@ -59,47 +57,11 @@ const VersionConflict: Story = {
 				setTimeout(resolve, TIMEOUT_DELAY_MS);
 			});
 
-			const conflictError = Object.assign(
-				new Error("Version conflict on server"),
-				{
-					serverEntry: {
-						contentJson: [
-							{
-								content:
-									"Rule 1: 8 characters.\nRule 2: At least one digit (from User 1).",
-								type: "paragraph",
-							},
-						],
-						id: 1,
-						title: "Password Validation (Server v2 by User 1)",
-					},
-					status: HTTP_STATUS_CONFLICT,
-				},
-			);
-
-			throw conflictError;
-		}),
-	},
-};
-
-const AiLockedState: Story = {
-	args: {
-		canEdit: true,
-		entry: BASE_ENTRY,
-		onSave: fn(async () => {
-			await new Promise((resolve) => {
-				setTimeout(resolve, TIMEOUT_DELAY_MS);
-			});
-
-			const lockedError = Object.assign(new Error("Resource is locked by AI"), {
-				message: "Locked: AI is currently drafting an update for this page",
-				status: HTTP_STATUS_LOCKED,
-			});
-
-			throw lockedError;
+			throw new Error("Internal Server Error 500");
 		}),
 	},
 };
 
 export default meta;
-export { AiLockedState, Default, VersionConflict, ViewerMode };
+
+export { Default, SaveError, ViewerMode };
