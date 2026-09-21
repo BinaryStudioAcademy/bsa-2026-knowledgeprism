@@ -1,6 +1,7 @@
 import { HeadObjectCommand, type S3Client } from "@aws-sdk/client-s3";
 
 const NOT_FOUND_ERROR_NAME = "NotFound";
+const UNKNOWN_CONTENT_LENGTH = 0;
 
 type Parameters = {
 	bucketName: string;
@@ -12,16 +13,16 @@ const checkIfObjectExists = async ({
 	bucketName,
 	key,
 	s3Client,
-}: Parameters): Promise<boolean> => {
+}: Parameters): Promise<null | number> => {
 	try {
-		await s3Client.send(
+		const response = await s3Client.send(
 			new HeadObjectCommand({ Bucket: bucketName, Key: key }),
 		);
 
-		return true;
+		return response.ContentLength ?? UNKNOWN_CONTENT_LENGTH;
 	} catch (error) {
 		if (error instanceof Error && error.name === NOT_FOUND_ERROR_NAME) {
-			return false;
+			return null;
 		}
 
 		throw error;

@@ -2,6 +2,7 @@ import {
 	DocumentErrorMessage,
 	DocumentSourceType,
 	DocumentStatus,
+	DocumentValidationRule,
 	ProjectValidationMessage,
 } from "@knowledgeprism/constants";
 import {
@@ -259,31 +260,56 @@ class DocumentService {
 		}
 
 		try {
-			const isObjectPresent = await this.checkDocumentObjectExists({
+			const objectSizeInBytes = await this.checkDocumentObjectExists({
 				key: s3Key,
 			});
 
-			if (!isObjectPresent) {
+			if (objectSizeInBytes === null) {
 				throw new S3ObjectNotFoundError("S3 object missing");
 			}
-		} catch (error) {
-			await this.failAndThrow(
-				documentId,
-				error instanceof S3ObjectNotFoundError
-					? "Uploaded document was not found in S3."
-					: "Failed to verify uploaded document in S3.",
-				error,
-			);
-		}
 
-		const confirmedDocument = await this.documentRepository.updateStatus({
-			id: documentId,
-			status: DocumentStatus.PARSED,
-		});
+			if (
+				objectSizeInBytes > DocumentValidationRule.MAXIMUM_FILE_SIZE_IN_BYTES
+			) {
+				throw new S3ObjectTooLargeError("S3 object exceeds maximum file size");
+			}
+		} catch (error) {
+			if (error instanceof S3ObjectNotFoundError) {
+				await this.failAndThrow(
+					documentId,
+					"Uploaded document was not found in S3.",
+					error,
+				);
+			}
+
+			if (error instanceof S3ObjectTooLargeError) {
+				await this.failAndThrow(
+					documentId,
+					"Uploaded document exceeds the maximum allowed file size.",
+					error,
+				);
+			}
+
+			await this.documentRepository.updateStatus({
+				id: documentId,
+				status: DocumentStatus.UPLOADED,
+			});
+
+			this.logger.error("Failed to verify uploaded document in S3.", {
+				documentId,
+				error,
+			});
+
+			throw new HTTPError({
+				cause: error,
+				message: "Failed to verify uploaded document in S3. Please try again.",
+				status: HTTPCode.SERVICE_UNAVAILABLE,
+			});
+		}
 
 		return {
 			documentId,
-			status: confirmedDocument.toObject().status,
+			status: transitionedDocument.toObject().status,
 		};
 	}
 
@@ -511,5 +537,7 @@ class DocumentService {
 }
 
 class S3ObjectNotFoundError extends Error {}
+
+class S3ObjectTooLargeError extends Error {}
 
 export { DocumentService };
