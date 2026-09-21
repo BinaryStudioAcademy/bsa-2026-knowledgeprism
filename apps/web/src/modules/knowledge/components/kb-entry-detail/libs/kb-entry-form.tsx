@@ -12,6 +12,7 @@ import {
 import { kbEntryValidationSchema } from "./validation-schema.js";
 
 const EMPTY_COUNT = 0;
+
 const MAX_TITLE_CHARACTERS = 255;
 
 const DEFAULT_BLOCKS: PartialBlock[] = [
@@ -28,6 +29,73 @@ const isTextNode = (item: unknown): item is TextNode => {
 	return typeof (item as Record<string, unknown>)["text"] === "string";
 };
 
+const extractInlineText = (item: unknown): string => {
+	if (!item) {
+		return "";
+	}
+
+	if (typeof item === "string") {
+		return item;
+	}
+
+	if (isTextNode(item)) {
+		return item.text;
+	}
+
+	if (typeof item === "object") {
+		const candidate = item as { content?: unknown; text?: unknown };
+
+		if (typeof candidate.text === "string") {
+			return candidate.text;
+		}
+
+		if (candidate.content) {
+			return extractPlainText(candidate.content);
+		}
+	}
+
+	return "";
+};
+
+const extractBlockContent = (candidate: {
+	cells?: unknown;
+	content?: unknown;
+	props?: unknown;
+	rows?: unknown;
+}): string => {
+	if (Array.isArray(candidate.content)) {
+		return candidate.content
+			.map((item: unknown) => extractInlineText(item))
+			.join("");
+	}
+
+	if (typeof candidate.content === "string") {
+		return candidate.content;
+	}
+
+	if (candidate.content && typeof candidate.content === "object") {
+		return extractPlainText(candidate.content);
+	}
+
+	if (candidate.rows) {
+		return extractPlainText(candidate.rows);
+	}
+
+	if (candidate.cells) {
+		return extractPlainText(candidate.cells);
+	}
+
+	if (candidate.props && typeof candidate.props === "object") {
+		const properties = candidate.props as Record<string, unknown>;
+
+		if (typeof properties["url"] === "string") {
+			return properties["url"].trim();
+		}
+	}
+
+	return "";
+};
+
 const extractPlainText = (content: unknown): string => {
 	if (!content) {
 		return "";
@@ -35,77 +103,54 @@ const extractPlainText = (content: unknown): string => {
 
 	if (typeof content === "string") {
 		const trimmed = content.trim();
+
 		if (!trimmed.startsWith("[") && !trimmed.startsWith("{")) {
 			return trimmed;
 		}
 
 		try {
 			const parsed: unknown = JSON.parse(trimmed);
+
 			return extractPlainText(parsed);
 		} catch {
 			return trimmed;
 		}
 	}
 
-	if (!Array.isArray(content)) {
-		return "";
+	if (Array.isArray(content)) {
+		return content
+			.map((item: unknown) => extractPlainText(item))
+			.filter(Boolean)
+			.join(" ");
 	}
 
-	return content
-		.map((block: unknown) => {
-			if (typeof block !== "object" || block === null) {
-				return "";
-			}
+	if (typeof content === "object") {
+		const candidate = content as {
+			cells?: unknown;
+			children?: unknown;
+			content?: unknown;
+			props?: unknown;
+			rows?: unknown;
+			text?: unknown;
+		};
 
-			const candidate = block as {
-				children?: unknown;
-				content?: unknown;
-				text?: unknown;
-			};
+		if (typeof candidate.text === "string") {
+			return candidate.text;
+		}
 
-			if (typeof candidate.text === "string") {
-				return candidate.text;
-			}
+		const text = extractBlockContent(candidate);
+		const nested = candidate.children
+			? extractPlainText(candidate.children)
+			: "";
 
-			let text = "";
+		return `${text} ${nested}`.trim();
+	}
 
-			if (Array.isArray(candidate.content)) {
-				text = candidate.content
-					.map((item: unknown) => {
-						if (typeof item === "string") {
-							return item;
-						}
-						if (isTextNode(item)) {
-							return item.text;
-						}
-						if (typeof item === "object" && item !== null) {
-							const nestedItem = item as { content?: unknown; text?: unknown };
-							if (typeof nestedItem.text === "string") {
-								return nestedItem.text;
-							}
-							if (nestedItem.content) {
-								return extractPlainText(nestedItem.content);
-							}
-						}
-						return "";
-					})
-					.join("");
-			} else if (typeof candidate.content === "string") {
-				text = candidate.content;
-			}
-
-			const nested = candidate.children
-				? extractPlainText(candidate.children)
-				: "";
-
-			return `${text} ${nested}`.trim();
-		})
-		.filter(Boolean)
-		.join(" ");
+	return "";
 };
 
 const isBlockNoteEmpty = (document: unknown): boolean => {
-	return extractPlainText(document).length === EMPTY_COUNT;
+	return extractPlainText(document).trim().length === EMPTY_COUNT;
 };
 
 const isBlockArray = (value: unknown): value is PartialBlock[] => {
@@ -116,9 +161,11 @@ const parseInitialContent = (content?: unknown): PartialBlock[] => {
 	if (!content) {
 		return DEFAULT_BLOCKS;
 	}
+
 	if (isBlockArray(content)) {
 		return content.length > EMPTY_COUNT ? content : DEFAULT_BLOCKS;
 	}
+
 	return DEFAULT_BLOCKS;
 };
 
@@ -158,6 +205,7 @@ const KbEntryForm = ({
 	});
 
 	const { errors } = useFormState({ control });
+
 	const currentTitle = useWatch({ control, name: "title" });
 	const currentContentJson = useWatch({ control, name: "contentJson" });
 
@@ -205,17 +253,20 @@ const KbEntryForm = ({
 	const handleTitleInput = useCallback(
 		(event: SyntheticEvent): void => {
 			const target = event.target;
+
 			if (!(target instanceof HTMLInputElement)) {
 				return;
 			}
 
 			if (target.value.length >= MAX_TITLE_CHARACTERS) {
 				setIsMaxTitleReached(true);
+
 				if (target.value.length > MAX_TITLE_CHARACTERS) {
 					const truncated = target.value.slice(
 						EMPTY_COUNT,
 						MAX_TITLE_CHARACTERS,
 					);
+
 					target.value = truncated;
 					titleField.onChange(truncated);
 				}

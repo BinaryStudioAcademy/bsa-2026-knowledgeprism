@@ -25,9 +25,11 @@ const parseInitialContent = (content?: unknown): PartialBlock[] => {
 	if (!content) {
 		return DEFAULT_BLOCKS;
 	}
+
 	if (isBlockArray(content)) {
 		return content.length > EMPTY_COUNT ? content : DEFAULT_BLOCKS;
 	}
+
 	return DEFAULT_BLOCKS;
 };
 
@@ -60,17 +62,20 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 
 	const handleCancel = useCallback((): void => {
 		setSaveErrorMessage(null);
+		savingEntryIdReference.current = null;
 		setIsEditing(false);
 	}, []);
 
 	const handleStartEdit = useCallback((): void => {
 		setSaveErrorMessage(null);
+		savingEntryIdReference.current = null;
 		setIsEditing(true);
 	}, []);
 
 	const handleSave = useCallback(
 		async (payload: KnowledgeEntryUpdateRequestDto): Promise<boolean> => {
 			const currentId = entry.id;
+
 			savingEntryIdReference.current = currentId;
 
 			try {
@@ -84,6 +89,7 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 				}
 
 				const candidate = error as { message?: string };
+
 				setSaveErrorMessage(
 					candidate.message ?? "Failed to save changes. Please try again.",
 				);
@@ -117,10 +123,8 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 							</Button>
 						)}
 					</div>
-
 					<div className="kb-body">
 						<h1 className="mb-4 text-2xl font-bold">{entry.title}</h1>
-
 						<div className="-mx-12">
 							<KnowledgeEditor
 								initialContent={readOnlyInitialContent}
