@@ -1,6 +1,16 @@
+import { type PartialBlock } from "@blocknote/core";
+
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { type DocumentProcessingStatus } from "../enums/enums.js";
+
+interface KbEntry {
+	contentJson: PartialBlock[] | Record<string, unknown>[];
+	createdAt?: string;
+	id: number;
+	title: string;
+	updatedAt?: string;
+}
 
 type KnowledgeState = {
 	errorMessage: null | string;
@@ -17,4 +27,5 @@ type UploadedDocumentItem = {
 	status: ValueOf<typeof DocumentProcessingStatus>;
 };
 
-export { type KnowledgeState, type UploadedDocumentItem };
+export { type KnowledgeEntryUpdateRequestDto } from "@knowledgeprism/types";
+export { type KbEntry, type KnowledgeState, type UploadedDocumentItem };
