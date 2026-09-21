@@ -65,7 +65,7 @@ const SignInForm = ({
 			<div>
 				<Heading level="2">Welcome back</Heading>
 				<Paragraph className="pt-2" size={ParagraphSize.BODY_SMALL}>
-					Sign in to continue to your workspace.
+					Log in to continue to your workspace.
 				</Paragraph>
 			</div>
 			<form className="flex flex-col gap-4" onSubmit={handleFormSubmit}>
@@ -92,7 +92,7 @@ const SignInForm = ({
 				/>
 
 				<Button isLoading={isLoading} type="submit">
-					Sign in
+					Log in
 				</Button>
 			</form>
 			<Paragraph
@@ -101,7 +101,7 @@ const SignInForm = ({
 			>
 				Don&apos;t have an account?{" "}
 				<Link to={AppRoute.SIGN_UP} variant="inline">
-					Sign up
+					Register organisation
 				</Link>
 			</Paragraph>
 		</>

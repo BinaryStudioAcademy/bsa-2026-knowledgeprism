@@ -49,7 +49,7 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 	return (
 		<>
 			<div className="flex flex-col gap-2">
-				<Heading level="2">Create your account</Heading>
+				<Heading level="2">Create your organisation</Heading>
 				<Paragraph size={ParagraphSize.BODY_SMALL}>
 					Start building your knowledge graph.
 				</Paragraph>
@@ -113,7 +113,7 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 					name="agreeToTerms"
 				/>
 				<Button className="w-full" type="submit">
-					Create Account
+					Create organisation
 				</Button>
 			</form>
 			<Paragraph
@@ -122,7 +122,7 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 			>
 				Already have an account?{" "}
 				<Link to={AppRoute.SIGN_IN} variant="inline">
-					Sign in
+					Log in
 				</Link>
 			</Paragraph>
 		</>
