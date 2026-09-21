@@ -5,6 +5,7 @@ import { AuthValidationMessage } from "@knowledgeprism/constants";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { type ServerApplicationRouteParameters } from "~/infrastructure/server-application/server-application.js";
+import { UserModel } from "~/modules/users/models/user.model.js";
 
 import {
 	type APIHandlerOptions,
@@ -75,7 +76,17 @@ class BaseController implements Controller {
 		const handlerOptions = this.mapRequest(request);
 
 		if (route.allowedRoles) {
-			const { organisationRole, userId } = handlerOptions.session;
+			let { organisationRole, userId } = handlerOptions.session;
+
+			if (userId && organisationRole === undefined) {
+				const user = await UserModel.query().findById(userId);
+
+				if (user) {
+					organisationRole = user.organisationRole;
+					request.session.organisationRole = organisationRole;
+					handlerOptions.session.organisationRole = organisationRole;
+				}
+			}
 
 			const isAllowedByRole = Boolean(
 				organisationRole && route.allowedRoles.includes(organisationRole),
