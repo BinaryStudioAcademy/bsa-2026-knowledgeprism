@@ -1,5 +1,3 @@
-import { userCreateValidationSchema } from "@knowledgeprism/schemas";
-
 import { Heading, Paragraph, ParagraphSize } from "~/components/components.js";
 import {
 	useAppDispatch,
@@ -12,12 +10,13 @@ import { AppRoute } from "~/lib/enums/enums.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 import { UserForm } from "../user-form/user-form.js";
+import { userCreateFrontendValidationSchema } from "./libs/validation-schema.js";
 
 type ProjectRole = "EDITOR" | "VIEWER";
 
-// TODO: Import real schema when available, for now using basic typing
 type UserCreationFormValues = {
 	assignedProjects: { projectId: number; role: ProjectRole }[];
+	confirmPassword: string;
 	email: string;
 	firstName: string;
 	lastName: string;
@@ -26,6 +25,7 @@ type UserCreationFormValues = {
 
 const DEFAULT_USER_CREATION_PAYLOAD: UserCreationFormValues = {
 	assignedProjects: [],
+	confirmPassword: "",
 	email: "",
 	firstName: "",
 	lastName: "",
@@ -45,7 +45,7 @@ const UserCreationPage: React.FC = () => {
 
 	const { control, handleSubmit } = useAppForm<UserCreationFormValues>({
 		defaultValues: DEFAULT_USER_CREATION_PAYLOAD,
-		validationSchema: userCreateValidationSchema,
+		validationSchema: userCreateFrontendValidationSchema,
 	});
 
 	const handleValidSubmit = useCallback(
