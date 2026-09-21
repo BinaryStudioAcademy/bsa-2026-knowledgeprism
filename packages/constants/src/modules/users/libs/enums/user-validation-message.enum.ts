@@ -15,6 +15,7 @@ const UserValidationMessage = {
 		"Password must contain at least one special character",
 	PASSWORD_SPECIAL_CHARACTER_REQUIRE:
 		"Password must contain at least one special character",
+	PASSWORDS_MISMATCH: "The passwords entered do not match.",
 	PROJECT_ROLE_REQUIRE: "Project role is required",
 	PROJECT_ROLE_WRONG: "Project role is invalid",
 	STATUS_REQUIRE: "Status is required",
