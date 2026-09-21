@@ -4,6 +4,8 @@ import {
 } from "@knowledgeprism/constants";
 import { z } from "zod";
 
+import { password } from "./password.validation-schema.js";
+
 const projectAssignment = z.object({
 	projectId: z.number().int().positive(),
 	role: z.enum(["EDITOR", "VIEWER"], {
@@ -45,20 +47,7 @@ const userCreate = z.object({
 		.max(UserValidationRule.NAME_MAXIMUM_LENGTH, {
 			error: UserValidationMessage.LAST_NAME_REQUIRE,
 		}),
-	password: z
-		.string()
-		.min(UserValidationRule.PASSWORD_MINIMUM_LENGTH, {
-			error: UserValidationMessage.PASSWORD_MINIMUM_LENGTH,
-		})
-		.max(UserValidationRule.PASSWORD_MAXIMUM_LENGTH, {
-			error: UserValidationMessage.PASSWORD_REQUIRE,
-		})
-		.regex(/\d/, {
-			message: UserValidationMessage.PASSWORD_DIGIT_REQUIRE,
-		})
-		.regex(/[!@#$%^&*(),.?":{}|<>]/, {
-			error: UserValidationMessage.PASSWORD_SPECIAL_CHARACTER,
-		}),
+	password,
 });
 
 export { userCreate };
