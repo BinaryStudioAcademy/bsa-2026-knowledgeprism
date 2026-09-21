@@ -2,7 +2,6 @@ import {
 	UserValidationMessage,
 	UserValidationRule,
 } from "@knowledgeprism/constants";
-
 import { z } from "zod";
 
 const password = z

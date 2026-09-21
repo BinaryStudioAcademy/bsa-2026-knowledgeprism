@@ -3,6 +3,7 @@ import {
 	UserValidationRule,
 } from "@knowledgeprism/constants";
 import { z } from "zod";
+
 import { password } from "./password.validation-schema.js";
 
 const projectAssignment = z.object({
