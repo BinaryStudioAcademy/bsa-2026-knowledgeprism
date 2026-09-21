@@ -28,8 +28,12 @@ const AuthPage: React.FC = () => {
 	const navigate = useNavigate();
 
 	useEffect(() => {
+		dispatch(authActions.clearError());
+	}, [dispatch, pathname]);
+
+	useEffect(() => {
 		if (hasUser) {
-			void navigate(AppRoute.WORKSPACE, { replace: true });
+			void navigate(AppRoute.WORKSPACES, { replace: true });
 		}
 	}, [hasUser, navigate]);
 
@@ -39,7 +43,7 @@ const AuthPage: React.FC = () => {
 				const action = await dispatch(authActions.signIn(payload));
 
 				if (authActions.signIn.fulfilled.match(action)) {
-					await navigate(AppRoute.WORKSPACE);
+					await navigate(AppRoute.WORKSPACES);
 				}
 			})();
 		},
@@ -52,7 +56,7 @@ const AuthPage: React.FC = () => {
 				const action = await dispatch(authActions.signUp(payload));
 
 				if (authActions.signUp.fulfilled.match(action)) {
-					await navigate(AppRoute.WORKSPACE);
+					await navigate(AppRoute.WORKSPACES);
 				}
 			})();
 		},
@@ -69,7 +73,11 @@ const AuthPage: React.FC = () => {
 		}
 
 		return (
-			<SignInForm isLoading={isAuthPending} onSubmit={handleSignInSubmit} />
+			<SignInForm
+				hasServerError={Boolean(error)}
+				isLoading={isAuthPending}
+				onSubmit={handleSignInSubmit}
+			/>
 		);
 	};
 
@@ -95,9 +103,6 @@ const AuthPage: React.FC = () => {
 
 			<main className="flex flex-1 items-center justify-center px-5.5 py-7 tablet:p-11 desktop:p-16">
 				<div className="flex w-full max-w-85 flex-col gap-4 desktop:max-w-95">
-					{error && (
-						<span className="font-sans text-sm text-error">{error}</span>
-					)}
 					{getScreen(pathname)}
 				</div>
 			</main>

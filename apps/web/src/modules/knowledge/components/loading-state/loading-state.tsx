@@ -1,73 +1,73 @@
-import { type JSX } from "react";
+import { DocumentStatus } from "@knowledgeprism/constants";
+import { type JSX, useEffect, useState } from "react";
 
-import { Paragraph, ParagraphSize } from "~/components/components.js";
+import { type ValueOf } from "~/lib/types/types.js";
 
-type CompactSuccessProperties = {
-	hasError?: false;
-	onCancel?: never;
-	onPreview: () => void;
-	onRetry?: never;
-	variant: "compact";
-};
+import { CompactVariant } from "./libs/components/compact-variant/compact-variant.js";
+import { FullVariant } from "./libs/components/full-variant/full-variant.js";
+import {
+	FULL_PERCENTAGE,
+	INITIAL_STATUS_INDEX,
+	MOCK_TIMER_DELAY_MS,
+	PERCENTAGE_OFFSET,
+	STATUS_INDEX_INCREMENT,
+	STATUS_PROGRESSION,
+} from "./libs/constants.js";
+import { type Properties } from "./libs/types.js";
 
-type ErrorProperties = {
-	hasError: true;
-	onCancel: () => void;
-	onPreview?: never;
-	onRetry: () => void;
-	variant?: "compact" | "full";
-};
-
-type FullSuccessProperties = {
-	hasError?: false;
-	onCancel?: never;
-	onPreview?: never;
-	onRetry?: never;
-	variant?: "full";
-};
-
-type Properties =
-	CompactSuccessProperties | ErrorProperties | FullSuccessProperties;
-
+// TODO: Add `currentStatus: ValueOf<typeof DocumentStatus>` passed down from TanStack Query
 const LoadingState = (properties: Properties): JSX.Element => {
-	const { hasError = false } = properties;
+	const { hasError = false, variant = "full" } = properties;
 
-	if (hasError) {
-		return (
-			<div className="flex items-center justify-between gap-4 p-2">
-				<Paragraph
-					className="text-error font-medium"
-					size={ParagraphSize.BODY_SMALL}
-				>
-					Processing failed
-				</Paragraph>
-				<div className="flex gap-2">
-					<button
-						className="rounded border border-border px-2 py-1 text-xs"
-						onClick={properties.onRetry}
-						type="button"
-					>
-						Retry
-					</button>
-					<button
-						className="rounded border border-border px-2 py-1 text-xs"
-						onClick={properties.onCancel}
-						type="button"
-					>
-						Cancel
-					</button>
-				</div>
-			</div>
-		);
+	// TODO: Delete this mock state and use the `currentStatus` prop from TanStack Query instead
+	const [currentStatusIndex, setCurrentStatusIndex] =
+		useState(INITIAL_STATUS_INDEX);
+
+	const currentStatus = STATUS_PROGRESSION[currentStatusIndex] as ValueOf<
+		typeof DocumentStatus
+	>;
+
+	const isError = hasError || currentStatus === DocumentStatus.FAILED;
+
+	const onFinish = "onFinish" in properties ? properties.onFinish : undefined;
+
+	// TODO: Delete this entire useEffect mock timer when backend is connected
+	useEffect(() => {
+		if (isError || currentStatus === DocumentStatus.EXTRACTED) {
+			if (onFinish && currentStatus === DocumentStatus.EXTRACTED) {
+				onFinish();
+			}
+
+			return;
+		}
+
+		const timer = setTimeout(() => {
+			setCurrentStatusIndex((previous) => previous + STATUS_INDEX_INCREMENT);
+		}, MOCK_TIMER_DELAY_MS);
+
+		return () => {
+			clearTimeout(timer);
+		};
+	}, [currentStatus, hasError, isError, onFinish]);
+
+	// TODO: When mock state is removed, derive percentage by finding the index of `currentStatus` in `STATUS_PROGRESSION`
+	const percentage = Math.round(
+		(currentStatusIndex / (STATUS_PROGRESSION.length - PERCENTAGE_OFFSET)) *
+			FULL_PERCENTAGE,
+	);
+
+	const internalProperties = {
+		...properties,
+		currentStatus,
+		isError,
+		percentage,
+	};
+
+	if (variant === "compact") {
+		return <CompactVariant {...internalProperties} />;
 	}
 
-	return (
-		<div className="flex items-center justify-between gap-4 p-2">
-			<Paragraph size={ParagraphSize.BODY_SMALL}>
-				New knowledge is being processed...
-			</Paragraph>
-		</div>
-	);
+	return <FullVariant {...internalProperties} />;
 };
 
 export { LoadingState };

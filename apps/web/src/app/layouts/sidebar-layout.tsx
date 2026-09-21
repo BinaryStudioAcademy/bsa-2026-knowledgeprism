@@ -6,7 +6,7 @@ const PROJECT_ROLE = "EDITOR";
 
 const SidebarLayout: React.FC = () => {
 	return (
-		<div className="flex h-screen flex-col tablet:flex-row">
+		<div className="flex h-full flex-col tablet:flex-row">
 			<Sidebar projectName={PROJECT_NAME} role={PROJECT_ROLE} />
 
 			<main className="min-w-0 flex-1 overflow-auto">

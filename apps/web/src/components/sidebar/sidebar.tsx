@@ -4,13 +4,13 @@ import { Link } from "react-router-dom";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
-import { useLocation, useModal } from "~/hooks/hooks.js";
+import { useAppSelector, useLocation, useModal } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
-const PROJECT_ICON_SIZE = 18;
+// const PROJECT_ICON_SIZE = 18;
 const MOBILE_NAV_ICON_SIZE = 16;
 
 type NavItem = {
@@ -37,12 +37,17 @@ const primaryNavItems: NavItem[] = [
 		icon: <Icon name="glossary" />,
 		id: "glossary",
 		label: "Glossary",
+		to: AppRoute.GLOSSARY,
 	},
-	{ icon: <Icon name="ask-prism" />, id: "ask-prism", label: "Ask Prism" },
+	{
+		icon: <Icon name="ask-prism" />,
+		id: "ask-prism",
+		label: "Ask Prism",
+		to: AppRoute.ASK_PRISM,
+	},
 ];
 
 const utilityNavItems: NavItem[] = [
-	{ icon: <Icon name="help" />, id: "help", label: "Help" },
 	{
 		icon: <Icon name="settings" />,
 		id: "settings",
@@ -53,6 +58,7 @@ const utilityNavItems: NavItem[] = [
 		icon: <Icon name="users" />,
 		id: "users",
 		label: "Users",
+		to: AppRoute.USERS,
 	},
 ];
 
@@ -61,16 +67,19 @@ const mobileNavItems: NavItem[] = [
 		icon: <Icon name="knowledge-tree" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "knowledge-tree",
 		label: "Tree",
+		to: AppRoute.KNOWLEDGE_TREE,
 	},
 	{
 		icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "glossary",
 		label: "Glossary",
+		to: AppRoute.GLOSSARY,
 	},
 	{
 		icon: <Icon name="ask-prism" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "ask-prism",
 		label: "Ask",
+		to: AppRoute.ASK_PRISM,
 	},
 ];
 
@@ -112,6 +121,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	const { hideModal, isOpen, showModal } = useModal();
 	const canAddKnowledge =
 		role.trim().toUpperCase() !== ProjectMemberRole.VIEWER.toUpperCase();
+	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 
 	const handleAddClick = useCallback((): void => {
 		if (onAddKnowledge) {
@@ -124,7 +134,10 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	}, [onAddKnowledge, showModal]);
 
 	return (
-		<aside className="hidden tablet:flex tablet:w-14 desktop:w-58 shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
+		<aside className="hidden h-full tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
+			{/*
+			TODO: restore when the projects API lands
+			const PROJECT_ICON_SIZE = 18;
 			<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
 				<Icon name="project" size={PROJECT_ICON_SIZE} />
 				<div>
@@ -132,6 +145,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 					<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
 				</div>
 			</div>
+			*/}
 
 			<nav className="flex flex-col gap-0.5">
 				{primaryNavItems.map((item) => (
@@ -143,6 +157,15 @@ const Sidebar: React.FC<SidebarProperties> = ({
 				{canAddKnowledge && (
 					<>
 						<Button onClick={handleAddClick}>Add Knowledge</Button>
+						<Button
+							className="hidden desktop:inline-flex"
+							disabled={isAddingKnowledge}
+							onClick={showModal}
+							variant="accent"
+						>
+							<Icon name="plus" size={16} />
+							Add Knowledge
+						</Button>
 						<AddKnowledgeModal
 							isOpen={isOpen}
 							onClose={hideModal}

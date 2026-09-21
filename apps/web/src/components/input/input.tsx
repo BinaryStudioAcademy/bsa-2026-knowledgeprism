@@ -119,6 +119,20 @@ const Input = <T extends FieldValues>({
 		isPassword,
 	});
 
+	const handleOnBlur = useCallback(() => {
+		const currentValue: unknown = field.value;
+
+		if (type === "text" && typeof currentValue === "string") {
+			const trimmedValue = currentValue.trim();
+
+			if (trimmedValue !== currentValue) {
+				field.onChange(trimmedValue);
+			}
+		}
+
+		field.onBlur();
+	}, [field, type]);
+
 	const handleOnChange = useCallback(
 		(event_: React.ChangeEvent<HTMLInputElement>) => {
 			const newValue = transformValue
@@ -149,6 +163,7 @@ const Input = <T extends FieldValues>({
 					disabled={isDisabled}
 					id={inputId}
 					maxLength={maxLength}
+					onBlur={handleOnBlur}
 					onChange={handleOnChange}
 					placeholder={placeholder}
 					type={inputType}

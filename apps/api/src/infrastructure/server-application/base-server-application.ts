@@ -197,6 +197,7 @@ class BaseServerApplication implements ServerApplication {
 			schema: {
 				...(validation?.body && { body: validation.body }),
 				...(validation?.params && { params: validation.params }),
+				...(validation?.query && { querystring: validation.query }),
 			},
 			url: path,
 		});
@@ -267,7 +268,7 @@ class BaseServerApplication implements ServerApplication {
 				});
 
 				await this.app.register(swaggerUi, {
-					routePrefix: `${api.version}/documentation`,
+					routePrefix: `/${api.version}/documentation`,
 				});
 			}),
 		);
