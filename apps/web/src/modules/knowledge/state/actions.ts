@@ -27,7 +27,10 @@ const processDocument = createAsyncThunk<
 	AsyncThunkConfig & { rejectValue: ProcessDocumentRejection }
 >(
 	`${sliceName}/process-document`,
-	async ({ documentId, file, id, uploadUrl }, { extra, rejectWithValue }) => {
+	async (
+		{ documentId, file, id, uploadUrl },
+		{ extra, rejectWithValue, signal },
+	) => {
 		const { documentsApi } = extra;
 
 		let resolvedDocumentId = documentId;
@@ -42,6 +45,7 @@ const processDocument = createAsyncThunk<
 						sizeInBytes: file.size,
 					},
 					projectId: TEMPORARY_PROJECT_ID,
+					signal,
 				});
 				resolvedDocumentId = intent.documentId;
 				resolvedUploadUrl = intent.uploadUrl;
@@ -49,12 +53,14 @@ const processDocument = createAsyncThunk<
 
 			await documentsApi.uploadFileToStorage({
 				file,
+				signal,
 				uploadUrl: resolvedUploadUrl,
 			});
 
 			await documentsApi.confirmUpload({
 				documentId: resolvedDocumentId,
 				projectId: TEMPORARY_PROJECT_ID,
+				signal,
 			});
 		} catch (error) {
 			return rejectWithValue({
