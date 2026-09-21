@@ -23,6 +23,8 @@ import {
 import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
 import { reducer as knowledgeReducer } from "~/modules/knowledge/knowledge.js";
 import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
+import { workspacesReducer } from "~/modules/workspaces/state/workspaces.slice.js";
+import { workspacesApi } from "~/modules/workspaces/workspaces.js";
 
 import { errorMiddleware } from "./error.middleware.js";
 
@@ -31,6 +33,7 @@ type ExtraArguments = {
 	authApi: typeof authApi;
 	storage: typeof storage;
 	userApi: typeof userApi;
+	workspacesApi: typeof workspacesApi;
 };
 
 type RootReducer = {
@@ -38,6 +41,7 @@ type RootReducer = {
 	auth: ReturnType<typeof authReducer>;
 	knowledge: ReturnType<typeof knowledgeReducer>;
 	users: ReturnType<typeof usersReducer>;
+	workspaces: ReturnType<typeof workspacesReducer>;
 };
 
 class Store {
@@ -64,6 +68,7 @@ class Store {
 				auth: authReducer,
 				knowledge: knowledgeReducer,
 				users: usersReducer,
+				workspaces: workspacesReducer,
 			},
 		});
 	}
@@ -74,6 +79,7 @@ class Store {
 			authApi,
 			storage,
 			userApi,
+			workspacesApi,
 		};
 	}
 }
