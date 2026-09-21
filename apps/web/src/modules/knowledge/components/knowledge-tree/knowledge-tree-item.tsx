@@ -65,6 +65,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 	const [isManuallyExpanded, setIsManuallyExpanded] = useState(true);
 
 	const isExpanded = isSearching || isManuallyExpanded;
+	const hasChildren = children.length > EMPTY_LENGTH;
 
 	const handleToggle = useCallback(
 		(event_: React.MouseEvent) => {
@@ -111,12 +112,14 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 	return (
 		<div className="flex flex-col gap-0.5" role="none">
 			<button
-				aria-expanded={isSection ? isExpanded : undefined}
+				aria-expanded={isSection && hasChildren ? isExpanded : undefined}
 				aria-level={level + LEVEL_INCREMENT}
 				aria-owns={
-					isSection && isExpanded ? `group-${String(item.id)}` : undefined
+					isSection && isExpanded && hasChildren
+						? `group-${String(item.id)}`
+						: undefined
 				}
-				aria-selected={isSelected}
+				aria-selected={isSection ? undefined : isSelected}
 				className={treeItemVariants({ isSelected })}
 				data-id={item.id}
 				onClick={handleToggle}
@@ -134,7 +137,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 				<HighlightedText highlight={searchQuery} text={item.title} />
 			</button>
 
-			{isSection && isExpanded && children.length > EMPTY_LENGTH && (
+			{isSection && isExpanded && hasChildren && (
 				<div
 					className="flex flex-col gap-0.5"
 					id={`group-${String(item.id)}`}
