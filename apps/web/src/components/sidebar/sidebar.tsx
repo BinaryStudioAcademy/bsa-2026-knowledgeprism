@@ -36,6 +36,7 @@ const primaryNavItems: NavItem[] = [
 		icon: <Icon name="glossary" />,
 		id: "glossary",
 		label: "Glossary",
+		to: AppRoute.GLOSSARY,
 	},
 	{
 		icon: <Icon name="ask-prism" />,
@@ -71,6 +72,7 @@ const mobileNavItems: NavItem[] = [
 		icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "glossary",
 		label: "Glossary",
+		to: AppRoute.GLOSSARY,
 	},
 	{
 		icon: <Icon name="ask-prism" size={MOBILE_NAV_ICON_SIZE} />,
