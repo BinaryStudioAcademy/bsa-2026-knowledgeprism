@@ -16,6 +16,10 @@ import {
 } from "~/modules/knowledge/libs/types/types.js";
 
 const CHECK_ICON_SIZE = 14;
+const VALID_RESOLUTIONS: readonly ConflictResolution[] = [
+	"keep",
+	"use-new",
+] as const;
 
 type MergeScreenProperties = {
 	conflicts: FieldConflict[];
@@ -77,8 +81,10 @@ const MergeScreen = ({
 		(event: MouseEvent<HTMLButtonElement>): void => {
 			const target = event.currentTarget;
 			const conflictId = target.dataset["conflictId"];
-			const resolution = target.dataset["resolution"] as
-				ConflictResolution | undefined;
+			const rawResolution = target.dataset["resolution"] as ConflictResolution;
+			const resolution = VALID_RESOLUTIONS.includes(rawResolution)
+				? rawResolution
+				: undefined;
 
 			if (conflictId && resolution) {
 				setConflicts((previousConflicts) =>
@@ -243,17 +249,14 @@ const MergeScreen = ({
 				<Button onClick={onCancel} variant="secondary">
 					Cancel
 				</Button>
-				<button
-					className="inline-flex h-10 flex-row items-center justify-center gap-2 rounded-md bg-primary px-5 tablet:px-6 font-sans text-xs tablet:text-control font-semibold text-primary-fg transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+				<Button
 					disabled={!hasAllResolved}
 					onClick={handleConsolidatedPublish}
-					type="button"
+					variant="primary"
 				>
 					<Icon name="checkbox-tick" size={CHECK_ICON_SIZE} />
-					<span className="whitespace-nowrap leading-none">
-						Publish resolution
-					</span>
-				</button>
+					<span>Publish resolution</span>
+				</Button>
 			</div>
 		</div>
 	);

@@ -2,11 +2,14 @@ import { type JSX } from "react";
 import { createPortal } from "react-dom";
 
 import {
+	Button,
 	Heading,
 	Icon,
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
+
+const CHECK_ICON_SIZE = 24;
 
 type SuccessModalProperties = {
 	isOpen: boolean;
@@ -26,18 +29,8 @@ const SuccessModal = ({
 	const modalContent = (
 		<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4 backdrop-blur-xs">
 			<div className="relative flex w-full max-w-lg flex-col items-center rounded-3xl bg-surface p-6 sm:p-10 text-center shadow-2xl">
-				<div className="mb-5 flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-full bg-success-bg">
-					<svg
-						className="size-7"
-						fill="none"
-						stroke="#0F5A47"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-						strokeWidth="3.5"
-						viewBox="0 0 24 24"
-					>
-						<path d="M5 13l4 4L19 7" />
-					</svg>
+				<div className="mb-5 flex h-14 w-14 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-full bg-success-bg text-accent">
+					<Icon name="checkbox-tick" size={CHECK_ICON_SIZE} />
 				</div>
 
 				<Heading
@@ -56,22 +49,22 @@ const SuccessModal = ({
 				</Paragraph>
 
 				<div className="mt-6 flex w-full shrink-0 flex-col sm:flex-row items-center justify-center gap-3">
-					<button
-						className="flex h-11 w-full sm:w-auto shrink-0 items-center justify-center rounded-xl bg-secondary px-6 font-sans text-sm font-semibold text-text transition-opacity hover:opacity-85"
+					<Button
+						className="w-full sm:w-auto"
 						onClick={onAddMore}
-						type="button"
+						variant="secondary"
 					>
 						+ Add more
-					</button>
+					</Button>
 
-					<button
-						className="inline-flex h-11 w-full sm:w-auto shrink-0 items-center justify-center gap-2.5 rounded-xl bg-primary px-6 font-sans text-sm font-semibold text-primary-fg shadow-sm transition-opacity hover:opacity-95"
+					<Button
+						className="w-full sm:w-auto"
 						onClick={onGoToKnowledgeBase}
-						type="button"
+						variant="primary"
 					>
 						<Icon name="glossary" size={18} />
-						<span className="whitespace-nowrap">Go to Knowledge Base</span>
-					</button>
+						<span>Go to Knowledge Base</span>
+					</Button>
 				</div>
 			</div>
 		</div>

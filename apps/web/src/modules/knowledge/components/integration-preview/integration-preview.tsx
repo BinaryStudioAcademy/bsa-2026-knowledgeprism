@@ -116,13 +116,9 @@ const getSectionConflicts = (section: ProposedSection): FieldConflict[] => {
 		return [];
 	}
 
-	const originalTitle = section.title.endsWith("1111")
-		? "LiDAR scanner"
-		: section.title;
-
 	return [
 		{
-			currentValue: originalTitle,
+			currentValue: section.title,
 			field: "title",
 			id: `conf-title-${section.id}`,
 			incomingValue: section.title,
@@ -411,12 +407,16 @@ const PreviewFooter = ({
 }: PreviewFooterProperties): JSX.Element => (
 	<div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border-subtle pt-2 px-1">
 		{isEditMode ? (
-			<div className="flex w-full items-center justify-between gap-3">
-				<Button className="flex-1" onClick={onCancelEdit} variant="secondary">
+			<div className="flex w-full tablet:w-auto items-center justify-between tablet:justify-start gap-2 tablet:gap-3">
+				<Button
+					className="flex-1 tablet:flex-initial tablet:w-auto"
+					onClick={onCancelEdit}
+					variant="secondary"
+				>
 					Cancel
 				</Button>
 				<Button
-					className="flex-1"
+					className="flex-1 tablet:flex-initial tablet:w-auto"
 					disabled={isEditInvalid}
 					onClick={onSaveEdit}
 					variant="primary"
@@ -438,17 +438,10 @@ const PreviewFooter = ({
 					<Button onClick={onClose} variant="secondary">
 						Back
 					</Button>
-					<button
-						className="inline-flex h-9 tablet:h-10 flex-row items-center justify-center gap-1.5 rounded-md bg-primary px-3.5 tablet:px-6 font-sans text-xs tablet:text-control font-semibold text-primary-fg transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-						disabled={!hasContent}
-						onClick={onApprove}
-						type="button"
-					>
+					<Button disabled={!hasContent} onClick={onApprove} variant="primary">
 						<Icon name="checkbox-tick" size={ICON_SIZE_MEDIUM} />
-						<span className="whitespace-nowrap leading-none">
-							Approve & save
-						</span>
-					</button>
+						<span>Approve & save</span>
+					</Button>
 				</div>
 			</>
 		)}
