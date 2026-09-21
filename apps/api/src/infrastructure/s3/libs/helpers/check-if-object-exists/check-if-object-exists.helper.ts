@@ -1,7 +1,6 @@
 import { HeadObjectCommand, type S3Client } from "@aws-sdk/client-s3";
 
 const NOT_FOUND_ERROR_NAME = "NotFound";
-const UNKNOWN_CONTENT_LENGTH = 0;
 
 type Parameters = {
 	bucketName: string;
@@ -19,7 +18,7 @@ const checkIfObjectExists = async ({
 			new HeadObjectCommand({ Bucket: bucketName, Key: key }),
 		);
 
-		return response.ContentLength ?? UNKNOWN_CONTENT_LENGTH;
+		return response.ContentLength ?? null;
 	} catch (error) {
 		if (error instanceof Error && error.name === NOT_FOUND_ERROR_NAME) {
 			return null;
