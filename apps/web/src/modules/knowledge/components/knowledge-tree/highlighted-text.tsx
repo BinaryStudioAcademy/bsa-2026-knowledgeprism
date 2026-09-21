@@ -1,6 +1,9 @@
 import React from "react";
 
-import { NOT_FOUND_INDEX, START_INDEX } from "./constants.js";
+import {
+	NOT_FOUND_INDEX,
+	START_INDEX,
+} from "../../libs/constants/constants.js";
 
 type HighlightedTextProperties = {
 	highlight?: string | undefined;
@@ -11,19 +14,26 @@ const HighlightedText: React.FC<HighlightedTextProperties> = ({
 	highlight = "",
 	text,
 }: HighlightedTextProperties) => {
-	if (!highlight) {
+	const normalizedHighlight = highlight.trim();
+
+	if (!normalizedHighlight) {
 		return <span className="truncate">{text}</span>;
 	}
 
-	const matchIndex = text.toLowerCase().indexOf(highlight.toLowerCase());
+	const matchIndex = text
+		.toLowerCase()
+		.indexOf(normalizedHighlight.toLowerCase());
 
 	if (matchIndex === NOT_FOUND_INDEX) {
 		return <span className="truncate">{text}</span>;
 	}
 
 	const beforeString = text.slice(START_INDEX, matchIndex);
-	const matchString = text.slice(matchIndex, matchIndex + highlight.length);
-	const afterString = text.slice(matchIndex + highlight.length);
+	const matchString = text.slice(
+		matchIndex,
+		matchIndex + normalizedHighlight.length,
+	);
+	const afterString = text.slice(matchIndex + normalizedHighlight.length);
 
 	return (
 		<span className="truncate">

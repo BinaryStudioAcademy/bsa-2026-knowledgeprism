@@ -102,7 +102,7 @@ const CompactVariant = ({
 								},
 							)}
 							style={{
-								width: `${isError ? FULL_PERCENTAGE : percentage}%`,
+								width: `${String(isError ? FULL_PERCENTAGE : percentage)}%`,
 							}}
 						/>
 					</div>

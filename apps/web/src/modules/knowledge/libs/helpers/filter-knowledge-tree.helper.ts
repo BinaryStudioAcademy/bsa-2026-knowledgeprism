@@ -1,4 +1,4 @@
-import { EMPTY_LENGTH } from "../../components/knowledge-tree/constants.js";
+import { EMPTY_LENGTH } from "../constants/constants.js";
 import { type KnowledgeTreeItemResponseDto } from "../mock-knowledge-tree.js";
 
 const filterKnowledgeTree = (
@@ -9,7 +9,7 @@ const filterKnowledgeTree = (
 		return items;
 	}
 
-	const lowerQuery = searchQuery.toLowerCase();
+	const lowerQuery = searchQuery.trim().toLowerCase();
 
 	const matchingIds = new Set<number>();
 	const directMatches = new Set<number>();

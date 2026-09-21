@@ -1,13 +1,13 @@
 import type React from "react";
 
-import { type KnowledgeTreeItemResponseDto } from "../../libs/mock-knowledge-tree.js";
 import {
 	EMPTY_LENGTH,
 	INDEX_OFFSET,
 	LAST_INDEX_OFFSET,
 	MIN_INDEX,
 	NOT_FOUND_INDEX,
-} from "./constants.js";
+} from "../../libs/constants/constants.js";
+import { type KnowledgeTreeItemResponseDto } from "../../libs/mock-knowledge-tree.js";
 
 type HorizontalNavigationConfig = {
 	children: KnowledgeTreeItemResponseDto[];

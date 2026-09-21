@@ -4,8 +4,8 @@ import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
 import { useNavigate } from "~/hooks/hooks.js";
 
+import { LAST_INDEX_OFFSET } from "../../libs/constants/constants.js";
 import { LoadingState } from "../loading-state/loading-state.js";
-import { LAST_INDEX_OFFSET } from "./constants.js";
 
 type Properties = {
 	breadcrumbs: string[];
