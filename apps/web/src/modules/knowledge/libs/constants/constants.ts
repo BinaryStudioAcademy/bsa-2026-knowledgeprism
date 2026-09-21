@@ -1,12 +1,11 @@
-const SUPPORTED_FILE_EXTENSIONS = [".pdf", ".txt"] as const;
+const SUPPORTED_FILE_EXTENSIONS = [".pdf"] as const;
 
-const SUPPORTED_FILE_MIME_TYPES = ["application/pdf", "text/plain"] as const;
+const SUPPORTED_FILE_MIME_TYPES = ["application/pdf"] as const;
 
 const DocumentValidationMessage = {
 	FILE_TOO_LARGE: "File is too large. Maximum file size is 25 MB.",
 	PROCESSING_FAILED: "Processing failed",
-	UNSUPPORTED_FORMAT:
-		"Unsupported file format. Please upload a PDF or TXT file.",
+	UNSUPPORTED_FORMAT: "Unsupported file format. Please upload a PDF file.",
 } as const;
 
 // TODO: replace with the real active project id once project routing/context lands.

@@ -24,9 +24,11 @@ class DocumentsApi extends BaseHTTPApi {
 	public async confirmUpload({
 		documentId,
 		projectId,
+		signal,
 	}: {
 		documentId: number;
 		projectId: string;
+		signal?: AbortSignal | undefined;
 	}): Promise<DocumentConfirmUploadResponseDto> {
 		const response = await this.load(
 			this.getFullEndpoint(DocumentsApiPath.CONFIRM_UPLOAD, {
@@ -38,6 +40,7 @@ class DocumentsApi extends BaseHTTPApi {
 				hasAuth: true,
 				method: "POST",
 				payload: JSON.stringify({}),
+				signal,
 			},
 		);
 
@@ -47,9 +50,11 @@ class DocumentsApi extends BaseHTTPApi {
 	public async createUploadIntent({
 		payload,
 		projectId,
+		signal,
 	}: {
 		payload: DocumentUploadIntentRequestDto;
 		projectId: string;
+		signal?: AbortSignal | undefined;
 	}): Promise<DocumentUploadIntentResponseDto> {
 		const response = await this.load(
 			this.getFullEndpoint(DocumentsApiPath.UPLOAD_URL, { projectId }),
@@ -58,6 +63,7 @@ class DocumentsApi extends BaseHTTPApi {
 				hasAuth: true,
 				method: "POST",
 				payload: JSON.stringify(payload),
+				signal,
 			},
 		);
 
@@ -66,15 +72,18 @@ class DocumentsApi extends BaseHTTPApi {
 
 	public async uploadFileToStorage({
 		file,
+		signal,
 		uploadUrl,
 	}: {
 		file: File;
+		signal?: AbortSignal | undefined;
 		uploadUrl: string;
 	}): Promise<void> {
 		const response = await fetch(uploadUrl, {
 			body: file,
 			headers: { "Content-Type": file.type },
 			method: "PUT",
+			...(signal && { signal }),
 		});
 
 		if (!response.ok) {

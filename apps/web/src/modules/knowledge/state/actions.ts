@@ -9,41 +9,72 @@ import { type UploadedDocumentItem } from "../libs/types/types.js";
 import { name as sliceName } from "./knowledge.slice.js";
 
 type ProcessDocumentPayload = {
+	documentId?: number | undefined;
 	file: File;
 	id: string;
+	uploadUrl?: string | undefined;
+};
+
+type ProcessDocumentRejection = {
+	documentId?: number | undefined;
+	message: string;
+	uploadUrl?: string | undefined;
 };
 
 const processDocument = createAsyncThunk<
 	UploadedDocumentItem,
 	ProcessDocumentPayload,
-	AsyncThunkConfig
->(`${sliceName}/process-document`, async ({ file, id }, { extra }) => {
-	const { documentsApi } = extra;
+	AsyncThunkConfig & { rejectValue: ProcessDocumentRejection }
+>(
+	`${sliceName}/process-document`,
+	async ({ documentId, file, id, uploadUrl }, { extra, rejectWithValue }) => {
+		const { documentsApi } = extra;
 
-	const { documentId, uploadUrl } = await documentsApi.createUploadIntent({
-		payload: {
-			contentType: file.type,
-			fileName: file.name,
-			sizeInBytes: file.size,
-		},
-		projectId: TEMPORARY_PROJECT_ID,
-	});
+		let resolvedDocumentId = documentId;
+		let resolvedUploadUrl = uploadUrl;
 
-	await documentsApi.uploadFileToStorage({ file, uploadUrl });
+		try {
+			if (!resolvedDocumentId || !resolvedUploadUrl) {
+				const intent = await documentsApi.createUploadIntent({
+					payload: {
+						contentType: file.type,
+						fileName: file.name,
+						sizeInBytes: file.size,
+					},
+					projectId: TEMPORARY_PROJECT_ID,
+				});
+				resolvedDocumentId = intent.documentId;
+				resolvedUploadUrl = intent.uploadUrl;
+			}
 
-	await documentsApi.confirmUpload({
-		documentId,
-		projectId: TEMPORARY_PROJECT_ID,
-	});
+			await documentsApi.uploadFileToStorage({
+				file,
+				uploadUrl: resolvedUploadUrl,
+			});
 
-	return {
-		id,
-		name: file.name,
-		progress: 100,
-		size: file.size,
-		sizeLabel: formatFileSize(file.size),
-		status: DocumentProcessingStatus.SUCCESS,
-	};
-});
+			await documentsApi.confirmUpload({
+				documentId: resolvedDocumentId,
+				projectId: TEMPORARY_PROJECT_ID,
+			});
+		} catch (error) {
+			return rejectWithValue({
+				documentId: resolvedDocumentId,
+				message: error instanceof Error ? error.message : "Processing failed",
+				uploadUrl: resolvedUploadUrl,
+			});
+		}
+
+		return {
+			documentId: resolvedDocumentId,
+			id,
+			name: file.name,
+			progress: 100,
+			size: file.size,
+			sizeLabel: formatFileSize(file.size),
+			status: DocumentProcessingStatus.SUCCESS,
+			uploadUrl: resolvedUploadUrl,
+		};
+	},
+);
 
 export { processDocument };

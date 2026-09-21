@@ -18,6 +18,7 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 		(state) => state.knowledge,
 	);
 	const fileReference = useRef<File | null>(null);
+	const uploadTaskReference = useRef<null | { abort: () => void }>(null);
 
 	const handleFileSelect = useCallback(
 		(file: File): void => {
@@ -34,7 +35,9 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 			dispatch(
 				actions.startProcessing({ id, name: file.name, size: file.size }),
 			);
-			void dispatch(actions.processDocument({ file, id }));
+			uploadTaskReference.current = dispatch(
+				actions.processDocument({ file, id }),
+			);
 		},
 		[dispatch],
 	);
@@ -51,15 +54,18 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 				size: selectedFile.size,
 			}),
 		);
-		void dispatch(
+		uploadTaskReference.current = dispatch(
 			actions.processDocument({
+				documentId: selectedFile.documentId,
 				file: fileReference.current,
 				id: selectedFile.id,
+				uploadUrl: selectedFile.uploadUrl,
 			}),
 		);
 	}, [dispatch, selectedFile]);
 
 	const handleRemove = useCallback((): void => {
+		uploadTaskReference.current?.abort();
 		dispatch(actions.removeDocument());
 	}, [dispatch]);
 
