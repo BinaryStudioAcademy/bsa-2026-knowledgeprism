@@ -83,7 +83,6 @@ class BaseController implements Controller {
 
 				if (user) {
 					organisationRole = user.organisationRole;
-					request.session.organisationRole = organisationRole;
 					handlerOptions.session.organisationRole = organisationRole;
 				}
 			}
