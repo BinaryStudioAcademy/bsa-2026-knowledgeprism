@@ -12,16 +12,16 @@ const checkIfObjectExists = async ({
 	bucketName,
 	key,
 	s3Client,
-}: Parameters): Promise<boolean> => {
+}: Parameters): Promise<null | number> => {
 	try {
-		await s3Client.send(
+		const response = await s3Client.send(
 			new HeadObjectCommand({ Bucket: bucketName, Key: key }),
 		);
 
-		return true;
+		return response.ContentLength ?? null;
 	} catch (error) {
 		if (error instanceof Error && error.name === NOT_FOUND_ERROR_NAME) {
-			return false;
+			return null;
 		}
 
 		throw error;

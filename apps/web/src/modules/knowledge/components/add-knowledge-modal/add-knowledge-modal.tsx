@@ -10,7 +10,6 @@ import { DocumentProcessingStatus } from "../../libs/enums/enums.js";
 import { DocumentUpload } from "../document-upload.js";
 import { KnowledgeInputFooter } from "../knowledge-input-footer.js";
 import { ManualTextInput } from "../manual-text-input/manual-text-input.js";
-import { WebLinkInput } from "../web-link-input/web-link-input.js";
 import { DestinationBadge } from "./destination-badge.js";
 import { AddKnowledgeTab } from "./libs/enums/add-knowledge-tab.enum.js";
 
@@ -42,11 +41,6 @@ const TAB_ITEMS: TabItem[] = [
 		iconName: "paste-text",
 		id: AddKnowledgeTab.TEXT,
 		label: "Paste text",
-	},
-	{
-		iconName: "link",
-		id: AddKnowledgeTab.LINK,
-		label: "Web link",
 	},
 ];
 
@@ -116,7 +110,7 @@ const AddKnowledgeModal = ({
 
 	return (
 		<Modal
-			contentClassName="flex min-h-0 flex-1 flex-col"
+			contentClassName="flex min-h-0 flex-1 flex-col pb-0 tablet:pb-0 desktop:pb-0"
 			hasCloseButton
 			isFullScreenOnMobile
 			isOpen={isOpen}
@@ -158,9 +152,10 @@ const AddKnowledgeModal = ({
 					})}
 				</div>
 
-				<div className="min-h-0 flex-1" key={formSessionKey}>
+				<div className="flex min-h-0 flex-1 flex-col" key={formSessionKey}>
 					<div
 						className={getValidClassNames(
+							"flex flex-1 flex-col justify-between",
 							activeTab !== AddKnowledgeTab.UPLOAD && "hidden",
 						)}
 						role="tabpanel"
@@ -177,6 +172,7 @@ const AddKnowledgeModal = ({
 
 					<div
 						className={getValidClassNames(
+							"flex flex-1 flex-col",
 							activeTab !== AddKnowledgeTab.TEXT && "hidden",
 						)}
 						role="tabpanel"
@@ -185,15 +181,6 @@ const AddKnowledgeModal = ({
 							onCancel={handleClose}
 							onSubmit={handleManualTextSubmit}
 						/>
-					</div>
-
-					<div
-						className={getValidClassNames(
-							activeTab !== AddKnowledgeTab.LINK && "hidden",
-						)}
-						role="tabpanel"
-					>
-						<WebLinkInput onCancel={handleClose} onSubmit={handleClose} />
 					</div>
 				</div>
 			</div>

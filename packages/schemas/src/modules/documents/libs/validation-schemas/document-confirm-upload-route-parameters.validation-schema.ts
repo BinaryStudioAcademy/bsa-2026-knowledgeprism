@@ -1,17 +1,11 @@
-import { DocumentValidationRule } from "@knowledgeprism/constants";
 import { z } from "zod";
 
-const STORAGE_SAFE_PROJECT_ID_PATTERN = /^[a-zA-Z0-9._-]+$/;
+import { projectRouteParameters } from "../../../projects/libs/validation-schemas/project-route-parameters.validation-schema.js";
 
 const documentConfirmUploadRouteParameters = z
 	.object({
 		documentId: z.coerce.number().int().positive(),
-		projectId: z
-			.string()
-			.trim()
-			.min(DocumentValidationRule.PROJECT_ID_MINIMUM_LENGTH)
-			.max(DocumentValidationRule.PROJECT_ID_MAXIMUM_LENGTH)
-			.regex(STORAGE_SAFE_PROJECT_ID_PATTERN),
+		projectId: projectRouteParameters.shape.id,
 	})
 	.required();
 

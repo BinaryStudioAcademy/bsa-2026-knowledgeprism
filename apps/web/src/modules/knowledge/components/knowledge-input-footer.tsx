@@ -25,7 +25,7 @@ const KnowledgeInputFooter = ({
 	onSubmit,
 	statusMessage,
 }: Properties): JSX.Element => (
-	<div className="sticky bottom-0 z-10 -mx-4 -mb-4 mt-6 flex items-center justify-between gap-4 border-t border-border bg-bg px-4 py-4 tablet:-mx-5.5 tablet:-mb-5.5 tablet:px-5.5 desktop:-mx-6.5 desktop:-mb-6.5 desktop:px-6.5">
+	<div className="sticky bottom-0 z-10 -mx-4 mt-6 flex items-center justify-between gap-4 border-t border-border bg-bg px-4 py-4 tablet:-mx-5.5 tablet:px-5.5 desktop:-mx-6.5 desktop:px-6.5">
 		<span
 			aria-live="polite"
 			className="text-xs text-text-muted max-tablet:hidden"

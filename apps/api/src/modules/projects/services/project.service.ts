@@ -71,26 +71,6 @@ class ProjectService {
 		}
 	}
 
-	private async assertProjectAccess(
-		projectId: number,
-		context: ProjectAccessContext,
-	): Promise<void> {
-		const user = await this.findActor(context);
-
-		if (user.isOrganisationAdmin()) {
-			return;
-		}
-
-		const isProjectMember = await this.projectMemberRepository.exists(
-			projectId,
-			context.userId,
-		);
-
-		if (!isProjectMember) {
-			this.throwAccessForbidden();
-		}
-	}
-
 	private async findActor(context: ProjectAccessContext): Promise<UserEntity> {
 		const user = await this.userService.findById(context.userId);
 
@@ -263,6 +243,35 @@ class ProjectService {
 		}
 	}
 
+	public async assertProjectAccess(
+		projectId: number,
+		context: ProjectAccessContext,
+	): Promise<void> {
+		const user = await this.findActor(context);
+
+		await this.findProjectOrThrow(projectId, context.organisationId);
+
+		if (user.isOrganisationAdmin()) {
+			return;
+		}
+
+		const role = await this.projectMemberRepository.findRole(
+			projectId,
+			context.userId,
+		);
+
+		if (!role) {
+			this.throwAccessForbidden();
+		}
+	}
+
+	public async assertProjectEditAccess(
+		projectId: number,
+		context: ProjectAccessContext,
+	): Promise<void> {
+		await this.assertCanWriteKnowledge(projectId, context);
+	}
+
 	public async create(
 		payload: ProjectCreateRequestDto,
 		context: ProjectAccessContext,
@@ -425,4 +434,5 @@ class ProjectService {
 	}
 }
 
-export { type ProjectAccessContext, ProjectService };
+export { ProjectService };
+export { type ProjectAccessContext };

@@ -4,7 +4,7 @@ import { s3Client } from "~/infrastructure/s3/s3.js";
 
 type CheckDocumentObjectExists = (parameters: {
 	key: string;
-}) => Promise<boolean>;
+}) => Promise<null | number>;
 
 const checkDocumentObjectExists: CheckDocumentObjectExists = ({ key }) => {
 	return checkIfObjectExists({

@@ -30,11 +30,13 @@ const primaryNavItems: NavItem[] = [
 		icon: <Icon name="knowledge-tree" />,
 		id: "knowledge-tree",
 		label: "Knowledge Tree",
+		to: AppRoute.KNOWLEDGE_TREE,
 	},
 	{
 		icon: <Icon name="glossary" />,
 		id: "glossary",
 		label: "Glossary",
+		to: AppRoute.GLOSSARY,
 	},
 	{
 		icon: <Icon name="ask-prism" />,
@@ -64,11 +66,13 @@ const mobileNavItems: NavItem[] = [
 		icon: <Icon name="knowledge-tree" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "knowledge-tree",
 		label: "Tree",
+		to: AppRoute.KNOWLEDGE_TREE,
 	},
 	{
 		icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "glossary",
 		label: "Glossary",
+		to: AppRoute.GLOSSARY,
 	},
 	{
 		icon: <Icon name="ask-prism" size={MOBILE_NAV_ICON_SIZE} />,
