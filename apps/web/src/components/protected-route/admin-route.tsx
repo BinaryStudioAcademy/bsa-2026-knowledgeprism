@@ -20,7 +20,7 @@ const AdminRoute: React.FC = () => {
 	}
 
 	if (user.user.organisationRole !== OrganisationRole.ADMIN) {
-		return <Navigate replace to={AppRoute.WORKSPACE} />;
+		return <Navigate replace to={AppRoute.WORKSPACES} />;
 	}
 
 	return <Outlet />;
