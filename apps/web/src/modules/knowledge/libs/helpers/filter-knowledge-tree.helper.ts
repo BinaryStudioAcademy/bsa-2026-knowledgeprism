@@ -9,7 +9,7 @@ const filterKnowledgeTree = (
 		return items;
 	}
 
-	const lowerQuery = searchQuery.toLowerCase();
+	const lowerQuery = searchQuery.trim().toLowerCase();
 
 	const matchingIds = new Set<number>();
 	const directMatches = new Set<number>();
