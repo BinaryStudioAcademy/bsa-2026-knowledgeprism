@@ -1,4 +1,4 @@
-import { type JSX, useCallback } from "react";
+import { type JSX, useCallback, useRef } from "react";
 
 import { Alert } from "~/components/components.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
@@ -17,6 +17,8 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 	const { errorMessage, selectedFile } = useAppSelector(
 		(state) => state.knowledge,
 	);
+	const fileReference = useRef<File | null>(null);
+	const uploadTaskReference = useRef<null | { abort: () => void }>(null);
 
 	const handleFileSelect = useCallback(
 		(file: File): void => {
@@ -28,19 +30,20 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 			}
 
 			dispatch(actions.clearError());
+			fileReference.current = file;
 			const id = `${file.name}-${String(Date.now())}`;
 			dispatch(
 				actions.startProcessing({ id, name: file.name, size: file.size }),
 			);
-			void dispatch(
-				actions.processDocument({ id, name: file.name, size: file.size }),
+			uploadTaskReference.current = dispatch(
+				actions.processDocument({ file, id }),
 			);
 		},
 		[dispatch],
 	);
 
 	const handleRetry = useCallback((): void => {
-		if (!selectedFile) {
+		if (!selectedFile || !fileReference.current) {
 			return;
 		}
 
@@ -51,17 +54,18 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 				size: selectedFile.size,
 			}),
 		);
-		void dispatch(
+		uploadTaskReference.current = dispatch(
 			actions.processDocument({
+				documentId: selectedFile.documentId,
+				file: fileReference.current,
 				id: selectedFile.id,
-				isRetry: true,
-				name: selectedFile.name,
-				size: selectedFile.size,
+				uploadUrl: selectedFile.uploadUrl,
 			}),
 		);
 	}, [dispatch, selectedFile]);
 
 	const handleRemove = useCallback((): void => {
+		uploadTaskReference.current?.abort();
 		dispatch(actions.removeDocument());
 	}, [dispatch]);
 

@@ -20,12 +20,14 @@ type KnowledgeState = {
 };
 
 type UploadedDocumentItem = {
+	documentId?: number | undefined;
 	id: string;
 	name: string;
 	progress: number;
 	size: number;
 	sizeLabel: string;
 	status: ValueOf<typeof DocumentProcessingStatus>;
+	uploadUrl?: string | undefined;
 };
 
 export { type KnowledgeEntryUpdateRequestDto } from "@knowledgeprism/types";

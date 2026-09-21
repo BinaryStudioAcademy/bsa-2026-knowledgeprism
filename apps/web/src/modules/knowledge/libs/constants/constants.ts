@@ -1,15 +1,12 @@
-const SUPPORTED_FILE_EXTENSIONS = [".pdf", ".txt"] as const;
+const SUPPORTED_FILE_EXTENSIONS = [".pdf"] as const;
 
-const SUPPORTED_FILE_MIME_TYPES = ["application/pdf", "text/plain"] as const;
+const SUPPORTED_FILE_MIME_TYPES = ["application/pdf"] as const;
 
 const DocumentValidationMessage = {
 	FILE_TOO_LARGE: "File is too large. Maximum file size is 25 MB.",
 	PROCESSING_FAILED: "Processing failed",
-	UNSUPPORTED_FORMAT:
-		"Unsupported file format. Please upload a PDF or TXT file.",
+	UNSUPPORTED_FORMAT: "Unsupported file format. Please upload a PDF file.",
 } as const;
-
-const MOCK_PROCESSING_DELAY_MS = 1400;
 
 const EMPTY_LENGTH = 0;
 const NOT_FOUND_INDEX = -1;
@@ -29,6 +26,9 @@ const KNOWLEDGE_TREE_ITEM_CONFIG = {
 	TAB_INDEX_UNFOCUSABLE: -1,
 } as const;
 
+// TODO: replace with the real active project id once project routing/context lands.
+const TEMPORARY_PROJECT_ID = "1";
+
 export {
 	DocumentValidationMessage,
 	EMPTY_LENGTH,
@@ -38,10 +38,10 @@ export {
 	KNOWLEDGE_TREE_ITEM_CONFIG,
 	LAST_INDEX_OFFSET,
 	MIN_INDEX,
-	MOCK_PROCESSING_DELAY_MS,
 	NOT_FOUND_INDEX,
 	START_INDEX,
 	SUPPORTED_FILE_EXTENSIONS,
 	SUPPORTED_FILE_MIME_TYPES,
+	TEMPORARY_PROJECT_ID,
 };
 export { FileValidationRule } from "@knowledgeprism/constants";

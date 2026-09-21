@@ -44,9 +44,11 @@ const { actions, name, reducer } = createSlice({
 			}
 
 			state.errorMessage =
-				action.error.message ?? DocumentValidationMessage.PROCESSING_FAILED;
+				action.payload?.message ?? DocumentValidationMessage.PROCESSING_FAILED;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
 			state.selectedFile.status = DocumentProcessingStatus.FAILED;
+			state.selectedFile.documentId = action.payload?.documentId;
+			state.selectedFile.uploadUrl = action.payload?.uploadUrl;
 		});
 	},
 	initialState,
