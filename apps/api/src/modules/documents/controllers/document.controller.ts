@@ -70,7 +70,7 @@ import { type DocumentService } from "~/modules/documents/services/document.serv
  *            example: 1
  *          status:
  *            type: string
- *            example: PARSED
+ *            example: PROCESSING
  */
 class DocumentController extends BaseController {
 	private documentService: DocumentService;
