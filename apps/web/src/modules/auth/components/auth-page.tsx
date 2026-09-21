@@ -3,7 +3,7 @@ import {
 	type UserSignUpRequestDto,
 } from "@knowledgeprism/types";
 
-import { Logo } from "~/components/components.js";
+import { Loader, Logo } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -19,11 +19,14 @@ import { SignInForm, SignUpForm } from "./components.js";
 
 const AuthPage: React.FC = () => {
 	const dispatch = useAppDispatch();
-	const { error, hasUser, isAuthPending } = useAppSelector(({ auth }) => ({
-		error: auth.error,
-		hasUser: Boolean(auth.user),
-		isAuthPending: auth.dataStatus === DataStatus.PENDING,
-	}));
+	const { error, hasUser, isAuthPending, isInitialized } = useAppSelector(
+		({ auth }) => ({
+			error: auth.error,
+			hasUser: Boolean(auth.user),
+			isAuthPending: auth.dataStatus === DataStatus.PENDING,
+			isInitialized: auth.isInitialized,
+		}),
+	);
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
 
@@ -63,6 +66,13 @@ const AuthPage: React.FC = () => {
 		[dispatch, navigate],
 	);
 
+	if (!isInitialized || hasUser) {
+		return (
+			<div className="flex min-h-screen items-center justify-center">
+				<Loader size="lg" />
+			</div>
+		);
+	}
 	const getScreen = (screen: string): React.JSX.Element => {
 		if (screen === AppRoute.SIGN_UP) {
 			return <SignUpForm onSubmit={handleSignUpSubmit} />;
