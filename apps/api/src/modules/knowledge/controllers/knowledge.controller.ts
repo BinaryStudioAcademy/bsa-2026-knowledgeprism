@@ -2,11 +2,13 @@ import { APIPath, HTTPCode, KnowledgeApiPath } from "@knowledgeprism/constants";
 import {
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
+	knowledgeTreeRouteParametersValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeTreeRouteParametersDto,
 } from "@knowledgeprism/types";
 
 import {
@@ -44,8 +46,16 @@ import { type KnowledgeService } from "../services/knowledge.service.js";
  *            type: number
  *          projectId:
  *            type: number
+ *          parentId:
+ *            type: number
+ *            nullable: true
+ *          position:
+ *            type: number
  *          title:
  *            type: string
+ *          type:
+ *            type: string
+ *            enum: [SECTION, PAGE, ENTRY]
  *          contentJson:
  *            type: array
  *            items:
@@ -57,6 +67,31 @@ import { type KnowledgeService } from "../services/knowledge.service.js";
  *          updatedAt:
  *            type: string
  *            format: date-time
+ *      KnowledgeTreeItemResponse:
+ *        type: object
+ *        properties:
+ *          id:
+ *            type: number
+ *          parentId:
+ *            type: number
+ *            nullable: true
+ *          position:
+ *            type: number
+ *          title:
+ *            type: string
+ *          type:
+ *            type: string
+ *            enum: [SECTION, PAGE, ENTRY]
+ *          updatedAt:
+ *            type: string
+ *            format: date-time
+ *      KnowledgeTreeResponse:
+ *        type: object
+ *        properties:
+ *          items:
+ *            type: array
+ *            items:
+ *              $ref: "#/components/schemas/KnowledgeTreeItemResponse"
  */
 class KnowledgeController extends BaseController {
 	private knowledgeService: KnowledgeService;
@@ -65,6 +100,34 @@ class KnowledgeController extends BaseController {
 		super(logger, APIPath.PROJECTS);
 
 		this.knowledgeService = knowledgeService;
+
+		this.addRoute({
+			handler: (options) =>
+				this.findTree(
+					options as APIHandlerOptions<{
+						params: KnowledgeTreeRouteParametersDto;
+					}>,
+				),
+			method: "GET",
+			path: KnowledgeApiPath.ROOT,
+			validation: {
+				params: knowledgeTreeRouteParametersValidationSchema,
+			},
+		});
+
+		this.addRoute({
+			handler: (options) =>
+				this.findEntry(
+					options as APIHandlerOptions<{
+						params: KnowledgeEntryRouteParametersDto;
+					}>,
+				),
+			method: "GET",
+			path: KnowledgeApiPath.ENTRY_$ID,
+			validation: {
+				params: knowledgeEntryRouteParametersValidationSchema,
+			},
+		});
 
 		this.addRoute({
 			handler: (options) =>
@@ -81,6 +144,35 @@ class KnowledgeController extends BaseController {
 				params: knowledgeEntryRouteParametersValidationSchema,
 			},
 		});
+	}
+
+	private async findEntry(
+		options: APIHandlerOptions<{
+			params: KnowledgeEntryRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.knowledgeService.findEntry({
+				context: this.getAuthenticatedSessionContext(options),
+				entryId: Number(options.params.id),
+				projectId: Number(options.params.projectId),
+			}),
+			status: HTTPCode.OK,
+		};
+	}
+
+	private async findTree(
+		options: APIHandlerOptions<{
+			params: KnowledgeTreeRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.knowledgeService.findTree({
+				context: this.getAuthenticatedSessionContext(options),
+				projectId: Number(options.params.projectId),
+			}),
+			status: HTTPCode.OK,
+		};
 	}
 
 	/**
