@@ -183,12 +183,43 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	);
 };
 
-const MobileNav: React.FC = () => (
-	<nav className="flex shrink-0 tablet:hidden border-t border-border bg-surface">
-		{mobileNavItems.map((item) => (
-			<NavRow key={item.id} {...item} />
-		))}
-	</nav>
-);
+const MobileNav: React.FC = () => {
+	const { pathname } = useLocation();
+
+	return (
+		<nav className="flex h-14 w-full shrink-0 items-center justify-around border-t border-border bg-surface tablet:hidden">
+			{mobileNavItems.map(({ icon, id, label, to }) => {
+				const isActive = Boolean(to) && pathname === to;
+				const className = getValidClassNames(
+					"flex flex-1 flex-col items-center justify-center py-2 h-full gap-1 text-2xs transition-colors",
+					isActive
+						? "text-accent font-semibold"
+						: "text-text-muted hover:text-text",
+				);
+
+				if (to) {
+					return (
+						<Link
+							aria-current={isActive ? "page" : undefined}
+							className={className}
+							key={id}
+							to={to}
+						>
+							{icon}
+							<span>{label}</span>
+						</Link>
+					);
+				}
+
+				return (
+					<button className={className} key={id} type="button">
+						{icon}
+						<span>{label}</span>
+					</button>
+				);
+			})}
+		</nav>
+	);
+};
 
 export { MobileNav, Sidebar };
