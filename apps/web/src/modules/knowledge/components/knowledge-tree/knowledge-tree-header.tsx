@@ -4,12 +4,14 @@ import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
 import { useNavigate } from "~/hooks/hooks.js";
 
+import { LoadingState } from "../loading-state/loading-state.js";
 import { LAST_INDEX_OFFSET } from "./constants.js";
 
 type Properties = {
 	breadcrumbs: string[];
 	canEdit?: boolean;
 	onOpenSidebar: () => void;
+	showCompactLoading?: boolean;
 };
 
 const MobileSidebarToggle = ({
@@ -73,9 +75,14 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 	breadcrumbs,
 	canEdit = false,
 	onOpenSidebar,
+	showCompactLoading = false,
 }: Properties) => {
 	const navigate = useNavigate();
 	const currentFileName = breadcrumbs.at(-LAST_INDEX_OFFSET);
+
+	const handlePreview = useCallback(() => {
+		// placeholder for preview
+	}, []);
 
 	const handleEditClick = useCallback(() => {
 		void navigate("edit");
@@ -88,6 +95,11 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 			<MobileCenteredTitle title={currentFileName} />
 
 			<div className="flex items-center gap-3.5">
+				{showCompactLoading && (
+					<div className="hidden @5xl:block">
+						<LoadingState onPreview={handlePreview} variant="compact" />
+					</div>
+				)}
 				{canEdit && (
 					<Button onClick={handleEditClick} variant="primary">
 						Edit

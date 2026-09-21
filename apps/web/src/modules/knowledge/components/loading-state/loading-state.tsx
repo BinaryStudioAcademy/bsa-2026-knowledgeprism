@@ -29,9 +29,15 @@ const LoadingState = (properties: Properties): JSX.Element => {
 
 	const isError = hasError || currentStatus === DocumentStatus.FAILED;
 
+	const onFinish = "onFinish" in properties ? properties.onFinish : undefined;
+
 	// TODO: Delete this entire useEffect mock timer when backend is connected
 	useEffect(() => {
 		if (isError || currentStatus === DocumentStatus.EXTRACTED) {
+			if (onFinish && currentStatus === DocumentStatus.EXTRACTED) {
+				onFinish();
+			}
+
 			return;
 		}
 
@@ -42,7 +48,7 @@ const LoadingState = (properties: Properties): JSX.Element => {
 		return () => {
 			clearTimeout(timer);
 		};
-	}, [currentStatus, hasError, isError]);
+	}, [currentStatus, hasError, isError, onFinish]);
 
 	// TODO: When mock state is removed, derive percentage by finding the index of `currentStatus` in `STATUS_PROGRESSION`
 	const percentage = Math.round(

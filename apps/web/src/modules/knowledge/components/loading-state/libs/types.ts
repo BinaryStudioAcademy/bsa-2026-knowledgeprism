@@ -5,6 +5,7 @@ import { type ValueOf } from "~/lib/types/types.js";
 type CompactSuccessProperties = {
 	hasError?: false;
 	onCancel?: never;
+	onFinish?: never;
 	onPreview: () => void;
 	onRetry?: never;
 	variant: "compact";
@@ -13,6 +14,7 @@ type CompactSuccessProperties = {
 type ErrorProperties = {
 	hasError: true;
 	onCancel: () => void;
+	onFinish?: never;
 	onPreview?: never;
 	onRetry: () => void;
 	variant?: "compact" | "full";
@@ -21,23 +23,21 @@ type ErrorProperties = {
 type FullSuccessProperties = {
 	hasError?: false;
 	onCancel?: never;
+	onFinish?: () => void;
 	onPreview?: never;
 	onRetry?: never;
 	variant?: "full";
 };
 
-type InternalVariantProperties = Properties & {
+type InternalStatusProperties = {
 	currentStatus: ValueOf<typeof DocumentStatus>;
 	isError: boolean;
 	percentage: number;
 };
 
+type InternalVariantProperties = InternalStatusProperties & Properties;
+
 type Properties =
 	CompactSuccessProperties | ErrorProperties | FullSuccessProperties;
 
-export {
-	type ErrorProperties,
-	type InternalVariantProperties,
-	type Properties,
-	type CompactSuccessProperties as SuccessProperties,
-};
+export { type InternalVariantProperties, type Properties };
