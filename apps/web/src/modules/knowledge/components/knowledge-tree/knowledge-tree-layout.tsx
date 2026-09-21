@@ -1,10 +1,10 @@
 import React, { useCallback, useMemo, useState } from "react";
 
+import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
 } from "../../libs/mock-knowledge-tree.js";
-import { EMPTY_LENGTH } from "./constants.js";
 import { KnowledgeTreeContent } from "./knowledge-tree-content.js";
 import { KnowledgeTreeEmptyState } from "./knowledge-tree-empty-state.js";
 import { KnowledgeTreeHeader } from "./knowledge-tree-header.js";

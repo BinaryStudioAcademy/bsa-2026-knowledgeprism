@@ -8,14 +8,14 @@ import React, {
 } from "react";
 import { tv } from "tailwind-variants";
 
-import { filterKnowledgeTree } from "../../libs/helpers/helpers.js";
-import { type KnowledgeTreeItemResponseDto } from "../../libs/mock-knowledge-tree.js";
 import {
 	EMPTY_LENGTH,
 	FALLBACK_DEFER_EXECUTION_MS,
 	FOCUS_DELAY_MS,
 	MIN_INDEX,
-} from "./constants.js";
+} from "../../libs/constants/constants.js";
+import { filterKnowledgeTree } from "../../libs/helpers/helpers.js";
+import { type KnowledgeTreeItemResponseDto } from "../../libs/mock-knowledge-tree.js";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
 import { KnowledgeTreeSearchBar } from "./knowledge-tree-search-bar.js";
 

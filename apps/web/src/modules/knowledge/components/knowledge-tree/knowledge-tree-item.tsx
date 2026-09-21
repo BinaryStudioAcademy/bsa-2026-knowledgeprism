@@ -4,10 +4,13 @@ import { tv } from "tailwind-variants";
 import { Icon } from "~/components/icon/icon.js";
 
 import {
+	EMPTY_LENGTH,
+	KNOWLEDGE_TREE_ITEM_CONFIG,
+} from "../../libs/constants/constants.js";
+import {
 	KnowledgeNodeType,
 	type KnowledgeTreeItemResponseDto,
 } from "../../libs/mock-knowledge-tree.js";
-import { EMPTY_LENGTH, KNOWLEDGE_TREE_ITEM_CONFIG } from "./constants.js";
 import { HighlightedText } from "./highlighted-text.js";
 import {
 	handleHorizontalNavigation,

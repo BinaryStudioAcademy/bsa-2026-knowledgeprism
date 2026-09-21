@@ -1,6 +1,9 @@
 import React from "react";
 
-import { NOT_FOUND_INDEX, START_INDEX } from "./constants.js";
+import {
+	NOT_FOUND_INDEX,
+	START_INDEX,
+} from "../../libs/constants/constants.js";
 
 type HighlightedTextProperties = {
 	highlight?: string | undefined;

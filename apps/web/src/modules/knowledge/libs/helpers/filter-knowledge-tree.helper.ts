@@ -1,4 +1,4 @@
-import { EMPTY_LENGTH } from "../../components/knowledge-tree/constants.js";
+import { EMPTY_LENGTH } from "../constants/constants.js";
 import { type KnowledgeTreeItemResponseDto } from "../mock-knowledge-tree.js";
 
 const filterKnowledgeTree = (
