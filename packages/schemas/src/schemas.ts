@@ -9,6 +9,8 @@ export {
 export {
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
+	knowledgeSearchQueryValidationSchema,
+	knowledgeSearchRouteParametersValidationSchema,
 	knowledgeTreeRouteParametersValidationSchema,
 } from "./modules/knowledge/knowledge.js";
 export {

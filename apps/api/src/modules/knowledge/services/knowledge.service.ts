@@ -6,6 +6,7 @@ import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeRecentResponseDto,
+	type KnowledgeSearchResponseDto,
 	type KnowledgeTreeResponseDto,
 } from "@knowledgeprism/types";
 
@@ -97,6 +98,31 @@ class KnowledgeService {
 
 		return {
 			items: nodes.map((node) => node.toTreeItem()),
+		};
+	}
+
+	public async search({
+		context,
+		projectId,
+		query,
+	}: {
+		context: ProjectAccessContext;
+		projectId: number;
+		query: string;
+	}): Promise<KnowledgeSearchResponseDto> {
+		await this.projectService.assertProjectAccess(projectId, context);
+
+		const nodes = await this.knowledgeNodeRepository.searchByTitleOrKeyword({
+			projectId,
+			query,
+		});
+
+		return {
+			items: nodes.map((node) => {
+				const { contentJson, id, title } = node.toObject();
+
+				return { content: contentJson, id, title };
+			}),
 		};
 	}
 
