@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
-import { useLocation, useModal } from "~/hooks/hooks.js";
+import { useAppSelector, useLocation, useModal } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
@@ -117,6 +117,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	role,
 }: SidebarProperties) => {
 	const { hideModal, isOpen, showModal } = useModal();
+	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 
 	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
 
@@ -145,6 +146,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 					<>
 						<Button
 							className="hidden desktop:inline-flex"
+							disabled={isAddingKnowledge}
 							onClick={showModal}
 							variant="accent"
 						>

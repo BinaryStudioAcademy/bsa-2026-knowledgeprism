@@ -14,6 +14,7 @@ interface KbEntry {
 
 type KnowledgeState = {
 	errorMessage: null | string;
+	isAddingKnowledge: boolean;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
 	selectedFile: null | UploadedDocumentItem;
 };

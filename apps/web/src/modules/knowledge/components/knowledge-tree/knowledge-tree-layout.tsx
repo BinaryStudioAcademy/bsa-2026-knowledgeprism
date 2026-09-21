@@ -1,10 +1,14 @@
 import React, { useCallback, useMemo, useState } from "react";
 
+import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
+
+import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
 } from "../../libs/mock-knowledge-tree.js";
+import { LoadingState } from "../loading-state/loading-state.js";
 import { KnowledgeTreeContent } from "./knowledge-tree-content.js";
 import { KnowledgeTreeEmptyState } from "./knowledge-tree-empty-state.js";
 import { KnowledgeTreeHeader } from "./knowledge-tree-header.js";
@@ -25,7 +29,17 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	onSelectPage,
 	selectedPageId,
 }: Properties) => {
+	const dispatch = useAppDispatch();
+	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+	const handlePreview = useCallback(() => {
+		// TODO: implement preview
+	}, []);
+
+	const handleFinishLoading = useCallback(() => {
+		dispatch(actions.finishAddingKnowledge());
+	}, [dispatch]);
 
 	const breadcrumbs = useMemo(() => {
 		if (!selectedPageId) {
@@ -57,8 +71,12 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 
 	if (items.length === EMPTY_LENGTH) {
 		return (
-			<div className="flex h-full w-full bg-bg">
-				<KnowledgeTreeEmptyState />
+			<div className="flex h-full w-full items-center justify-center bg-bg">
+				{isAddingKnowledge ? (
+					<LoadingState onFinish={handleFinishLoading} variant="full" />
+				) : (
+					<KnowledgeTreeEmptyState />
+				)}
 			</div>
 		);
 	}
@@ -79,7 +97,13 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					breadcrumbs={breadcrumbs}
 					canEdit={canEdit}
 					onOpenSidebar={handleOpenSidebar}
+					showCompactLoading={isAddingKnowledge}
 				/>
+				{isAddingKnowledge && (
+					<div className="border-b border-border bg-surface px-4 py-4 @5xl:hidden">
+						<LoadingState onPreview={handlePreview} variant="compact" />
+					</div>
+				)}
 				{selectedEntry ? (
 					<KnowledgeTreeContent entry={selectedEntry} />
 				) : (
