@@ -1,5 +1,6 @@
 import { logger } from "~/infrastructure/logger/logger.js";
 import { generatePresignedUploadUrl } from "~/infrastructure/s3/presigned-url.js";
+import { checkDocumentObjectExists } from "~/infrastructure/s3/verify-object.js";
 import { projectService } from "~/modules/projects/projects.js";
 
 import { DocumentController } from "./controllers/document.controller.js";
@@ -13,6 +14,7 @@ const documentRepository = new DocumentRepository(DocumentModel);
 const documentAccessService = new DocumentAccessService();
 const documentProcessor = new DocumentProcessor();
 const documentService = new DocumentService({
+	checkDocumentObjectExists,
 	documentAccessService,
 	documentProcessor,
 	documentRepository,

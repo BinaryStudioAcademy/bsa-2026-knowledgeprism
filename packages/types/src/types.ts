@@ -16,6 +16,8 @@ export {
 	type AskPrismSourceDto,
 } from "./modules/ask-prism/ask-prism.js";
 export {
+	type DocumentConfirmUploadResponseDto,
+	type DocumentConfirmUploadRouteParametersDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
@@ -23,6 +25,7 @@ export {
 	type ManualTextResponseDto,
 	type ManualTextRouteParametersDto,
 } from "./modules/documents/documents.js";
+
 export {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
