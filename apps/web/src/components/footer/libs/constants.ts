@@ -1,8 +1,8 @@
 const FOOTER_COPY = {
-	copyright: "© 2026 KnowledgePrism AI. Order from Chaos.",
+	copyright: "KnowledgePrism AI. Order from Chaos.",
 	links: [
-		{ href: "#", label: "Privacy" },
-		{ href: "#", label: "Terms" },
+		{ document: "privacy", label: "Privacy" },
+		{ document: "terms", label: "Terms" },
 	],
 } as const;
 

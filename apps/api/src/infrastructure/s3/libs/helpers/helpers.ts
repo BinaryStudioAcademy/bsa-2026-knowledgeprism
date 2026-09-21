@@ -1,3 +1,4 @@
+export { checkIfObjectExists } from "./check-if-object-exists/check-if-object-exists.helper.js";
 export {
 	createPresignedUploadUrl,
 	PRESIGNED_URL_EXPIRY_SECONDS,

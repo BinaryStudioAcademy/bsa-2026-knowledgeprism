@@ -3,6 +3,7 @@
 	"include": ["**/*.ts", "**/*.js"],
 	"exclude": ["node_modules", "build"],
 	"compilerOptions": {
+		"types": ["node"],
 		"paths": {
 			"~/*": ["./src/*"]
 		}

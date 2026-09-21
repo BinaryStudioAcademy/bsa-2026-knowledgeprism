@@ -1,7 +1,17 @@
 import { KnowledgeValidationRule } from "@knowledgeprism/constants";
+import { type KnowledgeNodeContentDto } from "@knowledgeprism/types";
 
 import { KnowledgeNodeEntity } from "../models/knowledge-node.entity.js";
 import { type KnowledgeNodeModel } from "../models/knowledge-node.model.js";
+
+type RecentKnowledgeDatabaseRow = {
+	id: number;
+	projectId: number;
+	title: string;
+	updatedAt: Date;
+};
+
+const EMPTY_LENGTH = 0;
 
 class KnowledgeNodeRepository {
 	private knowledgeNodeModel: typeof KnowledgeNodeModel;
@@ -10,8 +20,39 @@ class KnowledgeNodeRepository {
 		this.knowledgeNodeModel = knowledgeNodeModel;
 	}
 
-	public async findById(id: number): Promise<KnowledgeNodeEntity | null> {
-		const node = await this.knowledgeNodeModel.query().findById(id).execute();
+	public async findAllByProjectId(
+		projectId: number,
+	): Promise<KnowledgeNodeEntity[]> {
+		const nodes = await this.knowledgeNodeModel
+			.query()
+			.where({ projectId })
+			.orderBy("position", "asc")
+			.orderBy("id", "asc")
+			.execute();
+
+		return nodes.map((node) =>
+			KnowledgeNodeEntity.initialize({
+				contentJson: node.contentJson,
+				createdAt: node.createdAt,
+				id: node.id,
+				parentId: node.parentId,
+				position: node.position,
+				projectId: node.projectId,
+				title: node.title,
+				type: node.type,
+				updatedAt: node.updatedAt,
+			}),
+		);
+	}
+
+	public async findByIdAndProjectId(
+		id: number,
+		projectId: number,
+	): Promise<KnowledgeNodeEntity | null> {
+		const node = await this.knowledgeNodeModel
+			.query()
+			.findOne({ id, projectId })
+			.execute();
 
 		if (!node) {
 			return null;
@@ -21,10 +62,29 @@ class KnowledgeNodeRepository {
 			contentJson: node.contentJson,
 			createdAt: node.createdAt,
 			id: node.id,
+			parentId: node.parentId,
+			position: node.position,
 			projectId: node.projectId,
 			title: node.title,
+			type: node.type,
 			updatedAt: node.updatedAt,
 		});
+	}
+
+	public async findRecentByProjectIds(
+		projectIds: number[],
+	): Promise<RecentKnowledgeDatabaseRow[]> {
+		if (projectIds.length === EMPTY_LENGTH) {
+			return [];
+		}
+
+		return await this.knowledgeNodeModel
+			.query()
+			.select(["id", "projectId", "title", "updatedAt"])
+			.whereIn("projectId", projectIds)
+			.orderBy("updatedAt", "desc")
+			.castTo<RecentKnowledgeDatabaseRow[]>()
+			.execute();
 	}
 
 	public async searchByTitleOrKeyword({
@@ -56,8 +116,11 @@ class KnowledgeNodeRepository {
 				contentJson: node.contentJson,
 				createdAt: node.createdAt,
 				id: node.id,
+				parentId: node.parentId,
+				position: node.position,
 				projectId: node.projectId,
 				title: node.title,
+				type: node.type,
 				updatedAt: node.updatedAt,
 			}),
 		);
@@ -69,7 +132,7 @@ class KnowledgeNodeRepository {
 		title,
 		updatedBy,
 	}: {
-		contentJson: Record<string, unknown>[];
+		contentJson: KnowledgeNodeContentDto;
 		id: number;
 		title: string;
 		updatedBy: number;
@@ -79,7 +142,6 @@ class KnowledgeNodeRepository {
 			.patchAndFetchById(id, {
 				contentJson,
 				title,
-				updatedAt: new Date().toISOString(),
 				updatedBy,
 			})
 			.execute();
@@ -88,8 +150,11 @@ class KnowledgeNodeRepository {
 			contentJson: updatedNode.contentJson,
 			createdAt: updatedNode.createdAt,
 			id: updatedNode.id,
+			parentId: updatedNode.parentId,
+			position: updatedNode.position,
 			projectId: updatedNode.projectId,
 			title: updatedNode.title,
+			type: updatedNode.type,
 			updatedAt: updatedNode.updatedAt,
 		});
 	}

@@ -2,7 +2,12 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 
 import { Button } from "~/components/button/button.js";
 import { Logo } from "~/components/logo/logo.js";
-import { useCallback, useEffect, useState } from "~/hooks/hooks.js";
+import {
+	useAppSelector,
+	useCallback,
+	useEffect,
+	useState,
+} from "~/hooks/hooks.js";
 import { AppRoute, Breakpoint } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import {
@@ -22,6 +27,8 @@ import {
 
 const LandingHeader: React.FC = () => {
 	const navigate = useNavigate();
+	const user = useAppSelector(({ auth }) => auth.user);
+	const hasUser = Boolean(user);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 
 	const handleToggleMenu = useCallback((): void => {
@@ -40,6 +47,11 @@ const LandingHeader: React.FC = () => {
 	const handleSignUp = useCallback((): void => {
 		handleCloseMenu();
 		void navigate(AppRoute.SIGN_UP);
+	}, [handleCloseMenu, navigate]);
+
+	const handleGoToWorkspace = useCallback((): void => {
+		handleCloseMenu();
+		void navigate(AppRoute.WORKSPACES);
 	}, [handleCloseMenu, navigate]);
 
 	const handleLogoClick = useCallback((): void => {
@@ -114,20 +126,32 @@ const LandingHeader: React.FC = () => {
 						</a>
 					))}
 					<div className={getValidClassNames("flex items-center gap-2.5")}>
-						<Button
-							className={getValidClassNames("px-3.5 py-[9px]")}
-							onClick={handleSignIn}
-							variant="ghost"
-						>
-							{HEADER_LABEL.SIGN_IN}
-						</Button>
-						<Button
-							className={getValidClassNames("px-[18px] py-[9px]")}
-							onClick={handleSignUp}
-							variant="primary"
-						>
-							{HEADER_LABEL.SIGN_UP}
-						</Button>
+						{hasUser ? (
+							<Button
+								className={getValidClassNames("flex-1 py-2.5")}
+								onClick={handleGoToWorkspace}
+								variant="primary"
+							>
+								{HEADER_LABEL.GO_TO_WORKSPACE}
+							</Button>
+						) : (
+							<>
+								<Button
+									className={getValidClassNames("px-3.5 py-2.25")}
+									onClick={handleSignIn}
+									variant="ghost"
+								>
+									{HEADER_LABEL.SIGN_IN}
+								</Button>
+								<Button
+									className={getValidClassNames("px-4.5 py-2.25")}
+									onClick={handleSignUp}
+									variant="primary"
+								>
+									{HEADER_LABEL.SIGN_UP}
+								</Button>
+							</>
+						)}
 					</div>
 				</nav>
 
@@ -183,24 +207,38 @@ const LandingHeader: React.FC = () => {
 						</a>
 					))}
 					<div className={getValidClassNames("mt-1.5 flex gap-2.5")}>
-						<Button
-							className={getValidClassNames(
-								"flex-1",
-								"border border-border",
-								"py-2.5",
-							)}
-							onClick={handleSignIn}
-							variant="ghost"
-						>
-							{HEADER_LABEL.SIGN_IN}
-						</Button>
-						<Button
-							className={getValidClassNames("flex-1 py-2.5")}
-							onClick={handleSignUp}
-							variant="primary"
-						>
-							{HEADER_LABEL.SIGN_UP}
-						</Button>
+						{hasUser ? (
+							<>
+								<Button
+									className={getValidClassNames("flex-1 py-2.5")}
+									onClick={handleGoToWorkspace}
+									variant="primary"
+								>
+									{HEADER_LABEL.GO_TO_WORKSPACE}
+								</Button>
+							</>
+						) : (
+							<>
+								<Button
+									className={getValidClassNames(
+										"flex-1",
+										"border border-border",
+										"py-2.5",
+									)}
+									onClick={handleSignIn}
+									variant="ghost"
+								>
+									{HEADER_LABEL.SIGN_IN}
+								</Button>
+								<Button
+									className={getValidClassNames("flex-1 py-2.5")}
+									onClick={handleSignUp}
+									variant="primary"
+								>
+									{HEADER_LABEL.SIGN_UP}
+								</Button>
+							</>
+						)}
 					</div>
 				</nav>
 			)}
