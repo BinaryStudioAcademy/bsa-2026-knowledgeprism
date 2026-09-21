@@ -1,8 +1,16 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import {
+	createAsyncThunk,
+	createSlice,
+	type PayloadAction,
+} from "@reduxjs/toolkit";
+
+import { logout } from "~/modules/auth/state/actions.js";
 
 import { type WorkspacesApi } from "../api/workspaces-api.js";
 import { type ProjectItem, type RecentDocumentItem } from "../types/types.js";
 import { createProject, deleteProject, updateProject } from "./action.js";
+
+const LAST_ACTIVE_PROJECT_STORAGE_KEY = "kp:lastActiveProjectId";
 
 interface WorkspacesState {
 	creationError: null | string;
@@ -11,10 +19,19 @@ interface WorkspacesState {
 	isLoading: boolean;
 	isLoadingRecent: boolean;
 	isUpdating: boolean;
+	lastActiveProjectId: null | string;
 	projects: ProjectItem[];
 	recentDocuments: RecentDocumentItem[];
 	updateError: null | string;
 }
+
+const getStoredLastActiveProjectId = (): null | string => {
+	try {
+		return localStorage.getItem(LAST_ACTIVE_PROJECT_STORAGE_KEY);
+	} catch {
+		return null;
+	}
+};
 
 const initialState: WorkspacesState = {
 	creationError: null,
@@ -23,6 +40,7 @@ const initialState: WorkspacesState = {
 	isLoading: false,
 	isLoadingRecent: false,
 	isUpdating: false,
+	lastActiveProjectId: getStoredLastActiveProjectId(),
 	projects: [],
 	recentDocuments: [],
 	updateError: null,
@@ -121,6 +139,14 @@ const workspacesSlice = createSlice({
 			.addCase(updateProject.rejected, (state, action) => {
 				state.isUpdating = false;
 				state.updateError = action.error.message ?? "Failed to update project";
+			})
+			.addCase(logout.fulfilled, (state) => {
+				state.lastActiveProjectId = null;
+				try {
+					localStorage.removeItem(LAST_ACTIVE_PROJECT_STORAGE_KEY);
+				} catch {
+					// localStorage unavailable — non-fatal
+				}
 			});
 	},
 	initialState,
@@ -131,6 +157,14 @@ const workspacesSlice = createSlice({
 		},
 		clearUpdateError(state) {
 			state.updateError = null;
+		},
+		setLastActiveProject(state, action: PayloadAction<string>) {
+			state.lastActiveProjectId = action.payload;
+			try {
+				localStorage.setItem(LAST_ACTIVE_PROJECT_STORAGE_KEY, action.payload);
+			} catch {
+				// localStorage unavailable — in-memory only, non-fatal
+			}
 		},
 	},
 });

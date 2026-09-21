@@ -1,23 +1,27 @@
 import { ProjectMemberRole } from "@knowledgeprism/constants";
 import React from "react";
-import { Link } from "react-router-dom";
+import { generatePath, Link } from "react-router-dom";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
-import { useAppSelector, useLocation, useModal } from "~/hooks/hooks.js";
+import {
+	useAppSelector,
+	useLocation,
+	useModal,
+	useOptionalCurrentProjectId,
+} from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import { type ValueOf } from "~/lib/types/types.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
-// const PROJECT_ICON_SIZE = 18;
 const MOBILE_NAV_ICON_SIZE = 16;
+const PROJECT_ICON_SIZE = 18;
 
 type NavItem = {
 	icon: React.ReactNode;
 	id: string;
 	label: string;
-	to?: ValueOf<typeof AppRoute>;
+	to?: string | undefined;
 };
 
 type SidebarProperties = {
@@ -25,24 +29,30 @@ type SidebarProperties = {
 	role: string;
 };
 
-const primaryNavItems: NavItem[] = [
+const buildPrimaryNavItems = (projectId: string | undefined): NavItem[] => [
 	{
 		icon: <Icon name="knowledge-tree" />,
 		id: "knowledge-tree",
 		label: "Knowledge Tree",
-		to: AppRoute.KNOWLEDGE_TREE,
+		to: projectId
+			? generatePath(AppRoute.PROJECT_KNOWLEDGE_TREE, { projectId })
+			: undefined,
 	},
 	{
 		icon: <Icon name="glossary" />,
 		id: "glossary",
 		label: "Glossary",
-		to: AppRoute.GLOSSARY,
+		to: projectId
+			? generatePath(AppRoute.PROJECT_GLOSSARY, { projectId })
+			: undefined,
 	},
 	{
 		icon: <Icon name="ask-prism" />,
 		id: "ask-prism",
 		label: "Ask Prism",
-		to: AppRoute.ASK_PRISM,
+		to: projectId
+			? generatePath(AppRoute.PROJECT_ASK_PRISM, { projectId })
+			: undefined,
 	},
 ];
 
@@ -61,24 +71,30 @@ const utilityNavItems: NavItem[] = [
 	},
 ];
 
-const mobileNavItems: NavItem[] = [
+const buildMobileNavItems = (projectId: string | undefined): NavItem[] => [
 	{
 		icon: <Icon name="knowledge-tree" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "knowledge-tree",
 		label: "Tree",
-		to: AppRoute.KNOWLEDGE_TREE,
+		to: projectId
+			? generatePath(AppRoute.PROJECT_KNOWLEDGE_TREE, { projectId })
+			: undefined,
 	},
 	{
 		icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "glossary",
 		label: "Glossary",
-		to: AppRoute.GLOSSARY,
+		to: projectId
+			? generatePath(AppRoute.PROJECT_GLOSSARY, { projectId })
+			: undefined,
 	},
 	{
 		icon: <Icon name="ask-prism" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "ask-prism",
 		label: "Ask",
-		to: AppRoute.ASK_PRISM,
+		to: projectId
+			? generatePath(AppRoute.PROJECT_ASK_PRISM, { projectId })
+			: undefined,
 	},
 ];
 
@@ -116,24 +132,27 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	projectName,
 	role,
 }: SidebarProperties) => {
+	const projectId = useOptionalCurrentProjectId();
 	const { hideModal, isOpen, showModal } = useModal();
 	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 
-	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
+	const primaryNavItems = buildPrimaryNavItems(projectId);
+	const canAddKnowledge =
+		Boolean(projectId) && role !== ProjectMemberRole.VIEWER;
 
 	return (
 		<aside className="hidden h-full tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
-			{/*
-			TODO: restore when the projects API lands
-			const PROJECT_ICON_SIZE = 18;
-			<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
-				<Icon name="project" size={PROJECT_ICON_SIZE} />
-				<div>
-					<div className="text-sm font-medium">{projectName}</div>
-					<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
+			{projectId && (
+				<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
+					<Icon name="project" size={PROJECT_ICON_SIZE} />
+					<div>
+						<div className="text-sm font-medium">{projectName}</div>
+						<div className="font-mono text-2xs text-text-faint">
+							{role} ROLE
+						</div>
+					</div>
 				</div>
-			</div>
-			*/}
+			)}
 
 			<nav className="flex flex-col gap-0.5">
 				{primaryNavItems.map((item) => (
@@ -201,6 +220,9 @@ const MobileNavRow = ({ icon, label, to }: NavItem) => {
 };
 
 const MobileNav: React.FC = () => {
+	const projectId = useOptionalCurrentProjectId();
+	const mobileNavItems = buildMobileNavItems(projectId);
+
 	return (
 		<nav className="flex flex-shrink-0 tablet:hidden border-t border-border bg-surface">
 			{mobileNavItems.map((item) => (
@@ -209,4 +231,5 @@ const MobileNav: React.FC = () => {
 		</nav>
 	);
 };
+
 export { MobileNav, Sidebar };
