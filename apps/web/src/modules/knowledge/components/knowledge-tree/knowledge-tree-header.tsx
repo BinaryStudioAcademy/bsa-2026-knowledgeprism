@@ -4,7 +4,7 @@ import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
 import { useNavigate } from "~/hooks/hooks.js";
 
-import { ARRAY_OFFSET } from "./constants.js";
+import { LAST_INDEX_OFFSET } from "./constants.js";
 
 type Properties = {
 	breadcrumbs: string[];
@@ -50,7 +50,7 @@ const KnowledgeTreeBreadcrumbs = ({
 			className="hidden items-center gap-2 text-[13px] text-text-muted @5xl:flex"
 		>
 			{breadcrumbs.map((breadcrumb, index) => {
-				const isLast = index === breadcrumbs.length - ARRAY_OFFSET;
+				const isLast = index === breadcrumbs.length - LAST_INDEX_OFFSET;
 				return (
 					<React.Fragment key={`${String(index)}-${breadcrumb}`}>
 						<span
@@ -75,7 +75,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 	onOpenSidebar,
 }: Properties) => {
 	const navigate = useNavigate();
-	const currentFileName = breadcrumbs.at(-ARRAY_OFFSET);
+	const currentFileName = breadcrumbs.at(-LAST_INDEX_OFFSET);
 
 	const handleEditClick = useCallback(() => {
 		void navigate("edit");

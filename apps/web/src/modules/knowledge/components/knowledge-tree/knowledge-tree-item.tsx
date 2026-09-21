@@ -88,6 +88,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 					children,
 					event_,
 					isExpanded,
+					isSearching,
 					isSection,
 					item,
 					onFocus,
@@ -101,7 +102,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 				handleVerticalNavigation(item.id, event_.key, onFocus);
 			}
 		},
-		[isSection, isExpanded, children, item, onFocus],
+		[isSection, isExpanded, isSearching, children, item, onFocus],
 	);
 
 	const paddingValue = level * LEVEL_MULTIPLIER + BASE_PADDING;
@@ -111,6 +112,10 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 		<div className="flex flex-col gap-0.5" role="none">
 			<button
 				aria-expanded={isSection ? isExpanded : undefined}
+				aria-level={level + LEVEL_INCREMENT}
+				aria-owns={
+					isSection && isExpanded ? `group-${String(item.id)}` : undefined
+				}
 				aria-selected={isSelected}
 				className={treeItemVariants({ isSelected })}
 				data-id={item.id}
@@ -130,7 +135,11 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 			</button>
 
 			{isSection && isExpanded && children.length > EMPTY_LENGTH && (
-				<div className="flex flex-col gap-0.5" role="group">
+				<div
+					className="flex flex-col gap-0.5"
+					id={`group-${String(item.id)}`}
+					role="group"
+				>
 					{children.map((child) => (
 						<KnowledgeTreeItem
 							focusedNodeId={focusedNodeId}

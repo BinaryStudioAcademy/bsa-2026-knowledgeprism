@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { tv } from "tailwind-variants";
 
 import { filterKnowledgeTree } from "../../libs/helpers/helpers.js";
@@ -6,17 +12,18 @@ import { type KnowledgeTreeItemResponseDto } from "../../libs/mock-knowledge-tre
 import {
 	EMPTY_LENGTH,
 	FALLBACK_DEFER_EXECUTION_MS,
+	FOCUS_DELAY_MS,
 	MIN_INDEX,
 } from "./constants.js";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
 import { KnowledgeTreeSearchBar } from "./knowledge-tree-search-bar.js";
 
 const sidebarDrawerStyles = tv({
-	base: "fixed inset-y-0 left-0 z-50 flex h-full w-65 shrink-0 flex-col border-r border-border bg-surface transition-transform duration-300 @5xl:static @5xl:translate-x-0",
+	base: "fixed inset-y-0 left-0 z-50 flex h-full w-65 shrink-0 flex-col border-r border-border bg-surface transition-all duration-300 @5xl:static @5xl:translate-x-0 @5xl:visible",
 	variants: {
 		isOpen: {
-			false: "-translate-x-full",
-			true: "translate-x-0",
+			false: "-translate-x-full invisible",
+			true: "translate-x-0 visible",
 		},
 	},
 });
@@ -107,6 +114,31 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 		[onClose],
 	);
 
+	const sidebarReference = useRef<HTMLElement>(null);
+
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		const timeoutId = setTimeout(() => {
+			if (sidebarReference.current) {
+				sidebarReference.current.focus();
+			}
+		}, FOCUS_DELAY_MS);
+
+		const handleGlobalKeyDown = (event: KeyboardEvent) => {
+			if (event.key === "Escape") {
+				onClose();
+			}
+		};
+		document.addEventListener("keydown", handleGlobalKeyDown);
+		return () => {
+			clearTimeout(timeoutId);
+			document.removeEventListener("keydown", handleGlobalKeyDown);
+		};
+	}, [isOpen, onClose]);
+
 	return (
 		<>
 			{isOpen && (
@@ -116,11 +148,15 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 					onClick={onClose}
 					onKeyDown={handleBackdropKeyDown}
 					role="button"
-					tabIndex={0}
+					tabIndex={-1}
 				/>
 			)}
 
-			<div className={sidebarDrawerStyles({ isOpen })}>
+			<aside
+				className={sidebarDrawerStyles({ isOpen })}
+				ref={sidebarReference}
+				tabIndex={-1}
+			>
 				<div className="flex items-center justify-between px-4.5 pb-3 pt-4.5">
 					<span className="text-control font-medium text-text">
 						Knowledge Tree
@@ -157,7 +193,7 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 						</div>
 					)}
 				</div>
-			</div>
+			</aside>
 		</>
 	);
 };

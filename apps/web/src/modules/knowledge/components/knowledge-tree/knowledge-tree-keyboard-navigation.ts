@@ -2,9 +2,9 @@ import type React from "react";
 
 import { type KnowledgeTreeItemResponseDto } from "../../libs/mock-knowledge-tree.js";
 import {
-	ARRAY_OFFSET,
 	EMPTY_LENGTH,
 	INDEX_OFFSET,
+	LAST_INDEX_OFFSET,
 	MIN_INDEX,
 	NOT_FOUND_INDEX,
 } from "./constants.js";
@@ -13,6 +13,7 @@ type HorizontalNavigationConfig = {
 	children: KnowledgeTreeItemResponseDto[];
 	event_: React.KeyboardEvent<HTMLButtonElement>;
 	isExpanded: boolean;
+	isSearching: boolean;
 	isSection: boolean;
 	item: KnowledgeTreeItemResponseDto;
 	onFocus: (id: number) => void;
@@ -45,7 +46,10 @@ const handleVerticalNavigation = (
 	if (currentIndex !== NOT_FOUND_INDEX) {
 		const nextIndex =
 			direction === "ArrowDown"
-				? Math.min(currentIndex + INDEX_OFFSET, nodes.length - ARRAY_OFFSET)
+				? Math.min(
+						currentIndex + INDEX_OFFSET,
+						nodes.length - LAST_INDEX_OFFSET,
+					)
 				: Math.max(currentIndex - INDEX_OFFSET, MIN_INDEX);
 
 		const nextNode = nodes[nextIndex];
@@ -88,12 +92,13 @@ const handleArrowRight = ({
 const handleArrowLeft = ({
 	event_,
 	isExpanded,
+	isSearching,
 	isSection,
 	item,
 	onFocus,
 	setIsExpanded,
 }: HorizontalNavigationConfig): void => {
-	if (isSection && isExpanded) {
+	if (isSection && isExpanded && !isSearching) {
 		setIsExpanded(false);
 		event_.preventDefault();
 		return;
