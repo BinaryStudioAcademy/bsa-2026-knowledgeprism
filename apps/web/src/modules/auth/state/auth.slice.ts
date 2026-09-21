@@ -9,12 +9,14 @@ import { loadCurrentUser, logout, signIn, signUp } from "./actions.js";
 type State = {
 	dataStatus: ValueOf<typeof DataStatus>;
 	error: null | string;
+	isInitialized: boolean;
 	user: null | UserSignUpResponseDto;
 };
 
 const initialState: State = {
 	dataStatus: DataStatus.IDLE,
 	error: null,
+	isInitialized: false,
 	user: null,
 };
 
@@ -54,12 +56,13 @@ const { actions, name, reducer } = createSlice({
 		});
 		builder.addCase(loadCurrentUser.fulfilled, (state, action) => {
 			state.dataStatus = DataStatus.FULFILLED;
-			state.error = null;
+			state.isInitialized = true;
 			state.user = action.payload;
 		});
 		builder.addCase(loadCurrentUser.rejected, (state) => {
 			state.dataStatus = DataStatus.REJECTED;
 			state.error = null;
+			state.isInitialized = true;
 			state.user = null;
 		});
 		builder.addCase(logout.pending, (state) => {
