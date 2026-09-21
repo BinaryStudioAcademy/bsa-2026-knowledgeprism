@@ -1,3 +1,4 @@
+import { useFocusReturn, useFocusTrap, useMergedRef } from "@mantine/hooks";
 import React, {
 	useCallback,
 	useEffect,
@@ -115,6 +116,10 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 	);
 
 	const sidebarReference = useRef<HTMLElement>(null);
+	const focusTrapReference = useFocusTrap(isOpen);
+	const mergedReference = useMergedRef(sidebarReference, focusTrapReference);
+
+	useFocusReturn({ opened: isOpen });
 
 	useEffect(() => {
 		if (!isOpen) {
@@ -154,7 +159,7 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 
 			<aside
 				className={sidebarDrawerStyles({ isOpen })}
-				ref={sidebarReference}
+				ref={mergedReference}
 				tabIndex={-1}
 			>
 				<div className="flex items-center justify-between px-4.5 pb-3 pt-4.5">
