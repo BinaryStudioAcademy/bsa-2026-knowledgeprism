@@ -8,6 +8,7 @@ import { AskPrismView } from "~/modules/ask-prism/ask-prism.js";
 import { actions as authActions } from "~/modules/auth/auth.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
 import { KnowledgeSearchPage } from "~/modules/knowledge/components/components.js";
+import { KnowledgeTreePage } from "~/modules/knowledge/components/knowledge-tree-page.js";
 import { LandingPage } from "~/modules/landing/components/landing-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
 import {
@@ -68,6 +69,10 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 									{
 										element: <AskPrismView />,
 										path: AppRoute.ASK_PRISM,
+									},
+									{
+										element: <KnowledgeTreePage />,
+										path: AppRoute.KNOWLEDGE_TREE,
 									},
 									{
 										element: <AccountSettingsPage />,
