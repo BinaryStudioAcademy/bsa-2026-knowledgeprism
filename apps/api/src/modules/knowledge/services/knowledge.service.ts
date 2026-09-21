@@ -6,9 +6,12 @@ import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeRecentResponseDto,
+	type KnowledgeSearchResponseDto,
+	type KnowledgeTreeResponseDto,
 } from "@knowledgeprism/types";
 
 import { HTTPError } from "~/infrastructure/http/http.js";
+import { type Logger } from "~/infrastructure/logger/logger.js";
 import {
 	type ProjectAccessContext,
 	type ProjectService,
@@ -19,17 +22,48 @@ import { type KnowledgeNodeRepository } from "../repositories/knowledge-node.rep
 class KnowledgeService {
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
 
+	private logger: Logger;
+
 	private projectService: ProjectService;
 
 	public constructor({
 		knowledgeNodeRepository,
+		logger,
 		projectService,
 	}: {
 		knowledgeNodeRepository: KnowledgeNodeRepository;
+		logger: Logger;
 		projectService: ProjectService;
 	}) {
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
+		this.logger = logger;
 		this.projectService = projectService;
+	}
+
+	public async findEntry({
+		context,
+		entryId,
+		projectId,
+	}: {
+		context: ProjectAccessContext;
+		entryId: number;
+		projectId: number;
+	}): Promise<KnowledgeEntryResponseDto> {
+		await this.projectService.assertProjectAccess(projectId, context);
+
+		const entry = await this.knowledgeNodeRepository.findByIdAndProjectId(
+			entryId,
+			projectId,
+		);
+
+		if (!entry) {
+			throw new HTTPError({
+				message: KnowledgeValidationMessage.NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
+		return entry.toObject();
 	}
 
 	public async findRecent(
@@ -50,6 +84,48 @@ class KnowledgeService {
 		};
 	}
 
+	public async findTree({
+		context,
+		projectId,
+	}: {
+		context: ProjectAccessContext;
+		projectId: number;
+	}): Promise<KnowledgeTreeResponseDto> {
+		await this.projectService.assertProjectAccess(projectId, context);
+
+		const nodes =
+			await this.knowledgeNodeRepository.findAllByProjectId(projectId);
+
+		return {
+			items: nodes.map((node) => node.toTreeItem()),
+		};
+	}
+
+	public async search({
+		context,
+		projectId,
+		query,
+	}: {
+		context: ProjectAccessContext;
+		projectId: number;
+		query: string;
+	}): Promise<KnowledgeSearchResponseDto> {
+		await this.projectService.assertProjectAccess(projectId, context);
+
+		const nodes = await this.knowledgeNodeRepository.searchByTitleOrKeyword({
+			projectId,
+			query,
+		});
+
+		return {
+			items: nodes.map((node) => {
+				const { contentJson, id, title } = node.toObject();
+
+				return { content: contentJson, id, title };
+			}),
+		};
+	}
+
 	public async updateEntry({
 		context,
 		entryId,
@@ -63,9 +139,13 @@ class KnowledgeService {
 	}): Promise<KnowledgeEntryResponseDto> {
 		await this.projectService.assertCanWriteKnowledge(projectId, context);
 
-		const existingEntry = await this.knowledgeNodeRepository.findById(entryId);
+		const existingEntry =
+			await this.knowledgeNodeRepository.findByIdAndProjectId(
+				entryId,
+				projectId,
+			);
 
-		if (!existingEntry || existingEntry.toObject().projectId !== projectId) {
+		if (!existingEntry) {
 			throw new HTTPError({
 				message: KnowledgeValidationMessage.NOT_FOUND,
 				status: HTTPCode.NOT_FOUND,
@@ -78,6 +158,10 @@ class KnowledgeService {
 			title: payload.title,
 			updatedBy: context.userId,
 		});
+
+		this.logger.info(
+			`User ${String(context.userId)} updated knowledge entry ${String(entryId)}`,
+		);
 
 		return updatedKnowledgeNode.toObject();
 	}

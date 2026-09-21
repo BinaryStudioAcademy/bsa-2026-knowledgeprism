@@ -106,7 +106,7 @@ class BaseHTTPApi implements HTTPApi {
 		path: string,
 		options: HTTPApiOptions,
 	): Promise<HTTPApiResponse> {
-		const { contentType, hasAuth, method, payload = null } = options;
+		const { contentType, hasAuth, method, payload = null, signal } = options;
 
 		const headers = await this.getHeaders(contentType, hasAuth);
 
@@ -114,6 +114,7 @@ class BaseHTTPApi implements HTTPApi {
 			headers,
 			method,
 			payload,
+			signal,
 		});
 
 		return await this.checkResponse(response);

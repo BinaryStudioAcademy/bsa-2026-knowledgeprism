@@ -9,6 +9,7 @@ export { Header } from "./header/header.js";
 export { Heading } from "./heading/heading.js";
 export { type IconName, Icon } from "./icon/icon.js";
 export { Input } from "./input/input.js";
+export { KnowledgeEditor } from "./knowledge-editor/knowledge-editor.js";
 export { Link } from "./link/link.js";
 export { Loader } from "./loader/loader.js";
 export { Logo } from "./logo/logo.js";

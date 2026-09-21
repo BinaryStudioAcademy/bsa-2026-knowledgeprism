@@ -1,4 +1,7 @@
-import { UserValidationRule } from "@knowledgeprism/constants";
+import {
+	UserValidationMessage,
+	UserValidationRule,
+} from "@knowledgeprism/constants";
 import { userUpdateValidationSchema } from "@knowledgeprism/schemas";
 import { z } from "zod";
 
@@ -12,10 +15,21 @@ const assignedProjectSchema = z.object({
 	role: z.enum(["EDITOR", "VIEWER"]),
 });
 
-const userUpdateFrontendValidationSchema = userUpdateValidationSchema.extend({
-	assignedProjects: z.array(assignedProjectSchema).optional(),
-	isActive: z.boolean().optional(),
-	password: passwordSchema.optional().or(z.literal("")),
-});
+const userUpdateFrontendValidationSchema = userUpdateValidationSchema
+	.extend({
+		assignedProjects: z.array(assignedProjectSchema).optional(),
+		confirmPassword: z.string().optional(),
+		isActive: z.boolean().optional(),
+		password: passwordSchema.optional().or(z.literal("")),
+	})
+	.superRefine(({ confirmPassword, password }, context) => {
+		if (password && password !== confirmPassword) {
+			context.addIssue({
+				code: "custom",
+				message: UserValidationMessage.PASSWORDS_MISMATCH,
+				path: ["confirmPassword"],
+			});
+		}
+	});
 
 export { userUpdateFrontendValidationSchema };

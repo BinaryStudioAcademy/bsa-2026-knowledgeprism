@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
-import { useLocation, useModal } from "~/hooks/hooks.js";
+import { useAppSelector, useLocation, useModal } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
@@ -30,11 +30,13 @@ const primaryNavItems: NavItem[] = [
 		icon: <Icon name="knowledge-tree" />,
 		id: "knowledge-tree",
 		label: "Knowledge Tree",
+		to: AppRoute.KNOWLEDGE_TREE,
 	},
 	{
 		icon: <Icon name="glossary" />,
 		id: "glossary",
 		label: "Glossary",
+		to: AppRoute.GLOSSARY,
 	},
 	{
 		icon: <Icon name="ask-prism" />,
@@ -64,11 +66,13 @@ const mobileNavItems: NavItem[] = [
 		icon: <Icon name="knowledge-tree" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "knowledge-tree",
 		label: "Tree",
+		to: AppRoute.KNOWLEDGE_TREE,
 	},
 	{
 		icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "glossary",
 		label: "Glossary",
+		to: AppRoute.GLOSSARY,
 	},
 	{
 		icon: <Icon name="ask-prism" size={MOBILE_NAV_ICON_SIZE} />,
@@ -113,6 +117,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	role,
 }: SidebarProperties) => {
 	const { hideModal, isOpen, showModal } = useModal();
+	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 
 	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
 
@@ -141,6 +146,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 					<>
 						<Button
 							className="hidden desktop:inline-flex"
+							disabled={isAddingKnowledge}
 							onClick={showModal}
 							variant="accent"
 						>

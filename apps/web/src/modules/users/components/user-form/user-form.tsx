@@ -205,6 +205,16 @@ const UserForm = <T extends FieldValues>({
 					type="password"
 				/>
 
+				<Input
+					control={control}
+					hasPasswordToggle={true}
+					label="Confirm password"
+					maxLength={32}
+					name={"confirmPassword" as Path<T>}
+					placeholder="Repeat the password"
+					type="password"
+				/>
+
 				{isEditMode && (
 					<div className="flex items-center justify-between rounded-lg border border-border p-4">
 						<div>

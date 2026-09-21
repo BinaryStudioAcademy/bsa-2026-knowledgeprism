@@ -114,7 +114,7 @@ const AccountSettingsPage: React.FC = () => {
 	);
 
 	const handleCancel = useCallback((): void => {
-		void navigate(AppRoute.WORKSPACE);
+		void navigate(AppRoute.WORKSPACES);
 	}, [navigate]);
 
 	return (

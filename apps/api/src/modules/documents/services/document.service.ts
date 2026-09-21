@@ -2,9 +2,12 @@ import {
 	DocumentErrorMessage,
 	DocumentSourceType,
 	DocumentStatus,
+	DocumentValidationRule,
 	ProjectValidationMessage,
 } from "@knowledgeprism/constants";
 import {
+	type DocumentConfirmUploadResponseDto,
+	type DocumentConfirmUploadRouteParametersDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
@@ -18,6 +21,7 @@ import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/helpers.js";
 import { type GeneratePresignedUploadUrl } from "~/infrastructure/s3/libs/types/types.js";
+import { type CheckDocumentObjectExists } from "~/infrastructure/s3/verify-object.js";
 import { createContentHash } from "~/modules/documents/libs/helpers/create-content-hash.helper.js";
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
 import { isUniqueViolation } from "~/modules/documents/libs/helpers/is-unique-violation.helper.js";
@@ -35,6 +39,7 @@ const MANUAL_TEXT_MIME_TYPE = "text/plain";
 const UNTITLED_MANUAL_DOCUMENT_NAME = "Untitled";
 
 type Constructor = {
+	checkDocumentObjectExists: CheckDocumentObjectExists;
 	documentAccessService: DocumentAccessService;
 	documentProcessor: DocumentProcessor;
 	documentRepository: DocumentRepository;
@@ -44,6 +49,8 @@ type Constructor = {
 };
 
 class DocumentService {
+	private checkDocumentObjectExists: CheckDocumentObjectExists;
+
 	private documentAccessService: DocumentAccessService;
 
 	private documentProcessor: DocumentProcessor;
@@ -57,6 +64,7 @@ class DocumentService {
 	private projectService: ProjectService;
 
 	public constructor({
+		checkDocumentObjectExists,
 		documentAccessService,
 		documentProcessor,
 		documentRepository,
@@ -64,6 +72,7 @@ class DocumentService {
 		logger,
 		projectService,
 	}: Constructor) {
+		this.checkDocumentObjectExists = checkDocumentObjectExists;
 		this.documentAccessService = documentAccessService;
 		this.documentProcessor = documentProcessor;
 		this.documentRepository = documentRepository;
@@ -89,6 +98,25 @@ class DocumentService {
 				status: DocumentStatus.FAILED,
 			});
 		}
+	}
+
+	private async failAndThrow(
+		documentId: number,
+		message: string,
+		error: unknown,
+	): Promise<never> {
+		await this.documentRepository.updateStatus({
+			id: documentId,
+			status: DocumentStatus.FAILED,
+		});
+
+		this.logger.error(message, { documentId, error });
+
+		throw new HTTPError({
+			cause: error,
+			message,
+			status: HTTPCode.INTERNAL_SERVER_ERROR,
+		});
 	}
 
 	private async findOwnedDocument({
@@ -183,6 +211,106 @@ class DocumentService {
 		}
 
 		return this.toManualTextResponse(cancelledDocument);
+	}
+
+	public async confirmUpload({
+		context,
+		routeParameters,
+	}: {
+		context: ProjectAccessContext;
+		routeParameters: DocumentConfirmUploadRouteParametersDto;
+	}): Promise<DocumentConfirmUploadResponseDto> {
+		const projectId = Number(routeParameters.projectId);
+
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
+
+		const { documentId } = routeParameters;
+		const document = await this.documentRepository.findById(documentId);
+		const documentObject = document?.toObject();
+
+		if (!documentObject || documentObject.projectId !== projectId) {
+			throw new HTTPError({
+				message: "Document not found.",
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
+		const { s3Key } = documentObject;
+
+		if (!s3Key) {
+			throw new HTTPError({
+				message: "Document has no associated S3 object to confirm.",
+				status: HTTPCode.CONFLICT,
+			});
+		}
+
+		const transitionedDocument =
+			await this.documentRepository.updateStatusIfCurrentIn({
+				allowedStatuses: [DocumentStatus.UPLOADED],
+				errorMessage: null,
+				id: documentId,
+				status: DocumentStatus.PROCESSING,
+			});
+
+		if (!transitionedDocument) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.CONFIRM_NOT_ALLOWED,
+				status: HTTPCode.CONFLICT,
+			});
+		}
+
+		try {
+			const objectSizeInBytes = await this.checkDocumentObjectExists({
+				key: s3Key,
+			});
+
+			if (objectSizeInBytes === null) {
+				throw new S3ObjectNotFoundError("S3 object missing");
+			}
+
+			if (
+				objectSizeInBytes > DocumentValidationRule.MAXIMUM_FILE_SIZE_IN_BYTES
+			) {
+				throw new S3ObjectTooLargeError("S3 object exceeds maximum file size");
+			}
+		} catch (error) {
+			if (error instanceof S3ObjectNotFoundError) {
+				await this.failAndThrow(
+					documentId,
+					"Uploaded document was not found in S3.",
+					error,
+				);
+			}
+
+			if (error instanceof S3ObjectTooLargeError) {
+				await this.failAndThrow(
+					documentId,
+					"Uploaded document exceeds the maximum allowed file size.",
+					error,
+				);
+			}
+
+			await this.documentRepository.updateStatus({
+				id: documentId,
+				status: DocumentStatus.UPLOADED,
+			});
+
+			this.logger.error("Failed to verify uploaded document in S3.", {
+				documentId,
+				error,
+			});
+
+			throw new HTTPError({
+				cause: error,
+				message: "Failed to verify uploaded document in S3. Please try again.",
+				status: HTTPCode.SERVICE_UNAVAILABLE,
+			});
+		}
+
+		return {
+			documentId,
+			status: transitionedDocument.toObject().status,
+		};
 	}
 
 	public async createManualText({
@@ -407,5 +535,9 @@ class DocumentService {
 		return this.toManualTextResponse(retriedDocument);
 	}
 }
+
+class S3ObjectNotFoundError extends Error {}
+
+class S3ObjectTooLargeError extends Error {}
 
 export { DocumentService };

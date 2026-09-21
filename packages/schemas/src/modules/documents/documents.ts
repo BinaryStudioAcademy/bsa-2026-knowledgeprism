@@ -1,4 +1,5 @@
 export {
+	documentConfirmUploadRouteParametersValidationSchema,
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
 	manualTextCreateValidationSchema,

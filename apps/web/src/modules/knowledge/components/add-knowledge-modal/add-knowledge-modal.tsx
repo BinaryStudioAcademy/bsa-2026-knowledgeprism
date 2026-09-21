@@ -1,6 +1,7 @@
 import { type JSX, useCallback, useState } from "react";
 
-import { Icon, type IconName, Modal } from "~/components/components.js";
+import { Icon, type IconName } from "~/components/icon/icon.js";
+import { Modal } from "~/components/modal/modal.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
@@ -10,7 +11,6 @@ import { DocumentProcessingStatus } from "../../libs/enums/enums.js";
 import { DocumentUpload } from "../document-upload.js";
 import { KnowledgeInputFooter } from "../knowledge-input-footer.js";
 import { ManualTextInput } from "../manual-text-input/manual-text-input.js";
-import { WebLinkInput } from "../web-link-input/web-link-input.js";
 import { DestinationBadge } from "./destination-badge.js";
 import { AddKnowledgeTab } from "./libs/enums/add-knowledge-tab.enum.js";
 
@@ -42,11 +42,6 @@ const TAB_ITEMS: TabItem[] = [
 		iconName: "paste-text",
 		id: AddKnowledgeTab.TEXT,
 		label: "Paste text",
-	},
-	{
-		iconName: "link",
-		id: AddKnowledgeTab.LINK,
-		label: "Web link",
 	},
 ];
 
@@ -99,9 +94,17 @@ const AddKnowledgeModal = ({
 		onClose();
 	}, [dispatch, onClose]);
 
-	const handleManualTextSubmit = useCallback((): void => {
+	const handleUploadSubmit = useCallback((): void => {
+		// TODO: Add backend API call for document upload processing
+		dispatch(actions.startAddingKnowledge());
 		handleClose();
-	}, [handleClose]);
+	}, [dispatch, handleClose]);
+
+	const handleManualTextSubmit = useCallback((): void => {
+		// TODO: Add backend API call for manual text processing
+		dispatch(actions.startAddingKnowledge());
+		handleClose();
+	}, [dispatch, handleClose]);
 
 	const isReadyToAdd = Boolean(
 		selectedFile &&
@@ -116,7 +119,7 @@ const AddKnowledgeModal = ({
 
 	return (
 		<Modal
-			contentClassName="flex min-h-0 flex-1 flex-col"
+			contentClassName="flex min-h-0 flex-1 flex-col pb-0 tablet:pb-0 desktop:pb-0"
 			hasCloseButton
 			isFullScreenOnMobile
 			isOpen={isOpen}
@@ -158,9 +161,10 @@ const AddKnowledgeModal = ({
 					})}
 				</div>
 
-				<div className="min-h-0 flex-1" key={formSessionKey}>
+				<div className="flex min-h-0 flex-1 flex-col" key={formSessionKey}>
 					<div
 						className={getValidClassNames(
+							"flex flex-1 flex-col justify-between",
 							activeTab !== AddKnowledgeTab.UPLOAD && "hidden",
 						)}
 						role="tabpanel"
@@ -170,13 +174,14 @@ const AddKnowledgeModal = ({
 						<KnowledgeInputFooter
 							isActionDisabled={!isReadyToAdd}
 							onCancel={handleClose}
-							onSubmit={handleClose}
+							onSubmit={handleUploadSubmit}
 							statusMessage={countLabel}
 						/>
 					</div>
 
 					<div
 						className={getValidClassNames(
+							"flex flex-1 flex-col",
 							activeTab !== AddKnowledgeTab.TEXT && "hidden",
 						)}
 						role="tabpanel"
@@ -185,15 +190,6 @@ const AddKnowledgeModal = ({
 							onCancel={handleClose}
 							onSubmit={handleManualTextSubmit}
 						/>
-					</div>
-
-					<div
-						className={getValidClassNames(
-							activeTab !== AddKnowledgeTab.LINK && "hidden",
-						)}
-						role="tabpanel"
-					>
-						<WebLinkInput onCancel={handleClose} onSubmit={handleClose} />
 					</div>
 				</div>
 			</div>

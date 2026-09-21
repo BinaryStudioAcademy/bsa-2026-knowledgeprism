@@ -26,6 +26,7 @@ type ProjectRole = "EDITOR" | "VIEWER";
 
 type UserEditFormValues = {
 	assignedProjects: { projectId: number; role: ProjectRole }[];
+	confirmPassword?: string;
 	email: string;
 	firstName: string;
 	isActive?: boolean;
@@ -59,6 +60,7 @@ const UserEditPage: React.FC = () => {
 	const { control, handleSubmit, reset } = useAppForm<UserEditFormValues>({
 		defaultValues: {
 			assignedProjects: [],
+			confirmPassword: "",
 			email: "",
 			firstName: "",
 			isActive: true,
@@ -75,6 +77,7 @@ const UserEditPage: React.FC = () => {
 					projectId: number;
 					role: ProjectRole;
 				}[],
+				confirmPassword: "",
 				email: selectedUser.email,
 				firstName: selectedUser.firstName ?? "",
 				isActive: selectedUser.status === "active",

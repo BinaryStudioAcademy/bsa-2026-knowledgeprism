@@ -16,6 +16,8 @@ export {
 	type AskPrismSourceDto,
 } from "./modules/ask-prism/ask-prism.js";
 export {
+	type DocumentConfirmUploadResponseDto,
+	type DocumentConfirmUploadRouteParametersDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
@@ -23,11 +25,19 @@ export {
 	type ManualTextResponseDto,
 	type ManualTextRouteParametersDto,
 } from "./modules/documents/documents.js";
+
 export {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeNodeContentDto,
 	type KnowledgeRecentResponseDto,
+	type KnowledgeSearchQueryDto,
+	type KnowledgeSearchResponseDto,
+	type KnowledgeSearchRouteParametersDto,
+	type KnowledgeTreeItemResponseDto,
+	type KnowledgeTreeResponseDto,
+	type KnowledgeTreeRouteParametersDto,
 } from "./modules/knowledge/knowledge.js";
 export {
 	type ProjectCreateRequestDto,
