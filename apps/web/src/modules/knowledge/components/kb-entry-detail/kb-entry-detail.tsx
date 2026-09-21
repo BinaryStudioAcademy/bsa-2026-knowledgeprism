@@ -1,5 +1,5 @@
 import { type PartialBlock } from "@blocknote/core";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { Button, KnowledgeEditor } from "~/components/components.js";
 import {
@@ -48,6 +48,10 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 		setIsEditing(false);
 		setSaveErrorMessage(null);
 	}
+
+	useEffect(() => {
+		savingEntryIdReference.current = null;
+	}, [entry.id]);
 
 	const readOnlyInitialContent = useMemo(
 		() => parseInitialContent(entry.contentJson),

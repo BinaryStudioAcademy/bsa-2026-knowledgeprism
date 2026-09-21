@@ -60,7 +60,12 @@ const extractPlainText = (content: unknown): string => {
 			const candidate = block as {
 				children?: unknown;
 				content?: unknown;
+				text?: unknown;
 			};
+
+			if (typeof candidate.text === "string") {
+				return candidate.text;
+			}
 
 			let text = "";
 
@@ -73,6 +78,15 @@ const extractPlainText = (content: unknown): string => {
 						if (isTextNode(item)) {
 							return item.text;
 						}
+						if (typeof item === "object" && item !== null) {
+							const nestedItem = item as { content?: unknown; text?: unknown };
+							if (typeof nestedItem.text === "string") {
+								return nestedItem.text;
+							}
+							if (nestedItem.content) {
+								return extractPlainText(nestedItem.content);
+							}
+						}
 						return "";
 					})
 					.join("");
@@ -80,7 +94,7 @@ const extractPlainText = (content: unknown): string => {
 				text = candidate.content;
 			}
 
-			const nested = Array.isArray(candidate.children)
+			const nested = candidate.children
 				? extractPlainText(candidate.children)
 				: "";
 
@@ -91,7 +105,7 @@ const extractPlainText = (content: unknown): string => {
 };
 
 const isBlockNoteEmpty = (document: unknown): boolean => {
-	return extractPlainText(document).trim().length === EMPTY_COUNT;
+	return extractPlainText(document).length === EMPTY_COUNT;
 };
 
 const isBlockArray = (value: unknown): value is PartialBlock[] => {
