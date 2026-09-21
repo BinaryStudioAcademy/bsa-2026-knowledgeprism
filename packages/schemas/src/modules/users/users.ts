@@ -1,3 +1,4 @@
+export { password as passwordValidationSchema } from "./libs/validation-schemas/password.validation-schema.js";
 export {
 	userCreate as userCreateValidationSchema,
 	userSignIn as userSignInValidationSchema,
