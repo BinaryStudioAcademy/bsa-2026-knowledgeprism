@@ -81,7 +81,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 	const currentFileName = breadcrumbs.at(-LAST_INDEX_OFFSET);
 
 	const handlePreview = useCallback(() => {
-		// placeholder for preview
+		// TODO: implement preview
 	}, []);
 
 	const handleEditClick = useCallback(() => {

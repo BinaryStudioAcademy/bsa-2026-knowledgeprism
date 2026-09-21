@@ -34,7 +34,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
 	const handlePreview = useCallback(() => {
-		// placeholder for preview
+		// TODO: implement preview
 	}, []);
 
 	const handleFinishLoading = useCallback(() => {
