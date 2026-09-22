@@ -16,6 +16,7 @@ import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-
 
 const MOBILE_NAV_ICON_SIZE = 16;
 const PROJECT_ICON_SIZE = 18;
+const ADD_KNOWLEDGE_ICON_SIZE = 16;
 
 type NavItem = {
 	icon: React.ReactNode;
@@ -135,7 +136,8 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	const primaryNavItems = buildPrimaryNavItems(projectId);
 	const canAddKnowledge =
 		Boolean(projectId) &&
-		role.trim().toUpperCase() !== ProjectMemberRole.VIEWER.toUpperCase();
+		(role.trim().toUpperCase() === ProjectMemberRole.ADMIN ||
+			role.trim().toUpperCase() === ProjectMemberRole.EDITOR);
 
 	const handleAddClick = useCallback((): void => {
 		if (onAddKnowledge) {
@@ -167,9 +169,19 @@ const Sidebar: React.FC<SidebarProperties> = ({
 				))}
 			</nav>
 
-			<div className="hidden desktop:flex mt-auto flex-col gap-2.5 border-t border-border-subtle pt-3.5">
+			<div className="mt-auto flex flex-col gap-2.5 border-t border-border-subtle pt-3.5">
 				{canAddKnowledge && (
 					<>
+						<Button
+							aria-label="Add Knowledge"
+							className="hidden tablet:inline-flex desktop:hidden"
+							disabled={isAddingKnowledge}
+							onClick={handleAddClick}
+							variant="icon"
+						>
+							<Icon name="add-knowledge" size={ADD_KNOWLEDGE_ICON_SIZE} />
+						</Button>
+
 						<Button
 							className="hidden desktop:inline-flex"
 							disabled={isAddingKnowledge}

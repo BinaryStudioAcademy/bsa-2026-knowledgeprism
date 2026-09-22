@@ -29,15 +29,17 @@ const { actions, name, reducer } = createSlice({
 				state.selectedFile.progress = IN_PROGRESS_PERCENTAGE;
 			}
 		});
+
 		builder.addCase(processDocument.fulfilled, (state, action) => {
 			if (!state.selectedFile || state.selectedFile.id !== action.meta.arg.id) {
 				return;
 			}
 
 			state.errorMessage = null;
-			state.processingStatus = DocumentProcessingStatus.SUCCESS;
+			state.processingStatus = DocumentProcessingStatus.READY;
 			state.selectedFile = action.payload;
 		});
+
 		builder.addCase(processDocument.rejected, (state, action) => {
 			if (!state.selectedFile || state.selectedFile.id !== action.meta.arg.id) {
 				return;
