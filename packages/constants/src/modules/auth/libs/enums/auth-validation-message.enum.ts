@@ -3,6 +3,7 @@ const AuthValidationMessage = {
 	FIRST_NAME_EMOJI_WRONG: "First name must not contain emojis",
 	FIRST_NAME_MAXIMUM_LENGTH: "First name must be at most 50 characters long",
 	FIRST_NAME_REQUIRE: "First name is required",
+	FORBIDDEN: "Forbidden",
 	LAST_NAME_DIGIT_WRONG: "Last name must not contain digits",
 	LAST_NAME_EMOJI_WRONG: "Last name must not contain emojis",
 	LAST_NAME_MAXIMUM_LENGTH: "Last name must be at most 50 characters long",
