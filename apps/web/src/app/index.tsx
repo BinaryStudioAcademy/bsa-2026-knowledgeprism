@@ -92,6 +92,7 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 										element: <UserManagementHubPage />,
 										path: AppRoute.USERS,
 									},
+
 									{
 										element: <UserCreationPage />,
 										path: AppRoute.USERS_NEW,
