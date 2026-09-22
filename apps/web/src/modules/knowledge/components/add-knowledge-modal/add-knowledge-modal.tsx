@@ -1,6 +1,7 @@
 import { type JSX, useCallback, useState } from "react";
 
-import { Icon, type IconName, Modal } from "~/components/components.js";
+import { Icon, type IconName } from "~/components/icon/icon.js";
+import { Modal } from "~/components/modal/modal.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
@@ -93,9 +94,17 @@ const AddKnowledgeModal = ({
 		onClose();
 	}, [dispatch, onClose]);
 
-	const handleManualTextSubmit = useCallback((): void => {
+	const handleUploadSubmit = useCallback((): void => {
+		// TODO: Add backend API call for document upload processing
+		dispatch(actions.startAddingKnowledge());
 		handleClose();
-	}, [handleClose]);
+	}, [dispatch, handleClose]);
+
+	const handleManualTextSubmit = useCallback((): void => {
+		// TODO: Add backend API call for manual text processing
+		dispatch(actions.startAddingKnowledge());
+		handleClose();
+	}, [dispatch, handleClose]);
 
 	const isReadyToAdd = Boolean(
 		selectedFile &&
@@ -165,7 +174,7 @@ const AddKnowledgeModal = ({
 						<KnowledgeInputFooter
 							isActionDisabled={!isReadyToAdd}
 							onCancel={handleClose}
-							onSubmit={handleClose}
+							onSubmit={handleUploadSubmit}
 							statusMessage={countLabel}
 						/>
 					</div>

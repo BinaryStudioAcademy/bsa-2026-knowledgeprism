@@ -7,8 +7,7 @@ const UserValidationMessage = {
 	LAST_NAME_REQUIRE: "Last name is required",
 	PASSWORD_DIGIT_REQUIRE: "Password must contain at least one digit",
 	PASSWORD_EMOJI_WRONG: "Password must not contain emojis",
-	PASSWORD_INVALID_CHARACTERS:
-		"Password can only contain Latin letters, numbers, and special characters",
+	PASSWORD_INVALID_CHARACTERS: "Password must not contain Non-Latin letters",
 	PASSWORD_MAXIMUM_LENGTH: "Password must be at most 32 characters long",
 	PASSWORD_MINIMUM_LENGTH: "Password must be at least 8 characters long",
 	PASSWORD_REQUIRE: "Password is required",
@@ -16,6 +15,7 @@ const UserValidationMessage = {
 		"Password must contain at least one special character",
 	PASSWORD_SPECIAL_CHARACTER_REQUIRE:
 		"Password must contain at least one special character",
+	PASSWORDS_MISMATCH: "The passwords entered do not match.",
 	PROJECT_ROLE_REQUIRE: "Project role is required",
 	PROJECT_ROLE_WRONG: "Project role is invalid",
 	STATUS_REQUIRE: "Status is required",
@@ -23,6 +23,8 @@ const UserValidationMessage = {
 	USER_CANNOT_DEACTIVATE_SELF: "You cannot deactivate your own account",
 	USER_CANNOT_REMOVE_SELF_FROM_PROJECTS:
 		"You cannot remove yourself from projects",
+	USER_CANNOT_UPDATE_RESTRICTED_FIELDS:
+		"You do not have permission to update email, status, or assigned projects.",
 	USER_NOT_FOUND: "User not found",
 } as const;
 

@@ -1,12 +1,16 @@
 export {
+	documentConfirmUploadRouteParametersValidationSchema,
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
 	manualTextCreateValidationSchema,
 	manualTextRouteParametersValidationSchema,
 } from "./modules/documents/documents.js";
+
 export {
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
+	knowledgeSearchQueryValidationSchema,
+	knowledgeSearchRouteParametersValidationSchema,
 	knowledgeTreeRouteParametersValidationSchema,
 } from "./modules/knowledge/knowledge.js";
 export {
@@ -16,6 +20,7 @@ export {
 	projectUpdateValidationSchema,
 } from "./modules/projects/projects.js";
 export {
+	passwordValidationSchema,
 	userCreateValidationSchema,
 	userSignInValidationSchema,
 	userSignUpValidationSchema,

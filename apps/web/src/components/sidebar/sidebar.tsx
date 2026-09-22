@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
-import { useLocation, useModal } from "~/hooks/hooks.js";
+import { useAppSelector, useLocation, useModal } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
@@ -30,6 +30,7 @@ const primaryNavItems: NavItem[] = [
 		icon: <Icon name="knowledge-tree" />,
 		id: "knowledge-tree",
 		label: "Knowledge Tree",
+		to: AppRoute.KNOWLEDGE_TREE,
 	},
 	{
 		icon: <Icon name="glossary" />,
@@ -65,6 +66,7 @@ const mobileNavItems: NavItem[] = [
 		icon: <Icon name="knowledge-tree" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "knowledge-tree",
 		label: "Tree",
+		to: AppRoute.KNOWLEDGE_TREE,
 	},
 	{
 		icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
@@ -115,6 +117,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	role,
 }: SidebarProperties) => {
 	const { hideModal, isOpen, showModal } = useModal();
+	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 
 	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
 
@@ -143,6 +146,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 					<>
 						<Button
 							className="inline-flex tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5"
+							disabled={isAddingKnowledge}
 							onClick={showModal}
 							variant="accent"
 						>

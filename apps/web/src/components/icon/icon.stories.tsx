@@ -36,6 +36,7 @@ const ICON_NAMES = [
 	"plus",
 	"prism",
 	"project",
+	"refresh",
 	"search",
 	"send",
 	"settings",

@@ -21,7 +21,14 @@ import {
 	reducer as askPrismReducer,
 } from "~/modules/ask-prism/ask-prism.js";
 import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
-import { reducer as knowledgeReducer } from "~/modules/knowledge/knowledge.js";
+import {
+	documentsApi,
+	reducer as knowledgeReducer,
+} from "~/modules/knowledge/knowledge.js";
+import {
+	projectsApi,
+	reducer as projectsReducer,
+} from "~/modules/projects/projects.js";
 import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
 import { workspacesReducer } from "~/modules/workspaces/state/workspaces.slice.js";
 import { workspacesApi } from "~/modules/workspaces/workspaces.js";
@@ -31,6 +38,8 @@ import { errorMiddleware } from "./error.middleware.js";
 type ExtraArguments = {
 	askPrismApi: typeof askPrismApi;
 	authApi: typeof authApi;
+	documentsApi: typeof documentsApi;
+	projectsApi: typeof projectsApi;
 	storage: typeof storage;
 	userApi: typeof userApi;
 	workspacesApi: typeof workspacesApi;
@@ -40,6 +49,7 @@ type RootReducer = {
 	askPrism: ReturnType<typeof askPrismReducer>;
 	auth: ReturnType<typeof authReducer>;
 	knowledge: ReturnType<typeof knowledgeReducer>;
+	projects: ReturnType<typeof projectsReducer>;
 	users: ReturnType<typeof usersReducer>;
 	workspaces: ReturnType<typeof workspacesReducer>;
 };
@@ -67,6 +77,7 @@ class Store {
 				askPrism: askPrismReducer,
 				auth: authReducer,
 				knowledge: knowledgeReducer,
+				projects: projectsReducer,
 				users: usersReducer,
 				workspaces: workspacesReducer,
 			},
@@ -77,6 +88,8 @@ class Store {
 		return {
 			askPrismApi,
 			authApi,
+			documentsApi,
+			projectsApi,
 			storage,
 			userApi,
 			workspacesApi,

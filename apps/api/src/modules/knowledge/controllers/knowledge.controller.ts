@@ -2,12 +2,16 @@ import { APIPath, HTTPCode, KnowledgeApiPath } from "@knowledgeprism/constants";
 import {
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
+	knowledgeSearchQueryValidationSchema,
+	knowledgeSearchRouteParametersValidationSchema,
 	knowledgeTreeRouteParametersValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
+	KnowledgeSearchQueryDto,
+	KnowledgeSearchRouteParametersDto,
 	type KnowledgeTreeRouteParametersDto,
 } from "@knowledgeprism/types";
 
@@ -131,6 +135,22 @@ class KnowledgeController extends BaseController {
 
 		this.addRoute({
 			handler: (options) =>
+				this.search(
+					options as APIHandlerOptions<{
+						params: KnowledgeSearchRouteParametersDto;
+						query: KnowledgeSearchQueryDto;
+					}>,
+				),
+			method: "GET",
+			path: KnowledgeApiPath.SEARCH,
+			validation: {
+				params: knowledgeSearchRouteParametersValidationSchema,
+				query: knowledgeSearchQueryValidationSchema,
+			},
+		});
+
+		this.addRoute({
+			handler: (options) =>
 				this.updateEntry(
 					options as APIHandlerOptions<{
 						body: KnowledgeEntryUpdateRequestDto;
@@ -170,6 +190,42 @@ class KnowledgeController extends BaseController {
 			payload: await this.knowledgeService.findTree({
 				context: this.getAuthenticatedSessionContext(options),
 				projectId: Number(options.params.projectId),
+			}),
+			status: HTTPCode.OK,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/knowledge/search:
+	 *    get:
+	 *      description: Search project knowledge base
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: string
+	 *        - in: query
+	 *          name: q
+	 *          required: true
+	 *          schema:
+	 *            type: string
+	 *      responses:
+	 *        200:
+	 *          description: Knowledge search results
+	 */
+	private async search(
+		options: APIHandlerOptions<{
+			params: KnowledgeSearchRouteParametersDto;
+			query: KnowledgeSearchQueryDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.knowledgeService.search({
+				context: this.getAuthenticatedSessionContext(options),
+				projectId: Number(options.params.projectId),
+				query: options.query.q,
 			}),
 			status: HTTPCode.OK,
 		};

@@ -1,62 +1,84 @@
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
-import { config } from "~/lib/config/config.js";
-import { AppEnvironment } from "~/lib/enums/enums.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
-import {
-	DocumentValidationMessage,
-	MOCK_PROCESSING_DELAY_MS,
-} from "../libs/constants/constants.js";
+import { TEMPORARY_PROJECT_ID } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
 import { name as sliceName } from "./knowledge.slice.js";
 
 type ProcessDocumentPayload = {
+	documentId?: number | undefined;
+	file: File;
 	id: string;
-	isRetry?: boolean;
-	name: string;
-	size: number;
+	uploadUrl?: string | undefined;
 };
 
-const FAILURE_KEYWORDS = ["fail", "error"] as const;
+type ProcessDocumentRejection = {
+	documentId?: number | undefined;
+	message: string;
+	uploadUrl?: string | undefined;
+};
 
 const processDocument = createAsyncThunk<
 	UploadedDocumentItem,
 	ProcessDocumentPayload,
-	AsyncThunkConfig
+	AsyncThunkConfig & { rejectValue: ProcessDocumentRejection }
 >(
 	`${sliceName}/process-document`,
-	async ({ id, isRetry = false, name, size }) => {
-		const isDevelopment =
-			config.ENV.APP.ENVIRONMENT === AppEnvironment.DEVELOPMENT;
+	async (
+		{ documentId, file, id, uploadUrl },
+		{ extra, rejectWithValue, signal },
+	) => {
+		const { documentsApi } = extra;
 
-		if (!isDevelopment) {
-			throw new Error(DocumentValidationMessage.PROCESSING_FAILED);
-		}
+		let resolvedDocumentId = documentId;
+		let resolvedUploadUrl = uploadUrl;
 
-		await new Promise<void>((resolve) => {
-			setTimeout(() => {
-				resolve();
-			}, MOCK_PROCESSING_DELAY_MS);
-		});
+		try {
+			if (!resolvedDocumentId || !resolvedUploadUrl) {
+				const intent = await documentsApi.createUploadIntent({
+					payload: {
+						contentType: file.type,
+						fileName: file.name,
+						sizeInBytes: file.size,
+					},
+					projectId: TEMPORARY_PROJECT_ID,
+					signal,
+				});
+				resolvedDocumentId = intent.documentId;
+				resolvedUploadUrl = intent.uploadUrl;
+			}
 
-		const hasFailureKeyword =
-			!isRetry &&
-			FAILURE_KEYWORDS.some((keyword) => name.toLowerCase().includes(keyword));
+			await documentsApi.uploadFileToStorage({
+				file,
+				signal,
+				uploadUrl: resolvedUploadUrl,
+			});
 
-		if (hasFailureKeyword) {
-			throw new Error(DocumentValidationMessage.PROCESSING_FAILED);
+			await documentsApi.confirmUpload({
+				documentId: resolvedDocumentId,
+				projectId: TEMPORARY_PROJECT_ID,
+				signal,
+			});
+		} catch (error) {
+			return rejectWithValue({
+				documentId: resolvedDocumentId,
+				message: error instanceof Error ? error.message : "Processing failed",
+				uploadUrl: resolvedUploadUrl,
+			});
 		}
 
 		return {
+			documentId: resolvedDocumentId,
 			id,
-			name,
+			name: file.name,
 			progress: 100,
-			size,
-			sizeLabel: formatFileSize(size),
+			size: file.size,
+			sizeLabel: formatFileSize(file.size),
 			status: DocumentProcessingStatus.SUCCESS,
+			uploadUrl: resolvedUploadUrl,
 		};
 	},
 );
