@@ -40,7 +40,7 @@ const SidebarLayout: React.FC = () => {
 	return (
 		<div className="flex h-full flex-col tablet:flex-row">
 			<Sidebar
-				projectName={currentProject?.name ?? "Loading..."}
+				projectName={currentProject?.name ?? ""}
 				role={currentProject?.role ?? ""}
 			/>
 

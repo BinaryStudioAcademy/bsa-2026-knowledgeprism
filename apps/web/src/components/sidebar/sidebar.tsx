@@ -29,30 +29,30 @@ type SidebarProperties = {
 	role: string;
 };
 
+const buildProjectLink = (
+	projectId: string | undefined,
+	route: string,
+): string | undefined =>
+	projectId ? generatePath(route, { projectId }) : undefined;
+
 const buildPrimaryNavItems = (projectId: string | undefined): NavItem[] => [
 	{
 		icon: <Icon name="knowledge-tree" />,
 		id: "knowledge-tree",
 		label: "Knowledge Tree",
-		to: projectId
-			? generatePath(AppRoute.PROJECT_KNOWLEDGE_TREE, { projectId })
-			: undefined,
+		to: buildProjectLink(projectId, AppRoute.PROJECT_KNOWLEDGE_TREE),
 	},
 	{
 		icon: <Icon name="glossary" />,
 		id: "glossary",
 		label: "Glossary",
-		to: projectId
-			? generatePath(AppRoute.PROJECT_GLOSSARY, { projectId })
-			: undefined,
+		to: buildProjectLink(projectId, AppRoute.PROJECT_GLOSSARY),
 	},
 	{
 		icon: <Icon name="ask-prism" />,
 		id: "ask-prism",
 		label: "Ask Prism",
-		to: projectId
-			? generatePath(AppRoute.PROJECT_ASK_PRISM, { projectId })
-			: undefined,
+		to: buildProjectLink(projectId, AppRoute.PROJECT_ASK_PRISM),
 	},
 ];
 
@@ -76,25 +76,19 @@ const buildMobileNavItems = (projectId: string | undefined): NavItem[] => [
 		icon: <Icon name="knowledge-tree" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "knowledge-tree",
 		label: "Tree",
-		to: projectId
-			? generatePath(AppRoute.PROJECT_KNOWLEDGE_TREE, { projectId })
-			: undefined,
+		to: buildProjectLink(projectId, AppRoute.PROJECT_KNOWLEDGE_TREE),
 	},
 	{
 		icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "glossary",
 		label: "Glossary",
-		to: projectId
-			? generatePath(AppRoute.PROJECT_GLOSSARY, { projectId })
-			: undefined,
+		to: buildProjectLink(projectId, AppRoute.PROJECT_GLOSSARY),
 	},
 	{
 		icon: <Icon name="ask-prism" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "ask-prism",
 		label: "Ask",
-		to: projectId
-			? generatePath(AppRoute.PROJECT_ASK_PRISM, { projectId })
-			: undefined,
+		to: buildProjectLink(projectId, AppRoute.PROJECT_ASK_PRISM),
 	},
 ];
 
