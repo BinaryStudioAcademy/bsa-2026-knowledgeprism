@@ -93,8 +93,8 @@ const AskPrismView = (): JSX.Element => {
 	}, [dispatch, submittedQuery]);
 
 	return (
-		<div className="mx-auto flex w-full max-w-[680px] flex-col gap-6 px-4 pt-8 pb-56 tablet:pb-48">
-			<div className="flex flex-col gap-1.5 border-b border-border pb-4">
+		<div className="mx-auto flex h-full w-full max-w-[680px] min-h-0 flex-col px-4 pt-6 tablet:pt-8">
+			<div className="flex shrink-0 flex-col gap-1.5 border-b border-border pb-4">
 				<div className="flex items-center gap-2 text-accent">
 					<Icon name="ask-prism" size={24} />
 					<Heading level="3">Ask Prism</Heading>
@@ -104,7 +104,7 @@ const AskPrismView = (): JSX.Element => {
 				</Paragraph>
 			</div>
 
-			<div className="min-h-[220px] flex-1">
+			<div className="min-h-0 flex-1 overflow-y-auto py-4">
 				<AnswerCard
 					answer={answer}
 					dataStatus={dataStatus}
@@ -115,8 +115,8 @@ const AskPrismView = (): JSX.Element => {
 				/>
 			</div>
 
-			<div className="fixed bottom-14 left-0 right-0 z-20 pointer-events-none tablet:bottom-0 tablet:left-14 desktop:left-58">
-				<div className="pointer-events-auto mx-auto flex w-full max-w-[680px] flex-col gap-2 bg-bg px-4 pt-2 pb-6">
+			<div className="shrink-0 bg-bg pt-2 pb-6">
+				<div className="flex flex-col gap-2">
 					<div className="flex flex-wrap items-center gap-1.5">
 						<span className="font-sans text-xs text-text-faint">
 							Suggested questions:
