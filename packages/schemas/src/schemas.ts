@@ -20,6 +20,7 @@ export {
 	projectUpdateValidationSchema,
 } from "./modules/projects/projects.js";
 export {
+	passwordValidationSchema,
 	userCreateValidationSchema,
 	userSignInValidationSchema,
 	userSignUpValidationSchema,
