@@ -1,3 +1,4 @@
+import { type KnowledgeSearchResponseDto } from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
@@ -20,6 +21,17 @@ type ProcessDocumentRejection = {
 	message: string;
 	uploadUrl?: string | undefined;
 };
+
+const searchKnowledge = createAsyncThunk<
+	KnowledgeSearchResponseDto,
+	{ projectId: string; query: string },
+	AsyncThunkConfig
+>(
+	`${sliceName}/search-knowledge`,
+	async ({ projectId, query }, { extra, signal }) => {
+		return await extra.knowledgeApi.search({ projectId, query, signal });
+	},
+);
 
 const processDocument = createAsyncThunk<
 	UploadedDocumentItem,
@@ -83,4 +95,4 @@ const processDocument = createAsyncThunk<
 	},
 );
 
-export { processDocument };
+export { processDocument, searchKnowledge };

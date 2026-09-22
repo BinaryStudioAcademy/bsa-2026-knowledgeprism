@@ -4,6 +4,7 @@ export {
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeNodeContentDto,
 	type KnowledgeRecentResponseDto,
+	type KnowledgeSearchItemDto,
 	type KnowledgeSearchQueryDto,
 	type KnowledgeSearchResponseDto,
 	type KnowledgeSearchRouteParametersDto,
