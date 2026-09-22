@@ -142,13 +142,14 @@ const Sidebar: React.FC<SidebarProperties> = ({
 				{canAddKnowledge && (
 					<>
 						<Button
-							className="hidden desktop:inline-flex"
+							className="inline-flex tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5"
 							onClick={showModal}
 							variant="accent"
 						>
 							<Icon name="plus" size={16} />
-							Add Knowledge
+							<span className="hidden desktop:inline">Add Knowledge</span>
 						</Button>
+
 						<AddKnowledgeModal
 							isOpen={isOpen}
 							onClose={hideModal}
