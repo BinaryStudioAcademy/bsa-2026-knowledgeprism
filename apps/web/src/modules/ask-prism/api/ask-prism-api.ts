@@ -17,12 +17,17 @@ type Constructor = {
 
 class AskPrismApi extends BaseHTTPApi {
 	public constructor({ baseUrl, http, storage }: Constructor) {
-		super({ baseUrl, http, path: APIPath.ASK_PRISM, storage });
+		super({ baseUrl, http, path: APIPath.PROJECTS, storage });
 	}
 
-	public async ask(payload: AskPrismRequestDto): Promise<AskPrismResponseDto> {
+	public async ask(
+		projectId: number | string,
+		payload: AskPrismRequestDto,
+	): Promise<AskPrismResponseDto> {
 		const response = await this.load(
-			this.getFullEndpoint(AskPrismApiPath.ROOT, {}),
+			this.getFullEndpoint(AskPrismApiPath.ROOT, {
+				projectId: String(projectId),
+			}),
 			{
 				contentType: ContentType.JSON,
 				hasAuth: true,
@@ -34,16 +39,19 @@ class AskPrismApi extends BaseHTTPApi {
 		return await response.json<AskPrismResponseDto>();
 	}
 
-	public async getSuggestedQuestions(projectId?: string): Promise<string[]> {
-		const endpoint = projectId
-			? `${this.getFullEndpoint(AskPrismApiPath.SUGGESTIONS, {})}?projectId=${encodeURIComponent(projectId)}`
-			: this.getFullEndpoint(AskPrismApiPath.SUGGESTIONS, {});
-
-		const response = await this.load(endpoint, {
-			contentType: ContentType.JSON,
-			hasAuth: true,
-			method: "GET",
-		});
+	public async getSuggestedQuestions(
+		projectId: number | string,
+	): Promise<string[]> {
+		const response = await this.load(
+			this.getFullEndpoint(AskPrismApiPath.SUGGESTIONS, {
+				projectId: String(projectId),
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "GET",
+			},
+		);
 
 		return await response.json<string[]>();
 	}
