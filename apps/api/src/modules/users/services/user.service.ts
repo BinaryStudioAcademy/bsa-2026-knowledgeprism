@@ -10,6 +10,7 @@ import {
 	type UserGetAllResponseDto,
 	type UserSignUpRequestDto,
 	type UserUpdateRequestDto,
+	type ValueOf,
 } from "@knowledgeprism/types";
 import { type Transaction, UniqueViolationError } from "objection";
 
@@ -32,6 +33,26 @@ class UserService implements Service {
 	) {
 		this.encryptService = encryptService;
 		this.userRepository = userRepository;
+	}
+
+	private guardRestrictedFieldsForNonAdmin(
+		role: ValueOf<typeof OrganisationRole>,
+		payload: UserUpdateRequestDto,
+	): void {
+		if (role === OrganisationRole.ADMIN) {
+			return;
+		}
+
+		if (
+			payload.email !== undefined ||
+			payload.status !== undefined ||
+			payload.assignedProjects !== undefined
+		) {
+			throw new HTTPError({
+				message: UserValidationMessage.USER_CANNOT_UPDATE_RESTRICTED_FIELDS,
+				status: HTTPCode.FORBIDDEN,
+			});
+		}
 	}
 
 	private guardSelfModification(
@@ -204,11 +225,13 @@ class UserService implements Service {
 
 	public async updateOrgUser({
 		currentUserId,
+		currentUserRole,
 		id,
 		organisationId,
 		payload,
 	}: {
 		currentUserId: number;
+		currentUserRole: ValueOf<typeof OrganisationRole>;
 		id: number;
 		organisationId: number;
 		payload: UserUpdateRequestDto;
@@ -225,6 +248,7 @@ class UserService implements Service {
 			});
 		}
 
+		this.guardRestrictedFieldsForNonAdmin(currentUserRole, payload);
 		this.guardSelfModification(id, currentUserId, payload);
 
 		const { assignedProjects, email, firstName, lastName, password, status } =

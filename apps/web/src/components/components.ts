@@ -15,6 +15,7 @@ export { Loader } from "./loader/loader.js";
 export { Logo } from "./logo/logo.js";
 export { Modal } from "./modal/modal.js";
 export { Paragraph, ParagraphSize } from "./paragraph/paragraph.js";
+export { AdminRoute } from "./protected-route/admin-route.js";
 export { RadioGroup } from "./radio-group/radio-group.js";
 export { type RadioOption } from "./radio-group/radio-group.js";
 export { Radio } from "./radio/radio.js";
