@@ -1,12 +1,23 @@
-import { type KnowledgeSearchResponseDto } from "@knowledgeprism/types";
+import {
+	type DocumentConfirmUploadResponseDto,
+	type KnowledgeSearchResponseDto,
+	type ManualTextCreateRequestDto,
+	type ManualTextResponseDto,
+} from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
+import { DocumentValidationMessage } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
 import { name as sliceName } from "./knowledge.slice.js";
+
+type ConfirmDocumentUploadPayload = {
+	documentId: number;
+	projectId: string;
+};
 
 type ProcessDocumentPayload = {
 	documentId?: number | undefined;
@@ -21,6 +32,26 @@ type ProcessDocumentRejection = {
 	message: string;
 	uploadUrl?: string | undefined;
 };
+
+type SubmitManualTextPayload = {
+	payload: ManualTextCreateRequestDto;
+	projectId: string;
+};
+
+const confirmDocumentUpload = createAsyncThunk<
+	DocumentConfirmUploadResponseDto,
+	ConfirmDocumentUploadPayload,
+	AsyncThunkConfig
+>(
+	`${sliceName}/confirm-document-upload`,
+	({ documentId, projectId }, { extra, signal }) => {
+		return extra.documentsApi.confirmUpload({
+			documentId,
+			projectId,
+			signal,
+		});
+	},
+);
 
 const searchKnowledge = createAsyncThunk<
 	KnowledgeSearchResponseDto,
@@ -68,16 +99,13 @@ const processDocument = createAsyncThunk<
 				signal,
 				uploadUrl: resolvedUploadUrl,
 			});
-
-			await documentsApi.confirmUpload({
-				documentId: resolvedDocumentId,
-				projectId,
-				signal,
-			});
 		} catch (error) {
 			return rejectWithValue({
 				documentId: resolvedDocumentId,
-				message: error instanceof Error ? error.message : "Processing failed",
+				message:
+					error instanceof Error
+						? error.message
+						: DocumentValidationMessage.PROCESSING_FAILED,
 				uploadUrl: resolvedUploadUrl,
 			});
 		}
@@ -95,4 +123,24 @@ const processDocument = createAsyncThunk<
 	},
 );
 
-export { processDocument, searchKnowledge };
+const submitManualText = createAsyncThunk<
+	ManualTextResponseDto,
+	SubmitManualTextPayload,
+	AsyncThunkConfig
+>(
+	`${sliceName}/submit-manual-text`,
+	({ payload, projectId }, { extra, signal }) => {
+		return extra.documentsApi.createManualText({
+			payload,
+			projectId,
+			signal,
+		});
+	},
+);
+
+export {
+	confirmDocumentUpload,
+	processDocument,
+	searchKnowledge,
+	submitManualText,
+};

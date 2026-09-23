@@ -1,3 +1,4 @@
+import { type ManualTextCreateRequestDto } from "@knowledgeprism/types";
 import {
 	type JSX,
 	type KeyboardEvent,
@@ -9,7 +10,11 @@ import {
 
 import { Icon, type IconName } from "~/components/icon/icon.js";
 import { Modal } from "~/components/modal/modal.js";
-import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
+import {
+	useAppDispatch,
+	useAppSelector,
+	useCurrentProjectId,
+} from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
@@ -80,22 +85,35 @@ const AddKnowledgeModal = ({
 	branchName = "Main",
 	isOpen,
 	onClose,
-	projectName = "Project Alpha",
+	projectName,
 }: Properties): JSX.Element => {
 	const dispatch = useAppDispatch();
+	const projectId = useCurrentProjectId();
 	const [activeTab, setActiveTab] = useState<ValueOf<typeof AddKnowledgeTab>>(
 		AddKnowledgeTab.UPLOAD,
 	);
 	const [formSessionKey, setFormSessionKey] = useState(
 		INITIAL_FORM_SESSION_KEY,
 	);
+	const [isManualTextSubmitting, setIsManualTextSubmitting] = useState(false);
+	const [isUploadSubmitting, setIsUploadSubmitting] = useState(false);
 
+	const isUploadSubmissionPendingReference = useRef(false);
 	const tabIdPrefix = useId();
 	const tabReferences = useRef(
 		new Map<ValueOf<typeof AddKnowledgeTab>, HTMLButtonElement>(),
 	);
 
-	const { selectedFile } = useAppSelector((state) => state.knowledge);
+	const { processingStatus, selectedFile } = useAppSelector(
+		(state) => state.knowledge,
+	);
+	const projects = useAppSelector((state) => state.workspaces.projects);
+	const currentProjectName =
+		projectName ??
+		projects.find((project) => project.id === projectId)?.name ??
+		"";
+	const selectedDocumentId = selectedFile?.documentId;
+	const isSubmissionPending = isManualTextSubmitting || isUploadSubmitting;
 
 	const handleTabChange = useCallback(
 		(tab: ValueOf<typeof AddKnowledgeTab>) => (): void => {
@@ -104,24 +122,74 @@ const AddKnowledgeModal = ({
 		[],
 	);
 
-	const handleClose = useCallback((): void => {
+	const resetAndClose = useCallback((): void => {
 		dispatch(actions.resetState());
 		setActiveTab(AddKnowledgeTab.UPLOAD);
 		setFormSessionKey((currentKey) => currentKey + FORM_SESSION_KEY_INCREMENT);
 		onClose();
 	}, [dispatch, onClose]);
 
-	const handleUploadSubmit = useCallback((): void => {
-		// TODO: Add backend API call for document upload processing
-		dispatch(actions.startAddingKnowledge());
-		handleClose();
-	}, [dispatch, handleClose]);
+	const handleClose = useCallback((): void => {
+		if (isSubmissionPending) {
+			return;
+		}
 
-	const handleManualTextSubmit = useCallback((): void => {
-		// TODO: Add backend API call for manual text processing
-		dispatch(actions.startAddingKnowledge());
-		handleClose();
-	}, [dispatch, handleClose]);
+		resetAndClose();
+	}, [isSubmissionPending, resetAndClose]);
+
+	const handleUploadSubmit = useCallback(async (): Promise<void> => {
+		if (!selectedDocumentId || isUploadSubmissionPendingReference.current) {
+			return;
+		}
+
+		isUploadSubmissionPendingReference.current = true;
+		setIsUploadSubmitting(true);
+
+		try {
+			const result = await dispatch(
+				actions.confirmDocumentUpload({
+					documentId: selectedDocumentId,
+					projectId,
+				}),
+			);
+
+			if (actions.confirmDocumentUpload.fulfilled.match(result)) {
+				resetAndClose();
+			}
+		} finally {
+			isUploadSubmissionPendingReference.current = false;
+			setIsUploadSubmitting(false);
+		}
+	}, [dispatch, projectId, resetAndClose, selectedDocumentId]);
+
+	const handleUploadSubmitClick = useCallback((): void => {
+		void handleUploadSubmit();
+	}, [handleUploadSubmit]);
+
+	const handleManualTextSubmit = useCallback(
+		async ({ content, title }: ManualTextCreateRequestDto): Promise<void> => {
+			setIsManualTextSubmitting(true);
+
+			try {
+				const trimmedTitle = title?.trim();
+
+				await dispatch(
+					actions.submitManualText({
+						payload: {
+							content: content.trim(),
+							...(trimmedTitle && { title: trimmedTitle }),
+						},
+						projectId,
+					}),
+				).unwrap();
+
+				resetAndClose();
+			} finally {
+				setIsManualTextSubmitting(false);
+			}
+		},
+		[dispatch, projectId, resetAndClose],
+	);
 
 	const handleTabKeyDown = useCallback(
 		(event: KeyboardEvent<HTMLButtonElement>): void => {
@@ -173,9 +241,13 @@ const AddKnowledgeModal = ({
 		[activeTab],
 	);
 
-	const isReadyToAdd = selectedFile?.status === DocumentProcessingStatus.READY;
+	const isReadyToAdd =
+		selectedFile?.status === DocumentProcessingStatus.READY &&
+		Boolean(selectedDocumentId);
+	const hasUploadConfirmationFailed =
+		processingStatus === DocumentProcessingStatus.FAILED && isReadyToAdd;
 
-	const countLabel = getCountLabel(selectedFile?.status);
+	const countLabel = getCountLabel(processingStatus);
 
 	return (
 		<Modal
@@ -189,7 +261,10 @@ const AddKnowledgeModal = ({
 		>
 			<div className="flex min-h-0 flex-1 flex-col">
 				<div className="mb-4 shrink-0">
-					<DestinationBadge branchName={branchName} projectName={projectName} />
+					<DestinationBadge
+						branchName={branchName}
+						projectName={currentProjectName}
+					/>
 				</div>
 
 				<div
@@ -210,6 +285,7 @@ const AddKnowledgeModal = ({
 										? "border-accent text-accent"
 										: "border-transparent text-text-muted hover:text-text",
 								)}
+								disabled={isSubmissionPending}
 								id={`${tabIdPrefix}-tab-${id}`}
 								key={id}
 								onClick={handleTabChange(id)}
@@ -243,9 +319,14 @@ const AddKnowledgeModal = ({
 						<DocumentUpload />
 
 						<KnowledgeInputFooter
-							isActionDisabled={!isReadyToAdd}
+							actionLabel={
+								hasUploadConfirmationFailed ? "Retry" : "Add to Knowledge Tree"
+							}
+							hasActionIcon={!hasUploadConfirmationFailed}
+							isActionDisabled={!isReadyToAdd || isUploadSubmitting}
+							isLoading={isUploadSubmitting}
 							onCancel={handleClose}
-							onSubmit={handleUploadSubmit}
+							onSubmit={handleUploadSubmitClick}
 							statusMessage={countLabel}
 						/>
 					</div>
@@ -258,6 +339,7 @@ const AddKnowledgeModal = ({
 						role="tabpanel"
 					>
 						<ManualTextInput
+							isLoading={isManualTextSubmitting}
 							onCancel={handleClose}
 							onSubmit={handleManualTextSubmit}
 						/>
