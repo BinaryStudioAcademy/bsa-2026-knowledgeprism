@@ -1,6 +1,12 @@
-import { type KnowledgeEntryResponseDto } from "@knowledgeprism/types";
+import {
+	type KnowledgeEntryResponseDto,
+	type KnowledgeEntryUpdateRequestDto,
+} from "@knowledgeprism/types";
 import React, { useCallback } from "react";
 
+import { useAppDispatch, useCurrentProjectId } from "~/hooks/hooks.js";
+
+import { actions } from "../../knowledge.js";
 import { KbEntryDetail } from "../kb-entry-detail/kb-entry-detail.js";
 import "./knowledge-tree-content.css";
 
@@ -15,13 +21,29 @@ const KnowledgeTreeContent: React.FC<Properties> = ({
 	isEditing = false,
 	onCancel,
 }: Properties) => {
-	const handleSave = useCallback((): Promise<void> => {
-		//TODO: Implement API call to update the knowledge entry
-		if (onCancel) {
-			onCancel();
-		}
-		return Promise.resolve();
-	}, [onCancel]);
+	const dispatch = useAppDispatch();
+	const projectId = useCurrentProjectId();
+
+	const handleSave = useCallback(
+		async (payload: KnowledgeEntryUpdateRequestDto): Promise<void> => {
+			if (!projectId) {
+				return;
+			}
+
+			await dispatch(
+				actions.updateKnowledgeEntry({
+					entryId: entry.id,
+					payload,
+					projectId,
+				}),
+			).unwrap();
+
+			if (onCancel) {
+				onCancel();
+			}
+		},
+		[dispatch, entry.id, onCancel, projectId],
+	);
 
 	return (
 		<div className="flex flex-1 items-start justify-center overflow-y-scroll px-4 py-6 @3xl:px-10 @3xl:py-9">

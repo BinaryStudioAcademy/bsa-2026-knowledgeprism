@@ -3,15 +3,17 @@ import {
 	fetchKnowledgeTree,
 	processDocument,
 	searchKnowledge,
+	updateKnowledgeEntry,
 } from "./actions.js";
-import { actions } from "./knowledge.slice.js";
+import { actions as sliceActions } from "./knowledge.slice.js";
 
 const allActions = {
-	...actions,
+	...sliceActions,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,
 	searchKnowledge,
+	updateKnowledgeEntry,
 };
 
 export { allActions as actions };

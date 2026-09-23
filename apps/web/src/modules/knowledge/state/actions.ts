@@ -1,5 +1,6 @@
 import {
 	type KnowledgeEntryResponseDto,
+	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeSearchResponseDto,
 	type KnowledgeTreeResponseDto,
 } from "@knowledgeprism/types";
@@ -122,9 +123,27 @@ const fetchKnowledgeEntry = createAsyncThunk<
 	});
 });
 
+const updateKnowledgeEntry = createAsyncThunk<
+	KnowledgeEntryResponseDto,
+	{
+		entryId: number;
+		payload: KnowledgeEntryUpdateRequestDto;
+		projectId: string;
+	},
+	AsyncThunkConfig
+>(`${sliceName}/update-entry`, async (payload, { extra }) => {
+	const { knowledgeApi } = extra;
+	return await knowledgeApi.updateKnowledgeEntry({
+		entryId: payload.entryId,
+		payload: payload.payload,
+		projectId: payload.projectId,
+	});
+});
+
 export {
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,
 	searchKnowledge,
+	updateKnowledgeEntry,
 };

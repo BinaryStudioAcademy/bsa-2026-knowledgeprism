@@ -9,6 +9,7 @@ import {
 	fetchKnowledgeTree,
 	processDocument,
 	searchKnowledge,
+	updateKnowledgeEntry,
 } from "./actions.js";
 
 type State = KnowledgeState;
@@ -90,6 +91,24 @@ const { actions, name, reducer } = createSlice({
 			state.isEntryLoading = false;
 			state.errorMessage =
 				action.error.message ?? "Failed to fetch knowledge entry";
+		});
+		builder.addCase(updateKnowledgeEntry.pending, (state) => {
+			state.errorMessage = null;
+		});
+		builder.addCase(updateKnowledgeEntry.fulfilled, (state, action) => {
+			if (state.selectedEntry?.id === action.payload.id) {
+				state.selectedEntry = action.payload;
+			}
+
+			const treeItem = state.tree.find((item) => item.id === action.payload.id);
+			if (treeItem) {
+				treeItem.title = action.payload.title;
+				treeItem.updatedAt = action.payload.updatedAt;
+			}
+		});
+		builder.addCase(updateKnowledgeEntry.rejected, (state, action) => {
+			state.errorMessage =
+				action.error.message ?? "Failed to update knowledge entry";
 		});
 		builder.addCase(searchKnowledge.pending, (state, action) => {
 			state.searchErrorMessage = null;
