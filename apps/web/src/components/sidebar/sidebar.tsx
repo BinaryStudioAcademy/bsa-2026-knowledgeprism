@@ -10,7 +10,6 @@ import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
-// const PROJECT_ICON_SIZE = 18;
 const MOBILE_NAV_ICON_SIZE = 16;
 const RESPONSIVE_NAV_ITEM_CLASS =
 	"tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5";
@@ -124,18 +123,6 @@ const Sidebar: React.FC<SidebarProperties> = ({
 
 	return (
 		<aside className="hidden h-full tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
-			{/*
-			TODO: restore when the projects API lands
-			const PROJECT_ICON_SIZE = 18;
-			<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
-				<Icon name="project" size={PROJECT_ICON_SIZE} />
-				<div>
-					<div className="text-sm font-medium">{projectName}</div>
-					<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
-				</div>
-			</div>
-			*/}
-
 			<nav className="flex flex-col gap-0.5">
 				{primaryNavItems.map((item) => (
 					<NavRow key={item.id} {...item} />
