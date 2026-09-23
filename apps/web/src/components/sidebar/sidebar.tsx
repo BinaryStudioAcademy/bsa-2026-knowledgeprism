@@ -122,7 +122,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
 
 	return (
-		<aside className="hidden h-full tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
+		<aside className="hidden h-full tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface py-5 desktop:px-3.5">
 			{/*
 			TODO: restore when the projects API lands
 			const PROJECT_ICON_SIZE = 18;
@@ -135,13 +135,13 @@ const Sidebar: React.FC<SidebarProperties> = ({
 			</div>
 			*/}
 
-			<nav className="flex flex-col gap-0.5">
+			<nav className="flex w-full flex-col items-center gap-0.5 desktop:items-stretch">
 				{primaryNavItems.map((item) => (
 					<NavRow key={item.id} {...item} />
 				))}
 			</nav>
 
-			<div className="mt-auto flex flex-col gap-2.5 border-t border-border-subtle pt-3.5">
+			<div className="mt-auto flex w-full flex-col items-center gap-2.5 border-t border-border-subtle pt-3.5 desktop:items-stretch">
 				{canAddKnowledge && (
 					<>
 						<Button
@@ -160,7 +160,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 						/>
 					</>
 				)}
-				<div className="flex flex-col gap-0.5">
+				<div className="flex w-full flex-col items-center gap-0.5 desktop:items-stretch">
 					{utilityNavItems.map((item) => (
 						<NavRow key={item.id} {...item} />
 					))}
