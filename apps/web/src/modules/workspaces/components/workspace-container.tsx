@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { generatePath, useNavigate } from "react-router-dom";
 
 import { Alert, Loader } from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
@@ -81,7 +81,9 @@ const WorkspaceContainer: React.FC = () => {
 
 	const handleSelectProject = useCallback(
 		(id: string): void => {
-			void navigate(`${AppRoute.WORKSPACES}/${id}`);
+			void navigate(
+				generatePath(AppRoute.PROJECT_KNOWLEDGE_TREE, { projectId: id }),
+			);
 		},
 		[navigate],
 	);

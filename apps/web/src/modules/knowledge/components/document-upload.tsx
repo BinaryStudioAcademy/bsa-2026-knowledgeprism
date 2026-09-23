@@ -1,7 +1,11 @@
 import { type JSX, useCallback, useRef } from "react";
 
 import { Alert } from "~/components/components.js";
-import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
+import {
+	useAppDispatch,
+	useAppSelector,
+	useCurrentProjectId,
+} from "~/hooks/hooks.js";
 
 import { actions } from "../knowledge.js";
 import { validateFile } from "../libs/helpers/helpers.js";
@@ -14,6 +18,7 @@ type Properties = {
 
 const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 	const dispatch = useAppDispatch();
+	const projectId = useCurrentProjectId();
 	const { errorMessage, selectedFile } = useAppSelector(
 		(state) => state.knowledge,
 	);
@@ -36,10 +41,10 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 				actions.startProcessing({ id, name: file.name, size: file.size }),
 			);
 			uploadTaskReference.current = dispatch(
-				actions.processDocument({ file, id }),
+				actions.processDocument({ file, id, projectId }),
 			);
 		},
-		[dispatch],
+		[dispatch, projectId],
 	);
 
 	const handleRetry = useCallback((): void => {
@@ -59,10 +64,11 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 				documentId: selectedFile.documentId,
 				file: fileReference.current,
 				id: selectedFile.id,
+				projectId,
 				uploadUrl: selectedFile.uploadUrl,
 			}),
 		);
-	}, [dispatch, selectedFile]);
+	}, [dispatch, projectId, selectedFile]);
 
 	const handleRemove = useCallback((): void => {
 		uploadTaskReference.current?.abort();

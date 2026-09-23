@@ -1,60 +1,62 @@
 import { Heading, Icon } from "~/components/components.js";
-import { useCallback, useModal, useState } from "~/hooks/hooks.js";
+import {
+	useAppDispatch,
+	useAppSelector,
+	useCallback,
+	useCurrentProjectId,
+	useEffect,
+	useModal,
+	useState,
+} from "~/hooks/hooks.js";
+import { useDebouncedValue } from "~/hooks/use-debounced-value/use-debounced-value.hook.js";
 
+import { flattenContentToText } from "../libs/helpers/helpers.js";
+import { actions } from "../state/state.js";
 import {
 	AddTermModal,
-	type AddTermPayload,
 	EmptyState,
 	KnowledgeEntryCard,
 	SearchInput,
 } from "./components.js";
-import {
-	MOCK_KNOWLEDGE_ENTRIES,
-	PAGE_TITLE,
-	SEARCH_PLACEHOLDER,
-} from "./libs/constants.js";
+import { PAGE_TITLE, SEARCH_PLACEHOLDER } from "./libs/constants.js";
 import { type KnowledgeEntry } from "./libs/types.js";
 
 const FILTER_ICON_SIZE = 12;
 const ADD_TERM_ICON_SIZE = 10;
 const EMPTY_RESULTS_LENGTH = 0;
-const NEW_ENTRY_AUTHOR = "You";
-const NEW_ENTRY_UPDATED_LABEL = "just now";
+const SEARCH_DEBOUNCE_MS = 300;
+const MINIMUM_QUERY_LENGTH = 1;
 
 const KnowledgeSearchPage: React.FC = () => {
 	const [query, setQuery] = useState("");
-	const [entries, setEntries] = useState<KnowledgeEntry[]>(
-		MOCK_KNOWLEDGE_ENTRIES,
-	);
+	const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
 	const { hideModal, isOpen, showModal } = useModal();
+	const dispatch = useAppDispatch();
+	const projectId = useCurrentProjectId();
+	const { searchResults } = useAppSelector((state) => state.knowledge);
 
-	const normalizedQuery = query.trim().toLowerCase();
+	useEffect(() => {
+		const trimmedQuery = debouncedQuery.trim();
 
-	const filteredEntries = normalizedQuery
-		? entries.filter((entry) =>
-				[entry.title, entry.content, entry.tag].some((field) =>
-					field.toLowerCase().includes(normalizedQuery),
-				),
-			)
-		: entries;
+		if (trimmedQuery.length < MINIMUM_QUERY_LENGTH) {
+			return;
+		}
 
-	const handleAddTerm = useCallback(
-		(payload: AddTermPayload): void => {
-			setEntries((currentEntries) => [
-				{
-					author: NEW_ENTRY_AUTHOR,
-					content: payload.content,
-					id: Date.now(),
-					tag: payload.tag,
-					title: payload.title,
-					updatedLabel: NEW_ENTRY_UPDATED_LABEL,
-				},
-				...currentEntries,
-			]);
-			hideModal();
-		},
-		[hideModal],
-	);
+		void dispatch(actions.searchKnowledge({ projectId, query: trimmedQuery }));
+	}, [debouncedQuery, dispatch, projectId]);
+
+	const entries: KnowledgeEntry[] = searchResults.map((item) => ({
+		author: "",
+		content: flattenContentToText(item.content),
+		id: item.id,
+		tag: "",
+		title: item.title,
+		updatedLabel: "",
+	}));
+
+	const handleAddTerm = useCallback((): void => {
+		hideModal();
+	}, [hideModal]);
 
 	return (
 		<div className="p-6 desktop:p-11">
@@ -87,10 +89,10 @@ const KnowledgeSearchPage: React.FC = () => {
 			</div>
 
 			<div className="flex flex-col gap-4">
-				{filteredEntries.length === EMPTY_RESULTS_LENGTH ? (
+				{entries.length === EMPTY_RESULTS_LENGTH ? (
 					<EmptyState />
 				) : (
-					filteredEntries.map((entry) => (
+					entries.map((entry) => (
 						<KnowledgeEntryCard entry={entry} key={entry.id} query={query} />
 					))
 				)}

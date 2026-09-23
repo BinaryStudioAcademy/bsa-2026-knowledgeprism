@@ -4,7 +4,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AppRoute } from "~/lib/enums/enums.js";
 
 const ProjectDetailsPage: React.FC = () => {
-	const { id } = useParams<{ id: string }>();
+	const { projectId } = useParams<{ projectId: string }>();
+
 	const navigate = useNavigate();
 
 	const handleBackToWorkspaces = useCallback((): void => {
@@ -21,7 +22,7 @@ const ProjectDetailsPage: React.FC = () => {
 				← Back to Workspaces
 			</button>
 			<h1 className="font-serif text-3xl text-text">
-				Project Details: {id ?? "N/A"}
+				Project Details: {projectId ?? "N/A"}
 			</h1>
 			<p className="mt-2 text-sm text-text-muted">
 				Temporary placeholder page for project specs and documentation.

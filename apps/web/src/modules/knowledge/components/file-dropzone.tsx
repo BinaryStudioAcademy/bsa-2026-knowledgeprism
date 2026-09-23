@@ -107,7 +107,10 @@ const FileDropzone = ({
 			</div>
 
 			<div className="text-xs text-text-muted">
-				PDF, TXT • up to {FileValidationRule.MAXIMUM_FILE_SIZE_IN_MB}MB each
+				{SUPPORTED_FILE_EXTENSIONS.map((extension) =>
+					extension.replace(".", "").toUpperCase(),
+				).join(", ")}{" "}
+				• up to {FileValidationRule.MAXIMUM_FILE_SIZE_IN_MB}MB each
 			</div>
 
 			<input
