@@ -1,7 +1,9 @@
+import { ProjectMemberRole } from "@knowledgeprism/constants";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { Avatar, Button, Header, Icon, Logo } from "~/components/components.js";
 import {
+	useAppSelector,
 	useLocation,
 	useModal,
 	useNavigate,
@@ -47,6 +49,9 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	const { hideModal, isOpen, showModal } = useModal();
 	const { pathname } = useLocation();
 	const projectId = useOptionalCurrentProjectId();
+	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
+	const { projects } = useAppSelector(({ workspaces }) => workspaces);
+	const currentProject = projects.find((project) => project.id === projectId);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
 	const WORKSPACE_LIST_PATHS: readonly string[] = [
@@ -57,7 +62,13 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 
 	const isWorkspaceListPage = WORKSPACE_LIST_PATHS.includes(pathname);
 
-	const canShowAddKnowledge = Boolean(projectId) && !isWorkspaceListPage;
+	const currentProjectRole = currentProject?.role.trim().toUpperCase();
+	const isAllowedRole =
+		currentProjectRole === ProjectMemberRole.ADMIN.toUpperCase() ||
+		currentProjectRole === ProjectMemberRole.EDITOR.toUpperCase();
+
+	const canShowAddKnowledge =
+		Boolean(projectId) && !isWorkspaceListPage && isAllowedRole;
 
 	const dropdownReference = useRef<HTMLDivElement>(null);
 	const navigate = useNavigate();
@@ -68,12 +79,12 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 
 	const handleCloseDropdown = useCallback((): void => {
 		setIsDropdownOpen(false);
-	}, []);
+	}, [setIsDropdownOpen]);
 
 	const handleLogOut = useCallback((): void => {
 		setIsDropdownOpen(false);
 		onLogOut?.();
-	}, [onLogOut]);
+	}, [onLogOut, setIsDropdownOpen]);
 
 	const handleOpenSettings = useCallback((): void => {
 		setIsDropdownOpen(false);
@@ -85,11 +96,11 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 		}
 
 		void navigate(AppRoute.SETTINGS);
-	}, [navigate, onOpenSettings]);
+	}, [navigate, onOpenSettings, setIsDropdownOpen]);
 
 	const toggleDropdown = useCallback((): void => {
 		setIsDropdownOpen((previous) => !previous);
-	}, []);
+	}, [setIsDropdownOpen]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent): void => {
@@ -141,6 +152,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 							<>
 								<Button
 									className="tablet:hidden ml-2 mr-2 shrink-0 flex items-center gap-1 px-2 py-1 text-2xs font-semibold whitespace-nowrap"
+									disabled={isAddingKnowledge}
 									onClick={showModal}
 									variant="accent"
 								>
@@ -152,7 +164,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 									<AddKnowledgeModal
 										isOpen={isOpen}
 										onClose={hideModal}
-										projectName={trimmedOrgName ?? ""}
+										projectName={currentProject?.name ?? ""}
 									/>
 								)}
 							</>

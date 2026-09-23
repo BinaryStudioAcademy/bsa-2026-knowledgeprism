@@ -172,6 +172,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 				{canAddKnowledge && (
 					<>
 						<Button
+							aria-label="Add Knowledge"
 							className={getValidClassNames(
 								"inline-flex",
 								RESPONSIVE_NAV_ITEM_CLASS,
