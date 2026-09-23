@@ -3,8 +3,9 @@ import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
 import { logger } from "~/logger/logger.js";
 
-import { BedrockRequest } from "../constants/bedrock-request.constant.js";
-import { ClaudeModelId } from "../constants/claude-model.constant.js";
+import { BedrockRequest, ClaudeModelId } from "@knowledgeprism/constants";
+
+import { ExtractionBedrockConfig } from "../constants/bedrock-request.constant.js";
 import {
 	EXTRACTION_SYSTEM_PROMPT,
 	PAGE_CONTENT_TAG,
@@ -61,7 +62,7 @@ const invokePageExtraction = async (content: string): Promise<unknown> => {
 		max_tokens: BedrockRequest.MAX_TOKENS,
 		messages: [{ content: toPagePrompt(content), role: "user" }],
 		system: EXTRACTION_SYSTEM_PROMPT,
-		temperature: BedrockRequest.TEMPERATURE,
+		temperature: ExtractionBedrockConfig.TEMPERATURE,
 	});
 
 	try {

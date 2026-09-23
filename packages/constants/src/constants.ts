@@ -38,3 +38,4 @@ export {
 	UserValidationMessage,
 	UserValidationRule,
 } from "./modules/users/users.js";
+export { BedrockRequest, ClaudeModelId } from "./modules/ai/ai.js";
