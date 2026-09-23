@@ -7,6 +7,7 @@ import {
 	type ProjectService,
 } from "~/modules/projects/services/project.service.js";
 
+import { RAG_FALLBACK_MESSAGE } from "../libs/constants/rag-fallback-message.constant.js";
 import { invokeRagGeneration } from "../libs/helpers/invoke-rag-generation.helper.js";
 
 type Constructor = {
@@ -123,15 +124,14 @@ class AskPrismService {
 
 		// 4. Handle Missing Context
 		const SCORE_THRESHOLD = 0.3; // Lowered to 0.3 to safely catch partially relevant data
-		const ZERO_MATCHES = 0;
 
 		const relevantMatches = matches.filter(
 			(match) => match.score >= SCORE_THRESHOLD,
 		);
 
-		if (relevantMatches.length === ZERO_MATCHES) {
+		if (relevantMatches.length === EMPTY_LENGTH) {
 			return {
-				answer: "Not found in the project's knowledge base.",
+				answer: RAG_FALLBACK_MESSAGE,
 				sources: [],
 			};
 		}
@@ -140,8 +140,7 @@ class AskPrismService {
 		const contextChunks = relevantMatches.map((match) => match.item.content);
 		const answer = await invokeRagGeneration(question, contextChunks);
 
-		const NOT_FOUND_ANSWER = "Not found in the project's knowledge base.";
-		if (answer.trim() === NOT_FOUND_ANSWER) {
+		if (answer.trim() === RAG_FALLBACK_MESSAGE) {
 			return {
 				answer,
 				sources: [],
