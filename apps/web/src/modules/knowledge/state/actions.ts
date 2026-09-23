@@ -2,7 +2,6 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
-import { TEMPORARY_PROJECT_ID } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
@@ -12,6 +11,7 @@ type ProcessDocumentPayload = {
 	documentId?: number | undefined;
 	file: File;
 	id: string;
+	projectId: string;
 	uploadUrl?: string | undefined;
 };
 
@@ -28,7 +28,7 @@ const processDocument = createAsyncThunk<
 >(
 	`${sliceName}/process-document`,
 	async (
-		{ documentId, file, id, uploadUrl },
+		{ documentId, file, id, projectId, uploadUrl },
 		{ extra, rejectWithValue, signal },
 	) => {
 		const { documentsApi } = extra;
@@ -44,7 +44,7 @@ const processDocument = createAsyncThunk<
 						fileName: file.name,
 						sizeInBytes: file.size,
 					},
-					projectId: TEMPORARY_PROJECT_ID,
+					projectId,
 					signal,
 				});
 				resolvedDocumentId = intent.documentId;
@@ -59,7 +59,7 @@ const processDocument = createAsyncThunk<
 
 			await documentsApi.confirmUpload({
 				documentId: resolvedDocumentId,
-				projectId: TEMPORARY_PROJECT_ID,
+				projectId,
 				signal,
 			});
 		} catch (error) {

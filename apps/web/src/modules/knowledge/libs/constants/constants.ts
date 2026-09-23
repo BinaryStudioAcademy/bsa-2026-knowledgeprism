@@ -26,9 +26,6 @@ const KNOWLEDGE_TREE_ITEM_CONFIG = {
 	TAB_INDEX_UNFOCUSABLE: -1,
 } as const;
 
-// TODO: replace with the real active project id once project routing/context lands.
-const TEMPORARY_PROJECT_ID = "1";
-
 export {
 	DocumentValidationMessage,
 	EMPTY_LENGTH,
@@ -42,6 +39,5 @@ export {
 	START_INDEX,
 	SUPPORTED_FILE_EXTENSIONS,
 	SUPPORTED_FILE_MIME_TYPES,
-	TEMPORARY_PROJECT_ID,
 };
 export { FileValidationRule } from "@knowledgeprism/constants";
