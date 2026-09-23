@@ -32,7 +32,6 @@ import {
 	type ProjectService,
 } from "~/modules/projects/services/project.service.js";
 
-import { type DocumentAccessService } from "./document-access.service.js";
 import { type DocumentProcessor } from "./document-processor.js";
 
 const MANUAL_TEXT_MIME_TYPE = "text/plain";
@@ -40,7 +39,6 @@ const UNTITLED_MANUAL_DOCUMENT_NAME = "Untitled";
 
 type Constructor = {
 	checkDocumentObjectExists: CheckDocumentObjectExists;
-	documentAccessService: DocumentAccessService;
 	documentProcessor: DocumentProcessor;
 	documentRepository: DocumentRepository;
 	generatePresignedUploadUrl: GeneratePresignedUploadUrl;
@@ -50,8 +48,6 @@ type Constructor = {
 
 class DocumentService {
 	private checkDocumentObjectExists: CheckDocumentObjectExists;
-
-	private documentAccessService: DocumentAccessService;
 
 	private documentProcessor: DocumentProcessor;
 
@@ -65,7 +61,6 @@ class DocumentService {
 
 	public constructor({
 		checkDocumentObjectExists,
-		documentAccessService,
 		documentProcessor,
 		documentRepository,
 		generatePresignedUploadUrl,
@@ -73,7 +68,6 @@ class DocumentService {
 		projectService,
 	}: Constructor) {
 		this.checkDocumentObjectExists = checkDocumentObjectExists;
-		this.documentAccessService = documentAccessService;
 		this.documentProcessor = documentProcessor;
 		this.documentRepository = documentRepository;
 		this.generatePresignedUploadUrl = generatePresignedUploadUrl;
@@ -178,21 +172,23 @@ class DocumentService {
 	}
 
 	public async cancelManualText({
+		context,
 		id,
 		projectId,
-		userId,
 	}: {
+		context: ProjectAccessContext;
 		id: number;
 		projectId: string;
-		userId: number;
 	}): Promise<ManualTextResponseDto> {
-		await this.documentAccessService.assertCanAddKnowledge({
-			projectId,
-			userId,
-		});
+		const numericProjectId = Number(projectId);
+
+		await this.projectService.assertCanWriteKnowledge(
+			numericProjectId,
+			context,
+		);
 		await this.findOwnedDocument({
 			id,
-			projectId: Number(projectId),
+			projectId: numericProjectId,
 		});
 
 		const cancelledDocument =
@@ -314,20 +310,20 @@ class DocumentService {
 	}
 
 	public async createManualText({
+		context,
 		payload,
 		projectId,
-		userId,
 	}: {
+		context: ProjectAccessContext;
 		payload: ManualTextCreateRequestDto;
 		projectId: string;
-		userId: number;
 	}): Promise<ManualTextResponseDto> {
 		const numericProjectId = Number(projectId);
 
-		await this.documentAccessService.assertCanAddKnowledge({
-			projectId,
-			userId,
-		});
+		await this.projectService.assertCanWriteKnowledge(
+			numericProjectId,
+			context,
+		);
 
 		const title = this.normalizeTitle(payload.title);
 		const contentHash = createContentHash(title, payload.content);
@@ -335,7 +331,7 @@ class DocumentService {
 			{
 				contentHash,
 				projectId: numericProjectId,
-				uploadedBy: userId,
+				uploadedBy: context.userId,
 			},
 		);
 
@@ -353,12 +349,12 @@ class DocumentService {
 					errorMessage: null,
 					mimeType: MANUAL_TEXT_MIME_TYPE,
 					name: title ?? UNTITLED_MANUAL_DOCUMENT_NAME,
-					projectId: Number(projectId),
+					projectId: numericProjectId,
 					s3Key: null,
 					sizeInBytes: null,
 					sourceType: DocumentSourceType.MANUAL,
 					status: DocumentStatus.PROCESSING,
-					uploadedBy: userId,
+					uploadedBy: context.userId,
 				}),
 			);
 		} catch (error) {
@@ -370,7 +366,7 @@ class DocumentService {
 				await this.documentRepository.findProcessingByHash({
 					contentHash,
 					projectId: numericProjectId,
-					uploadedBy: userId,
+					uploadedBy: context.userId,
 				});
 
 			if (!existingDocument) {
@@ -478,42 +474,44 @@ class DocumentService {
 	}
 
 	public async findManualText({
+		context,
 		id,
 		projectId,
-		userId,
 	}: {
+		context: ProjectAccessContext;
 		id: number;
 		projectId: string;
-		userId: number;
 	}): Promise<ManualTextResponseDto> {
-		await this.documentAccessService.assertCanViewKnowledge({
-			projectId,
-			userId,
-		});
+		const numericProjectId = Number(projectId);
+
+		await this.projectService.assertProjectAccess(numericProjectId, context);
+
 		const document = await this.findOwnedDocument({
 			id,
-			projectId: Number(projectId),
+			projectId: numericProjectId,
 		});
 
 		return this.toManualTextResponse(document);
 	}
 
 	public async retryManualText({
+		context,
 		id,
 		projectId,
-		userId,
 	}: {
+		context: ProjectAccessContext;
 		id: number;
 		projectId: string;
-		userId: number;
 	}): Promise<ManualTextResponseDto> {
-		await this.documentAccessService.assertCanAddKnowledge({
-			projectId,
-			userId,
-		});
+		const numericProjectId = Number(projectId);
+
+		await this.projectService.assertCanWriteKnowledge(
+			numericProjectId,
+			context,
+		);
 		await this.findOwnedDocument({
 			id,
-			projectId: Number(projectId),
+			projectId: numericProjectId,
 		});
 
 		const retriedDocument = await this.documentRepository.compareAndSwapStatus({

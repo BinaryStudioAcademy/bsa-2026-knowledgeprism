@@ -1,8 +1,8 @@
+import { type KnowledgeSearchResponseDto } from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
-import { TEMPORARY_PROJECT_ID } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
@@ -12,6 +12,7 @@ type ProcessDocumentPayload = {
 	documentId?: number | undefined;
 	file: File;
 	id: string;
+	projectId: string;
 	uploadUrl?: string | undefined;
 };
 
@@ -21,6 +22,17 @@ type ProcessDocumentRejection = {
 	uploadUrl?: string | undefined;
 };
 
+const searchKnowledge = createAsyncThunk<
+	KnowledgeSearchResponseDto,
+	{ projectId: string; query: string },
+	AsyncThunkConfig
+>(
+	`${sliceName}/search-knowledge`,
+	async ({ projectId, query }, { extra, signal }) => {
+		return await extra.knowledgeApi.search({ projectId, query, signal });
+	},
+);
+
 const processDocument = createAsyncThunk<
 	UploadedDocumentItem,
 	ProcessDocumentPayload,
@@ -28,7 +40,7 @@ const processDocument = createAsyncThunk<
 >(
 	`${sliceName}/process-document`,
 	async (
-		{ documentId, file, id, uploadUrl },
+		{ documentId, file, id, projectId, uploadUrl },
 		{ extra, rejectWithValue, signal },
 	) => {
 		const { documentsApi } = extra;
@@ -44,7 +56,7 @@ const processDocument = createAsyncThunk<
 						fileName: file.name,
 						sizeInBytes: file.size,
 					},
-					projectId: TEMPORARY_PROJECT_ID,
+					projectId,
 					signal,
 				});
 				resolvedDocumentId = intent.documentId;
@@ -59,7 +71,7 @@ const processDocument = createAsyncThunk<
 
 			await documentsApi.confirmUpload({
 				documentId: resolvedDocumentId,
-				projectId: TEMPORARY_PROJECT_ID,
+				projectId,
 				signal,
 			});
 		} catch (error) {
@@ -83,4 +95,4 @@ const processDocument = createAsyncThunk<
 	},
 );
 
-export { processDocument };
+export { processDocument, searchKnowledge };

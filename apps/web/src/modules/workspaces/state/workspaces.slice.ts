@@ -1,8 +1,16 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import {
+	createAsyncThunk,
+	createSlice,
+	type PayloadAction,
+} from "@reduxjs/toolkit";
+
+import { logout } from "~/modules/auth/state/actions.js";
 
 import { type WorkspacesApi } from "../api/workspaces-api.js";
 import { type ProjectItem, type RecentDocumentItem } from "../types/types.js";
 import { createProject, deleteProject, updateProject } from "./action.js";
+
+const LAST_ACTIVE_PROJECT_STORAGE_KEY = "kp:lastActiveProjectId";
 
 interface WorkspacesState {
 	creationError: null | string;
@@ -11,10 +19,41 @@ interface WorkspacesState {
 	isLoading: boolean;
 	isLoadingRecent: boolean;
 	isUpdating: boolean;
+	lastActiveProjectId: null | string;
 	projects: ProjectItem[];
 	recentDocuments: RecentDocumentItem[];
 	updateError: null | string;
 }
+
+const getStoredLastActiveProjectId = (): null | string => {
+	try {
+		return localStorage.getItem(LAST_ACTIVE_PROJECT_STORAGE_KEY);
+	} catch {
+		return null;
+	}
+};
+
+const removeStoredLastActiveProjectId = (): void => {
+	try {
+		localStorage.removeItem(LAST_ACTIVE_PROJECT_STORAGE_KEY);
+	} catch {
+		// localStorage unavailable — non-fatal
+	}
+};
+
+const clearLastActiveProjectIfMissing = (state: WorkspacesState): void => {
+	const { lastActiveProjectId, projects } = state;
+	const isProjectAvailable = projects.some(
+		(project) => project.id === lastActiveProjectId,
+	);
+
+	if (!lastActiveProjectId || isProjectAvailable) {
+		return;
+	}
+
+	state.lastActiveProjectId = null;
+	removeStoredLastActiveProjectId();
+};
 
 const initialState: WorkspacesState = {
 	creationError: null,
@@ -23,6 +62,7 @@ const initialState: WorkspacesState = {
 	isLoading: false,
 	isLoadingRecent: false,
 	isUpdating: false,
+	lastActiveProjectId: getStoredLastActiveProjectId(),
 	projects: [],
 	recentDocuments: [],
 	updateError: null,
@@ -67,6 +107,7 @@ const workspacesSlice = createSlice({
 			.addCase(fetchProjects.fulfilled, (state, action) => {
 				state.isLoading = false;
 				state.projects = action.payload;
+				clearLastActiveProjectIfMissing(state);
 			})
 			.addCase(fetchProjects.rejected, (state) => {
 				state.isLoading = false;
@@ -98,6 +139,7 @@ const workspacesSlice = createSlice({
 				state.projects = state.projects.filter(
 					(project) => project.id !== action.payload,
 				);
+				clearLastActiveProjectIfMissing(state);
 			})
 			.addCase(updateProject.pending, (state) => {
 				state.isUpdating = true;
@@ -121,6 +163,10 @@ const workspacesSlice = createSlice({
 			.addCase(updateProject.rejected, (state, action) => {
 				state.isUpdating = false;
 				state.updateError = action.error.message ?? "Failed to update project";
+			})
+			.addCase(logout.fulfilled, (state) => {
+				state.lastActiveProjectId = null;
+				removeStoredLastActiveProjectId();
 			});
 	},
 	initialState,
@@ -131,6 +177,14 @@ const workspacesSlice = createSlice({
 		},
 		clearUpdateError(state) {
 			state.updateError = null;
+		},
+		setLastActiveProject(state, action: PayloadAction<string>) {
+			state.lastActiveProjectId = action.payload;
+			try {
+				localStorage.setItem(LAST_ACTIVE_PROJECT_STORAGE_KEY, action.payload);
+			} catch {
+				// localStorage unavailable — in-memory only, non-fatal
+			}
 		},
 	},
 });
