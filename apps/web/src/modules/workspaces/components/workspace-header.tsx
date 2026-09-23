@@ -181,7 +181,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 												</button>
 
 												<button
-													className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none sm:py-2"
+													className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-error transition-colors hover:bg-error-bg hover:text-error-hover focus:outline-none sm:py-2"
 													onClick={handleLogOut}
 													type="button"
 												>
