@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { Avatar, Header, Logo } from "~/components/components.js";
-import { useNavigate } from "~/hooks/hooks.js";
+import { Avatar, Button, Header, Icon, Logo } from "~/components/components.js";
+import { useModal, useNavigate } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
+import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
 interface WorkspaceHeaderProperties {
 	avatarUrl?: null | string;
@@ -38,6 +39,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	onOpenSettings,
 	organizationName,
 }) => {
+	const { hideModal, isOpen, showModal } = useModal();
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
 	const dropdownReference = useRef<HTMLDivElement>(null);
@@ -93,7 +95,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 		<div className="sticky top-0 z-30 w-full bg-surface">
 			<Header>
 				<div className="flex h-full w-full items-center justify-between">
-					<div className="flex min-w-0 items-center gap-3">
+					<div className="flex shrink-0 items-center gap-3">
 						<Logo to={AppRoute.ROOT} />
 
 						{isLoading && (
@@ -118,6 +120,22 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 					</div>
 
 					<div className="flex items-center" ref={dropdownReference}>
+						<Button
+							className="tablet:hidden ml-2 mr-2 shrink-0 flex items-center gap-1 px-2 py-1 text-2xs font-semibold whitespace-nowrap"
+							onClick={showModal}
+							variant="accent"
+						>
+							<Icon name="plus" size={14} />
+							<span className="hidden xs:inline sm:inline">Add Knowledge</span>
+							<span>Add Knowledge</span>
+						</Button>
+
+						<AddKnowledgeModal
+							isOpen={isOpen}
+							onClose={hideModal}
+							projectName={trimmedOrgName ?? ""}
+						/>
+
 						{isLoading && (
 							<div className="h-8 w-8 animate-pulse rounded-full bg-(--color-border-subtle) sm:h-8 sm:w-32 sm:rounded-md" />
 						)}
