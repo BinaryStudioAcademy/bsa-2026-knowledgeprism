@@ -1,7 +1,7 @@
 const AppRoute = {
-	ASK_PRISM: "/ask-prism",
-	GLOSSARY: "/glossary",
-	KNOWLEDGE_TREE: "/knowledge-tree",
+	PROJECT_ASK_PRISM: "/workspaces/:projectId/ask-prism",
+	PROJECT_GLOSSARY: "/workspaces/:projectId/glossary",
+	PROJECT_KNOWLEDGE_TREE: "/workspaces/:projectId/knowledge-tree",
 	ROOT: "/",
 	SETTINGS: "/settings",
 	SIGN_IN: "/sign-in",
@@ -9,7 +9,7 @@ const AppRoute = {
 	USERS: "/users",
 	USERS_EDIT: "/users/:id/edit",
 	USERS_NEW: "/users/new",
-	WORKSPACE_DETAILS: "/workspaces/:id",
+	WORKSPACE_DETAILS: "/workspaces/:projectId",
 	WORKSPACES: "/workspaces",
 } as const;
 

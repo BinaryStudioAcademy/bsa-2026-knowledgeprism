@@ -61,26 +61,32 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 								path: AppRoute.WORKSPACES,
 							},
 							{
-								element: <ProjectDetailsPage />,
+								children: [
+									{
+										element: <ProjectDetailsPage />,
+										index: true,
+									},
+									{
+										element: <AskPrismView />,
+										path: AppRoute.PROJECT_ASK_PRISM,
+									},
+									{
+										element: <KnowledgeTreePage />,
+										path: AppRoute.PROJECT_KNOWLEDGE_TREE,
+									},
+									{
+										element: <KnowledgeSearchPage />,
+										path: AppRoute.PROJECT_GLOSSARY,
+									},
+								],
+								element: <SidebarLayout />,
 								path: AppRoute.WORKSPACE_DETAILS,
 							},
 							{
 								children: [
 									{
-										element: <AskPrismView />,
-										path: AppRoute.ASK_PRISM,
-									},
-									{
-										element: <KnowledgeTreePage />,
-										path: AppRoute.KNOWLEDGE_TREE,
-									},
-									{
 										element: <AccountSettingsPage />,
 										path: AppRoute.SETTINGS,
-									},
-									{
-										element: <KnowledgeSearchPage />,
-										path: AppRoute.GLOSSARY,
 									},
 									{
 										children: [
