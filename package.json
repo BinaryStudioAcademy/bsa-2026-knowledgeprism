@@ -21,7 +21,7 @@
 		"build:api": "npm run build -w apps/api",
 		"build:worker": "npm run build -w apps/worker",
 		"build:web": "npm run build -w apps/web",
-		"build": "npm run build:packages && npm run build:api && npm run build:worker && npm run build:web",
+		"build": "npm run build:packages && npm run build:worker && npm run build:api && npm run build:web",
 		"lint:editor": "editorconfig-checker",
 		"lint:fs": "ls-lint",
 		"lint:type": "npx tsc --noEmit",
