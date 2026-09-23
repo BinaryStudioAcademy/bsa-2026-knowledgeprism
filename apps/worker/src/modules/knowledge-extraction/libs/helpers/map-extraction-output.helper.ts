@@ -16,6 +16,9 @@ const ConfidenceRange = {
 const TITLE_MAXIMUM_LENGTH = 80;
 const TITLE_START_INDEX = 0;
 const TITLE_ELLIPSIS = "…";
+const MARKDOWN_FENCE = "```";
+const NOT_FOUND_INDEX = -1;
+const LINE_BREAK_LENGTH = 1;
 
 const isFiniteNumber = (value: unknown): value is number => {
 	return typeof value === "number" && Number.isFinite(value);
@@ -51,13 +54,26 @@ const isExtractionCandidate = (
 		isNonEmptyString(value.text)
 	);
 };
+const stripMarkdownFence = (value: string): string => {
+	if (!value.startsWith(MARKDOWN_FENCE) || !value.endsWith(MARKDOWN_FENCE)) {
+		return value;
+	}
+
+	const firstLineEnd = value.indexOf("\n");
+	const contentStart =
+		firstLineEnd === NOT_FOUND_INDEX
+			? MARKDOWN_FENCE.length
+			: firstLineEnd + LINE_BREAK_LENGTH;
+
+	return value.slice(contentStart, -MARKDOWN_FENCE.length).trim();
+};
 
 const parseRawValue = (raw: unknown): unknown => {
 	if (typeof raw !== "string") {
 		return raw;
 	}
 
-	const trimmed = raw.trim();
+	const trimmed = stripMarkdownFence(raw.trim());
 
 	if (trimmed === "") {
 		return [];

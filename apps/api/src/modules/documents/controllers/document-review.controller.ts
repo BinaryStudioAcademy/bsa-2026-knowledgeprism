@@ -80,6 +80,17 @@ class DocumentReviewController extends BaseController {
 	 * /projects/{projectId}/documents/{documentId}/extraction-items:
 	 *    get:
 	 *      description: List the AI-extracted items of a document
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: documentId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
 	 *      responses:
 	 *        200:
 	 *          description: Extraction items
@@ -106,6 +117,17 @@ class DocumentReviewController extends BaseController {
 	 * /projects/{projectId}/documents/{documentId}:
 	 *    get:
 	 *      description: Get the processing status of a document
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: documentId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
 	 *      responses:
 	 *        200:
 	 *          description: Document status
@@ -144,6 +166,17 @@ class DocumentReviewController extends BaseController {
 	 * /projects/{projectId}/documents/{documentId}/extraction-items/review:
 	 *    post:
 	 *      description: Approve or reject every pending item. Approved items become knowledge nodes.
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: documentId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
 	 *      requestBody:
 	 *        required: true
 	 *        content:
@@ -158,10 +191,12 @@ class DocumentReviewController extends BaseController {
 	 *                  type: array
 	 *                  items:
 	 *                    type: integer
+	 *                  example: [1, 2]
 	 *                rejectedIds:
 	 *                  type: array
 	 *                  items:
 	 *                    type: integer
+	 *                  example: [3]
 	 *      responses:
 	 *        200:
 	 *          description: Review applied

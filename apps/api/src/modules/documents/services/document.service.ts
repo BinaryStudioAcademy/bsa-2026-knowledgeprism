@@ -92,12 +92,7 @@ class DocumentService {
 				error,
 			});
 
-			await this.documentRepository.compareAndSwapStatus({
-				errorMessage: DocumentErrorMessage.PROCESSING_FAILED,
-				expectedStatus: DocumentStatus.PROCESSING,
-				id,
-				status: DocumentStatus.FAILED,
-			});
+			await this.failProcessing(id);
 		}
 	}
 
@@ -118,6 +113,22 @@ class DocumentService {
 			message,
 			status: HTTPCode.INTERNAL_SERVER_ERROR,
 		});
+	}
+
+	private async failProcessing(id: number): Promise<void> {
+		try {
+			await this.documentRepository.compareAndSwapStatus({
+				errorMessage: DocumentErrorMessage.PROCESSING_FAILED,
+				expectedStatus: DocumentStatus.PROCESSING,
+				id,
+				status: DocumentStatus.FAILED,
+			});
+		} catch (error) {
+			this.logger.error("Failed to mark document as failed.", {
+				documentId: id,
+				error,
+			});
+		}
 	}
 
 	private async findOwnedDocument({
@@ -312,7 +323,7 @@ class DocumentService {
 		this.scheduleProcessing(documentObject.id);
 
 		return {
-			documentId,
+			documentId: documentObject.id,
 			status: transitionedDocument.toObject().status,
 		};
 	}

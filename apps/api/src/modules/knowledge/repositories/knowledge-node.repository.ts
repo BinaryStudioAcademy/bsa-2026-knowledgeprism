@@ -1,4 +1,7 @@
-import { KnowledgeValidationRule } from "@knowledgeprism/constants";
+import {
+	KnowledgeNodeType,
+	KnowledgeValidationRule,
+} from "@knowledgeprism/constants";
 import { type KnowledgeNodeContentDto } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
@@ -149,7 +152,7 @@ class KnowledgeNodeRepository {
 
 		const nodes = await this.knowledgeNodeModel
 			.query()
-			.where({ projectId })
+			.where({ projectId, type: KnowledgeNodeType.ENTRY })
 			.andWhere((builder) => {
 				void builder
 					.where("title", "ilike", pattern)
