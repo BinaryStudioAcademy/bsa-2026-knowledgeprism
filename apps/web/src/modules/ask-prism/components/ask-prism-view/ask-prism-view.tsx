@@ -16,9 +16,16 @@ import { actions as askPrismActions } from "../../state/state.js";
 import { AnswerCard } from "../answer-card/answer-card.js";
 import { PromptButton } from "../prompt-button/prompt-button.js";
 
+const DEFAULT_PROJECT_ID = 1;
 const QUESTION_PLACEHOLDER = "Ask anything about your knowledge base...";
 
-const AskPrismView = (): JSX.Element => {
+type Properties = {
+	projectId?: number | string;
+};
+
+const AskPrismView = ({
+	projectId = DEFAULT_PROJECT_ID,
+}: Properties = {}): JSX.Element => {
 	const dispatch = useAppDispatch();
 	const [query, setQuery] = useState("");
 
@@ -35,8 +42,8 @@ const AskPrismView = (): JSX.Element => {
 	const isLoading = dataStatus === DataStatus.PENDING;
 
 	useEffect(() => {
-		void dispatch(askPrismActions.loadSuggestedQuestions());
-	}, [dispatch]);
+		void dispatch(askPrismActions.loadSuggestedQuestions({ projectId }));
+	}, [dispatch, projectId]);
 
 	const handleQueryChange = useCallback(
 		(event: ChangeEvent<HTMLInputElement>): void => {
@@ -54,10 +61,12 @@ const AskPrismView = (): JSX.Element => {
 				return;
 			}
 
-			void dispatch(askPrismActions.askQuestion({ query: trimmedQuery }));
+			void dispatch(
+				askPrismActions.askQuestion({ projectId, query: trimmedQuery }),
+			);
 			setQuery("");
 		},
-		[dispatch, isLoading, query],
+		[dispatch, isLoading, projectId, query],
 	);
 
 	const handleKeyDown = useCallback(
@@ -79,9 +88,9 @@ const AskPrismView = (): JSX.Element => {
 			}
 
 			setQuery(prompt);
-			void dispatch(askPrismActions.askQuestion({ query: prompt }));
+			void dispatch(askPrismActions.askQuestion({ projectId, query: prompt }));
 		},
-		[dispatch, isLoading],
+		[dispatch, isLoading, projectId],
 	);
 
 	const handleRetry = useCallback((): void => {
@@ -89,8 +98,10 @@ const AskPrismView = (): JSX.Element => {
 			return;
 		}
 
-		void dispatch(askPrismActions.askQuestion({ query: submittedQuery }));
-	}, [dispatch, submittedQuery]);
+		void dispatch(
+			askPrismActions.askQuestion({ projectId, query: submittedQuery }),
+		);
+	}, [dispatch, projectId, submittedQuery]);
 
 	return (
 		<div className="mx-auto flex w-full max-w-[680px] flex-col gap-6 px-4 pt-8 pb-56 tablet:pb-48">
@@ -115,14 +126,14 @@ const AskPrismView = (): JSX.Element => {
 				/>
 			</div>
 
-			<div className="fixed bottom-14 left-0 right-0 z-20 pointer-events-none tablet:bottom-0 tablet:left-14 desktop:left-58">
+			<div className="pointer-events-none fixed bottom-14 left-0 right-0 z-20 tablet:bottom-0 tablet:left-14 desktop:left-58">
 				<div className="pointer-events-auto mx-auto flex w-full max-w-[680px] flex-col gap-2 bg-bg px-4 pt-2 pb-6">
 					<div className="flex flex-wrap items-center gap-1.5">
 						<span className="font-sans text-xs text-text-faint">
 							Suggested questions:
 						</span>
 						{isSuggestionsLoading ? (
-							<div className="flex gap-2 animate-pulse">
+							<div className="flex animate-pulse gap-2">
 								<span className="h-6 w-28 rounded-md bg-surface" />
 								<span className="h-6 w-36 rounded-md bg-surface" />
 							</div>
