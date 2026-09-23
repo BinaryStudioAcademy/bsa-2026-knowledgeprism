@@ -1,5 +1,4 @@
 import {
-	DocumentErrorMessage,
 	DocumentValidationMessage,
 	DocumentValidationRule,
 	HTTPCode,
@@ -24,15 +23,4 @@ const parseIdentifier = (value: string): number => {
 	return parsedValue;
 };
 
-const getRequiredUserId = (userId: number | undefined): number => {
-	if (typeof userId !== "number") {
-		throw new HTTPError({
-			message: DocumentErrorMessage.UNAUTHORIZED,
-			status: HTTPCode.UNAUTHORIZED,
-		});
-	}
-
-	return userId;
-};
-
-export { getRequiredUserId, parseIdentifier };
+export { parseIdentifier };
