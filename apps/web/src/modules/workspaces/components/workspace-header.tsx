@@ -15,10 +15,12 @@ import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-
 interface WorkspaceHeaderProperties {
 	avatarUrl?: null | string;
 	firstName?: null | string;
+	isAdmin?: boolean;
 	isLoading?: boolean;
 	lastName?: null | string;
 	onLogOut?: () => void;
 	onOpenSettings?: (() => void) | undefined;
+	onOpenUserManagement?: (() => void) | undefined;
 	organizationName?: null | string;
 }
 
@@ -40,10 +42,12 @@ const getInitials = (first?: null | string, last?: null | string): string => {
 const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	avatarUrl,
 	firstName,
+	isAdmin = false,
 	isLoading = false,
 	lastName,
 	onLogOut,
 	onOpenSettings,
+	onOpenUserManagement,
 	organizationName,
 }) => {
 	const { hideModal, isOpen, showModal } = useModal();
@@ -97,6 +101,18 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 
 		void navigate(AppRoute.SETTINGS);
 	}, [navigate, onOpenSettings, setIsDropdownOpen]);
+
+	const handleOpenUserManagement = useCallback((): void => {
+		setIsDropdownOpen(false);
+
+		if (onOpenUserManagement) {
+			onOpenUserManagement();
+
+			return;
+		}
+
+		void navigate(AppRoute.USERS);
+	}, [navigate, onOpenUserManagement]);
 
 	const toggleDropdown = useCallback((): void => {
 		setIsDropdownOpen((previous) => !previous);
@@ -203,7 +219,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 											type="button"
 										/>
 
-										<div className="fixed inset-x-0 bottom-0 z-50 flex w-full flex-col rounded-t-2xl border-t border-(--color-border-subtle) bg-surface px-3.5 pb-3 pt-2 shadow-2xl transition-all duration-300 ease-out animate-in slide-in-from-bottom sm:absolute sm:bottom-auto sm:left-auto sm:-right-2 sm:top-full sm:mt-2 sm:w-36 sm:rounded-xl sm:border sm:p-2.5 sm:shadow-xl sm:slide-in-from-top-2">
+										<div className="fixed inset-x-0 bottom-0 z-50 flex w-full flex-col rounded-t-2xl border-t border-(--color-border-subtle) bg-surface px-3.5 pb-3 pt-2 shadow-2xl transition-all duration-300 ease-out animate-in slide-in-from-bottom sm:absolute sm:bottom-auto sm:left-auto sm:-right-2 sm:top-full sm:mt-2 sm:w-44 sm:rounded-xl sm:border sm:p-2.5 sm:shadow-xl sm:slide-in-from-top-2">
 											<div className="mx-auto mb-2 h-1 w-8 rounded-full bg-border sm:hidden" />
 
 											<div className="mb-2 flex items-center gap-2.5 border-b border-(--color-border-subtle) pb-2 sm:hidden">
@@ -232,6 +248,16 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 												>
 													Settings
 												</button>
+
+												{isAdmin && (
+													<button
+														className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-text-muted transition-colors hover:bg-secondary hover:text-text focus:outline-none sm:py-2"
+														onClick={handleOpenUserManagement}
+														type="button"
+													>
+														User Management
+													</button>
+												)}
 
 												<button
 													className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none sm:py-2"
