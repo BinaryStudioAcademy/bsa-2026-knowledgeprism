@@ -118,22 +118,18 @@ class AskPrismService {
 		const matches = search({
 			candidates,
 			queryVector,
-			topK: 2,
+			topK: 10,
 		});
 
 		// 4. Handle Missing Context
-		// If the top match score is very low, we can assume it's not found
-		const SCORE_THRESHOLD = 0.2; // Arbitrary threshold for MVP
+		const SCORE_THRESHOLD = 0.3; // Lowered to 0.3 to safely catch partially relevant data
 		const ZERO_MATCHES = 0;
-		const FIRST_MATCH_INDEX = 0;
 
-		const topMatch = matches[FIRST_MATCH_INDEX];
+		const relevantMatches = matches.filter(
+			(match) => match.score >= SCORE_THRESHOLD,
+		);
 
-		if (
-			!topMatch ||
-			matches.length === ZERO_MATCHES ||
-			topMatch.score < SCORE_THRESHOLD
-		) {
+		if (relevantMatches.length === ZERO_MATCHES) {
 			return {
 				answer: "Not found in the project's knowledge base.",
 				sources: [],
@@ -141,13 +137,13 @@ class AskPrismService {
 		}
 
 		// 5. Construct Prompt & Generate Answer
-		const contextChunks = matches.map((match) => match.item.content);
+		const contextChunks = relevantMatches.map((match) => match.item.content);
 		const answer = await invokeRagGeneration(question, contextChunks);
 
 		// 6. Format Response
 		return {
 			answer,
-			sources: matches.map((match) => ({
+			sources: relevantMatches.map((match) => ({
 				excerpt: match.item.content,
 				id: match.item.id,
 				nodeId: match.item.nodeId,
