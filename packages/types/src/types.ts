@@ -32,6 +32,7 @@ export {
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeNodeContentDto,
 	type KnowledgeRecentResponseDto,
+	type KnowledgeSearchItemDto,
 	type KnowledgeSearchQueryDto,
 	type KnowledgeSearchResponseDto,
 	type KnowledgeSearchRouteParametersDto,
@@ -39,6 +40,7 @@ export {
 	type KnowledgeTreeResponseDto,
 	type KnowledgeTreeRouteParametersDto,
 } from "./modules/knowledge/knowledge.js";
+
 export {
 	type ProjectCreateRequestDto,
 	type ProjectGetAllItemResponseDto,
