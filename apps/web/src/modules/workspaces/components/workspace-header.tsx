@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { Avatar, Button, Header, Icon, Logo } from "~/components/components.js";
 import {
+	useLocation,
 	useModal,
 	useNavigate,
 	useOptionalCurrentProjectId,
@@ -44,10 +45,19 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	organizationName,
 }) => {
 	const { hideModal, isOpen, showModal } = useModal();
+	const { pathname } = useLocation();
 	const projectId = useOptionalCurrentProjectId();
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-	const canShowAddKnowledge = Boolean(projectId);
+	const WORKSPACE_LIST_PATHS: readonly string[] = [
+		AppRoute.ROOT,
+		"/workspaces",
+		"/workspaces/",
+	];
+
+	const isWorkspaceListPage = WORKSPACE_LIST_PATHS.includes(pathname);
+
+	const canShowAddKnowledge = Boolean(projectId) && !isWorkspaceListPage;
 
 	const dropdownReference = useRef<HTMLDivElement>(null);
 	const navigate = useNavigate();
