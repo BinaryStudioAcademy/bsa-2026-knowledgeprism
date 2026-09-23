@@ -1,0 +1,42 @@
+import { APIPath, KnowledgeApiPath } from "@knowledgeprism/constants";
+import { type KnowledgeSearchResponseDto } from "@knowledgeprism/types";
+
+import { BaseHTTPApi } from "~/api/api.js";
+import { ContentType } from "~/lib/enums/enums.js";
+import { type HTTP } from "~/lib/http/http.js";
+import { type Storage } from "~/lib/storage/storage.js";
+
+type Constructor = {
+	baseUrl: string;
+	http: HTTP;
+	storage: Storage;
+};
+
+class KnowledgeApi extends BaseHTTPApi {
+	public constructor({ baseUrl, http, storage }: Constructor) {
+		super({ baseUrl, http, path: APIPath.PROJECTS, storage });
+	}
+
+	public async search({
+		projectId,
+		query,
+		signal,
+	}: {
+		projectId: string;
+		query: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<KnowledgeSearchResponseDto> {
+		const endpoint = `${this.getFullEndpoint(KnowledgeApiPath.SEARCH, { projectId })}?q=${encodeURIComponent(query)}`;
+
+		const response = await this.load(endpoint, {
+			contentType: ContentType.JSON,
+			hasAuth: true,
+			method: "GET",
+			signal,
+		});
+
+		return await response.json<KnowledgeSearchResponseDto>();
+	}
+}
+
+export { KnowledgeApi };

@@ -7,20 +7,40 @@ import { toResponseText } from "~/bedrock/to-response-text.helper.js";
 import { logger } from "~/logger/logger.js";
 
 import {
-	EXTRACTION_SYSTEM_PROMPT,
-	PAGE_CONTENT_TAG,
-} from "../constants/extraction-prompt.constant.js";
+	CANDIDATES_TAG,
+	CLASSIFICATION_SYSTEM_PROMPT,
+	ITEM_TAG,
+} from "../constants/classification-prompt.constant.js";
 
-const toPagePrompt = (content: string): string => {
-	return `<${PAGE_CONTENT_TAG}>\n${content}\n</${PAGE_CONTENT_TAG}>`;
+const toCandidateLines = (candidateTexts: string[]): string => {
+	return candidateTexts
+		.map((text, index) => {
+			return `${index.toString()}: ${text}`;
+		})
+		.join("\n");
 };
 
-const invokePageExtraction = async (content: string): Promise<unknown> => {
+const toClassificationPrompt = (
+	itemText: string,
+	candidateTexts: string[],
+): string => {
+	return `<${ITEM_TAG}>\n${itemText}\n</${ITEM_TAG}>\n<${CANDIDATES_TAG}>\n${toCandidateLines(candidateTexts)}\n</${CANDIDATES_TAG}>`;
+};
+
+const invokeClassification = async (
+	itemText: string,
+	candidateTexts: string[],
+): Promise<unknown> => {
 	const body = JSON.stringify({
 		anthropic_version: BedrockRequest.ANTHROPIC_VERSION,
 		max_tokens: BedrockRequest.MAX_TOKENS,
-		messages: [{ content: toPagePrompt(content), role: "user" }],
-		system: EXTRACTION_SYSTEM_PROMPT,
+		messages: [
+			{
+				content: toClassificationPrompt(itemText, candidateTexts),
+				role: "user",
+			},
+		],
+		system: CLASSIFICATION_SYSTEM_PROMPT,
 		temperature: ExtractionBedrockConfig.TEMPERATURE,
 	});
 
@@ -36,10 +56,10 @@ const invokePageExtraction = async (content: string): Promise<unknown> => {
 
 		return toResponseText(response.body.transformToString());
 	} catch (error) {
-		logger.error("Failed to invoke page extraction.", { error });
+		logger.error("Failed to invoke integration classification.", { error });
 
 		throw error;
 	}
 };
 
-export { invokePageExtraction };
+export { invokeClassification };
