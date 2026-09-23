@@ -37,6 +37,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 }: Properties) => {
 	const dispatch = useAppDispatch();
 	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
+	const [isEditing, setIsEditing] = useState<boolean>(false);
 
 	const {
 		hideModal: handleCloseAddModal,
@@ -99,6 +100,22 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		return path;
 	}, [items, selectedPageId]);
 
+	const handleCancelEdit = useCallback((): void => {
+		setIsEditing(false);
+	}, []);
+
+	const handleStartEdit = useCallback((): void => {
+		setIsEditing(true);
+	}, []);
+
+	const handleSelectPage = useCallback(
+		(id: number): void => {
+			setIsEditing(false);
+			onSelectPage(id);
+		},
+		[onSelectPage],
+	);
+
 	if (isPreviewOpen) {
 		return (
 			<div className="h-full w-full bg-bg">
@@ -142,13 +159,16 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				isOpen={isSidebarOpen}
 				items={items}
 				onClose={handleCloseSidebar}
-				onSelectPage={onSelectPage}
+				onSelectPage={handleSelectPage}
 				selectedPageId={selectedPageId}
 			/>
 			<div className="flex min-w-0 flex-1 flex-col overflow-hidden">
 				<KnowledgeTreeHeader
 					breadcrumbs={breadcrumbs}
 					canEdit={canEdit}
+					isEditing={isEditing}
+					onCancel={handleCancelEdit}
+					onEdit={handleStartEdit}
 					onOpenSidebar={handleOpenSidebar}
 					onPreview={handleOpenPreview}
 					showCompactLoading={isAddingKnowledge}
@@ -159,7 +179,11 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					</div>
 				)}
 				{selectedEntry ? (
-					<KnowledgeTreeContent entry={selectedEntry} />
+					<KnowledgeTreeContent
+						entry={selectedEntry}
+						isEditing={isEditing}
+						onCancel={handleCancelEdit}
+					/>
 				) : (
 					<div className="flex flex-1 items-center justify-center text-text-muted">
 						Select a page to view its content.
