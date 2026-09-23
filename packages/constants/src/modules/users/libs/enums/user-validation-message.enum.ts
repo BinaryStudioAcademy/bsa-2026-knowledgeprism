@@ -25,6 +25,7 @@ const UserValidationMessage = {
 		"You cannot remove yourself from projects",
 	USER_CANNOT_UPDATE_RESTRICTED_FIELDS:
 		"You do not have permission to update email, status, or assigned projects.",
+	USER_INACTIVE: "User is inactive",
 	USER_NOT_FOUND: "User not found",
 } as const;
 

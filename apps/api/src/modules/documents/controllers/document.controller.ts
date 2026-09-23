@@ -21,10 +21,7 @@ import {
 } from "~/infrastructure/controller/controller.js";
 import { HTTPCode } from "~/infrastructure/http/http.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
-import {
-	getRequiredUserId,
-	parseIdentifier,
-} from "~/modules/documents/libs/helpers/parse-identifier.helper.js";
+import { parseIdentifier } from "~/modules/documents/libs/helpers/parse-identifier.helper.js";
 import { type DocumentService } from "~/modules/documents/services/document.service.js";
 
 /**
@@ -191,13 +188,13 @@ class DocumentController extends BaseController {
 			params: ManualTextRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { id, projectId, userId } = this.getRouteContext(options);
+		const { id, projectId } = this.getRouteContext(options);
 
 		return {
 			payload: await this.documentService.cancelManualText({
+				context: this.getAuthenticatedSessionContext(options),
 				id,
 				projectId,
-				userId,
 			}),
 			status: HTTPCode.OK,
 		};
@@ -282,13 +279,11 @@ class DocumentController extends BaseController {
 			params: DocumentUploadIntentRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { projectId, userId } = this.getProjectContext(options);
-
 		return {
 			payload: await this.documentService.createManualText({
+				context: this.getAuthenticatedSessionContext(options),
 				payload: options.body,
-				projectId,
-				userId,
+				projectId: options.params.projectId,
 			}),
 			status: HTTPCode.ACCEPTED,
 		};
@@ -372,29 +367,15 @@ class DocumentController extends BaseController {
 			params: ManualTextRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { id, projectId, userId } = this.getRouteContext(options);
+		const { id, projectId } = this.getRouteContext(options);
 
 		return {
 			payload: await this.documentService.findManualText({
+				context: this.getAuthenticatedSessionContext(options),
 				id,
 				projectId,
-				userId,
 			}),
 			status: HTTPCode.OK,
-		};
-	}
-
-	private getProjectContext(
-		options: APIHandlerOptions<{
-			params: DocumentUploadIntentRouteParametersDto;
-		}>,
-	): {
-		projectId: string;
-		userId: number;
-	} {
-		return {
-			projectId: options.params.projectId,
-			userId: getRequiredUserId(options.session.userId),
 		};
 	}
 
@@ -405,14 +386,10 @@ class DocumentController extends BaseController {
 	): {
 		id: number;
 		projectId: string;
-		userId: number;
 	} {
-		const { projectId, userId } = this.getProjectContext(options);
-
 		return {
 			id: parseIdentifier(options.params.id),
-			projectId,
-			userId,
+			projectId: options.params.projectId,
 		};
 	}
 
@@ -441,13 +418,13 @@ class DocumentController extends BaseController {
 			params: ManualTextRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { id, projectId, userId } = this.getRouteContext(options);
+		const { id, projectId } = this.getRouteContext(options);
 
 		return {
 			payload: await this.documentService.retryManualText({
+				context: this.getAuthenticatedSessionContext(options),
 				id,
 				projectId,
-				userId,
 			}),
 			status: HTTPCode.OK,
 		};
