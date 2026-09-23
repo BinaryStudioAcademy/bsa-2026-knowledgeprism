@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar, Header, Logo } from "~/components/components.js";
 import { useNavigate } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 interface WorkspaceHeaderProperties {
 	avatarUrl?: null | string;
@@ -14,6 +15,8 @@ interface WorkspaceHeaderProperties {
 	organizationName?: null | string;
 }
 
+const ACCOUNT_MENU_ITEM_CLASS =
+	"w-full min-h-11 cursor-pointer rounded-md px-3 py-3 text-left text-sm font-medium transition-colors focus:outline-none sm:min-h-0 sm:py-2 sm:text-xs" as const;
 const FIRST_CHARACTER_INDEX = 0;
 const EMPTY_LENGTH = 0;
 
@@ -173,7 +176,10 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 
 											<div className="flex flex-col gap-0.5 sm:gap-1.5">
 												<button
-													className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-text-muted transition-colors hover:bg-secondary hover:text-text focus:outline-none sm:py-2"
+													className={getValidClassNames(
+														ACCOUNT_MENU_ITEM_CLASS,
+														"text-text-muted hover:bg-secondary hover:text-text",
+													)}
 													onClick={handleOpenSettings}
 													type="button"
 												>
@@ -181,7 +187,10 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 												</button>
 
 												<button
-													className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-error transition-colors hover:bg-error-bg hover:text-error-hover focus:outline-none sm:py-2"
+													className={getValidClassNames(
+														ACCOUNT_MENU_ITEM_CLASS,
+														"text-error hover:bg-error-bg hover:text-error-hover",
+													)}
 													onClick={handleLogOut}
 													type="button"
 												>
