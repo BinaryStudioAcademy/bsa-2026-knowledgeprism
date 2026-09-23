@@ -1,5 +1,9 @@
 import { APIPath, KnowledgeApiPath } from "@knowledgeprism/constants";
-import { type KnowledgeSearchResponseDto } from "@knowledgeprism/types";
+import {
+	type KnowledgeEntryResponseDto,
+	type KnowledgeSearchResponseDto,
+	type KnowledgeTreeResponseDto,
+} from "@knowledgeprism/types";
 
 import { BaseHTTPApi } from "~/api/api.js";
 import { ContentType } from "~/lib/enums/enums.js";
@@ -15,6 +19,51 @@ type Constructor = {
 class KnowledgeApi extends BaseHTTPApi {
 	public constructor({ baseUrl, http, storage }: Constructor) {
 		super({ baseUrl, http, path: APIPath.PROJECTS, storage });
+	}
+
+	public async getKnowledgeEntry({
+		entryId,
+		projectId,
+		signal,
+	}: {
+		entryId: number;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<KnowledgeEntryResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(KnowledgeApiPath.ENTRY_$ID, {
+				id: String(entryId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "GET",
+				signal,
+			},
+		);
+
+		return await response.json<KnowledgeEntryResponseDto>();
+	}
+
+	public async getKnowledgeTree({
+		projectId,
+		signal,
+	}: {
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<KnowledgeTreeResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(KnowledgeApiPath.ROOT, { projectId }),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "GET",
+				signal,
+			},
+		);
+
+		return await response.json<KnowledgeTreeResponseDto>();
 	}
 
 	public async search({
