@@ -1,7 +1,11 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { Avatar, Button, Header, Icon, Logo } from "~/components/components.js";
-import { useLocation, useModal, useNavigate } from "~/hooks/hooks.js";
+import {
+	useModal,
+	useNavigate,
+	useOptionalCurrentProjectId,
+} from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
@@ -40,11 +44,10 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	organizationName,
 }) => {
 	const { hideModal, isOpen, showModal } = useModal();
-	const { pathname } = useLocation();
+	const projectId = useOptionalCurrentProjectId();
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-	const canShowAddKnowledge =
-		pathname !== AppRoute.ROOT && !pathname.startsWith("/workspaces");
+	const canShowAddKnowledge = Boolean(projectId);
 
 	const dropdownReference = useRef<HTMLDivElement>(null);
 	const navigate = useNavigate();
@@ -135,11 +138,13 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 									<span>Add Knowledge</span>
 								</Button>
 
-								<AddKnowledgeModal
-									isOpen={isOpen}
-									onClose={hideModal}
-									projectName={trimmedOrgName ?? ""}
-								/>
+								{isOpen && (
+									<AddKnowledgeModal
+										isOpen={isOpen}
+										onClose={hideModal}
+										projectName={trimmedOrgName ?? ""}
+									/>
+								)}
 							</>
 						)}
 
