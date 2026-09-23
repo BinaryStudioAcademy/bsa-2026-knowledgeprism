@@ -1,5 +1,9 @@
 import { type PartialBlock } from "@blocknote/core";
-import { type KnowledgeSearchItemDto } from "@knowledgeprism/types";
+import {
+	type KnowledgeEntryResponseDto,
+	type KnowledgeSearchItemDto,
+	type KnowledgeTreeItemResponseDto,
+} from "@knowledgeprism/types";
 
 import { type ValueOf } from "~/lib/types/types.js";
 
@@ -41,12 +45,16 @@ interface KbEntry {
 type KnowledgeState = {
 	errorMessage: null | string;
 	isAddingKnowledge: boolean;
+	isEntryLoading: boolean;
+	isTreeLoading: boolean;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
 	searchErrorMessage: null | string;
 	searchQuery: string;
 	searchResults: KnowledgeSearchItemDto[];
 	searchStatus: ValueOf<typeof SearchStatus>;
+	selectedEntry: KnowledgeEntryResponseDto | null;
 	selectedFile: null | UploadedDocumentItem;
+	tree: KnowledgeTreeItemResponseDto[];
 };
 
 type ProposedPage = {

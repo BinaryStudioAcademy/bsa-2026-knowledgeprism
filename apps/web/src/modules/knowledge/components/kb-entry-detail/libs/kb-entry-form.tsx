@@ -1,6 +1,6 @@
 import { type PartialBlock } from "@blocknote/core";
 import { type SyntheticEvent, useCallback, useMemo, useState } from "react";
-import { useController, useFormState, useWatch } from "react-hook-form";
+import { useController, useWatch } from "react-hook-form";
 
 import { Input, KnowledgeEditor } from "~/components/components.js";
 import { useAppForm } from "~/hooks/hooks.js";

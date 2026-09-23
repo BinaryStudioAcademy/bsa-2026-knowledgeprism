@@ -1,4 +1,8 @@
-import { type KnowledgeSearchResponseDto } from "@knowledgeprism/types";
+import {
+	type KnowledgeEntryResponseDto,
+	type KnowledgeSearchResponseDto,
+	type KnowledgeTreeResponseDto,
+} from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
@@ -95,4 +99,32 @@ const processDocument = createAsyncThunk<
 	},
 );
 
-export { processDocument, searchKnowledge };
+const fetchKnowledgeTree = createAsyncThunk<
+	KnowledgeTreeResponseDto,
+	{ projectId: string },
+	AsyncThunkConfig
+>(`${sliceName}/fetch-tree`, async (payload, { extra }) => {
+	const { knowledgeApi } = extra;
+	return await knowledgeApi.getKnowledgeTree({
+		projectId: payload.projectId,
+	});
+});
+
+const fetchKnowledgeEntry = createAsyncThunk<
+	KnowledgeEntryResponseDto,
+	{ entryId: number; projectId: string },
+	AsyncThunkConfig
+>(`${sliceName}/fetch-entry`, async (payload, { extra }) => {
+	const { knowledgeApi } = extra;
+	return await knowledgeApi.getKnowledgeEntry({
+		entryId: payload.entryId,
+		projectId: payload.projectId,
+	});
+});
+
+export {
+	fetchKnowledgeEntry,
+	fetchKnowledgeTree,
+	processDocument,
+	searchKnowledge,
+};

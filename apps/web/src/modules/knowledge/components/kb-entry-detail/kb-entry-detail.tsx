@@ -120,7 +120,9 @@ const KbEntryDetail = ({
 					<div className="mb-7 font-mono text-xs text-text-faint">
 						<span>
 							Last updated:{" "}
-							{new Date(entry.updatedAt).toLocaleDateString(undefined)}
+							{entry.updatedAt
+								? new Date(entry.updatedAt).toLocaleDateString(undefined)
+								: "Unknown"}
 						</span>
 					</div>
 

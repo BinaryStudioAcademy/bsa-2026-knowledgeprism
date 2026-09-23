@@ -1,8 +1,15 @@
-import { processDocument, searchKnowledge } from "./actions.js";
+import {
+	fetchKnowledgeEntry,
+	fetchKnowledgeTree,
+	processDocument,
+	searchKnowledge,
+} from "./actions.js";
 import { actions } from "./knowledge.slice.js";
 
 const allActions = {
 	...actions,
+	fetchKnowledgeEntry,
+	fetchKnowledgeTree,
 	processDocument,
 	searchKnowledge,
 };

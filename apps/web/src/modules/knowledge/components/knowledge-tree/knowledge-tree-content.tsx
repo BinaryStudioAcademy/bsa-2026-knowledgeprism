@@ -15,12 +15,12 @@ const KnowledgeTreeContent: React.FC<Properties> = ({
 	isEditing = false,
 	onCancel,
 }: Properties) => {
-	const handleSave = useCallback((): Promise<boolean> => {
+	const handleSave = useCallback((): Promise<void> => {
 		//TODO: Implement API call to update the knowledge entry
 		if (onCancel) {
 			onCancel();
 		}
-		return Promise.resolve(true);
+		return Promise.resolve();
 	}, [onCancel]);
 
 	return (
@@ -30,8 +30,8 @@ const KnowledgeTreeContent: React.FC<Properties> = ({
 					<KbEntryDetail
 						entry={entry}
 						isEditing={isEditing}
-						onCancel={onCancel}
 						onSave={handleSave}
+						{...(onCancel ? { onCancel } : {})}
 					/>
 				</div>
 			</div>
