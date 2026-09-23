@@ -94,7 +94,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 			<Header>
 				<div className="flex h-full w-full items-center justify-between">
 					<div className="flex min-w-0 items-center gap-3">
-						<Logo to={AppRoute.WORKSPACES} />
+						<Logo to={AppRoute.ROOT} />
 
 						{isLoading && (
 							<div className="hidden items-center gap-3 sm:flex">
