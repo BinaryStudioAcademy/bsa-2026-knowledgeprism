@@ -128,8 +128,8 @@ class AskPrismController extends BaseController {
 				options.params.projectId,
 				options.body.query,
 				{
-					organisationId: organisationId as number,
-					userId: userId as number,
+					organisationId: organisationId,
+					userId: userId,
 				},
 			),
 			status: HTTPCode.OK,
@@ -169,8 +169,8 @@ class AskPrismController extends BaseController {
 			payload: await this.askPrismService.getSuggestedQuestions(
 				options.params.projectId,
 				{
-					organisationId: organisationId as number,
-					userId: userId as number,
+					organisationId: organisationId,
+					userId: userId,
 				},
 			),
 			status: HTTPCode.OK,

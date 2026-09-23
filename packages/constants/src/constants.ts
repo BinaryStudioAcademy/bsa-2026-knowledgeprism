@@ -9,6 +9,7 @@ export {
 	ServerErrorType,
 	TimeMs,
 } from "./libs/enums/enums.js";
+export { BedrockRequest, ClaudeModelId } from "./modules/ai/ai.js";
 export { AskPrismApiPath } from "./modules/ask-prism/ask-prism.js";
 export { AuthApiPath, AuthValidationMessage } from "./modules/auth/auth.js";
 export {
@@ -38,4 +39,3 @@ export {
 	UserValidationMessage,
 	UserValidationRule,
 } from "./modules/users/users.js";
-export { BedrockRequest, ClaudeModelId } from "./modules/ai/ai.js";

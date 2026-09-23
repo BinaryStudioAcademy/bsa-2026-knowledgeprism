@@ -1,8 +1,7 @@
 import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { BedrockRequest, ClaudeModelId } from "@knowledgeprism/constants";
 
 import { bedrockRuntimeClient } from "~/infrastructure/bedrock/bedrock.js";
-
-import { BedrockRequest, ClaudeModelId } from "@knowledgeprism/constants";
 
 import { RagBedrockRequest } from "../constants/rag-bedrock-request.constant.js";
 import {

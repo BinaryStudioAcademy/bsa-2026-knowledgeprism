@@ -29,6 +29,7 @@
 		"lint:format": "prettier --check \"**/*.{ts,tsx,json,md,css,html}\"",
 		"lint:trash": "knip",
 		"format": "prettier --write \"**/*.{ts,tsx,json,md,css,html}\"",
+		"prelint": "npm run build:packages && npm run build:worker",
 		"lint": "concurrently \"npm:lint:*\" && npm run lint --workspaces",
 		"ci:prepare": "simple-git-hooks"
 	},
