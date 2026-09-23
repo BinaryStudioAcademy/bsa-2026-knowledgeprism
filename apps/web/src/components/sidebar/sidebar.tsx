@@ -156,11 +156,10 @@ const Sidebar: React.FC<SidebarProperties> = ({
 			<div className="mt-auto flex flex-col gap-2.5 border-t border-border-subtle pt-3.5">
 				{canAddKnowledge && (
 					<>
-						<Button onClick={handleAddClick}>Add Knowledge</Button>
 						<Button
 							className="hidden desktop:inline-flex"
 							disabled={isAddingKnowledge}
-							onClick={showModal}
+							onClick={handleAddClick}
 							variant="accent"
 						>
 							<Icon name="plus" size={16} />
