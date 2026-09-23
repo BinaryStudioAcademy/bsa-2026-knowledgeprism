@@ -11,6 +11,7 @@ type Properties = {
 	breadcrumbs: string[];
 	canEdit?: boolean;
 	onOpenSidebar: () => void;
+	onPreview: () => void;
 	showCompactLoading?: boolean;
 };
 
@@ -75,14 +76,11 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 	breadcrumbs,
 	canEdit = false,
 	onOpenSidebar,
+	onPreview,
 	showCompactLoading = false,
 }: Properties) => {
 	const navigate = useNavigate();
 	const currentFileName = breadcrumbs.at(-LAST_INDEX_OFFSET);
-
-	const handlePreview = useCallback(() => {
-		// TODO: implement preview
-	}, []);
 
 	const handleEditClick = useCallback(() => {
 		void navigate("edit");
@@ -97,7 +95,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 			<div className="flex items-center gap-3.5">
 				{showCompactLoading && (
 					<div className="hidden @5xl:block">
-						<LoadingState onPreview={handlePreview} variant="compact" />
+						<LoadingState onPreview={onPreview} variant="compact" />
 					</div>
 				)}
 				{canEdit && (
