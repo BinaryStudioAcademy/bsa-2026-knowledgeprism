@@ -1,6 +1,6 @@
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import { type KnowledgeTreeItemResponseDto } from "@knowledgeprism/types";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { tv } from "tailwind-variants";
 
 import { Icon } from "~/components/icon/icon.js";
@@ -27,7 +27,7 @@ const {
 type Properties = {
 	focusedNodeId?: number | undefined;
 	item: KnowledgeTreeItemResponseDto;
-	items: KnowledgeTreeItemResponseDto[];
+	itemsByParentId: Map<null | number, KnowledgeTreeItemResponseDto[]>;
 	level?: number | undefined;
 	onFocus: (id: number) => void;
 	onSelect: (id: number) => void;
@@ -48,16 +48,17 @@ const treeItemVariants = tv({
 const KnowledgeTreeItem: React.FC<Properties> = ({
 	focusedNodeId,
 	item,
-	items,
+	itemsByParentId,
 	level = DEFAULT_LEVEL,
 	onFocus,
 	onSelect,
 	searchQuery = "",
 	selectedId,
 }: Properties) => {
-	const children = items
-		.filter((child) => child.parentId === item.id)
-		.toSorted((a, b) => a.position - b.position);
+	const children = useMemo(
+		() => itemsByParentId.get(item.id) ?? [],
+		[itemsByParentId, item.id],
+	);
 
 	const isSection = item.type === KnowledgeNodeType.SECTION;
 	const isSelected = selectedId === item.id;
@@ -148,7 +149,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 						<KnowledgeTreeItem
 							focusedNodeId={focusedNodeId}
 							item={child}
-							items={items}
+							itemsByParentId={itemsByParentId}
 							key={child.id}
 							level={level + LEVEL_INCREMENT}
 							onFocus={onFocus}

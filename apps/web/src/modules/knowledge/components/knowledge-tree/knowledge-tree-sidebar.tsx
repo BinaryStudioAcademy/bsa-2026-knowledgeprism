@@ -1,3 +1,4 @@
+import { type KnowledgeTreeItemResponseDto } from "@knowledgeprism/types";
 import { useFocusReturn, useFocusTrap, useMergedRef } from "@mantine/hooks";
 import React, {
 	useCallback,
@@ -15,7 +16,6 @@ import {
 	MIN_INDEX,
 } from "../../libs/constants/constants.js";
 import { filterKnowledgeTree } from "../../libs/helpers/helpers.js";
-import { type KnowledgeTreeItemResponseDto } from "@knowledgeprism/types";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
 import { KnowledgeTreeSearchBar } from "./knowledge-tree-search-bar.js";
 
@@ -52,9 +52,25 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 		[items, searchQuery],
 	);
 
-	const rootItems = filteredItems
-		.filter((item) => item.parentId === null)
-		.toSorted((a, b) => a.position - b.position);
+	const itemsByParentId = useMemo(() => {
+		const map = new Map<null | number, KnowledgeTreeItemResponseDto[]>();
+		for (const item of filteredItems) {
+			const parentId = item.parentId ?? null;
+			const children = map.get(parentId);
+
+			if (children) {
+				children.push(item);
+			} else {
+				map.set(parentId, [item]);
+			}
+		}
+		for (const children of map.values()) {
+			children.sort((a, b) => a.position - b.position);
+		}
+		return map;
+	}, [filteredItems]);
+
+	const rootItems = itemsByParentId.get(null) ?? [];
 
 	const isFocusedNodeVisible = filteredItems.some(
 		(item) => item.id === (focusedNodeId ?? selectedPageId),
@@ -184,7 +200,7 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 							<KnowledgeTreeItem
 								focusedNodeId={currentFocusId}
 								item={item}
-								items={filteredItems}
+								itemsByParentId={itemsByParentId}
 								key={item.id}
 								onFocus={setFocusedNodeId}
 								onSelect={handleSelectPage}
