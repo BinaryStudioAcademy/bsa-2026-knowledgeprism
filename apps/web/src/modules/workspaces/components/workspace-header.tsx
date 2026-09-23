@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { Avatar, Button, Header, Icon, Logo } from "~/components/components.js";
-import { useModal, useNavigate } from "~/hooks/hooks.js";
+import { useLocation, useModal, useNavigate } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
@@ -40,7 +40,11 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	organizationName,
 }) => {
 	const { hideModal, isOpen, showModal } = useModal();
+	const { pathname } = useLocation();
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+	const canShowAddKnowledge =
+		pathname !== AppRoute.ROOT && !pathname.startsWith("/workspaces");
 
 	const dropdownReference = useRef<HTMLDivElement>(null);
 	const navigate = useNavigate();
@@ -120,21 +124,24 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 					</div>
 
 					<div className="flex items-center" ref={dropdownReference}>
-						<Button
-							className="tablet:hidden ml-2 mr-2 shrink-0 flex items-center gap-1 px-2 py-1 text-2xs font-semibold whitespace-nowrap"
-							onClick={showModal}
-							variant="accent"
-						>
-							<Icon name="plus" size={14} />
-							<span className="hidden xs:inline sm:inline">Add Knowledge</span>
-							<span>Add Knowledge</span>
-						</Button>
+						{canShowAddKnowledge && (
+							<>
+								<Button
+									className="tablet:hidden ml-2 mr-2 shrink-0 flex items-center gap-1 px-2 py-1 text-2xs font-semibold whitespace-nowrap"
+									onClick={showModal}
+									variant="accent"
+								>
+									<Icon name="plus" size={14} />
+									<span>Add Knowledge</span>
+								</Button>
 
-						<AddKnowledgeModal
-							isOpen={isOpen}
-							onClose={hideModal}
-							projectName={trimmedOrgName ?? ""}
-						/>
+								<AddKnowledgeModal
+									isOpen={isOpen}
+									onClose={hideModal}
+									projectName={trimmedOrgName ?? ""}
+								/>
+							</>
+						)}
 
 						{isLoading && (
 							<div className="h-8 w-8 animate-pulse rounded-full bg-(--color-border-subtle) sm:h-8 sm:w-32 sm:rounded-md" />
