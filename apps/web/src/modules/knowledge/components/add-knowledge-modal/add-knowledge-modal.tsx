@@ -1,3 +1,4 @@
+import { HTTPCode } from "@knowledgeprism/constants";
 import { type ManualTextCreateRequestDto } from "@knowledgeprism/types";
 import {
 	type JSX,
@@ -81,6 +82,17 @@ const getCountLabel = (
 	}
 };
 
+const getUploadActionLabel = (
+	hasFailed: boolean,
+	isRetryable: boolean,
+): string => {
+	if (!hasFailed) {
+		return "Add to Knowledge Tree";
+	}
+
+	return isRetryable ? "Retry" : "Remove file";
+};
+
 const AddKnowledgeModal = ({
 	branchName = "Main",
 	isOpen,
@@ -97,6 +109,8 @@ const AddKnowledgeModal = ({
 	);
 	const [isManualTextSubmitting, setIsManualTextSubmitting] = useState(false);
 	const [isUploadSubmitting, setIsUploadSubmitting] = useState(false);
+	const [uploadConfirmationErrorStatus, setUploadConfirmationErrorStatus] =
+		useState<null | number>(null);
 
 	const isUploadSubmissionPendingReference = useRef(false);
 	const tabIdPrefix = useId();
@@ -115,6 +129,23 @@ const AddKnowledgeModal = ({
 	const selectedDocumentId = selectedFile?.documentId;
 	const isSubmissionPending = isManualTextSubmitting || isUploadSubmitting;
 
+	const isReadyToAdd =
+		selectedFile?.status === DocumentProcessingStatus.READY &&
+		Boolean(selectedDocumentId);
+	const hasUploadConfirmationFailed =
+		processingStatus === DocumentProcessingStatus.FAILED && isReadyToAdd;
+	const isUploadConfirmationRetryable =
+		hasUploadConfirmationFailed &&
+		uploadConfirmationErrorStatus === HTTPCode.SERVICE_UNAVAILABLE;
+	const hasTerminalUploadConfirmationFailure =
+		hasUploadConfirmationFailed && !isUploadConfirmationRetryable;
+
+	const countLabel = getCountLabel(processingStatus);
+	const uploadActionLabel = getUploadActionLabel(
+		hasUploadConfirmationFailed,
+		isUploadConfirmationRetryable,
+	);
+
 	const handleTabChange = useCallback(
 		(tab: ValueOf<typeof AddKnowledgeTab>) => (): void => {
 			setActiveTab(tab);
@@ -126,6 +157,7 @@ const AddKnowledgeModal = ({
 		dispatch(actions.resetState());
 		setActiveTab(AddKnowledgeTab.UPLOAD);
 		setFormSessionKey((currentKey) => currentKey + FORM_SESSION_KEY_INCREMENT);
+		setUploadConfirmationErrorStatus(null);
 		onClose();
 	}, [dispatch, onClose]);
 
@@ -153,18 +185,28 @@ const AddKnowledgeModal = ({
 				}),
 			);
 
-			if (actions.confirmDocumentUpload.fulfilled.match(result)) {
-				resetAndClose();
+			if (actions.confirmDocumentUpload.rejected.match(result)) {
+				setUploadConfirmationErrorStatus(result.error.status ?? null);
+				return;
 			}
+
+			setUploadConfirmationErrorStatus(null);
+			resetAndClose();
 		} finally {
 			isUploadSubmissionPendingReference.current = false;
 			setIsUploadSubmitting(false);
 		}
 	}, [dispatch, projectId, resetAndClose, selectedDocumentId]);
 
-	const handleUploadSubmitClick = useCallback((): void => {
+	const handleUploadActionClick = useCallback((): void => {
+		if (hasTerminalUploadConfirmationFailure) {
+			dispatch(actions.removeDocument());
+			setUploadConfirmationErrorStatus(null);
+			return;
+		}
+
 		void handleUploadSubmit();
-	}, [handleUploadSubmit]);
+	}, [dispatch, handleUploadSubmit, hasTerminalUploadConfirmationFailure]);
 
 	const handleManualTextSubmit = useCallback(
 		async ({ content, title }: ManualTextCreateRequestDto): Promise<void> => {
@@ -241,14 +283,6 @@ const AddKnowledgeModal = ({
 		[activeTab],
 	);
 
-	const isReadyToAdd =
-		selectedFile?.status === DocumentProcessingStatus.READY &&
-		Boolean(selectedDocumentId);
-	const hasUploadConfirmationFailed =
-		processingStatus === DocumentProcessingStatus.FAILED && isReadyToAdd;
-
-	const countLabel = getCountLabel(processingStatus);
-
 	return (
 		<Modal
 			contentClassName="flex min-h-0 flex-1 flex-col pb-0 tablet:pb-0 desktop:pb-0"
@@ -319,14 +353,12 @@ const AddKnowledgeModal = ({
 						<DocumentUpload />
 
 						<KnowledgeInputFooter
-							actionLabel={
-								hasUploadConfirmationFailed ? "Retry" : "Add to Knowledge Tree"
-							}
+							actionLabel={uploadActionLabel}
 							hasActionIcon={!hasUploadConfirmationFailed}
 							isActionDisabled={!isReadyToAdd || isUploadSubmitting}
 							isLoading={isUploadSubmitting}
 							onCancel={handleClose}
-							onSubmit={handleUploadSubmitClick}
+							onSubmit={handleUploadActionClick}
 							statusMessage={countLabel}
 						/>
 					</div>

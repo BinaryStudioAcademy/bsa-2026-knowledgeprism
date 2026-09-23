@@ -6,6 +6,7 @@ import {
 } from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
+import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
 import { DocumentValidationMessage } from "../libs/constants/constants.js";
@@ -38,10 +39,9 @@ type SubmitManualTextPayload = {
 	projectId: string;
 };
 
-const confirmDocumentUpload = createAsyncThunk<
+const confirmDocumentUpload = createAppAsyncThunk<
 	DocumentConfirmUploadResponseDto,
-	ConfirmDocumentUploadPayload,
-	AsyncThunkConfig
+	ConfirmDocumentUploadPayload
 >(
 	`${sliceName}/confirm-document-upload`,
 	({ documentId, projectId }, { extra, signal }) => {
