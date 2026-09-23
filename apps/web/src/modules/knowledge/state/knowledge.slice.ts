@@ -130,7 +130,9 @@ const { actions, name, reducer } = createSlice({
 			state.selectedFile = null;
 		},
 		resetState(state) {
-			return { ...initialState, isAddingKnowledge: state.isAddingKnowledge };
+			state.errorMessage = null;
+			state.processingStatus = DocumentProcessingStatus.IDLE;
+			state.selectedFile = null;
 		},
 		setError(state, action: PayloadAction<string>) {
 			state.errorMessage = action.payload;
