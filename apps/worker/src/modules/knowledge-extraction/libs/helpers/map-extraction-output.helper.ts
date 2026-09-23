@@ -5,12 +5,17 @@ type ExtractionCandidate = {
 	rationale: string;
 	sourceExcerpt: string;
 	text: string;
+	title?: unknown;
 };
 
 const ConfidenceRange = {
 	MAX: 1,
 	MIN: 0,
 } as const;
+
+const TITLE_MAXIMUM_LENGTH = 80;
+const TITLE_START_INDEX = 0;
+const TITLE_ELLIPSIS = "…";
 
 const isFiniteNumber = (value: unknown): value is number => {
 	return typeof value === "number" && Number.isFinite(value);
@@ -71,6 +76,18 @@ const parseExtractionCandidates = (raw: unknown): unknown[] => {
 	return Array.isArray(parsed) ? parsed : [];
 };
 
+const toTitle = (candidate: ExtractionCandidate): string => {
+	const title = isNonEmptyString(candidate.title)
+		? candidate.title.trim()
+		: candidate.text.trim();
+
+	if (title.length <= TITLE_MAXIMUM_LENGTH) {
+		return title;
+	}
+
+	return `${title.slice(TITLE_START_INDEX, TITLE_MAXIMUM_LENGTH - TITLE_ELLIPSIS.length).trimEnd()}${TITLE_ELLIPSIS}`;
+};
+
 const toKnowledgeItem = (
 	candidate: ExtractionCandidate,
 	pageNumber: number,
@@ -81,6 +98,7 @@ const toKnowledgeItem = (
 		sourceExcerpt: candidate.sourceExcerpt.trim(),
 		sourcePageNumber: pageNumber,
 		text: candidate.text.trim(),
+		title: toTitle(candidate),
 	};
 };
 

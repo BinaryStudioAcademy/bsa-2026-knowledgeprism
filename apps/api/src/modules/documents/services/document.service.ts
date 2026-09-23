@@ -22,6 +22,7 @@ import { type Logger } from "~/infrastructure/logger/logger.js";
 import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/helpers.js";
 import { type GeneratePresignedUploadUrl } from "~/infrastructure/s3/libs/types/types.js";
 import { type CheckDocumentObjectExists } from "~/infrastructure/s3/verify-object.js";
+import { ProcessingSweep } from "~/modules/documents/libs/constants/processing-sweep.constant.js";
 import { createContentHash } from "~/modules/documents/libs/helpers/create-content-hash.helper.js";
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
 import { isUniqueViolation } from "~/modules/documents/libs/helpers/is-unique-violation.helper.js";
@@ -36,6 +37,7 @@ import { type DocumentProcessor } from "./document-processor.js";
 
 const MANUAL_TEXT_MIME_TYPE = "text/plain";
 const UNTITLED_MANUAL_DOCUMENT_NAME = "Untitled";
+const NO_DOCUMENTS = 0;
 
 type Constructor = {
 	checkDocumentObjectExists: CheckDocumentObjectExists;
@@ -77,14 +79,19 @@ class DocumentService {
 
 	private async completeProcessing(id: number): Promise<void> {
 		try {
-			await this.documentProcessor.process();
+			await this.documentProcessor.process(id);
 			await this.documentRepository.compareAndSwapStatus({
 				errorMessage: null,
 				expectedStatus: DocumentStatus.PROCESSING,
 				id,
 				status: DocumentStatus.WAITING_FOR_APPROVAL,
 			});
-		} catch {
+		} catch (error) {
+			this.logger.error("Failed to process document.", {
+				documentId: id,
+				error,
+			});
+
 			await this.documentRepository.compareAndSwapStatus({
 				errorMessage: DocumentErrorMessage.PROCESSING_FAILED,
 				expectedStatus: DocumentStatus.PROCESSING,
@@ -302,6 +309,7 @@ class DocumentService {
 				status: HTTPCode.SERVICE_UNAVAILABLE,
 			});
 		}
+		this.scheduleProcessing(documentObject.id);
 
 		return {
 			documentId,
@@ -471,6 +479,25 @@ class DocumentService {
 			storageKey,
 			uploadUrl,
 		};
+	}
+
+	public async failStaleProcessing(): Promise<void> {
+		try {
+			const failedCount = await this.documentRepository.failStaleProcessing({
+				errorMessage: DocumentErrorMessage.PROCESSING_INTERRUPTED,
+				updatedBefore: new Date(Date.now() - ProcessingSweep.STALE_AFTER_MS),
+			});
+
+			if (failedCount > NO_DOCUMENTS) {
+				this.logger.warn("Marked stale processing documents as failed.", {
+					failedCount,
+				});
+			}
+		} catch (error) {
+			this.logger.error("Failed to sweep stale processing documents.", {
+				error,
+			});
+		}
 	}
 
 	public async findManualText({

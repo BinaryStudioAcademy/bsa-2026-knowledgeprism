@@ -58,6 +58,21 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		return DocumentEntity.initialize(document);
 	}
 
+	public async failStaleProcessing({
+		errorMessage,
+		updatedBefore,
+	}: {
+		errorMessage: string;
+		updatedBefore: Date;
+	}): Promise<number> {
+		return await this.documentModel
+			.query()
+			.patch({ errorMessage, status: DocumentStatus.FAILED })
+			.where({ status: DocumentStatus.PROCESSING })
+			.where("updatedAt", "<", updatedBefore)
+			.execute();
+	}
+
 	public async findById(
 		id: number,
 		transaction?: Transaction,

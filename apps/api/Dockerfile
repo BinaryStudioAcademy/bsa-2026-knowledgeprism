@@ -25,6 +25,9 @@ COPY package.json package-lock.json .npmrc .nvmrc tsconfig.json packages.d.ts ./
 # Full workspace package sources are required because each @knowledgeprism/*
 # package has a "postinstall" script that compiles it with tsc.
 COPY packages ./packages
+# NEW: the API imports @knowledgeprism/worker; its "postinstall" builds it,
+# so its sources must be present before `npm ci`.
+COPY apps/worker ./apps/worker
 COPY apps/api/package.json ./apps/api/package.json
 RUN npm ci
 
@@ -45,6 +48,9 @@ COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/packages ./packages
 COPY --from=builder /app/apps/api/build ./apps/api/build
 COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
+# NEW: the compiled worker, which the API imports at runtime.
+COPY --from=builder /app/apps/worker/build ./apps/worker/build
+COPY --from=builder /app/apps/worker/package.json ./apps/worker/package.json
 
 WORKDIR /app/apps/api
 

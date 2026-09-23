@@ -4,6 +4,15 @@ import { type Transaction } from "objection";
 import { ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
 import { type ExtractionItemModel } from "~/modules/documents/models/extraction-item.model.js";
 
+type NewExtractionItem = {
+	confidence: number;
+	rationale: string;
+	sourceExcerpt: string;
+	sourcePageNumber: number;
+	text: string;
+	title: string;
+};
+
 const EMPTY_LENGTH = 0;
 
 const toEntity = (item: ExtractionItemModel): ExtractionItemEntity =>
@@ -64,6 +73,37 @@ class ExtractionItemRepository {
 			.patch({ status: ExtractionItemStatus.REJECTED })
 			.whereIn("id", ids)
 			.execute();
+	}
+
+	public async replacePending({
+		documentId,
+		items,
+	}: {
+		documentId: number;
+		items: NewExtractionItem[];
+	}): Promise<void> {
+		await this.extractionItemModel.transaction(async (transaction) => {
+			await this.extractionItemModel
+				.query(transaction)
+				.delete()
+				.where({ documentId, status: ExtractionItemStatus.PENDING })
+				.execute();
+
+			if (items.length === EMPTY_LENGTH) {
+				return;
+			}
+
+			await this.extractionItemModel
+				.query(transaction)
+				.insert(
+					items.map((item) => ({
+						...item,
+						documentId,
+						status: ExtractionItemStatus.PENDING,
+					})),
+				)
+				.execute();
+		});
 	}
 }
 

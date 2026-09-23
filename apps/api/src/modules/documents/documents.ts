@@ -7,6 +7,7 @@ import { projectService } from "~/modules/projects/projects.js";
 
 import { DocumentReviewController } from "./controllers/document-review.controller.js";
 import { DocumentController } from "./controllers/document.controller.js";
+import { ProcessingSweep } from "./libs/constants/processing-sweep.constant.js";
 import { DocumentModel } from "./models/document.model.js";
 import { ExtractionItemModel } from "./models/extraction-item.model.js";
 import { DocumentRepository } from "./repositories/document.repository.js";
@@ -19,7 +20,10 @@ const documentRepository = new DocumentRepository(DocumentModel);
 const extractionItemRepository = new ExtractionItemRepository(
 	ExtractionItemModel,
 );
-const documentProcessor = new DocumentProcessor();
+const documentProcessor = new DocumentProcessor({
+	documentRepository,
+	extractionItemRepository,
+});
 const documentService = new DocumentService({
 	checkDocumentObjectExists,
 	documentProcessor,
@@ -41,4 +45,17 @@ const documentReviewController = new DocumentReviewController(
 	documentReviewService,
 );
 
-export { documentController, documentReviewController };
+const sweepStaleProcessing = (): void => {
+	void documentService.failStaleProcessing();
+};
+
+const startStaleProcessingSweep = (): void => {
+	sweepStaleProcessing();
+	setInterval(sweepStaleProcessing, ProcessingSweep.INTERVAL_MS);
+};
+
+export {
+	documentController,
+	documentReviewController,
+	startStaleProcessingSweep,
+};
