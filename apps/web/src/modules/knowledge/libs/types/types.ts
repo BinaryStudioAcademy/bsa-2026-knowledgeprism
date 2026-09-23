@@ -1,8 +1,12 @@
 import { type PartialBlock } from "@blocknote/core";
+import { type KnowledgeSearchItemDto } from "@knowledgeprism/types";
 
 import { type ValueOf } from "~/lib/types/types.js";
 
-import { type DocumentProcessingStatus } from "../enums/enums.js";
+import {
+	type DocumentProcessingStatus,
+	type SearchStatus,
+} from "../enums/enums.js";
 
 type ChangeStatus = "created" | "modified" | "updated";
 
@@ -38,6 +42,10 @@ type KnowledgeState = {
 	errorMessage: null | string;
 	isAddingKnowledge: boolean;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
+	searchErrorMessage: null | string;
+	searchQuery: string;
+	searchResults: KnowledgeSearchItemDto[];
+	searchStatus: ValueOf<typeof SearchStatus>;
 	selectedFile: null | UploadedDocumentItem;
 };
 
