@@ -118,7 +118,8 @@ class AskPrismController extends BaseController {
 			params: AskPrismRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { organisationId, userId } = options.session;
+		const { organisationId, userId } =
+			this.getAuthenticatedSessionContext(options);
 
 		// TODO: Add basic rate limiting to protect GPU capacity as recommended in Technical Documentation
 
@@ -161,7 +162,8 @@ class AskPrismController extends BaseController {
 			params: AskPrismRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { organisationId, userId } = options.session;
+		const { organisationId, userId } =
+			this.getAuthenticatedSessionContext(options);
 
 		return {
 			payload: await this.askPrismService.getSuggestedQuestions(

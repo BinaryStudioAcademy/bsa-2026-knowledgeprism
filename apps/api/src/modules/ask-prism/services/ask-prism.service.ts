@@ -140,6 +140,14 @@ class AskPrismService {
 		const contextChunks = relevantMatches.map((match) => match.item.content);
 		const answer = await invokeRagGeneration(question, contextChunks);
 
+		const NOT_FOUND_ANSWER = "Not found in the project's knowledge base.";
+		if (answer.trim() === NOT_FOUND_ANSWER) {
+			return {
+				answer,
+				sources: [],
+			};
+		}
+
 		// 6. Format Response
 		return {
 			answer,
