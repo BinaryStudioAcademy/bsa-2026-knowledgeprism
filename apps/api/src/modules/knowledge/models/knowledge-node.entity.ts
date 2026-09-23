@@ -76,6 +76,32 @@ class KnowledgeNodeEntity implements Entity {
 		return new KnowledgeNodeEntity(data);
 	}
 
+	public static initializeNew({
+		contentJson,
+		parentId,
+		position,
+		projectId,
+		title,
+		type,
+	}: {
+		contentJson: KnowledgeNodeContentDto;
+		parentId: null | number;
+		position: number;
+		projectId: number;
+		title: string;
+		type: ValueOf<typeof KnowledgeNodeType>;
+	}): KnowledgeNodeEntity {
+		return new KnowledgeNodeEntity({
+			contentJson,
+			id: null,
+			parentId,
+			position,
+			projectId,
+			title,
+			type,
+		});
+	}
+
 	public toNewObject(): {
 		contentJson: KnowledgeNodeContentDto;
 		parentId: null | number;

@@ -1,26 +1,47 @@
+import { database } from "~/infrastructure/database/database.js";
 import { logger } from "~/infrastructure/logger/logger.js";
 import { generatePresignedUploadUrl } from "~/infrastructure/s3/presigned-url.js";
 import { checkDocumentObjectExists } from "~/infrastructure/s3/verify-object.js";
-import { sendDocumentProcessingJob } from "~/infrastructure/sqs/send-document-processing-job.js";
+import { knowledgeNodeRepository } from "~/modules/knowledge/knowledge.js";
 import { projectService } from "~/modules/projects/projects.js";
 
+import { DocumentReviewController } from "./controllers/document-review.controller.js";
 import { DocumentController } from "./controllers/document.controller.js";
 import { DocumentModel } from "./models/document.model.js";
+import { ExtractionItemModel } from "./models/extraction-item.model.js";
 import { DocumentRepository } from "./repositories/document.repository.js";
+import { ExtractionItemRepository } from "./repositories/extraction-item.repository.js";
 import { DocumentAccessService } from "./services/document-access.service.js";
+import { DocumentProcessor } from "./services/document-processor.js";
+import { DocumentReviewService } from "./services/document-review.service.js";
 import { DocumentService } from "./services/document.service.js";
 
 const documentRepository = new DocumentRepository(DocumentModel);
+const extractionItemRepository = new ExtractionItemRepository(
+	ExtractionItemModel,
+);
 const documentAccessService = new DocumentAccessService();
+const documentProcessor = new DocumentProcessor();
 const documentService = new DocumentService({
 	checkDocumentObjectExists,
 	documentAccessService,
+	documentProcessor,
 	documentRepository,
 	generatePresignedUploadUrl,
 	logger,
 	projectService,
-	sendDocumentProcessingJob,
+});
+const documentReviewService = new DocumentReviewService({
+	database,
+	documentRepository,
+	extractionItemRepository,
+	knowledgeNodeRepository,
+	projectService,
 });
 const documentController = new DocumentController(logger, documentService);
+const documentReviewController = new DocumentReviewController(
+	logger,
+	documentReviewService,
+);
 
-export { documentController };
+export { documentController, documentReviewController };

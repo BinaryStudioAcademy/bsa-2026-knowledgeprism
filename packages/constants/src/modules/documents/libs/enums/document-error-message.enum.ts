@@ -4,9 +4,12 @@ const DocumentErrorMessage = {
 	FORBIDDEN: "You do not have permission to add knowledge",
 	NOT_FOUND: "Document not found",
 	PROCESSING_FAILED: "Processing failed",
+	PROCESSING_INTERRUPTED: "Processing was interrupted. Please retry.",
 	PROJECT_NOT_FOUND: "Project not found",
-	QUEUE_FAILED: "Could not queue document for processing",
 	RETRY_NOT_ALLOWED: "Document cannot be retried in its current state",
+	REVIEW_ITEMS_MISMATCH:
+		"Every pending item must be approved or rejected exactly once",
+	REVIEW_NOT_ALLOWED: "Document is not waiting for approval",
 	UNAUTHORIZED: "Unauthorized",
 } as const;
 

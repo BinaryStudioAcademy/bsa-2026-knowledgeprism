@@ -13,19 +13,22 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		this.documentModel = documentModel;
 	}
 
-	public async compareAndSwapStatus({
-		errorMessage,
-		expectedStatus,
-		id,
-		status,
-	}: {
-		errorMessage: null | string;
-		expectedStatus: ValueOf<typeof DocumentStatus>;
-		id: number;
-		status: ValueOf<typeof DocumentStatus>;
-	}): Promise<DocumentEntity | null> {
+	public async compareAndSwapStatus(
+		{
+			errorMessage,
+			expectedStatus,
+			id,
+			status,
+		}: {
+			errorMessage: null | string;
+			expectedStatus: ValueOf<typeof DocumentStatus>;
+			id: number;
+			status: ValueOf<typeof DocumentStatus>;
+		},
+		transaction?: Transaction,
+	): Promise<DocumentEntity | null> {
 		const document = await this.documentModel
-			.query()
+			.query(transaction)
 			.patch({
 				errorMessage,
 				status,

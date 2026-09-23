@@ -4,7 +4,10 @@ import { health } from "~/infrastructure/health/health.js";
 import { logger } from "~/infrastructure/logger/logger.js";
 import { s3Client } from "~/infrastructure/s3/s3.js";
 import { authController } from "~/modules/auth/auth.js";
-import { documentController } from "~/modules/documents/documents.js";
+import {
+	documentController,
+	documentReviewController,
+} from "~/modules/documents/documents.js";
 import {
 	knowledgeController,
 	recentKnowledgeController,
@@ -19,6 +22,7 @@ const apiV1 = new BaseServerApplicationApi(
 	"v1",
 	config,
 	...documentController.routes,
+	...documentReviewController.routes,
 	...authController.routes,
 	...projectController.routes,
 	...knowledgeController.routes,
