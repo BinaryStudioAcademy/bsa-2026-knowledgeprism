@@ -11,7 +11,10 @@ import { Alert } from "~/components/alert/alert.js";
 import { Button } from "~/components/button/button.js";
 import { Icon } from "~/components/components.js";
 import { errorService } from "~/lib/errors/error.service.js";
-import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import {
+	getNotificationMessage,
+	getValidClassNames,
+} from "~/lib/helpers/helpers.js";
 import { type AppError } from "~/lib/types/app-error.type.js";
 
 type ErrorNotification = {
@@ -148,8 +151,7 @@ const GlobalErrorNotifications = (): React.JSX.Element => {
 						>
 							<div className="pt-2 pb-3" role="alert">
 								<Alert
-									description={error.message}
-									title="Something went wrong"
+									description={getNotificationMessage(error)}
 									variant="error"
 								/>
 							</div>
