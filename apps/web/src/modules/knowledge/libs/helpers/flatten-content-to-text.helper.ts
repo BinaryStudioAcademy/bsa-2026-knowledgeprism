@@ -1,10 +1,10 @@
-const getInlineText = (inline: unknown): string =>
-	typeof inline === "object" &&
-	inline !== null &&
-	"text" in inline &&
-	typeof inline.text === "string"
-		? inline.text
-		: "";
+const getInlineText = (inline: unknown): string => {
+	if (typeof inline !== "object" || inline === null || !("text" in inline)) {
+		return "";
+	}
+
+	return typeof inline.text === "string" ? inline.text : "";
+};
 
 const getBlockText = (block: Record<string, unknown>): string => {
 	const content = block["content"];
