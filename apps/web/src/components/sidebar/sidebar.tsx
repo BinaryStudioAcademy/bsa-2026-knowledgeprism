@@ -1,10 +1,10 @@
 import { ProjectMemberRole } from "@knowledgeprism/constants";
-import React from "react";
+import React, { useCallback } from "react";
 import { Link } from "react-router-dom";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
-import { useLocation, useModal } from "~/hooks/hooks.js";
+import { useAppSelector, useLocation, useModal } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
@@ -21,6 +21,7 @@ type NavItem = {
 };
 
 type SidebarProperties = {
+	onAddKnowledge?: () => void;
 	projectName: string;
 	role: string;
 };
@@ -30,11 +31,13 @@ const primaryNavItems: NavItem[] = [
 		icon: <Icon name="knowledge-tree" />,
 		id: "knowledge-tree",
 		label: "Knowledge Tree",
+		to: AppRoute.KNOWLEDGE_TREE,
 	},
 	{
 		icon: <Icon name="glossary" />,
 		id: "glossary",
 		label: "Glossary",
+		to: AppRoute.GLOSSARY,
 	},
 	{
 		icon: <Icon name="ask-prism" />,
@@ -64,11 +67,13 @@ const mobileNavItems: NavItem[] = [
 		icon: <Icon name="knowledge-tree" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "knowledge-tree",
 		label: "Tree",
+		to: AppRoute.KNOWLEDGE_TREE,
 	},
 	{
 		icon: <Icon name="glossary" size={MOBILE_NAV_ICON_SIZE} />,
 		id: "glossary",
 		label: "Glossary",
+		to: AppRoute.GLOSSARY,
 	},
 	{
 		icon: <Icon name="ask-prism" size={MOBILE_NAV_ICON_SIZE} />,
@@ -109,12 +114,24 @@ const NavRow = ({ icon, label, to }: NavItem) => {
 };
 
 const Sidebar: React.FC<SidebarProperties> = ({
+	onAddKnowledge,
 	projectName,
 	role,
 }: SidebarProperties) => {
 	const { hideModal, isOpen, showModal } = useModal();
+	const canAddKnowledge =
+		role.trim().toUpperCase() !== ProjectMemberRole.VIEWER.toUpperCase();
+	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 
-	const canAddKnowledge = role !== ProjectMemberRole.VIEWER;
+	const handleAddClick = useCallback((): void => {
+		if (onAddKnowledge) {
+			onAddKnowledge();
+
+			return;
+		}
+
+		showModal();
+	}, [onAddKnowledge, showModal]);
 
 	return (
 		<aside className="hidden h-full tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface px-3.5 py-5">
@@ -139,8 +156,10 @@ const Sidebar: React.FC<SidebarProperties> = ({
 			<div className="mt-auto flex flex-col gap-2.5 border-t border-border-subtle pt-3.5">
 				{canAddKnowledge && (
 					<>
+						<Button onClick={handleAddClick}>Add Knowledge</Button>
 						<Button
 							className="hidden desktop:inline-flex"
+							disabled={isAddingKnowledge}
 							onClick={showModal}
 							variant="accent"
 						>
@@ -164,43 +183,43 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	);
 };
 
-const MobileNavRow = ({ icon, label, to }: NavItem) => {
-	const { pathname } = useLocation();
-	const isActive = Boolean(to) && pathname === to;
-
-	const className = getValidClassNames(
-		"flex flex-1 flex-col items-center gap-0.75 py-2.25 text-2xs border-none bg-transparent cursor-pointer font-sans",
-		{ "text-accent": isActive, "text-text-muted": !isActive },
-	);
-
-	if (to) {
-		return (
-			<Link
-				aria-current={isActive ? "page" : undefined}
-				className={className}
-				to={to}
-			>
-				{icon}
-				{label}
-			</Link>
-		);
-	}
-
-	return (
-		<button className={className} type="button">
-			{icon}
-			{label}
-		</button>
-	);
-};
-
 const MobileNav: React.FC = () => {
+	const { pathname } = useLocation();
+
 	return (
-		<nav className="flex flex-shrink-0 tablet:hidden border-t border-border bg-surface">
-			{mobileNavItems.map((item) => (
-				<MobileNavRow key={item.id} {...item} />
-			))}
+		<nav className="flex h-14 w-full shrink-0 items-center justify-around border-t border-border bg-surface tablet:hidden">
+			{mobileNavItems.map(({ icon, id, label, to }) => {
+				const isActive = Boolean(to) && pathname === to;
+				const className = getValidClassNames(
+					"flex flex-1 flex-col items-center justify-center py-2 h-full gap-1 text-2xs transition-colors",
+					isActive
+						? "text-accent font-semibold"
+						: "text-text-muted hover:text-text",
+				);
+
+				if (to) {
+					return (
+						<Link
+							aria-current={isActive ? "page" : undefined}
+							className={className}
+							key={id}
+							to={to}
+						>
+							{icon}
+							<span>{label}</span>
+						</Link>
+					);
+				}
+
+				return (
+					<button className={className} key={id} type="button">
+						{icon}
+						<span>{label}</span>
+					</button>
+				);
+			})}
 		</nav>
 	);
 };
+
 export { MobileNav, Sidebar };

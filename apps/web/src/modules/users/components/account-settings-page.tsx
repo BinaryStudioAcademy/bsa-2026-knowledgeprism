@@ -16,16 +16,11 @@ import {
 	useState,
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
+import { actions as projectsActions } from "~/modules/projects/projects.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 import { userUpdateFrontendValidationSchema } from "./user-edit-page/libs/validation-schemas.js";
 import { UserForm } from "./user-form/user-form.js";
-
-// NOTE: Projects are currently mocked. When GET /projects endpoint is implemented, this should consume actual project data.
-const MOCKED_PROJECTS = [
-	{ id: 1, name: "Knowledge Base Alpha" },
-	{ id: 2, name: "Marketing Site" },
-];
 
 type AccountSettingsFormValues = {
 	assignedProjects: ProjectAssignmentDto[];
@@ -41,18 +36,19 @@ const AccountSettingsPage: React.FC = () => {
 	const navigate = useNavigate();
 	const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
-	const { currentUserId, selectedUser, selectedUserStatus } = useAppSelector(
-		({ auth, users }) => ({
+	const { availableProjects, currentUserId, selectedUser, selectedUserStatus } =
+		useAppSelector(({ auth, projects, users }) => ({
+			availableProjects: projects.projects,
 			currentUserId: auth.user?.user.id,
 			selectedUser: users.selectedUser,
 			selectedUserStatus: users.selectedUserStatus,
-		}),
-	);
+		}));
 
 	useEffect(() => {
 		if (currentUserId) {
 			void dispatch(userActions.loadUserById(currentUserId));
 		}
+		void dispatch(projectsActions.loadAllProjects());
 	}, [dispatch, currentUserId]);
 
 	const { control, handleSubmit, reset } =
@@ -118,7 +114,7 @@ const AccountSettingsPage: React.FC = () => {
 	);
 
 	const handleCancel = useCallback((): void => {
-		void navigate(AppRoute.WORKSPACE);
+		void navigate(AppRoute.WORKSPACES);
 	}, [navigate]);
 
 	return (
@@ -138,7 +134,7 @@ const AccountSettingsPage: React.FC = () => {
 
 				{selectedUserStatus === DataStatus.FULFILLED && selectedUser && (
 					<UserForm
-						availableProjects={MOCKED_PROJECTS}
+						availableProjects={availableProjects}
 						control={control}
 						errorMessage={errorMessage}
 						isEditMode={true}

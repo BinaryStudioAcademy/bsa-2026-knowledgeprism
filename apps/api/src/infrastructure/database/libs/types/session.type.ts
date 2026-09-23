@@ -1,7 +1,10 @@
 import { type FastifySessionObject } from "@fastify/session";
+import { type OrganisationRole } from "@knowledgeprism/constants";
+import { type ValueOf } from "@knowledgeprism/types";
 
 type CustomSession = FastifySessionObject & {
 	organisationId?: number;
+	organisationRole?: null | ValueOf<typeof OrganisationRole>;
 	userId?: number;
 };
 

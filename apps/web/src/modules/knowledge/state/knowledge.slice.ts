@@ -10,6 +10,7 @@ type State = KnowledgeState;
 
 const initialState: State = {
 	errorMessage: null,
+	isAddingKnowledge: false,
 	processingStatus: DocumentProcessingStatus.IDLE,
 	selectedFile: null,
 };
@@ -43,9 +44,11 @@ const { actions, name, reducer } = createSlice({
 			}
 
 			state.errorMessage =
-				action.error.message ?? DocumentValidationMessage.PROCESSING_FAILED;
+				action.payload?.message ?? DocumentValidationMessage.PROCESSING_FAILED;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
 			state.selectedFile.status = DocumentProcessingStatus.FAILED;
+			state.selectedFile.documentId = action.payload?.documentId;
+			state.selectedFile.uploadUrl = action.payload?.uploadUrl;
 		});
 	},
 	initialState,
@@ -54,18 +57,24 @@ const { actions, name, reducer } = createSlice({
 		clearError(state) {
 			state.errorMessage = null;
 		},
+		finishAddingKnowledge(state) {
+			state.isAddingKnowledge = false;
+		},
 		removeDocument(state) {
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFile = null;
 		},
-		resetState() {
-			return initialState;
+		resetState(state) {
+			return { ...initialState, isAddingKnowledge: state.isAddingKnowledge };
 		},
 		setError(state, action: PayloadAction<string>) {
 			state.errorMessage = action.payload;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
 			state.selectedFile = null;
+		},
+		startAddingKnowledge(state) {
+			state.isAddingKnowledge = true;
 		},
 		startProcessing(
 			state,

@@ -19,11 +19,14 @@ import { SignInForm, SignUpForm } from "./components.js";
 
 const AuthPage: React.FC = () => {
 	const dispatch = useAppDispatch();
-	const { error, hasUser, isAuthPending } = useAppSelector(({ auth }) => ({
-		error: auth.error,
-		hasUser: Boolean(auth.user),
-		isAuthPending: auth.dataStatus === DataStatus.PENDING,
-	}));
+	const { error, hasUser, isAuthPending, isInitialized } = useAppSelector(
+		({ auth }) => ({
+			error: auth.error,
+			hasUser: Boolean(auth.user),
+			isAuthPending: auth.dataStatus === DataStatus.PENDING,
+			isInitialized: auth.isInitialized,
+		}),
+	);
 	const { pathname } = useLocation();
 	const navigate = useNavigate();
 
@@ -33,7 +36,7 @@ const AuthPage: React.FC = () => {
 
 	useEffect(() => {
 		if (hasUser) {
-			void navigate(AppRoute.WORKSPACE, { replace: true });
+			void navigate(AppRoute.WORKSPACES, { replace: true });
 		}
 	}, [hasUser, navigate]);
 
@@ -43,7 +46,7 @@ const AuthPage: React.FC = () => {
 				const action = await dispatch(authActions.signIn(payload));
 
 				if (authActions.signIn.fulfilled.match(action)) {
-					await navigate(AppRoute.WORKSPACE);
+					await navigate(AppRoute.WORKSPACES);
 				}
 			})();
 		},
@@ -56,17 +59,20 @@ const AuthPage: React.FC = () => {
 				const action = await dispatch(authActions.signUp(payload));
 
 				if (authActions.signUp.fulfilled.match(action)) {
-					await navigate(AppRoute.WORKSPACE);
+					await navigate(AppRoute.WORKSPACES);
 				}
 			})();
 		},
 		[dispatch, navigate],
 	);
 
-	if (isAuthPending) {
-		return <Loader />;
+	if (!isInitialized || hasUser) {
+		return (
+			<div className="flex min-h-screen items-center justify-center">
+				<Loader size="lg" />
+			</div>
+		);
 	}
-
 	const getScreen = (screen: string): React.JSX.Element => {
 		if (screen === AppRoute.SIGN_UP) {
 			return <SignUpForm onSubmit={handleSignUpSubmit} />;

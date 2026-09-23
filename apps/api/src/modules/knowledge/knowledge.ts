@@ -10,6 +10,7 @@ import { KnowledgeService } from "./services/knowledge.service.js";
 const knowledgeNodeRepository = new KnowledgeNodeRepository(KnowledgeNodeModel);
 const knowledgeService = new KnowledgeService({
 	knowledgeNodeRepository,
+	logger,
 	projectService,
 });
 const knowledgeController = new KnowledgeController(logger, knowledgeService);
