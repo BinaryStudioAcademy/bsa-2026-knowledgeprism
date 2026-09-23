@@ -22,6 +22,7 @@ import { type Logger } from "~/infrastructure/logger/logger.js";
 import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/helpers.js";
 import { type GeneratePresignedUploadUrl } from "~/infrastructure/s3/libs/types/types.js";
 import { type CheckDocumentObjectExists } from "~/infrastructure/s3/verify-object.js";
+import { type SendDocumentProcessingJob } from "~/infrastructure/sqs/send-document-processing-job.js";
 import { createContentHash } from "~/modules/documents/libs/helpers/create-content-hash.helper.js";
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
 import { isUniqueViolation } from "~/modules/documents/libs/helpers/is-unique-violation.helper.js";
@@ -33,7 +34,6 @@ import {
 } from "~/modules/projects/services/project.service.js";
 
 import { type DocumentAccessService } from "./document-access.service.js";
-import { type DocumentProcessor } from "./document-processor.js";
 
 const MANUAL_TEXT_MIME_TYPE = "text/plain";
 const UNTITLED_MANUAL_DOCUMENT_NAME = "Untitled";
@@ -41,19 +41,17 @@ const UNTITLED_MANUAL_DOCUMENT_NAME = "Untitled";
 type Constructor = {
 	checkDocumentObjectExists: CheckDocumentObjectExists;
 	documentAccessService: DocumentAccessService;
-	documentProcessor: DocumentProcessor;
 	documentRepository: DocumentRepository;
 	generatePresignedUploadUrl: GeneratePresignedUploadUrl;
 	logger: Logger;
 	projectService: ProjectService;
+	sendDocumentProcessingJob: SendDocumentProcessingJob;
 };
 
 class DocumentService {
 	private checkDocumentObjectExists: CheckDocumentObjectExists;
 
 	private documentAccessService: DocumentAccessService;
-
-	private documentProcessor: DocumentProcessor;
 
 	private documentRepository: DocumentRepository;
 
@@ -63,41 +61,24 @@ class DocumentService {
 
 	private projectService: ProjectService;
 
+	private sendDocumentProcessingJob: SendDocumentProcessingJob;
+
 	public constructor({
 		checkDocumentObjectExists,
 		documentAccessService,
-		documentProcessor,
 		documentRepository,
 		generatePresignedUploadUrl,
 		logger,
 		projectService,
+		sendDocumentProcessingJob,
 	}: Constructor) {
 		this.checkDocumentObjectExists = checkDocumentObjectExists;
 		this.documentAccessService = documentAccessService;
-		this.documentProcessor = documentProcessor;
 		this.documentRepository = documentRepository;
 		this.generatePresignedUploadUrl = generatePresignedUploadUrl;
 		this.logger = logger;
 		this.projectService = projectService;
-	}
-
-	private async completeProcessing(id: number): Promise<void> {
-		try {
-			await this.documentProcessor.process();
-			await this.documentRepository.compareAndSwapStatus({
-				errorMessage: null,
-				expectedStatus: DocumentStatus.PROCESSING,
-				id,
-				status: DocumentStatus.WAITING_FOR_APPROVAL,
-			});
-		} catch {
-			await this.documentRepository.compareAndSwapStatus({
-				errorMessage: DocumentErrorMessage.PROCESSING_FAILED,
-				expectedStatus: DocumentStatus.PROCESSING,
-				id,
-				status: DocumentStatus.FAILED,
-			});
-		}
+		this.sendDocumentProcessingJob = sendDocumentProcessingJob;
 	}
 
 	private async failAndThrow(
@@ -151,10 +132,39 @@ class DocumentService {
 		return trimmedTitle === "" ? null : trimmedTitle;
 	}
 
-	private scheduleProcessing(id: number): void {
-		setImmediate(() => {
-			void this.completeProcessing(id);
+	private async publishProcessingJob(documentId: number): Promise<boolean> {
+		try {
+			await this.sendDocumentProcessingJob({ documentId });
+
+			return true;
+		} catch (error) {
+			this.logger.error("Failed to queue document for processing.", {
+				documentId,
+				error,
+			});
+
+			return false;
+		}
+	}
+
+	private async queueManualTextProcessing(
+		document: DocumentEntity,
+	): Promise<DocumentEntity> {
+		const { id } = document.toObject();
+		const isQueued = await this.publishProcessingJob(id);
+
+		if (isQueued) {
+			return document;
+		}
+
+		const failedDocument = await this.documentRepository.compareAndSwapStatus({
+			errorMessage: DocumentErrorMessage.QUEUE_FAILED,
+			expectedStatus: DocumentStatus.PROCESSING,
+			id,
+			status: DocumentStatus.FAILED,
 		});
+
+		return failedDocument ?? document;
 	}
 
 	private toManualTextResponse(
@@ -307,6 +317,20 @@ class DocumentService {
 			});
 		}
 
+		const isQueued = await this.publishProcessingJob(documentId);
+
+		if (!isQueued) {
+			await this.documentRepository.updateStatus({
+				id: documentId,
+				status: DocumentStatus.UPLOADED,
+			});
+
+			throw new HTTPError({
+				message: DocumentErrorMessage.QUEUE_FAILED,
+				status: HTTPCode.SERVICE_UNAVAILABLE,
+			});
+		}
+
 		return {
 			documentId,
 			status: transitionedDocument.toObject().status,
@@ -380,11 +404,10 @@ class DocumentService {
 			return this.toManualTextResponse(existingDocument);
 		}
 
-		const createdDocumentDto = this.toManualTextResponse(createdDocument);
+		const queuedDocument =
+			await this.queueManualTextProcessing(createdDocument);
 
-		this.scheduleProcessing(createdDocumentDto.id);
-
-		return createdDocumentDto;
+		return this.toManualTextResponse(queuedDocument);
 	}
 
 	public async createUploadIntent({
@@ -530,9 +553,10 @@ class DocumentService {
 			});
 		}
 
-		this.scheduleProcessing(id);
+		const queuedDocument =
+			await this.queueManualTextProcessing(retriedDocument);
 
-		return this.toManualTextResponse(retriedDocument);
+		return this.toManualTextResponse(queuedDocument);
 	}
 }
 

@@ -5,6 +5,7 @@ const DocumentErrorMessage = {
 	NOT_FOUND: "Document not found",
 	PROCESSING_FAILED: "Processing failed",
 	PROJECT_NOT_FOUND: "Project not found",
+	QUEUE_FAILED: "Could not queue document for processing",
 	RETRY_NOT_ALLOWED: "Document cannot be retried in its current state",
 	UNAUTHORIZED: "Unauthorized",
 } as const;

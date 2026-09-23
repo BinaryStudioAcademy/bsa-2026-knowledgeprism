@@ -5,4 +5,5 @@ export {
 	DocumentStatus,
 	DocumentValidationMessage,
 	DocumentValidationRule,
+	ExtractionItemStatus,
 } from "./libs/enums/enums.js";

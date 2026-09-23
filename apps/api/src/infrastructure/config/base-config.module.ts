@@ -70,6 +70,12 @@ class BaseConfig implements Config {
 					env: "AWS_S3_BUCKET_NAME",
 					format: String,
 				},
+				SQS_QUEUE_URL: {
+					default: null,
+					doc: "AWS SQS queue URL for document processing jobs",
+					env: "AWS_SQS_QUEUE_URL",
+					format: String,
+				},
 			},
 			DB: {
 				CONNECTION_STRING: {

@@ -10,6 +10,7 @@ type EnvironmentSchema = {
 	AWS: {
 		REGION: string;
 		S3_BUCKET_NAME: string;
+		SQS_QUEUE_URL: string;
 	};
 	DB: {
 		CONNECTION_STRING: string;
