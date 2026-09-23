@@ -148,18 +148,18 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	}, [onAddKnowledge, showModal]);
 
 	return (
-    <aside className="hidden h-full tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface py-5 desktop:px-3.5">
-      {projectId && (
-        <div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
-          <Icon name="project" size={PROJECT_ICON_SIZE} />
-          <div>
-            <div className="text-sm font-medium">{projectName}</div>
-            <div className="font-mono text-2xs text-text-faint">
-              {role} ROLE
-            </div>
-          </div>
-        </div>
-      )}
+		<aside className="hidden h-full tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface py-5 desktop:px-3.5">
+			{projectId && (
+				<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
+					<Icon name="project" size={PROJECT_ICON_SIZE} />
+					<div>
+						<div className="text-sm font-medium">{projectName}</div>
+						<div className="font-mono text-2xs text-text-faint">
+							{role} ROLE
+						</div>
+					</div>
+				</div>
+			)}
 
 			<nav className="flex w-full flex-col items-center gap-0.5 desktop:items-stretch">
 				{primaryNavItems.map((item) => (
