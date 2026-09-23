@@ -151,13 +151,14 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 						{canShowAddKnowledge && (
 							<>
 								<Button
+									aria-label="Add Knowledge"
 									className="tablet:hidden ml-2 mr-2 shrink-0 flex items-center gap-1 px-2 py-1 text-2xs font-semibold whitespace-nowrap"
 									disabled={isAddingKnowledge}
 									onClick={showModal}
 									variant="accent"
 								>
 									<Icon name="plus" size={14} />
-									<span>Add Knowledge</span>
+									<span className="hidden sm:inline">Add Knowledge</span>
 								</Button>
 
 								{isOpen && (
