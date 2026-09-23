@@ -1,4 +1,8 @@
-import { AuthValidationMessage } from "@knowledgeprism/constants";
+import {
+	AuthValidationMessage,
+	UserStatus,
+	UserValidationMessage,
+} from "@knowledgeprism/constants";
 import {
 	type UserGetCurrentResponseDto,
 	type UserSignInRequestDto,
@@ -93,6 +97,13 @@ class AuthService {
 		}
 
 		const userObject = user.toObject();
+		if (userObject.status === UserStatus.INACTIVE) {
+			throw new HTTPError({
+				message: UserValidationMessage.USER_INACTIVE,
+				status: HTTPCode.FORBIDDEN,
+			});
+		}
+
 		const organisation = await this.organisationService.find(
 			userObject.organisationId,
 		);
