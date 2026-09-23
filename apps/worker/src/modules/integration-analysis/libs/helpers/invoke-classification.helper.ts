@@ -3,6 +3,7 @@ import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { BedrockRequest } from "~/bedrock/bedrock-request.constant.js";
 import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
 import { ClaudeModelId } from "~/bedrock/claude-model.constant.js";
+import { toResponseText } from "~/bedrock/to-response-text.helper.js";
 import { logger } from "~/logger/logger.js";
 
 import {
@@ -10,19 +11,6 @@ import {
 	CLASSIFICATION_SYSTEM_PROMPT,
 	ITEM_TAG,
 } from "../constants/classification-prompt.constant.js";
-
-type AnthropicTextBlock = {
-	text: string;
-};
-
-const isTextBlock = (value: unknown): value is AnthropicTextBlock => {
-	return (
-		typeof value === "object" &&
-		value !== null &&
-		"text" in value &&
-		typeof value.text === "string"
-	);
-};
 
 const toCandidateLines = (candidateTexts: string[]): string => {
 	return candidateTexts
@@ -37,34 +25,6 @@ const toClassificationPrompt = (
 	candidateTexts: string[],
 ): string => {
 	return `<${ITEM_TAG}>\n${itemText}\n</${ITEM_TAG}>\n<${CANDIDATES_TAG}>\n${toCandidateLines(candidateTexts)}\n</${CANDIDATES_TAG}>`;
-};
-
-const toResponseText = (decoded: string): string => {
-	let envelope: unknown;
-
-	try {
-		envelope = JSON.parse(decoded);
-	} catch (error) {
-		logger.error("Failed to parse Bedrock response body.", { error });
-
-		return "";
-	}
-
-	if (
-		typeof envelope !== "object" ||
-		envelope === null ||
-		!("content" in envelope) ||
-		!Array.isArray(envelope.content)
-	) {
-		return "";
-	}
-
-	return envelope.content
-		.filter(isTextBlock)
-		.map((block) => {
-			return block.text;
-		})
-		.join("");
 };
 
 const invokeClassification = async (

@@ -3,6 +3,7 @@ import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { BedrockRequest } from "~/bedrock/bedrock-request.constant.js";
 import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
 import { ClaudeModelId } from "~/bedrock/claude-model.constant.js";
+import { toResponseText } from "~/bedrock/to-response-text.helper.js";
 import { logger } from "~/logger/logger.js";
 
 import {
@@ -10,49 +11,8 @@ import {
 	PAGE_CONTENT_TAG,
 } from "../constants/extraction-prompt.constant.js";
 
-type AnthropicTextBlock = {
-	text: string;
-};
-
-const isTextBlock = (value: unknown): value is AnthropicTextBlock => {
-	return (
-		typeof value === "object" &&
-		value !== null &&
-		"text" in value &&
-		typeof value.text === "string"
-	);
-};
-
 const toPagePrompt = (content: string): string => {
 	return `<${PAGE_CONTENT_TAG}>\n${content}\n</${PAGE_CONTENT_TAG}>`;
-};
-
-const toResponseText = (decoded: string): string => {
-	let envelope: unknown;
-
-	try {
-		envelope = JSON.parse(decoded);
-	} catch (error) {
-		logger.error("Failed to parse Bedrock response body.", { error });
-
-		return "";
-	}
-
-	if (
-		typeof envelope !== "object" ||
-		envelope === null ||
-		!("content" in envelope) ||
-		!Array.isArray(envelope.content)
-	) {
-		return "";
-	}
-
-	return envelope.content
-		.filter(isTextBlock)
-		.map((block) => {
-			return block.text;
-		})
-		.join("");
 };
 
 const invokePageExtraction = async (content: string): Promise<unknown> => {

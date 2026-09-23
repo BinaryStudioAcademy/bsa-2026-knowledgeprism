@@ -12,8 +12,11 @@ type ClassificationOutput = {
 const FIRST_INDEX = 0;
 
 const isChangeType = (value: unknown): value is IntegrationChangeTypeValue => {
-	return Object.values(IntegrationChangeType).includes(
-		value as IntegrationChangeTypeValue,
+	return (
+		typeof value === "string" &&
+		Object.values(IntegrationChangeType).includes(
+			value as IntegrationChangeTypeValue,
+		)
 	);
 };
 
