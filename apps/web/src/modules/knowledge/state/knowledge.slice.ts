@@ -66,6 +66,8 @@ const { actions, name, reducer } = createSlice({
 		builder.addCase(fetchKnowledgeTree.pending, (state) => {
 			state.isTreeLoading = true;
 			state.errorMessage = null;
+			state.tree = [];
+			state.selectedEntry = null;
 		});
 		builder.addCase(fetchKnowledgeTree.fulfilled, (state, action) => {
 			state.isTreeLoading = false;

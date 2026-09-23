@@ -15,7 +15,7 @@ import {
 	MIN_INDEX,
 } from "../../libs/constants/constants.js";
 import { filterKnowledgeTree } from "../../libs/helpers/helpers.js";
-import { type KnowledgeTreeItemResponseDto } from "../../libs/mock-knowledge-tree.js";
+import { type KnowledgeTreeItemResponseDto } from "@knowledgeprism/types";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
 import { KnowledgeTreeSearchBar } from "./knowledge-tree-search-bar.js";
 

@@ -1,3 +1,5 @@
+import { KnowledgeNodeType } from "@knowledgeprism/constants";
+import { type KnowledgeTreeItemResponseDto } from "@knowledgeprism/types";
 import React, { useCallback, useState } from "react";
 import { tv } from "tailwind-variants";
 
@@ -7,10 +9,6 @@ import {
 	EMPTY_LENGTH,
 	KNOWLEDGE_TREE_ITEM_CONFIG,
 } from "../../libs/constants/constants.js";
-import {
-	KnowledgeNodeType,
-	type KnowledgeTreeItemResponseDto,
-} from "../../libs/mock-knowledge-tree.js";
 import { HighlightedText } from "./highlighted-text.js";
 import {
 	handleHorizontalNavigation,

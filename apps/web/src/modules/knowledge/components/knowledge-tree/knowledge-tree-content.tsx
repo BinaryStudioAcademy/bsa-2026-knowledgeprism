@@ -1,6 +1,6 @@
+import { type KnowledgeEntryResponseDto } from "@knowledgeprism/types";
 import React, { useCallback } from "react";
 
-import { type KnowledgeEntryResponseDto } from "../../libs/mock-knowledge-tree.js";
 import { KbEntryDetail } from "../kb-entry-detail/kb-entry-detail.js";
 import "./knowledge-tree-content.css";
 

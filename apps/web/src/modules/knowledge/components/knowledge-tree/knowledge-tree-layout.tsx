@@ -1,13 +1,14 @@
+import {
+	type KnowledgeEntryResponseDto,
+	type KnowledgeTreeItemResponseDto,
+} from "@knowledgeprism/types";
 import React, { useCallback, useMemo, useState } from "react";
 
+import { Loader } from "~/components/components.js";
 import { useAppDispatch, useAppSelector, useModal } from "~/hooks/hooks.js";
 
 import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
-import {
-	type KnowledgeEntryResponseDto,
-	type KnowledgeTreeItemResponseDto,
-} from "../../libs/mock-knowledge-tree.js";
 import { AddKnowledgeModal } from "../add-knowledge-modal/add-knowledge-modal.js";
 import { IntegrationPreview } from "../integration-preview/integration-preview.js";
 import { DEFAULT_PROPOSED_STRUCTURE } from "../integration-preview/libs/constants.js";
@@ -36,7 +37,9 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	selectedPageId,
 }: Properties) => {
 	const dispatch = useAppDispatch();
-	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
+	const { isAddingKnowledge, isEntryLoading, isTreeLoading } = useAppSelector(
+		(state) => state.knowledge,
+	);
 	const [isEditing, setIsEditing] = useState<boolean>(false);
 
 	const {
@@ -135,6 +138,14 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		);
 	}
 
+	if (isTreeLoading) {
+		return (
+			<div className="flex h-full w-full items-center justify-center bg-bg">
+				<Loader size="lg" />
+			</div>
+		);
+	}
+
 	if (isKbEmpty) {
 		return (
 			<div className="flex h-full w-full items-center justify-center bg-bg">
@@ -152,6 +163,28 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	}
 
 	const selectedEntry = selectedPageId ? entries[selectedPageId] : undefined;
+
+	let mainContent = (
+		<div className="flex flex-1 items-center justify-center text-text-muted">
+			Select a page to view its content.
+		</div>
+	);
+
+	if (isEntryLoading) {
+		mainContent = (
+			<div className="flex flex-1 items-center justify-center">
+				<Loader />
+			</div>
+		);
+	} else if (selectedEntry) {
+		mainContent = (
+			<KnowledgeTreeContent
+				entry={selectedEntry}
+				isEditing={isEditing}
+				onCancel={handleCancelEdit}
+			/>
+		);
+	}
 
 	return (
 		<div className="@container flex h-full w-full bg-bg">
@@ -178,17 +211,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 						<LoadingState onPreview={handleOpenPreview} variant="compact" />
 					</div>
 				)}
-				{selectedEntry ? (
-					<KnowledgeTreeContent
-						entry={selectedEntry}
-						isEditing={isEditing}
-						onCancel={handleCancelEdit}
-					/>
-				) : (
-					<div className="flex flex-1 items-center justify-center text-text-muted">
-						Select a page to view its content.
-					</div>
-				)}
+				{mainContent}
 			</div>
 			<AddKnowledgeModal
 				isOpen={isAddModalOpen}

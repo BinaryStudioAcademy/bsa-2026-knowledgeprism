@@ -1,5 +1,5 @@
 import { EMPTY_LENGTH } from "../constants/constants.js";
-import { type KnowledgeTreeItemResponseDto } from "../mock-knowledge-tree.js";
+import { type KnowledgeTreeItemResponseDto } from "@knowledgeprism/types";
 
 const filterKnowledgeTree = (
 	items: KnowledgeTreeItemResponseDto[],
