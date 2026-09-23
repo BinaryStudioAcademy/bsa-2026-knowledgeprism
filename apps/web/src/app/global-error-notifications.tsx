@@ -150,10 +150,20 @@ const GlobalErrorNotifications = (): React.JSX.Element => {
 							onAnimationEnd={handleAnimationEnd}
 						>
 							<div className="pt-2 pb-3" role="alert">
-								<Alert
-									description={getNotificationMessage(error)}
-									variant="error"
-								/>
+								<div className="relative overflow-hidden rounded-md">
+									<Alert
+										description={getNotificationMessage(error)}
+										hasTrailingAction
+										variant="error"
+									/>
+
+									<div
+										className="animate-progress absolute bottom-0 left-0 h-1 w-full bg-error"
+										style={{
+											animationDuration: `${AUTO_DISMISS_DELAY_MS.toString()}ms`,
+										}}
+									/>
+								</div>
 							</div>
 
 							<Button

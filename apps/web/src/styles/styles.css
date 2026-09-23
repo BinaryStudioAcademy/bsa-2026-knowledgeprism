@@ -288,10 +288,27 @@ body:has(dialog:modal) {
 	}
 }
 
+@keyframes progress-shrink {
+	from {
+		transform: scaleX(1);
+	}
+
+	to {
+		transform: scaleX(0);
+	}
+}
+
 .animate-fade-in {
 	animation: fade-in-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-fade-out {
 	animation: fade-out 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-progress {
+	transform-origin: left;
+	animation-name: progress-shrink;
+	animation-timing-function: linear;
+	animation-fill-mode: forwards;
 }
