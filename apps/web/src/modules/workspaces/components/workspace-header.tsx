@@ -1,8 +1,16 @@
+import { ProjectMemberRole } from "@knowledgeprism/constants";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { Avatar, Header, Logo } from "~/components/components.js";
-import { useNavigate } from "~/hooks/hooks.js";
+import { Avatar, Button, Header, Icon, Logo } from "~/components/components.js";
+import {
+	useAppSelector,
+	useLocation,
+	useModal,
+	useNavigate,
+	useOptionalCurrentProjectId,
+} from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
+import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
 interface WorkspaceHeaderProperties {
 	avatarUrl?: null | string;
@@ -38,7 +46,29 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	onOpenSettings,
 	organizationName,
 }) => {
+	const { hideModal, isOpen, showModal } = useModal();
+	const { pathname } = useLocation();
+	const projectId = useOptionalCurrentProjectId();
+	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
+	const { projects } = useAppSelector(({ workspaces }) => workspaces);
+	const currentProject = projects.find((project) => project.id === projectId);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+	const WORKSPACE_LIST_PATHS: readonly string[] = [
+		AppRoute.ROOT,
+		"/workspaces",
+		"/workspaces/",
+	];
+
+	const isWorkspaceListPage = WORKSPACE_LIST_PATHS.includes(pathname);
+
+	const currentProjectRole = currentProject?.role.trim().toUpperCase();
+	const isAllowedRole =
+		currentProjectRole === ProjectMemberRole.ADMIN.toUpperCase() ||
+		currentProjectRole === ProjectMemberRole.EDITOR.toUpperCase();
+
+	const canShowAddKnowledge =
+		Boolean(projectId) && !isWorkspaceListPage && isAllowedRole;
 
 	const dropdownReference = useRef<HTMLDivElement>(null);
 	const navigate = useNavigate();
@@ -49,12 +79,12 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 
 	const handleCloseDropdown = useCallback((): void => {
 		setIsDropdownOpen(false);
-	}, []);
+	}, [setIsDropdownOpen]);
 
 	const handleLogOut = useCallback((): void => {
 		setIsDropdownOpen(false);
 		onLogOut?.();
-	}, [onLogOut]);
+	}, [onLogOut, setIsDropdownOpen]);
 
 	const handleOpenSettings = useCallback((): void => {
 		setIsDropdownOpen(false);
@@ -66,11 +96,11 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 		}
 
 		void navigate(AppRoute.SETTINGS);
-	}, [navigate, onOpenSettings]);
+	}, [navigate, onOpenSettings, setIsDropdownOpen]);
 
 	const toggleDropdown = useCallback((): void => {
 		setIsDropdownOpen((previous) => !previous);
-	}, []);
+	}, [setIsDropdownOpen]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent): void => {
@@ -93,7 +123,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 		<div className="sticky top-0 z-30 w-full bg-surface">
 			<Header>
 				<div className="flex h-full w-full items-center justify-between">
-					<div className="flex min-w-0 items-center gap-3">
+					<div className="flex shrink-0 items-center gap-3">
 						<Logo to={AppRoute.ROOT} />
 
 						{isLoading && (
@@ -118,6 +148,29 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 					</div>
 
 					<div className="flex items-center" ref={dropdownReference}>
+						{canShowAddKnowledge && (
+							<>
+								<Button
+									aria-label="Add Knowledge"
+									className="tablet:hidden ml-2 mr-2 shrink-0 flex items-center gap-1 px-2 py-1 text-2xs font-semibold whitespace-nowrap"
+									disabled={isAddingKnowledge}
+									onClick={showModal}
+									variant="accent"
+								>
+									<Icon name="plus" size={14} />
+									<span className="hidden sm:inline">Add Knowledge</span>
+								</Button>
+
+								{isOpen && (
+									<AddKnowledgeModal
+										isOpen={isOpen}
+										onClose={hideModal}
+										projectName={currentProject?.name ?? ""}
+									/>
+								)}
+							</>
+						)}
+
 						{isLoading && (
 							<div className="h-8 w-8 animate-pulse rounded-full bg-(--color-border-subtle) sm:h-8 sm:w-32 sm:rounded-md" />
 						)}

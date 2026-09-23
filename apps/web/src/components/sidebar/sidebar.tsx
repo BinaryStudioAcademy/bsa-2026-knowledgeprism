@@ -16,6 +16,8 @@ import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-
 
 const MOBILE_NAV_ICON_SIZE = 16;
 const PROJECT_ICON_SIZE = 18;
+const RESPONSIVE_NAV_ITEM_CLASS =
+	"tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5";
 
 type NavItem = {
 	icon: React.ReactNode;
@@ -97,10 +99,9 @@ const NavRow = ({ icon, label, to }: NavItem) => {
 	const { pathname } = useLocation();
 	const isActive = Boolean(to) && pathname === to;
 
-	const className = getValidClassNames(
-		"nav-item tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5",
-		{ "is-active": isActive },
-	);
+	const className = getValidClassNames("nav-item", RESPONSIVE_NAV_ITEM_CLASS, {
+		"is-active": isActive,
+	});
 
 	if (to) {
 		return (
@@ -171,13 +172,17 @@ const Sidebar: React.FC<SidebarProperties> = ({
 				{canAddKnowledge && (
 					<>
 						<Button
-							className="hidden desktop:inline-flex"
+							aria-label="Add Knowledge"
+							className={getValidClassNames(
+								"inline-flex",
+								RESPONSIVE_NAV_ITEM_CLASS,
+							)}
 							disabled={isAddingKnowledge}
 							onClick={handleAddClick}
 							variant="accent"
 						>
 							<Icon name="plus" size={16} />
-							Add Knowledge
+							<span className="hidden desktop:inline">Add Knowledge</span>
 						</Button>
 						<AddKnowledgeModal
 							isOpen={isOpen}
