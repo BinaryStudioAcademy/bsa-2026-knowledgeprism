@@ -1,5 +1,11 @@
-import { KnowledgeValidationRule } from "@knowledgeprism/constants";
-import { type KnowledgeNodeContentDto } from "@knowledgeprism/types";
+import {
+	KnowledgeNodeType,
+	KnowledgeValidationRule,
+} from "@knowledgeprism/constants";
+import {
+	type KnowledgeNodeContentDto,
+	type KnowledgeTreeItemResponseDto,
+} from "@knowledgeprism/types";
 
 import { KnowledgeNodeEntity } from "../models/knowledge-node.entity.js";
 import { type KnowledgeNodeModel } from "../models/knowledge-node.model.js";
@@ -8,6 +14,15 @@ type RecentKnowledgeDatabaseRow = {
 	id: number;
 	projectId: number;
 	title: string;
+	updatedAt: Date;
+};
+
+type TreeKnowledgeDatabaseRow = {
+	id: number;
+	parentId: null | number;
+	position: number;
+	title: string;
+	type: KnowledgeTreeItemResponseDto["type"];
 	updatedAt: Date;
 };
 
@@ -82,8 +97,22 @@ class KnowledgeNodeRepository {
 			.query()
 			.select(["id", "projectId", "title", "updatedAt"])
 			.whereIn("projectId", projectIds)
+			.whereNot("type", KnowledgeNodeType.SECTION)
 			.orderBy("updatedAt", "desc")
 			.castTo<RecentKnowledgeDatabaseRow[]>()
+			.execute();
+	}
+
+	public async findTreeItemsByProjectId(
+		projectId: number,
+	): Promise<TreeKnowledgeDatabaseRow[]> {
+		return await this.knowledgeNodeModel
+			.query()
+			.select(["id", "parentId", "position", "title", "type", "updatedAt"])
+			.where({ projectId })
+			.orderBy("position", "asc")
+			.orderBy("id", "asc")
+			.castTo<TreeKnowledgeDatabaseRow[]>()
 			.execute();
 	}
 
