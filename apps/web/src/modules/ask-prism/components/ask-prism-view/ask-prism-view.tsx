@@ -7,6 +7,7 @@ import {
 	useEffect,
 	useState,
 } from "react";
+import { useParams } from "react-router-dom";
 
 import { Heading, Icon, Paragraph } from "~/components/components.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
@@ -16,16 +17,12 @@ import { actions as askPrismActions } from "../../state/state.js";
 import { AnswerCard } from "../answer-card/answer-card.js";
 import { PromptButton } from "../prompt-button/prompt-button.js";
 
-const DEFAULT_PROJECT_ID = 1;
 const QUESTION_PLACEHOLDER = "Ask anything about your knowledge base...";
 
-type Properties = {
-	projectId?: number | string;
-};
+const AskPrismView = (): JSX.Element => {
+	const { projectId } = useParams<{ projectId: string }>();
+	const numericProjectId = Number(projectId);
 
-const AskPrismView = ({
-	projectId = DEFAULT_PROJECT_ID,
-}: Properties = {}): JSX.Element => {
 	const dispatch = useAppDispatch();
 	const [query, setQuery] = useState("");
 
@@ -42,8 +39,14 @@ const AskPrismView = ({
 	const isLoading = dataStatus === DataStatus.PENDING;
 
 	useEffect(() => {
-		void dispatch(askPrismActions.loadSuggestedQuestions({ projectId }));
-	}, [dispatch, projectId]);
+		dispatch(askPrismActions.reset());
+
+		if (numericProjectId) {
+			void dispatch(
+				askPrismActions.loadSuggestedQuestions({ projectId: numericProjectId }),
+			);
+		}
+	}, [dispatch, numericProjectId]);
 
 	const handleQueryChange = useCallback(
 		(event: ChangeEvent<HTMLInputElement>): void => {
@@ -57,16 +60,19 @@ const AskPrismView = ({
 			event?.preventDefault();
 			const trimmedQuery = query.trim();
 
-			if (!trimmedQuery || isLoading) {
+			if (!trimmedQuery || isLoading || !numericProjectId) {
 				return;
 			}
 
 			void dispatch(
-				askPrismActions.askQuestion({ projectId, query: trimmedQuery }),
+				askPrismActions.askQuestion({
+					projectId: numericProjectId,
+					query: trimmedQuery,
+				}),
 			);
 			setQuery("");
 		},
-		[dispatch, isLoading, projectId, query],
+		[dispatch, isLoading, numericProjectId, query],
 	);
 
 	const handleKeyDown = useCallback(
@@ -83,25 +89,33 @@ const AskPrismView = ({
 
 	const handlePromptClick = useCallback(
 		(prompt: string): void => {
-			if (isLoading) {
+			if (isLoading || !numericProjectId) {
 				return;
 			}
 
 			setQuery(prompt);
-			void dispatch(askPrismActions.askQuestion({ projectId, query: prompt }));
+			void dispatch(
+				askPrismActions.askQuestion({
+					projectId: numericProjectId,
+					query: prompt,
+				}),
+			);
 		},
-		[dispatch, isLoading, projectId],
+		[dispatch, isLoading, numericProjectId],
 	);
 
 	const handleRetry = useCallback((): void => {
-		if (!submittedQuery) {
+		if (!submittedQuery || !numericProjectId) {
 			return;
 		}
 
 		void dispatch(
-			askPrismActions.askQuestion({ projectId, query: submittedQuery }),
+			askPrismActions.askQuestion({
+				projectId: numericProjectId,
+				query: submittedQuery,
+			}),
 		);
-	}, [dispatch, projectId, submittedQuery]);
+	}, [dispatch, numericProjectId, submittedQuery]);
 
 	return (
 		<div className="mx-auto flex h-full w-full max-w-[680px] min-h-0 flex-col px-4 pt-6 tablet:pt-8">
