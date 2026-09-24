@@ -1,7 +1,7 @@
 import { type PartialBlock } from "@blocknote/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { Button, KnowledgeEditor } from "~/components/components.js";
+import { KnowledgeEditor } from "~/components/components.js";
 import {
 	type KbEntry,
 	type KnowledgeEntryUpdateRequestDto,
@@ -34,20 +34,24 @@ const parseInitialContent = (content?: unknown): PartialBlock[] => {
 };
 
 interface KbEntryDetailProperties {
-	canEdit: boolean;
 	entry: KbEntry;
+	isEditing?: boolean;
+	onCancel?: (() => void) | undefined;
 	onSave: (payload: KnowledgeEntryUpdateRequestDto) => Promise<void>;
 }
 
-const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
-	const [isEditing, setIsEditing] = useState(false);
+const KbEntryDetail = ({
+	entry,
+	isEditing = false,
+	onCancel,
+	onSave,
+}: KbEntryDetailProperties) => {
 	const [saveErrorMessage, setSaveErrorMessage] = useState<null | string>(null);
 	const [previousEntryId, setPreviousEntryId] = useState(entry.id);
 	const savingEntryIdReference = useRef<null | number>(null);
 
 	if (entry.id !== previousEntryId) {
 		setPreviousEntryId(entry.id);
-		setIsEditing(false);
 		setSaveErrorMessage(null);
 	}
 
@@ -63,14 +67,10 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 	const handleCancel = useCallback((): void => {
 		setSaveErrorMessage(null);
 		savingEntryIdReference.current = null;
-		setIsEditing(false);
-	}, []);
-
-	const handleStartEdit = useCallback((): void => {
-		setSaveErrorMessage(null);
-		savingEntryIdReference.current = null;
-		setIsEditing(true);
-	}, []);
+		if (onCancel) {
+			onCancel();
+		}
+	}, [onCancel]);
 
 	const handleSave = useCallback(
 		async (payload: KnowledgeEntryUpdateRequestDto): Promise<boolean> => {
@@ -105,7 +105,7 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 	);
 
 	return (
-		<div className="kb-container relative flex flex-col gap-4">
+		<div className="kb-container relative">
 			{isEditing ? (
 				<KbEntryForm
 					entry={entry}
@@ -116,23 +116,21 @@ const KbEntryDetail = ({ canEdit, entry, onSave }: KbEntryDetailProperties) => {
 				/>
 			) : (
 				<>
-					<div className="kb-header flex min-h-10 justify-end pb-4">
-						{canEdit && (
-							<Button onClick={handleStartEdit} type="button">
-								Edit
-							</Button>
-						)}
+					<h1 className="mb-2.5 font-serif text-h1 text-text">{entry.title}</h1>
+					<div className="mb-7 font-mono text-xs text-text-faint">
+						<span>
+							Last updated:{" "}
+							{entry.updatedAt
+								? new Date(entry.updatedAt).toLocaleDateString(undefined)
+								: "Unknown"}
+						</span>
 					</div>
-					<div className="kb-body">
-						<h1 className="mb-4 text-2xl font-bold">{entry.title}</h1>
-						<div className="-mx-12">
-							<KnowledgeEditor
-								initialContent={readOnlyInitialContent}
-								isEditable={false}
-								key={`${String(entry.id)}-${entry.updatedAt ?? ""}`}
-							/>
-						</div>
-					</div>
+
+					<KnowledgeEditor
+						initialContent={readOnlyInitialContent}
+						isEditable={false}
+						key={`${String(entry.id)}-${entry.updatedAt ?? ""}`}
+					/>
 				</>
 			)}
 		</div>

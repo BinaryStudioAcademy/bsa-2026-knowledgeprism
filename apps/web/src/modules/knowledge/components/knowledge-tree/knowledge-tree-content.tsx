@@ -1,30 +1,59 @@
-import React from "react";
+import {
+	type KnowledgeEntryResponseDto,
+	type KnowledgeEntryUpdateRequestDto,
+} from "@knowledgeprism/types";
+import React, { useCallback } from "react";
 
-import { KnowledgeEditor } from "~/components/knowledge-editor/knowledge-editor.js";
+import { useAppDispatch, useCurrentProjectId } from "~/hooks/hooks.js";
 
-import { type KnowledgeEntryResponseDto } from "../../libs/mock-knowledge-tree.js";
+import { actions } from "../../knowledge.js";
+import { KbEntryDetail } from "../kb-entry-detail/kb-entry-detail.js";
 import "./knowledge-tree-content.css";
 
 type Properties = {
 	entry: KnowledgeEntryResponseDto;
+	isEditing?: boolean;
+	onCancel?: () => void;
 };
 
-const KnowledgeTreeContent: React.FC<Properties> = ({ entry }: Properties) => {
+const KnowledgeTreeContent: React.FC<Properties> = ({
+	entry,
+	isEditing = false,
+	onCancel,
+}: Properties) => {
+	const dispatch = useAppDispatch();
+	const projectId = useCurrentProjectId();
+
+	const handleSave = useCallback(
+		async (payload: KnowledgeEntryUpdateRequestDto): Promise<void> => {
+			if (!projectId) {
+				return;
+			}
+
+			await dispatch(
+				actions.updateKnowledgeEntry({
+					entryId: entry.id,
+					payload,
+					projectId,
+				}),
+			).unwrap();
+
+			if (onCancel) {
+				onCancel();
+			}
+		},
+		[dispatch, entry.id, onCancel, projectId],
+	);
+
 	return (
 		<div className="flex flex-1 items-start justify-center overflow-y-scroll px-4 py-6 @3xl:px-10 @3xl:py-9">
 			<div className="w-full max-w-190 min-w-0 rounded-lg border border-border bg-surface p-6 shadow-md @3xl:p-10">
-				<h1 className="mb-2.5 font-serif text-h1 text-text">{entry.title}</h1>
-				<div className="mb-7 font-mono text-xs text-text-faint">
-					<span>
-						Last updated:{" "}
-						{new Date(entry.updatedAt).toLocaleDateString(undefined)}
-					</span>
-				</div>
-
 				<div className="knowledge-tree-editor-wrapper">
-					<KnowledgeEditor
-						initialContent={entry.contentJson}
-						isEditable={false}
+					<KbEntryDetail
+						entry={entry}
+						isEditing={isEditing}
+						onCancel={onCancel}
+						onSave={handleSave}
 					/>
 				</div>
 			</div>

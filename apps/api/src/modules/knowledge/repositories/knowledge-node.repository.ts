@@ -1,5 +1,11 @@
-import { KnowledgeValidationRule } from "@knowledgeprism/constants";
-import { type KnowledgeNodeContentDto } from "@knowledgeprism/types";
+import {
+	KnowledgeNodeType,
+	KnowledgeValidationRule,
+} from "@knowledgeprism/constants";
+import {
+	type KnowledgeNodeContentDto,
+	type KnowledgeTreeItemResponseDto,
+} from "@knowledgeprism/types";
 
 import { KnowledgeNodeEntity } from "../models/knowledge-node.entity.js";
 import { type KnowledgeNodeModel } from "../models/knowledge-node.model.js";
@@ -11,6 +17,15 @@ type RecentKnowledgeDatabaseRow = {
 	updatedAt: Date;
 };
 
+type TreeKnowledgeDatabaseRow = {
+	id: number;
+	parentId: null | number;
+	position: number;
+	title: string;
+	type: KnowledgeTreeItemResponseDto["type"];
+	updatedAt: Date;
+};
+
 const EMPTY_LENGTH = 0;
 
 class KnowledgeNodeRepository {
@@ -18,31 +33,6 @@ class KnowledgeNodeRepository {
 
 	public constructor(knowledgeNodeModel: typeof KnowledgeNodeModel) {
 		this.knowledgeNodeModel = knowledgeNodeModel;
-	}
-
-	public async findAllByProjectId(
-		projectId: number,
-	): Promise<KnowledgeNodeEntity[]> {
-		const nodes = await this.knowledgeNodeModel
-			.query()
-			.where({ projectId })
-			.orderBy("position", "asc")
-			.orderBy("id", "asc")
-			.execute();
-
-		return nodes.map((node) =>
-			KnowledgeNodeEntity.initialize({
-				contentJson: node.contentJson,
-				createdAt: node.createdAt,
-				id: node.id,
-				parentId: node.parentId,
-				position: node.position,
-				projectId: node.projectId,
-				title: node.title,
-				type: node.type,
-				updatedAt: node.updatedAt,
-			}),
-		);
 	}
 
 	public async findByIdAndProjectId(
@@ -82,8 +72,22 @@ class KnowledgeNodeRepository {
 			.query()
 			.select(["id", "projectId", "title", "updatedAt"])
 			.whereIn("projectId", projectIds)
+			.whereNot("type", KnowledgeNodeType.SECTION)
 			.orderBy("updatedAt", "desc")
 			.castTo<RecentKnowledgeDatabaseRow[]>()
+			.execute();
+	}
+
+	public async findTreeItemsByProjectId(
+		projectId: number,
+	): Promise<TreeKnowledgeDatabaseRow[]> {
+		return await this.knowledgeNodeModel
+			.query()
+			.select(["id", "parentId", "position", "title", "type", "updatedAt"])
+			.where({ projectId })
+			.orderBy("position", "asc")
+			.orderBy("id", "asc")
+			.castTo<TreeKnowledgeDatabaseRow[]>()
 			.execute();
 	}
 

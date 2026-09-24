@@ -1,5 +1,7 @@
 import type React from "react";
 
+import { type KnowledgeTreeItemResponseDto } from "@knowledgeprism/types";
+
 import {
 	EMPTY_LENGTH,
 	INDEX_OFFSET,
@@ -7,7 +9,6 @@ import {
 	MIN_INDEX,
 	NOT_FOUND_INDEX,
 } from "../../libs/constants/constants.js";
-import { type KnowledgeTreeItemResponseDto } from "../../libs/mock-knowledge-tree.js";
 
 type HorizontalNavigationConfig = {
 	children: KnowledgeTreeItemResponseDto[];

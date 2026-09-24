@@ -1,7 +1,11 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import { AdminRoute, StoreProvider } from "~/components/components.js";
+import {
+	AdminRoute,
+	ProtectedRoute,
+	StoreProvider,
+} from "~/components/components.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
 import { AskPrismView } from "~/modules/ask-prism/ask-prism.js";
@@ -57,59 +61,64 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 					{
 						children: [
 							{
-								element: <WorkspaceContainer />,
-								path: AppRoute.WORKSPACES,
-							},
-							{
 								children: [
 									{
-										element: <ProjectDetailsPage />,
-										index: true,
-									},
-									{
-										element: <AskPrismView />,
-										path: AppRoute.PROJECT_ASK_PRISM,
-									},
-									{
-										element: <KnowledgeTreePage />,
-										path: AppRoute.PROJECT_KNOWLEDGE_TREE,
-									},
-									{
-										element: <KnowledgeSearchPage />,
-										path: AppRoute.PROJECT_GLOSSARY,
-									},
-								],
-								element: <SidebarLayout />,
-								path: AppRoute.WORKSPACE_DETAILS,
-							},
-							{
-								children: [
-									{
-										element: <AccountSettingsPage />,
-										path: AppRoute.SETTINGS,
+										element: <WorkspaceContainer />,
+										path: AppRoute.WORKSPACES,
 									},
 									{
 										children: [
 											{
-												element: <UserManagementHubPage />,
-												path: AppRoute.USERS,
+												element: <ProjectDetailsPage />,
+												index: true,
 											},
 											{
-												element: <UserCreationPage />,
-												path: AppRoute.USERS_NEW,
+												element: <AskPrismView />,
+												path: AppRoute.PROJECT_ASK_PRISM,
 											},
 											{
-												element: <UserEditPage />,
-												path: AppRoute.USERS_EDIT,
+												element: <KnowledgeTreePage />,
+												path: AppRoute.PROJECT_KNOWLEDGE_TREE,
+											},
+											{
+												element: <KnowledgeSearchPage />,
+												path: AppRoute.PROJECT_GLOSSARY,
 											},
 										],
-										element: <AdminRoute />,
+										element: <SidebarLayout />,
+										path: AppRoute.WORKSPACE_DETAILS,
+									},
+									{
+										children: [
+											{
+												element: <AccountSettingsPage />,
+												path: AppRoute.SETTINGS,
+											},
+											{
+												children: [
+													{
+														element: <UserManagementHubPage />,
+														path: AppRoute.USERS,
+													},
+													{
+														element: <UserCreationPage />,
+														path: AppRoute.USERS_NEW,
+													},
+													{
+														element: <UserEditPage />,
+														path: AppRoute.USERS_EDIT,
+													},
+												],
+												element: <AdminRoute />,
+											},
+										],
+										element: <SidebarLayout />,
 									},
 								],
-								element: <SidebarLayout />,
+								element: <AppLayout />,
 							},
 						],
-						element: <AppLayout />,
+						element: <ProtectedRoute />,
 					},
 					{
 						element: <NotFoundPage />,

@@ -1,19 +1,32 @@
+import { ProjectMemberRole } from "@knowledgeprism/constants";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { Avatar, Header, Logo } from "~/components/components.js";
-import { useNavigate } from "~/hooks/hooks.js";
+import { Avatar, Button, Header, Icon, Logo } from "~/components/components.js";
+import {
+	useAppSelector,
+	useLocation,
+	useModal,
+	useNavigate,
+	useOptionalCurrentProjectId,
+} from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
 
 interface WorkspaceHeaderProperties {
 	avatarUrl?: null | string;
 	firstName?: null | string;
+	isAdmin?: boolean;
 	isLoading?: boolean;
 	lastName?: null | string;
 	onLogOut?: () => void;
 	onOpenSettings?: (() => void) | undefined;
+	onOpenUserManagement?: (() => void) | undefined;
 	organizationName?: null | string;
 }
 
+const ACCOUNT_MENU_ITEM_CLASS =
+	"w-full min-h-11 cursor-pointer rounded-md px-3 py-3 text-left text-sm font-medium transition-colors focus:outline-none sm:min-h-0 sm:py-2 sm:text-xs" as const;
 const FIRST_CHARACTER_INDEX = 0;
 const EMPTY_LENGTH = 0;
 
@@ -32,13 +45,37 @@ const getInitials = (first?: null | string, last?: null | string): string => {
 const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	avatarUrl,
 	firstName,
+	isAdmin = false,
 	isLoading = false,
 	lastName,
 	onLogOut,
 	onOpenSettings,
+	onOpenUserManagement,
 	organizationName,
 }) => {
+	const { hideModal, isOpen, showModal } = useModal();
+	const { pathname } = useLocation();
+	const projectId = useOptionalCurrentProjectId();
+	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
+	const { projects } = useAppSelector(({ workspaces }) => workspaces);
+	const currentProject = projects.find((project) => project.id === projectId);
 	const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+	const WORKSPACE_LIST_PATHS: readonly string[] = [
+		AppRoute.ROOT,
+		"/workspaces",
+		"/workspaces/",
+	];
+
+	const isWorkspaceListPage = WORKSPACE_LIST_PATHS.includes(pathname);
+
+	const currentProjectRole = currentProject?.role.trim().toUpperCase();
+	const isAllowedRole =
+		currentProjectRole === ProjectMemberRole.ADMIN.toUpperCase() ||
+		currentProjectRole === ProjectMemberRole.EDITOR.toUpperCase();
+
+	const canShowAddKnowledge =
+		Boolean(projectId) && !isWorkspaceListPage && isAllowedRole;
 
 	const dropdownReference = useRef<HTMLDivElement>(null);
 	const navigate = useNavigate();
@@ -49,12 +86,12 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 
 	const handleCloseDropdown = useCallback((): void => {
 		setIsDropdownOpen(false);
-	}, []);
+	}, [setIsDropdownOpen]);
 
 	const handleLogOut = useCallback((): void => {
 		setIsDropdownOpen(false);
 		onLogOut?.();
-	}, [onLogOut]);
+	}, [onLogOut, setIsDropdownOpen]);
 
 	const handleOpenSettings = useCallback((): void => {
 		setIsDropdownOpen(false);
@@ -66,11 +103,23 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 		}
 
 		void navigate(AppRoute.SETTINGS);
-	}, [navigate, onOpenSettings]);
+	}, [navigate, onOpenSettings, setIsDropdownOpen]);
+
+	const handleOpenUserManagement = useCallback((): void => {
+		setIsDropdownOpen(false);
+
+		if (onOpenUserManagement) {
+			onOpenUserManagement();
+
+			return;
+		}
+
+		void navigate(AppRoute.USERS);
+	}, [navigate, onOpenUserManagement, setIsDropdownOpen]);
 
 	const toggleDropdown = useCallback((): void => {
 		setIsDropdownOpen((previous) => !previous);
-	}, []);
+	}, [setIsDropdownOpen]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent): void => {
@@ -93,7 +142,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 		<div className="sticky top-0 z-30 w-full bg-surface">
 			<Header>
 				<div className="flex h-full w-full items-center justify-between">
-					<div className="flex min-w-0 items-center gap-3">
+					<div className="flex shrink-0 items-center gap-3">
 						<Logo to={AppRoute.ROOT} />
 
 						{isLoading && (
@@ -118,6 +167,29 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 					</div>
 
 					<div className="flex items-center" ref={dropdownReference}>
+						{canShowAddKnowledge && (
+							<>
+								<Button
+									aria-label="Add Knowledge"
+									className="tablet:hidden ml-2 mr-2 shrink-0 flex items-center gap-1 px-2 py-1 text-2xs font-semibold whitespace-nowrap"
+									disabled={isAddingKnowledge}
+									onClick={showModal}
+									variant="accent"
+								>
+									<Icon name="plus" size={14} />
+									<span className="hidden sm:inline">Add Knowledge</span>
+								</Button>
+
+								{isOpen && (
+									<AddKnowledgeModal
+										isOpen={isOpen}
+										onClose={hideModal}
+										projectName={currentProject?.name ?? ""}
+									/>
+								)}
+							</>
+						)}
+
 						{isLoading && (
 							<div className="h-8 w-8 animate-pulse rounded-full bg-(--color-border-subtle) sm:h-8 sm:w-32 sm:rounded-md" />
 						)}
@@ -150,7 +222,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 											type="button"
 										/>
 
-										<div className="fixed inset-x-0 bottom-0 z-50 flex w-full flex-col rounded-t-2xl border-t border-(--color-border-subtle) bg-surface px-3.5 pb-3 pt-2 shadow-2xl transition-all duration-300 ease-out animate-in slide-in-from-bottom sm:absolute sm:bottom-auto sm:left-auto sm:-right-2 sm:top-full sm:mt-2 sm:w-36 sm:rounded-xl sm:border sm:p-2.5 sm:shadow-xl sm:slide-in-from-top-2">
+										<div className="fixed inset-x-0 bottom-0 z-50 flex w-full flex-col rounded-t-2xl border-t border-(--color-border-subtle) bg-surface px-3.5 pb-3 pt-2 shadow-2xl transition-all duration-300 ease-out animate-in slide-in-from-bottom sm:absolute sm:bottom-auto sm:left-auto sm:-right-2 sm:top-full sm:mt-2 sm:w-44 sm:rounded-xl sm:border sm:p-2.5 sm:shadow-xl sm:slide-in-from-top-2">
 											<div className="mx-auto mb-2 h-1 w-8 rounded-full bg-border sm:hidden" />
 
 											<div className="mb-2 flex items-center gap-2.5 border-b border-(--color-border-subtle) pb-2 sm:hidden">
@@ -173,15 +245,31 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 
 											<div className="flex flex-col gap-0.5 sm:gap-1.5">
 												<button
-													className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-text-muted transition-colors hover:bg-secondary hover:text-text focus:outline-none sm:py-2"
+													className={getValidClassNames(
+														ACCOUNT_MENU_ITEM_CLASS,
+														"text-text-muted hover:bg-secondary hover:text-text",
+													)}
 													onClick={handleOpenSettings}
 													type="button"
 												>
 													Settings
 												</button>
 
+												{isAdmin && (
+													<button
+														className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-text-muted transition-colors hover:bg-secondary hover:text-text focus:outline-none sm:py-2"
+														onClick={handleOpenUserManagement}
+														type="button"
+													>
+														User Management
+													</button>
+												)}
+
 												<button
-													className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-red-500 transition-colors hover:bg-red-50 hover:text-red-600 focus:outline-none sm:py-2"
+													className={getValidClassNames(
+														ACCOUNT_MENU_ITEM_CLASS,
+														"text-error hover:bg-error-bg hover:text-error-hover",
+													)}
 													onClick={handleLogOut}
 													type="button"
 												>

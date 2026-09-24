@@ -82,6 +82,9 @@ const { actions, name, reducer } = createSlice({
 		clearError(state) {
 			state.error = null;
 		},
+		clearUser(state) {
+			state.user = null;
+		},
 	},
 });
 

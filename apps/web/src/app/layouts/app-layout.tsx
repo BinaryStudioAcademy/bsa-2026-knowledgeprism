@@ -31,13 +31,14 @@ const AppLayout: React.FC = () => {
 	}, [dispatch, navigate]);
 
 	const handleOpenSettings = useCallback((): void => {
-		void navigate(isOrgAdmin ? AppRoute.USERS : AppRoute.SETTINGS);
-	}, [isOrgAdmin, navigate]);
+		void navigate(AppRoute.SETTINGS);
+	}, [navigate]);
 
 	return (
 		<div className="flex h-dvh flex-col bg-bg">
 			<WorkspaceHeader
 				firstName={userObject?.firstName ?? null}
+				isAdmin={isOrgAdmin}
 				lastName={userObject?.lastName ?? null}
 				onLogOut={handleLogOut}
 				onOpenSettings={handleOpenSettings}

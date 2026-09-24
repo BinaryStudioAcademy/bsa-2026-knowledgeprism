@@ -8,6 +8,7 @@ import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
 
 type Properties = {
+	isDisabled: boolean;
 	item: UploadedDocumentItem;
 	onCancel: () => void;
 	onRemove: () => void;
@@ -32,13 +33,14 @@ const getIconBgClass = (
 	if (status === DocumentProcessingStatus.FAILED) {
 		return "bg-error/10 text-error";
 	}
-	if (status === DocumentProcessingStatus.SUCCESS) {
+	if (status === DocumentProcessingStatus.READY) {
 		return "bg-success/15 text-accent";
 	}
 	return "bg-accent/10 text-accent";
 };
 
 const DocumentRow = ({
+	isDisabled,
 	item,
 	onCancel,
 	onRemove,
@@ -46,7 +48,7 @@ const DocumentRow = ({
 }: Properties): JSX.Element => {
 	const isProcessing = item.status === DocumentProcessingStatus.PROCESSING;
 	const isFailed = item.status === DocumentProcessingStatus.FAILED;
-	const isSuccess = item.status === DocumentProcessingStatus.SUCCESS;
+	const isReady = item.status === DocumentProcessingStatus.READY;
 
 	const statusLabel = getStatusLabel(item.status);
 	const iconBgClass = getIconBgClass(item.status);
@@ -73,7 +75,7 @@ const DocumentRow = ({
 						<span
 							className={getValidClassNames(
 								isFailed && "font-medium text-error",
-								isSuccess && "font-medium text-accent",
+								isReady && "font-medium text-accent",
 							)}
 						>
 							{statusLabel}
@@ -84,19 +86,19 @@ const DocumentRow = ({
 				<div className="flex items-center gap-1.5">
 					{isFailed && (
 						<button
-							aria-label="Retry processing"
-							className="flex size-7 cursor-pointer items-center justify-center rounded-md text-text-muted hover:bg-border-subtle hover:text-text"
+							className="cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-accent hover:bg-border-subtle hover:text-accent-hover"
+							disabled={isDisabled}
 							onClick={onRetry}
-							title="Retry"
 							type="button"
 						>
-							<Icon name="chevron-down" size={14} />
+							Retry
 						</button>
 					)}
 
 					<button
 						aria-label={isProcessing ? "Cancel upload" : "Remove document"}
 						className="flex size-7 cursor-pointer items-center justify-center rounded-md text-text-muted hover:bg-border-subtle hover:text-text"
+						disabled={isDisabled}
 						onClick={isProcessing ? onCancel : onRemove}
 						title={isProcessing ? "Cancel" : "Remove"}
 						type="button"
@@ -107,7 +109,14 @@ const DocumentRow = ({
 			</div>
 
 			{isProcessing && (
-				<div className="h-1 w-full overflow-hidden rounded-full bg-border-subtle">
+				<div
+					aria-label={`Processing ${item.name}`}
+					aria-valuemax={100}
+					aria-valuemin={0}
+					aria-valuenow={item.progress}
+					className="h-1 w-full overflow-hidden rounded-full bg-border-subtle"
+					role="progressbar"
+				>
 					<div
 						className="h-full bg-accent transition-all duration-300"
 						style={{ width: `${String(item.progress)}%` }}
