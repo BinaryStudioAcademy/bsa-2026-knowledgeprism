@@ -25,7 +25,7 @@ type Properties = {
 	label: ReactNode;
 };
 
-const escapeKey = "Escape";
+const ESCAPE_KEY = "Escape";
 
 const Dropdown = ({
 	className,
@@ -63,7 +63,7 @@ const Dropdown = ({
 		}
 
 		const handleKeyDown = (event: KeyboardEvent): void => {
-			if (event.key === escapeKey) {
+			if (event.key === ESCAPE_KEY) {
 				handleDismiss();
 			}
 		};
