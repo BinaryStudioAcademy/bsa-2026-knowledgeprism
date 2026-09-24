@@ -127,15 +127,17 @@ class UserRepository implements Repository {
 				.returning("*")
 				.execute();
 
-			if (assignedProjects && assignedProjects.length > EMPTY_LENGTH) {
-				const projectIds = assignedProjects.map((project) => project.projectId);
+			const projectsToAssign = assignedProjects ?? [];
+
+			if (projectsToAssign.length > EMPTY_LENGTH) {
+				const projectIds = projectsToAssign.map((project) => project.projectId);
 				await this.assertProjectsBelongToOrganisation(
 					projectIds,
 					organisationId,
 					trx,
 				);
 
-				const projectMembersToInsert = assignedProjects.map((project) => ({
+				const projectMembersToInsert = projectsToAssign.map((project) => ({
 					projectId: project.projectId,
 					role: project.role,
 					userId: insertedUser.id,
