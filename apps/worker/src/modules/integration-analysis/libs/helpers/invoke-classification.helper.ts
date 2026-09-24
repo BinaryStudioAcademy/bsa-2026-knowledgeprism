@@ -1,8 +1,8 @@
 import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
+import { BedrockRequest, ClaudeModelId } from "@knowledgeprism/constants";
 
-import { BedrockRequest } from "~/bedrock/bedrock-request.constant.js";
+import { ExtractionBedrockConfig } from "~/bedrock/bedrock-request.constant.js";
 import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
-import { ClaudeModelId } from "~/bedrock/claude-model.constant.js";
 import { toResponseText } from "~/bedrock/to-response-text.helper.js";
 import { logger } from "~/logger/logger.js";
 
@@ -41,7 +41,7 @@ const invokeClassification = async (
 			},
 		],
 		system: CLASSIFICATION_SYSTEM_PROMPT,
-		temperature: BedrockRequest.TEMPERATURE,
+		temperature: ExtractionBedrockConfig.TEMPERATURE,
 	});
 
 	try {
