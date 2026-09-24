@@ -13,12 +13,18 @@ const ConfidenceRange = {
 	MIN: 0,
 } as const;
 
+const ExtractionOutputError = {
+	INVALID_SHAPE: "Extraction output is not a JSON array.",
+	NO_VALID_ITEMS: "Extraction output contains no valid items.",
+} as const;
+
 const TITLE_MAXIMUM_LENGTH = 80;
 const TITLE_START_INDEX = 0;
 const TITLE_ELLIPSIS = "…";
 const MARKDOWN_FENCE = "```";
 const NOT_FOUND_INDEX = -1;
 const LINE_BREAK_LENGTH = 1;
+const EMPTY_LENGTH = 0;
 
 const isFiniteNumber = (value: unknown): value is number => {
 	return typeof value === "number" && Number.isFinite(value);
@@ -54,6 +60,7 @@ const isExtractionCandidate = (
 		isNonEmptyString(value.text)
 	);
 };
+
 const stripMarkdownFence = (value: string): string => {
 	if (!value.startsWith(MARKDOWN_FENCE) || !value.endsWith(MARKDOWN_FENCE)) {
 		return value;
@@ -73,23 +80,17 @@ const parseRawValue = (raw: unknown): unknown => {
 		return raw;
 	}
 
-	const trimmed = stripMarkdownFence(raw.trim());
-
-	if (trimmed === "") {
-		return [];
-	}
-
-	try {
-		return JSON.parse(trimmed) as unknown;
-	} catch {
-		return [];
-	}
+	return JSON.parse(stripMarkdownFence(raw.trim())) as unknown;
 };
 
 const parseExtractionCandidates = (raw: unknown): unknown[] => {
 	const parsed = parseRawValue(raw);
 
-	return Array.isArray(parsed) ? parsed : [];
+	if (!Array.isArray(parsed)) {
+		throw new TypeError(ExtractionOutputError.INVALID_SHAPE);
+	}
+
+	return parsed;
 };
 
 const toTitle = (candidate: ExtractionCandidate): string => {
@@ -122,11 +123,16 @@ const mapExtractionOutput = (
 	raw: unknown,
 	pageNumber: number,
 ): KnowledgeItem[] => {
-	return parseExtractionCandidates(raw)
-		.filter(isExtractionCandidate)
-		.map((candidate) => {
-			return toKnowledgeItem(candidate, pageNumber);
-		});
+	const candidates = parseExtractionCandidates(raw);
+	const items = candidates.filter(isExtractionCandidate).map((candidate) => {
+		return toKnowledgeItem(candidate, pageNumber);
+	});
+
+	if (candidates.length > EMPTY_LENGTH && items.length === EMPTY_LENGTH) {
+		throw new Error(ExtractionOutputError.NO_VALID_ITEMS);
+	}
+
+	return items;
 };
 
 export { mapExtractionOutput };
