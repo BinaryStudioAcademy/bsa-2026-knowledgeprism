@@ -6,7 +6,6 @@ import React, { useCallback, useMemo, useState } from "react";
 
 import { Loader } from "~/components/components.js";
 import { useAppDispatch, useAppSelector, useModal } from "~/hooks/hooks.js";
-import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
@@ -20,22 +19,6 @@ import { KnowledgeTreeHeader } from "./knowledge-tree-header.js";
 import { KnowledgeTreeSidebar } from "./knowledge-tree-sidebar.js";
 
 const DEFAULT_BASELINE = 1;
-const LIVE_VERSION_INCREMENT = 1;
-const LIVE_VERSION_WITH_CONFLICTS =
-	DEFAULT_BASELINE + LIVE_VERSION_INCREMENT;
-
-const previewScenarios = [
-	{
-		id: "clean",
-		label: "No live changes",
-	},
-	{
-		id: "version-conflict",
-		label: "Live changed",
-	},
-] as const;
-
-type PreviewScenario = (typeof previewScenarios)[number]["id"];
 
 type Properties = {
 	canEdit?: boolean;
@@ -67,14 +50,8 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 
 	const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
 	const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
-	const [previewScenario, setPreviewScenario] =
-		useState<PreviewScenario>("clean");
 
 	const isKbEmpty = items.length === EMPTY_LENGTH;
-	const currentLiveVersion =
-		previewScenario === "version-conflict"
-			? LIVE_VERSION_WITH_CONFLICTS
-			: DEFAULT_BASELINE;
 
 	const handleAddMore = useCallback((): void => {
 		setIsPreviewOpen(false);
@@ -105,17 +82,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	const handleOpenSidebar = useCallback((): void => {
 		setIsSidebarOpen(true);
 	}, []);
-
-	const handleSelectPreviewScenario = useCallback(
-		(event: React.MouseEvent<HTMLButtonElement>): void => {
-			const nextScenario = event.currentTarget.dataset[
-				"scenario"
-			] as PreviewScenario;
-
-			setPreviewScenario(nextScenario);
-		},
-		[],
-	);
 
 	const breadcrumbs = useMemo(() => {
 		if (!selectedPageId) {
@@ -156,37 +122,10 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	if (isPreviewOpen) {
 		return (
 			<div className="flex h-full w-full flex-col bg-bg">
-				<div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-border-subtle bg-surface px-3 py-2 tablet:px-4">
-					<span className="font-sans text-2xs font-semibold uppercase tracking-wide text-text-muted">
-						Mock scenario
-					</span>
-					<div className="inline-flex rounded-md border border-border bg-bg p-0.5">
-						{previewScenarios.map((scenario) => {
-							const isSelected = scenario.id === previewScenario;
-
-							return (
-								<button
-									className={getValidClassNames(
-										"rounded px-2.5 py-1 font-sans text-2xs font-medium transition-colors",
-										isSelected
-											? "bg-primary text-primary-fg"
-											: "text-text-muted hover:bg-secondary hover:text-text",
-									)}
-									data-scenario={scenario.id}
-									key={scenario.id}
-									onClick={handleSelectPreviewScenario}
-									type="button"
-								>
-									{scenario.label}
-								</button>
-							);
-						})}
-					</div>
-				</div>
 				<div className="min-h-0 flex-1">
 					<IntegrationPreview
 						baselineVersion={DEFAULT_BASELINE}
-						currentLiveVersion={currentLiveVersion}
+						currentLiveVersion={DEFAULT_BASELINE}
 						onAddMore={handleAddMore}
 						onApprove={handleApproveIntegration}
 						onClose={handleClosePreview}

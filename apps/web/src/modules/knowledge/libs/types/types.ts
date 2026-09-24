@@ -12,7 +12,7 @@ import {
 	type SearchStatus,
 } from "../enums/enums.js";
 
-type ChangeStatus = "CONFLICT" | "DUPLICATE" | "NEW" | "UPDATE";
+type ChangeStatus = "conflict" | "created" | "duplicate" | "modified";
 
 type ConflictResolution = "keep" | "use-new";
 

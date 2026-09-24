@@ -67,7 +67,7 @@ const resolveSection = (
 	return {
 		...section,
 		content: resolvedContent,
-		status: titleConflict || contentConflict ? "UPDATE" : section.status,
+		status: titleConflict || contentConflict ? "modified" : section.status,
 		title: resolvedTitle,
 	};
 };

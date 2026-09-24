@@ -179,50 +179,26 @@ const textToBlocks = (text: string): PartialBlock[] => {
 };
 
 const getStatusLabel = (status: ChangeStatus): string => {
-	if (status === "NEW") {
-		return "new";
-	}
-
-	if (status === "UPDATE") {
-		return "update";
-	}
-
-	if (status === "DUPLICATE") {
-		return "duplicate";
-	}
-
-	return "conflict";
+	return status;
 };
 
 const getSectionStatusLabel = (status: ChangeStatus): string => {
-	if (status === "NEW") {
-		return "new section";
-	}
-
-	if (status === "UPDATE") {
-		return "updated section";
-	}
-
-	if (status === "DUPLICATE") {
-		return "duplicate section";
-	}
-
-	return "conflict section";
+	return `${status} section`;
 };
 
 const getStatusBadge = (status: ChangeStatus): JSX.Element => {
-	const isConflict = status === "CONFLICT";
-	const isDuplicate = status === "DUPLICATE";
-	const isNew = status === "NEW";
-	const isUpdate = status === "UPDATE";
+	const isConflict = status === "conflict";
+	const isCreated = status === "created";
+	const isDuplicate = status === "duplicate";
+	const isModified = status === "modified";
 
 	const badgeClass = getValidClassNames(
 		"inline-flex items-center justify-center min-w-[64px] rounded-full px-2 py-0.5 font-sans text-2xs font-medium lowercase tracking-wide shrink-0 border transition-colors text-center leading-none whitespace-nowrap",
 		{
 			"bg-error-bg text-error border-error/25": isConflict,
-			"bg-info-bg text-info border-info/25": isUpdate,
+			"bg-info-bg text-info border-info/25": isModified,
 			"bg-secondary text-text-muted border-border": isDuplicate,
-			"bg-success-bg text-accent border-accent/25": isNew,
+			"bg-success-bg text-accent border-accent/25": isCreated,
 		},
 	);
 
@@ -230,7 +206,7 @@ const getStatusBadge = (status: ChangeStatus): JSX.Element => {
 };
 
 const getSectionConflicts = (section: ProposedSection): FieldConflict[] => {
-	if (section.status !== "CONFLICT") {
+	if (section.status !== "conflict") {
 		return [];
 	}
 
@@ -265,7 +241,7 @@ const getGeneratedConflicts = (
 
 	if (
 		activeSection &&
-		activeSection.status !== "NEW" &&
+		activeSection.status !== "created" &&
 		generatedConflicts.length === EMPTY_LENGTH
 	) {
 		const { content, id, originalContent, originalTitle, title } =
@@ -314,13 +290,13 @@ const updateSectionInPages = ({
 		...targetSection,
 		...partialSection,
 		status:
-			targetSection.status === "NEW" ? targetSection.status : "UPDATE",
+			targetSection.status === "created" ? targetSection.status : "modified",
 	};
 
 	updatedPages[pageIndex] = {
 		...targetPage,
 		sections: updatedSections,
-		status: targetPage.status === "NEW" ? targetPage.status : "UPDATE",
+		status: targetPage.status === "created" ? targetPage.status : "modified",
 	};
 
 	return updatedPages;
@@ -342,7 +318,7 @@ const updatePageInPages = ({
 	updatedPages[pageIndex] = {
 		...targetPage,
 		...partialPage,
-		status: targetPage.status === "NEW" ? targetPage.status : "UPDATE",
+		status: targetPage.status === "created" ? targetPage.status : "modified",
 	};
 
 	return updatedPages;
@@ -393,7 +369,7 @@ const StructureAside = ({
 					<div className="flex w-full min-w-0 flex-col gap-1" key={page.id}>
 						<button
 							className={getValidClassNames(
-								"group flex w-full min-w-0 items-center justify-between gap-2 rounded-md py-1.5 pl-1.5 pr-1.5 text-left font-sans text-xs font-semibold transition-colors",
+								"group flex w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md py-1.5 pl-1.5 pr-1.5 text-left font-sans text-xs font-semibold transition-colors",
 								isPageSelected
 									? "bg-success-bg text-accent"
 									: "text-text hover:bg-secondary",
@@ -434,7 +410,7 @@ const StructureAside = ({
 								return (
 									<button
 										className={getValidClassNames(
-											"group flex w-full min-w-0 items-center justify-between overflow-hidden rounded-md py-1.5 pl-4 pr-1.5 text-left font-sans text-xs transition-colors",
+											"group flex w-full min-w-0 cursor-pointer items-center justify-between overflow-hidden rounded-md py-1.5 pl-4 pr-1.5 text-left font-sans text-xs transition-colors",
 											isSelected
 												? "bg-success-bg font-medium text-accent"
 												: "text-text-muted hover:bg-secondary hover:text-text",
@@ -523,13 +499,13 @@ const SectionDetails = ({
 							"rounded-full px-2.5 py-0.5 font-sans text-2xs font-medium border shrink-0 whitespace-nowrap",
 							{
 								"bg-info-bg text-info border-info/25":
-									selectedNode.status === "UPDATE",
+									selectedNode.status === "modified",
 								"bg-secondary text-text-muted border-border":
-									selectedNode.status === "DUPLICATE",
+									selectedNode.status === "duplicate",
 								"bg-success-bg text-accent border-accent/25":
-									selectedNode.status === "NEW",
+									selectedNode.status === "created",
 								"bg-warning-bg text-warning border-warning/35":
-									selectedNode.status === "CONFLICT",
+									selectedNode.status === "conflict",
 							},
 						)}
 					>
@@ -620,8 +596,7 @@ const SectionDetails = ({
 							className="text-sm leading-relaxed text-text-muted"
 							size={ParagraphSize.BODY_SMALL}
 						>
-							This section groups proposed pages. Select a page to edit its
-							content.
+							Select a child page to edit content.
 						</Paragraph>
 					</div>
 				</div>
