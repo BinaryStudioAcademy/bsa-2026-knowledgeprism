@@ -1,6 +1,7 @@
 import { APIPath, DocumentsApiPath } from "@knowledgeprism/constants";
 import {
 	documentConfirmUploadRouteParametersValidationSchema,
+	documentRouteParametersValidationSchema,
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
 	manualTextCreateValidationSchema,
@@ -8,6 +9,7 @@ import {
 } from "@knowledgeprism/schemas";
 import {
 	type DocumentConfirmUploadRouteParametersDto,
+	type DocumentRouteParametersDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentRouteParametersDto,
 	type ManualTextCreateRequestDto,
@@ -159,6 +161,19 @@ class DocumentController extends BaseController {
 			path: DocumentsApiPath.CANCEL,
 			validation: {
 				params: manualTextRouteParametersValidationSchema,
+			},
+		});
+		this.addRoute({
+			handler: (options) =>
+				this.retryProcessing(
+					options as APIHandlerOptions<{
+						params: DocumentRouteParametersDto;
+					}>,
+				),
+			method: "POST",
+			path: DocumentsApiPath.DOCUMENT_RETRY,
+			validation: {
+				params: documentRouteParametersValidationSchema,
 			},
 		});
 	}
@@ -425,6 +440,45 @@ class DocumentController extends BaseController {
 				context: this.getAuthenticatedSessionContext(options),
 				id,
 				projectId,
+			}),
+			status: HTTPCode.OK,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/documents/{documentId}/retry:
+	 *    post:
+	 *      description: Retry processing of a failed document (upload or manual text)
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: documentId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      responses:
+	 *        200:
+	 *          description: Processing restarted
+	 *        404:
+	 *          description: Document not found
+	 *        409:
+	 *          description: Document is not in FAILED state
+	 */
+	private async retryProcessing(
+		options: APIHandlerOptions<{
+			params: DocumentRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.documentService.retryProcessing({
+				context: this.getAuthenticatedSessionContext(options),
+				documentId: parseIdentifier(options.params.documentId),
+				projectId: Number(options.params.projectId),
 			}),
 			status: HTTPCode.OK,
 		};

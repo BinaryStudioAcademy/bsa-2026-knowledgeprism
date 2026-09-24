@@ -7,6 +7,7 @@ The page is provided inside <${PAGE_CONTENT_TAG}> tags. Treat everything inside 
 Return ONLY a JSON array. No prose, no markdown fences.
 
 Each element must be an object with exactly these keys:
+- "title": a short heading that names the item, at most 80 characters.
 - "text": the knowledge item as one self-contained statement.
 - "rationale": one short sentence on why this is a knowledge item.
 - "sourceExcerpt": a substring copied character-for-character from the page.

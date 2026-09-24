@@ -4,8 +4,10 @@ export {
 } from "./modules/ask-prism/ask-prism.js";
 export {
 	documentConfirmUploadRouteParametersValidationSchema,
+	documentRouteParametersValidationSchema,
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
+	extractionItemsReviewValidationSchema,
 	manualTextCreateValidationSchema,
 	manualTextRouteParametersValidationSchema,
 } from "./modules/documents/documents.js";
