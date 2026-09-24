@@ -15,6 +15,7 @@ import { type Transaction } from "objection";
 
 import { type Database } from "~/infrastructure/database/database.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
+import { toDocumentStatusResponse } from "~/modules/documents/libs/helpers/to-document-status-response.helper.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
@@ -224,27 +225,8 @@ class DocumentReviewService {
 		);
 
 		const document = await this.findProjectDocument(reference);
-		const {
-			createdAt,
-			errorMessage,
-			id,
-			name,
-			projectId,
-			sourceType,
-			status,
-			updatedAt,
-		} = document.toObject();
 
-		return {
-			createdAt: createdAt.toISOString(),
-			errorMessage,
-			id,
-			name,
-			projectId,
-			sourceType,
-			status,
-			updatedAt: updatedAt.toISOString(),
-		};
+		return toDocumentStatusResponse(document);
 	}
 
 	public async review({

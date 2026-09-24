@@ -2,6 +2,7 @@ const DocumentsApiPath = {
 	CANCEL: "/:projectId/manual-text/:id/cancel",
 	CONFIRM_UPLOAD: "/:projectId/documents/:documentId/confirm-upload",
 	DOCUMENT_$ID: "/:projectId/documents/:documentId",
+	DOCUMENT_RETRY: "/:projectId/documents/:documentId/retry",
 	EXTRACTION_ITEMS: "/:projectId/documents/:documentId/extraction-items",
 	EXTRACTION_ITEMS_REVIEW:
 		"/:projectId/documents/:documentId/extraction-items/review",

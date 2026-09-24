@@ -8,6 +8,7 @@ import {
 import {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentConfirmUploadRouteParametersDto,
+	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
@@ -26,6 +27,7 @@ import { ProcessingSweep } from "~/modules/documents/libs/constants/processing-s
 import { createContentHash } from "~/modules/documents/libs/helpers/create-content-hash.helper.js";
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
 import { isUniqueViolation } from "~/modules/documents/libs/helpers/is-unique-violation.helper.js";
+import { toDocumentStatusResponse } from "~/modules/documents/libs/helpers/to-document-status-response.helper.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
@@ -35,6 +37,7 @@ import {
 } from "~/modules/projects/services/project.service.js";
 
 import { type DocumentProcessor } from "./document-processor.js";
+import { type DocumentReference } from "./document-review.service.js";
 
 const MANUAL_TEXT_MIME_TYPE = "text/plain";
 const UNTITLED_MANUAL_DOCUMENT_NAME = "Untitled";
@@ -579,14 +582,35 @@ class DocumentService {
 			numericProjectId,
 			context,
 		);
-		await this.findOwnedDocument({
+
+		const document = await this.findOwnedDocument({
 			id,
 			projectId: numericProjectId,
 		});
 
+		if (document.toObject().sourceType !== DocumentSourceType.MANUAL) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
 		const retriedDocument = await this.restartFailedProcessing(id);
 
 		return this.toManualTextResponse(retriedDocument);
+	}
+
+	public async retryProcessing({
+		context,
+		documentId,
+		projectId,
+	}: DocumentReference): Promise<DocumentStatusResponseDto> {
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
+		await this.findOwnedDocument({ id: documentId, projectId });
+
+		const retriedDocument = await this.restartFailedProcessing(documentId);
+
+		return toDocumentStatusResponse(retriedDocument);
 	}
 }
 
