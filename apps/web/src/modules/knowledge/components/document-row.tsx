@@ -8,6 +8,7 @@ import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
 
 type Properties = {
+	isDisabled: boolean;
 	item: UploadedDocumentItem;
 	onCancel: () => void;
 	onRemove: () => void;
@@ -39,6 +40,7 @@ const getIconBgClass = (
 };
 
 const DocumentRow = ({
+	isDisabled,
 	item,
 	onCancel,
 	onRemove,
@@ -85,6 +87,7 @@ const DocumentRow = ({
 					{isFailed && (
 						<button
 							className="cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-accent hover:bg-border-subtle hover:text-accent-hover"
+							disabled={isDisabled}
 							onClick={onRetry}
 							type="button"
 						>
@@ -95,6 +98,7 @@ const DocumentRow = ({
 					<button
 						aria-label={isProcessing ? "Cancel upload" : "Remove document"}
 						className="flex size-7 cursor-pointer items-center justify-center rounded-md text-text-muted hover:bg-border-subtle hover:text-text"
+						disabled={isDisabled}
 						onClick={isProcessing ? onCancel : onRemove}
 						title={isProcessing ? "Cancel" : "Remove"}
 						type="button"
