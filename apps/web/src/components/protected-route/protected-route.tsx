@@ -5,10 +5,9 @@ import { useAppSelector, useLocation } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 
 const ProtectedRoute: React.FC = () => {
-	const { hasUser, isInitialized } = useAppSelector(({ auth }) => ({
-		hasUser: Boolean(auth.user),
-		isInitialized: auth.isInitialized,
-	}));
+	const hasUser = useAppSelector(({ auth }) => Boolean(auth.user));
+	const isInitialized = useAppSelector(({ auth }) => auth.isInitialized);
+
 	const { pathname, search } = useLocation();
 
 	if (!isInitialized) {

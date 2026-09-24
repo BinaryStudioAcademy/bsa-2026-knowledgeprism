@@ -1,8 +1,7 @@
 import { type UserSignUpResponseDto } from "@knowledgeprism/types";
-import { createSlice, isRejected, type UnknownAction } from "@reduxjs/toolkit";
+import { createSlice } from "@reduxjs/toolkit";
 
 import { DataStatus } from "~/lib/enums/enums.js";
-import { HTTPCode } from "~/lib/http/http.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { loadCurrentUser, logout, signIn, signUp } from "./actions.js";
@@ -19,14 +18,6 @@ const initialState: State = {
 	error: null,
 	isInitialized: false,
 	user: null,
-};
-
-const isUnauthorizedAction = (action: UnknownAction): boolean => {
-	return (
-		isRejected(action) &&
-		"status" in action.error &&
-		action.error.status === HTTPCode.UNAUTHORIZED
-	);
 };
 
 const { actions, name, reducer } = createSlice({
@@ -84,15 +75,15 @@ const { actions, name, reducer } = createSlice({
 		builder.addCase(logout.rejected, (state) => {
 			state.dataStatus = DataStatus.REJECTED;
 		});
-		builder.addMatcher(isUnauthorizedAction, (state) => {
-			state.user = null;
-		});
 	},
 	initialState,
 	name: "auth",
 	reducers: {
 		clearError(state) {
 			state.error = null;
+		},
+		clearUser(state) {
+			state.user = null;
 		},
 	},
 });

@@ -1,6 +1,10 @@
+import { AuthValidationMessage } from "@knowledgeprism/constants";
 import { isRejected, type Middleware } from "@reduxjs/toolkit";
 
 import { errorService } from "~/lib/errors/error.service.js";
+import { normalizeError } from "~/lib/helpers/normalize-error.helper.js";
+import { HTTPCode } from "~/lib/http/http.js";
+import { actions as authActions } from "~/modules/auth/auth.js";
 
 const IGNORED_ACTION_TYPES = new Set([
 	"askPrism/ask-question/rejected",
@@ -8,21 +12,46 @@ const IGNORED_ACTION_TYPES = new Set([
 	"auth/load-current-user/rejected",
 ]);
 
-const handleRejectedAction: ReturnType<Middleware> = (next) => (action) => {
-	const result = next(action);
+const AUTH_FORM_ACTION_TYPES = new Set([
+	"auth/sign-in/rejected",
+	"auth/sign-up/rejected",
+]);
 
-	if (
-		isRejected(action) &&
-		!action.meta.aborted &&
-		!action.meta.condition &&
-		!IGNORED_ACTION_TYPES.has(action.type)
-	) {
-		errorService.notify(action.payload ?? action.error);
-	}
+const isUnauthorizedError = (error: unknown): boolean => {
+	const { message, status } = normalizeError(error);
 
-	return result;
+	return (
+		status === HTTPCode.UNAUTHORIZED ||
+		message === AuthValidationMessage.UNAUTHORIZED
+	);
 };
 
-const errorMiddleware: Middleware = () => handleRejectedAction;
+const errorMiddleware: Middleware =
+	({ dispatch }) =>
+	(next) =>
+	(action) => {
+		const result = next(action);
+
+		if (!isRejected(action) || action.meta.aborted || action.meta.condition) {
+			return result;
+		}
+
+		const error = action.payload ?? action.error;
+
+		if (
+			isUnauthorizedError(error) &&
+			!AUTH_FORM_ACTION_TYPES.has(action.type)
+		) {
+			dispatch(authActions.clearUser());
+
+			return result;
+		}
+
+		if (!IGNORED_ACTION_TYPES.has(action.type)) {
+			errorService.notify(error);
+		}
+
+		return result;
+	};
 
 export { errorMiddleware };
