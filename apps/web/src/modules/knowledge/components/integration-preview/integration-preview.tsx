@@ -288,11 +288,12 @@ const SectionDetails = ({
 }: SectionDetailsProperties): JSX.Element => {
 	if (!activeSection) {
 		return (
-			<main className="flex flex-1 min-w-0 flex-col gap-3 p-3.5 tablet:p-6 tablet:overflow-y-auto">
+			<div className="flex flex-1 min-w-0 flex-col gap-3 p-3.5 tablet:p-6 tablet:overflow-y-auto">
+				{" "}
 				<Paragraph size={ParagraphSize.BODY_SMALL}>
 					Select a section from the proposed tree to view details.
 				</Paragraph>
-			</main>
+			</div>
 		);
 	}
 

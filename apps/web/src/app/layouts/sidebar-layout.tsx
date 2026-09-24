@@ -44,9 +44,9 @@ const SidebarLayout: React.FC = () => {
 				role={currentProject?.role ?? ""}
 			/>
 
-			<main className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
 				<RouterOutlet />
-			</main>
+			</div>
 
 			<MobileNav />
 		</div>
