@@ -148,6 +148,10 @@ class AskPrismService {
 		}
 
 		// 6. Format Response
+		// TODO (Issue #162): Implement proper LLM-grounded citations.
+		// Currently returning all retrieved matches as "sources". Future iterations
+		// should prompt the LLM to return specific chunk IDs it used and include
+		// document/page/version metadata from knowledge_sources.
 		return {
 			answer,
 			sources: relevantMatches.map((match) => ({
