@@ -19,6 +19,7 @@ import { KnowledgeTreeHeader } from "./knowledge-tree-header.js";
 import { KnowledgeTreeSidebar } from "./knowledge-tree-sidebar.js";
 
 const DEFAULT_BASELINE = 1;
+const LIVE_VERSION = 2;
 
 type Properties = {
 	canEdit?: boolean;
@@ -125,7 +126,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				<div className="min-h-0 flex-1">
 					<IntegrationPreview
 						baselineVersion={DEFAULT_BASELINE}
-						currentLiveVersion={DEFAULT_BASELINE}
+						currentLiveVersion={LIVE_VERSION}
 						onAddMore={handleAddMore}
 						onApprove={handleApproveIntegration}
 						onClose={handleClosePreview}

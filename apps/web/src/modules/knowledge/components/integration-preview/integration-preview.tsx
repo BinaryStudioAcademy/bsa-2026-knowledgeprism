@@ -323,7 +323,9 @@ const SectionContentEditor = ({
 	isEditable = true,
 	onContentChange,
 }: SectionContentEditorProperties): JSX.Element => {
-	const [initialContent] = useState<PartialBlock[]>(() => textToBlocks(content));
+	const [initialContent] = useState<PartialBlock[]>(() =>
+		textToBlocks(content),
+	);
 
 	const handleChange = useCallback(
 		(blocks: EditorBlock[]): void => {
@@ -673,8 +675,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	const [activeSectionIndex, setActiveSectionIndex] = useState<number>(
 		DEFAULT_SECTION_INDEX,
 	);
-	const [activeNodeType, setActiveNodeType] =
-		useState<ActiveNodeType>("child");
+	const [activeNodeType, setActiveNodeType] = useState<ActiveNodeType>("child");
 	const [isEditMode, setIsEditMode] = useState<boolean>(false);
 	const [isSuccessModalOpen, setIsSuccessModalOpen] = useState<boolean>(false);
 	const [isMergeScreenOpen, setIsMergeScreenOpen] = useState<boolean>(false);
@@ -684,8 +685,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	const activeSection =
 		activePage?.sections[activeSectionIndex] ??
 		activePage?.sections[DEFAULT_SECTION_INDEX];
-	const selectedNode =
-		activeNodeType === "parent" ? activePage : activeSection;
+	const selectedNode = activeNodeType === "parent" ? activePage : activeSection;
 
 	const isTitleEmpty =
 		(selectedNode?.title.trim().length ?? EMPTY_LENGTH) === EMPTY_LENGTH;
@@ -844,26 +844,26 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	return (
 		<div className="mx-auto flex h-full w-full max-w-7xl flex-col justify-between gap-3 p-3 tablet:p-4 pb-2 tablet:pb-4 font-sans text-text">
 			<div className="flex flex-1 min-h-0 flex-col tablet:flex-row overflow-y-auto tablet:overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
-					<StructureAside
-						activeNodeType={activeNodeType}
-						activePageIndex={activePageIndex}
-						activeSectionIndex={activeSectionIndex}
-						onSelectPage={handleSelectPage}
-						onSelectSection={handleSelectSection}
-						pages={pages}
-					/>
+				<StructureAside
+					activeNodeType={activeNodeType}
+					activePageIndex={activePageIndex}
+					activeSectionIndex={activeSectionIndex}
+					onSelectPage={handleSelectPage}
+					onSelectSection={handleSelectSection}
+					pages={pages}
+				/>
 
-					<SectionDetails
-						activeNodeType={activeNodeType}
-						activePage={activePage}
-						activeSection={activeSection}
-						isContentEmpty={isContentEmpty}
-						isEditMode={isEditMode}
-						isTitleEmpty={isTitleEmpty}
-						onContentChange={handleSectionContentChange}
-						onPageTitleChange={handlePageTitleChange}
-						onTitleChange={handleSectionTitleChange}
-					/>
+				<SectionDetails
+					activeNodeType={activeNodeType}
+					activePage={activePage}
+					activeSection={activeSection}
+					isContentEmpty={isContentEmpty}
+					isEditMode={isEditMode}
+					isTitleEmpty={isTitleEmpty}
+					onContentChange={handleSectionContentChange}
+					onPageTitleChange={handlePageTitleChange}
+					onTitleChange={handleSectionTitleChange}
+				/>
 			</div>
 
 			<PreviewFooter
