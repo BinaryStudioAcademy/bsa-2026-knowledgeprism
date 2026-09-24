@@ -1,14 +1,14 @@
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
 
-import { type ProposedPage } from "~/modules/knowledge/libs/types/types.js";
+import { type ProposedSection } from "~/modules/knowledge/libs/types/types.js";
 
 const DEFAULT_PAGE_INDEX = 0;
 const DEFAULT_SECTION_INDEX = 1;
 
-const DEFAULT_PROPOSED_STRUCTURE: ProposedPage[] = [
+const DEFAULT_PROPOSED_STRUCTURE: ProposedSection[] = [
 	{
 		id: "page-hardware",
-		sections: [
+		pages: [
 			{
 				content: `Overview:
 Next-generation ProMotion OLED panel with adaptive refresh rate calibration from 1Hz to 120Hz.
@@ -87,7 +87,7 @@ Extended all-day operation for high-throughput AI scanning workloads.`,
 	},
 	{
 		id: "page-sensors",
-		sections: [
+		pages: [
 			{
 				content: `Overview:
 The LiDAR scanner is a direct time-of-flight sensor that measures distance by emitting laser light and calculating the time for reflected photons to return. It operates at the near-infrared wavelength range and is invisible to the human eye.
@@ -144,7 +144,7 @@ Floor-level indoor localization, gesture tracking, and rapid orientation changes
 	},
 	{
 		id: "page-qa",
-		sections: [
+		pages: [
 			{
 				content: `Overview:
 Automated factory-level optical and sensor calibration procedures ensuring uniform telemetry across production units.

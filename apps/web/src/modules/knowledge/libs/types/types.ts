@@ -1,5 +1,5 @@
 import { type PartialBlock } from "@blocknote/core";
-import { type KnowledgeNodeType } from "@knowledgeprism/constants";
+import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeSearchItemDto,
@@ -30,9 +30,9 @@ type IntegrationPreviewProperties = {
 	currentLiveVersion?: number;
 	isInitialCreation?: boolean;
 	onAddMore: () => void;
-	onApprove: (pages: ProposedPage[]) => void;
+	onApprove: (sections: ProposedSection[]) => void;
 	onClose: () => void;
-	proposedStructure?: ProposedPage[];
+	proposedStructure?: ProposedSection[];
 };
 
 interface KbEntry {
@@ -59,14 +59,6 @@ type KnowledgeState = {
 };
 
 type ProposedPage = {
-	id: string;
-	sections: ProposedSection[];
-	status: ChangeStatus;
-	title: string;
-	type: ValueOf<typeof KnowledgeNodeType>;
-};
-
-type ProposedSection = {
 	conflicts?: FieldConflict[];
 	content: string;
 	id: string;
@@ -75,7 +67,15 @@ type ProposedSection = {
 	status: ChangeStatus;
 	summary?: string;
 	title: string;
-	type: ValueOf<typeof KnowledgeNodeType>;
+	type: typeof KnowledgeNodeType.ENTRY | typeof KnowledgeNodeType.PAGE;
+};
+
+type ProposedSection = {
+	id: string;
+	pages: ProposedPage[];
+	status: ChangeStatus;
+	title: string;
+	type: typeof KnowledgeNodeType.SECTION;
 };
 
 type UploadedDocumentItem = {

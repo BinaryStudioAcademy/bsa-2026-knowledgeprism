@@ -59,7 +59,7 @@ type PreviewFooterProperties = {
 	onSaveEdit: () => void;
 };
 
-type ProposedNodeType = ProposedPage["type"];
+type ProposedNodeType = ProposedPage["type"] | ProposedSection["type"];
 
 type SectionContentEditorProperties = {
 	content: string;
@@ -69,8 +69,8 @@ type SectionContentEditorProperties = {
 
 type SectionDetailsProperties = {
 	activeNodeType: ActiveNodeType;
-	activePage: ProposedPage | undefined;
-	activeSection: ProposedSection | undefined;
+	activePage: ProposedSection | undefined;
+	activeSection: ProposedPage | undefined;
 	isContentEmpty: boolean;
 	isEditMode: boolean;
 	isTitleEmpty: boolean;
@@ -85,7 +85,7 @@ type StructureAsideProperties = {
 	activeSectionIndex: number;
 	onSelectPage: (event: MouseEvent<HTMLButtonElement>) => void;
 	onSelectSection: (event: MouseEvent<HTMLButtonElement>) => void;
-	pages: ProposedPage[];
+	pages: ProposedSection[];
 };
 
 type TextContentItem = {
@@ -94,14 +94,14 @@ type TextContentItem = {
 
 type UpdatePageParameters = {
 	pageIndex: number;
-	pages: ProposedPage[];
-	partialPage: Partial<ProposedPage>;
+	pages: ProposedSection[];
+	partialPage: Partial<ProposedSection>;
 };
 
 type UpdateSectionParameters = {
 	pageIndex: number;
-	pages: ProposedPage[];
-	partialSection: Partial<ProposedSection>;
+	pages: ProposedSection[];
+	partialSection: Partial<ProposedPage>;
 	sectionIndex: number;
 };
 
@@ -219,7 +219,7 @@ const getStatusBadge = (status: ChangeStatus): JSX.Element => {
 	return <span className={badgeClass}>{getStatusLabel(status)}</span>;
 };
 
-const getSectionConflicts = (section: ProposedSection): FieldConflict[] => {
+const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
 	if (section.status !== "conflict") {
 		return [];
 	}
@@ -242,13 +242,13 @@ const getSectionConflicts = (section: ProposedSection): FieldConflict[] => {
 };
 
 const getGeneratedConflicts = (
-	pages: ProposedPage[],
-	activeSection: ProposedSection | undefined,
+	pages: ProposedSection[],
+	activeSection: ProposedPage | undefined,
 ): FieldConflict[] => {
 	const generatedConflicts: FieldConflict[] = [];
 
 	for (const page of pages) {
-		for (const section of page.sections) {
+		for (const section of page.pages) {
 			generatedConflicts.push(...getSectionConflicts(section));
 		}
 	}
@@ -285,7 +285,7 @@ const updateSectionInPages = ({
 	pages,
 	partialSection,
 	sectionIndex,
-}: UpdateSectionParameters): ProposedPage[] => {
+}: UpdateSectionParameters): ProposedSection[] => {
 	const updatedPages = [...pages];
 	const targetPage = updatedPages[pageIndex];
 
@@ -293,7 +293,7 @@ const updateSectionInPages = ({
 		return pages;
 	}
 
-	const updatedSections = [...targetPage.sections];
+	const updatedSections = [...targetPage.pages];
 	const targetSection = updatedSections[sectionIndex];
 
 	if (!targetSection) {
@@ -309,7 +309,7 @@ const updateSectionInPages = ({
 
 	updatedPages[pageIndex] = {
 		...targetPage,
-		sections: updatedSections,
+		pages: updatedSections,
 		status: targetPage.status === "created" ? targetPage.status : "modified",
 	};
 
@@ -320,7 +320,7 @@ const updatePageInPages = ({
 	pageIndex,
 	pages,
 	partialPage,
-}: UpdatePageParameters): ProposedPage[] => {
+}: UpdatePageParameters): ProposedSection[] => {
 	const targetPage = pages[pageIndex];
 
 	if (!targetPage) {
@@ -413,7 +413,7 @@ const StructureAside = ({
 						</button>
 
 						<div className="flex w-full min-w-0 flex-col gap-0.5">
-							{page.sections.map((section, sectionIndex) => {
+							{page.pages.map((section, sectionIndex) => {
 								const isSelected =
 									pageIndex === activePageIndex &&
 									sectionIndex === activeSectionIndex &&
@@ -687,9 +687,9 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			? proposedStructure
 			: DEFAULT_PROPOSED_STRUCTURE;
 
-	const [pages, setPages] = useState<ProposedPage[]>(initialStructure);
+	const [pages, setPages] = useState<ProposedSection[]>(initialStructure);
 	const [backupPages, setBackupPages] =
-		useState<ProposedPage[]>(initialStructure);
+		useState<ProposedSection[]>(initialStructure);
 	const [activePageIndex, setActivePageIndex] =
 		useState<number>(DEFAULT_PAGE_INDEX);
 	const [activeSectionIndex, setActiveSectionIndex] = useState<number>(
@@ -703,8 +703,8 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 	const activePage = pages[activePageIndex] ?? pages[DEFAULT_PAGE_INDEX];
 	const activeSection =
-		activePage?.sections[activeSectionIndex] ??
-		activePage?.sections[DEFAULT_SECTION_INDEX];
+		activePage?.pages[activeSectionIndex] ??
+		activePage?.pages[DEFAULT_SECTION_INDEX];
 	const selectedNode = activeNodeType === "parent" ? activePage : activeSection;
 
 	const isTitleEmpty =
@@ -744,7 +744,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, []);
 
 	const handleConsolidatedPublish = useCallback(
-		(resolvedPages: ProposedPage[]): void => {
+		(resolvedPages: ProposedSection[]): void => {
 			setPages(resolvedPages);
 			setIsMergeScreenOpen(false);
 			onApprove(resolvedPages);
