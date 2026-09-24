@@ -10,15 +10,11 @@ import {
 import { Alert } from "~/components/alert/alert.js";
 import { Button } from "~/components/button/button.js";
 import { Icon } from "~/components/components.js";
-import { errorService } from "~/lib/errors/error.service.js";
-import {
-	getNotificationMessage,
-	getValidClassNames,
-} from "~/lib/helpers/helpers.js";
-import { type AppError } from "~/lib/types/app-error.type.js";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { notificationService } from "~/lib/notifications/notification.service.js";
+import { type AppNotification } from "~/lib/types/types.js";
 
-type ErrorNotification = {
-	error: AppError;
+type NotificationItem = AppNotification & {
 	id: string;
 	isLeaving: boolean;
 };
@@ -27,8 +23,14 @@ const AUTO_DISMISS_DELAY_MS = 5000;
 const CLOSE_ICON_SIZE = 10;
 const EXIT_ANIMATION_NAME = "fade-out";
 
-const GlobalErrorNotifications = (): React.JSX.Element => {
-	const [notifications, setNotifications] = useState<ErrorNotification[]>([]);
+const ProgressBarColor = {
+	error: "bg-error",
+	success: "bg-success",
+	warning: "bg-warning",
+} as const;
+
+const GlobalNotifications = (): React.JSX.Element => {
+	const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
 	const dismissTimeoutsReference = useRef<
 		Map<string, ReturnType<typeof setTimeout>>
@@ -69,15 +71,15 @@ const GlobalErrorNotifications = (): React.JSX.Element => {
 	);
 
 	useEffect(() => {
-		const unsubscribe = errorService.subscribe((error) => {
-			const notification = {
-				error,
+		const unsubscribe = notificationService.subscribe((notification) => {
+			const notificationItem = {
+				...notification,
 				id: crypto.randomUUID(),
 				isLeaving: false,
 			};
 
-			setNotifications((current) => [...current, notification]);
-			scheduleAutoDismiss(notification.id);
+			setNotifications((current) => [...current, notificationItem]);
+			scheduleAutoDismiss(notificationItem.id);
 		});
 
 		const dismissTimeouts = dismissTimeoutsReference.current;
@@ -129,10 +131,10 @@ const GlobalErrorNotifications = (): React.JSX.Element => {
 
 	return (
 		<section
-			aria-label="Error notifications"
+			aria-label="Notifications"
 			className="pointer-events-none fixed inset-x-4 top-4 z-50 flex max-h-[calc(100dvh-2rem)] flex-col overflow-y-auto tablet:left-auto tablet:w-96"
 		>
-			{notifications.map(({ error, id, isLeaving }) => (
+			{notifications.map(({ id, isLeaving, message, variant }) => (
 				<div
 					className={getValidClassNames(
 						"grid transition-[grid-template-rows] duration-[250ms] ease-in-out",
@@ -152,13 +154,16 @@ const GlobalErrorNotifications = (): React.JSX.Element => {
 							<div className="pt-2 pb-3" role="alert">
 								<div className="relative overflow-hidden rounded-md">
 									<Alert
-										description={getNotificationMessage(error)}
+										description={message}
 										hasTrailingAction
-										variant="error"
+										variant={variant}
 									/>
 
 									<div
-										className="animate-progress absolute bottom-0 left-0 h-1 w-full bg-error"
+										className={getValidClassNames(
+											"animate-progress absolute bottom-0 left-0 h-1 w-full",
+											ProgressBarColor[variant],
+										)}
 										style={{
 											animationDuration: `${AUTO_DISMISS_DELAY_MS.toString()}ms`,
 										}}
@@ -184,4 +189,4 @@ const GlobalErrorNotifications = (): React.JSX.Element => {
 	);
 };
 
-export { GlobalErrorNotifications };
+export { GlobalNotifications };

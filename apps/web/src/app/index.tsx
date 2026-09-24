@@ -27,7 +27,7 @@ import {
 } from "~/modules/workspaces/components/components.js";
 import "~/styles/styles.css";
 
-import { GlobalErrorNotifications } from "./global-error-notifications.js";
+import { GlobalNotifications } from "./global-notifications.js";
 import { AppLayout } from "./layouts/app-layout.js";
 import { AuthLayout } from "./layouts/auth-layout.js";
 import { SidebarLayout } from "./layouts/sidebar-layout.js";
@@ -38,7 +38,7 @@ void store.instance.dispatch(authActions.loadCurrentUser());
 createRoot(document.querySelector("#root") as HTMLElement).render(
 	<StrictMode>
 		<StoreProvider store={store.instance}>
-			<GlobalErrorNotifications />
+			<GlobalNotifications />
 			<RouterProvider
 				routes={[
 					{
