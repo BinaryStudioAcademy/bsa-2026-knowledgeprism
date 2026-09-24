@@ -17,6 +17,19 @@ import { actions as authActions } from "~/modules/auth/auth.js";
 
 import { SignInForm, SignUpForm } from "./components.js";
 
+const getRedirectPath = (state: unknown): string => {
+	if (
+		typeof state === "object" &&
+		state !== null &&
+		"from" in state &&
+		typeof state.from === "string"
+	) {
+		return state.from;
+	}
+
+	return AppRoute.WORKSPACES;
+};
+
 const AuthPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const { error, hasUser, isAuthPending, isInitialized } = useAppSelector(
@@ -27,8 +40,10 @@ const AuthPage: React.FC = () => {
 			isInitialized: auth.isInitialized,
 		}),
 	);
-	const { pathname } = useLocation();
+	const location = useLocation();
+	const { pathname } = location;
 	const navigate = useNavigate();
+	const redirectPath = getRedirectPath(location.state);
 
 	useEffect(() => {
 		dispatch(authActions.clearError());
@@ -36,9 +51,9 @@ const AuthPage: React.FC = () => {
 
 	useEffect(() => {
 		if (hasUser) {
-			void navigate(AppRoute.WORKSPACES, { replace: true });
+			void navigate(redirectPath, { replace: true });
 		}
-	}, [hasUser, navigate]);
+	}, [hasUser, navigate, redirectPath]);
 
 	const handleSignInSubmit = useCallback(
 		(payload: UserSignInRequestDto): void => {
@@ -46,11 +61,11 @@ const AuthPage: React.FC = () => {
 				const action = await dispatch(authActions.signIn(payload));
 
 				if (authActions.signIn.fulfilled.match(action)) {
-					await navigate(AppRoute.WORKSPACES);
+					await navigate(redirectPath, { replace: true });
 				}
 			})();
 		},
-		[dispatch, navigate],
+		[dispatch, navigate, redirectPath],
 	);
 
 	const handleSignUpSubmit = useCallback(

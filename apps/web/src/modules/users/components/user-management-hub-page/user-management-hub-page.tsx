@@ -45,7 +45,7 @@ const UserManagementHubPage: React.FC = () => {
 	return (
 		<div className="relative flex flex-1 justify-center overflow-auto p-4 tablet:p-7 desktop:px-11 desktop:py-10">
 			<div className="flex w-full flex-col gap-3.5 tablet:w-130 tablet:gap-4.5 desktop:w-160 desktop:gap-6">
-				<div className="flex items-center justify-between">
+				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<Heading level="2">User Management</Heading>
 						<Paragraph

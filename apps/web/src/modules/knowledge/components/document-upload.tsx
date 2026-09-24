@@ -14,9 +14,13 @@ import { FileDropzone } from "./file-dropzone.js";
 
 type Properties = {
 	className?: string;
+	isInteractionDisabled: boolean;
 };
 
-const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
+const DocumentUpload = ({
+	className = "",
+	isInteractionDisabled,
+}: Properties): JSX.Element => {
 	const dispatch = useAppDispatch();
 	const projectId = useCurrentProjectId();
 	const { errorMessage, selectedFile } = useAppSelector(
@@ -54,7 +58,7 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 	);
 
 	const handleRetry = useCallback((): void => {
-		if (!selectedFile || !fileReference.current) {
+		if (isInteractionDisabled || !selectedFile || !fileReference.current) {
 			return;
 		}
 
@@ -74,12 +78,16 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 				uploadUrl: selectedFile.uploadUrl,
 			}),
 		);
-	}, [dispatch, projectId, selectedFile]);
+	}, [dispatch, isInteractionDisabled, projectId, selectedFile]);
 
 	const handleRemove = useCallback((): void => {
+		if (isInteractionDisabled) {
+			return;
+		}
+
 		uploadTaskReference.current?.abort();
 		dispatch(actions.removeDocument());
-	}, [dispatch]);
+	}, [dispatch, isInteractionDisabled]);
 
 	return (
 		<div className={`flex flex-col gap-4 ${className}`}>
@@ -98,6 +106,7 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 
 			{selectedFile && (
 				<DocumentRow
+					isDisabled={isInteractionDisabled}
 					item={selectedFile}
 					onCancel={handleRemove}
 					onRemove={handleRemove}

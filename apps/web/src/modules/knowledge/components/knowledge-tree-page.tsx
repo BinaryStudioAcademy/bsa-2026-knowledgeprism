@@ -1,35 +1,78 @@
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
-	mockKnowledgeEntryCamera,
-	mockKnowledgeEntryProcessor,
-	mockKnowledgeTreeResponse,
-} from "../libs/mock-knowledge-tree.js";
+	useAppDispatch,
+	useAppSelector,
+	useCurrentProjectId,
+} from "~/hooks/hooks.js";
+
+import { actions } from "../knowledge.js";
 import { KnowledgeTreeLayout } from "./knowledge-tree/knowledge-tree-layout.js";
 
-const mockEntries = {
-	2: mockKnowledgeEntryCamera,
-	3: mockKnowledgeEntryProcessor,
-};
-
 const KnowledgeTreePage: React.FC = () => {
-	const [selectedPageId, setSelectedPageId] = useState<number | undefined>(
-		() => {
-			const firstPage = mockKnowledgeTreeResponse.items.find(
-				(item) => item.type === "PAGE" || item.type === "ENTRY",
-			);
+	const projectId = useCurrentProjectId();
+	const dispatch = useAppDispatch();
+	const { selectedEntry, tree } = useAppSelector((state) => state.knowledge);
 
-			return firstPage?.id;
-		},
-	);
+	const [manualSelectedPageId, setManualSelectedPageId] = useState<
+		number | undefined
+	>();
+	const [lastProjectId, setLastProjectId] = useState<null | string>(null);
+	const [fetchedProjectId, setFetchedProjectId] = useState<null | string>(null);
+
+	if (projectId !== lastProjectId) {
+		setLastProjectId(projectId);
+		setManualSelectedPageId(undefined);
+		setFetchedProjectId(null);
+	}
+
+	useEffect(() => {
+		if (!projectId) {
+			return;
+		}
+
+		void dispatch(actions.fetchKnowledgeTree({ projectId }))
+			.unwrap()
+			.finally(() => {
+				setFetchedProjectId(projectId);
+			});
+	}, [dispatch, projectId]);
+
+	const isTreeReady = fetchedProjectId === projectId;
+	const firstAvailablePage = isTreeReady
+		? tree.find((item) => item.type === "PAGE" || item.type === "ENTRY")
+		: undefined;
+	const activePageId = manualSelectedPageId ?? firstAvailablePage?.id;
+
+	useEffect(() => {
+		if (activePageId === undefined || !projectId) {
+			return;
+		}
+
+		void dispatch(
+			actions.fetchKnowledgeEntry({ entryId: activePageId, projectId }),
+		);
+	}, [dispatch, activePageId, projectId]);
+
+	const handleSelectPage = useCallback((id: number) => {
+		setManualSelectedPageId(id);
+	}, []);
+
+	const entries = useMemo(() => {
+		if (!selectedEntry) {
+			return {};
+		}
+		return { [selectedEntry.id]: selectedEntry };
+	}, [selectedEntry]);
 
 	return (
 		<KnowledgeTreeLayout
 			canEdit={true}
-			entries={mockEntries}
-			items={mockKnowledgeTreeResponse.items}
-			onSelectPage={setSelectedPageId}
-			selectedPageId={selectedPageId}
+			entries={entries}
+			isTreeReady={isTreeReady}
+			items={tree}
+			onSelectPage={handleSelectPage}
+			selectedPageId={activePageId}
 		/>
 	);
 };

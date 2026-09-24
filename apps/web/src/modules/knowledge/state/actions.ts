@@ -1,6 +1,9 @@
 import {
 	type DocumentConfirmUploadResponseDto,
+	type KnowledgeEntryResponseDto,
+	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeSearchResponseDto,
+	type KnowledgeTreeResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
 } from "@knowledgeprism/types";
@@ -9,7 +12,10 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
-import { DocumentValidationMessage } from "../libs/constants/constants.js";
+import {
+	DocumentValidationMessage,
+	PDF_MIME_TYPE,
+} from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
@@ -83,7 +89,7 @@ const processDocument = createAsyncThunk<
 			if (!resolvedDocumentId || !resolvedUploadUrl) {
 				const intent = await documentsApi.createUploadIntent({
 					payload: {
-						contentType: file.type,
+						contentType: file.type || PDF_MIME_TYPE,
 						fileName: file.name,
 						sizeInBytes: file.size,
 					},
@@ -123,6 +129,46 @@ const processDocument = createAsyncThunk<
 	},
 );
 
+const fetchKnowledgeTree = createAsyncThunk<
+	KnowledgeTreeResponseDto,
+	{ projectId: string },
+	AsyncThunkConfig
+>(`${sliceName}/fetch-tree`, async (payload, { extra }) => {
+	const { knowledgeApi } = extra;
+	return await knowledgeApi.getKnowledgeTree({
+		projectId: payload.projectId,
+	});
+});
+
+const fetchKnowledgeEntry = createAsyncThunk<
+	KnowledgeEntryResponseDto,
+	{ entryId: number; projectId: string },
+	AsyncThunkConfig
+>(`${sliceName}/fetch-entry`, async (payload, { extra }) => {
+	const { knowledgeApi } = extra;
+	return await knowledgeApi.getKnowledgeEntry({
+		entryId: payload.entryId,
+		projectId: payload.projectId,
+	});
+});
+
+const updateKnowledgeEntry = createAsyncThunk<
+	KnowledgeEntryResponseDto,
+	{
+		entryId: number;
+		payload: KnowledgeEntryUpdateRequestDto;
+		projectId: string;
+	},
+	AsyncThunkConfig
+>(`${sliceName}/update-entry`, async (payload, { extra }) => {
+	const { knowledgeApi } = extra;
+	return await knowledgeApi.updateKnowledgeEntry({
+		entryId: payload.entryId,
+		payload: payload.payload,
+		projectId: payload.projectId,
+	});
+});
+
 const submitManualText = createAsyncThunk<
 	ManualTextResponseDto,
 	SubmitManualTextPayload,
@@ -140,7 +186,10 @@ const submitManualText = createAsyncThunk<
 
 export {
 	confirmDocumentUpload,
+	fetchKnowledgeEntry,
+	fetchKnowledgeTree,
 	processDocument,
 	searchKnowledge,
 	submitManualText,
+	updateKnowledgeEntry,
 };
