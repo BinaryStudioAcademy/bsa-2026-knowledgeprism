@@ -21,6 +21,7 @@ const extractionItemRepository = new ExtractionItemRepository(
 	ExtractionItemModel,
 );
 const documentProcessor = new DocumentProcessor({
+	database,
 	documentRepository,
 	extractionItemRepository,
 });

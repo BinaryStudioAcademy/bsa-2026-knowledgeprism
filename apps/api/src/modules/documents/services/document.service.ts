@@ -26,6 +26,7 @@ import { ProcessingSweep } from "~/modules/documents/libs/constants/processing-s
 import { createContentHash } from "~/modules/documents/libs/helpers/create-content-hash.helper.js";
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
 import { isUniqueViolation } from "~/modules/documents/libs/helpers/is-unique-violation.helper.js";
+import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 import {
@@ -38,6 +39,7 @@ import { type DocumentProcessor } from "./document-processor.js";
 const MANUAL_TEXT_MIME_TYPE = "text/plain";
 const UNTITLED_MANUAL_DOCUMENT_NAME = "Untitled";
 const NO_DOCUMENTS = 0;
+const INITIAL_PROCESSING_ATTEMPT = 0;
 
 type Constructor = {
 	checkDocumentObjectExists: CheckDocumentObjectExists;
@@ -77,22 +79,26 @@ class DocumentService {
 		this.projectService = projectService;
 	}
 
-	private async completeProcessing(id: number): Promise<void> {
+	private async completeProcessing(
+		processingAttempt: ProcessingAttempt,
+	): Promise<void> {
 		try {
-			await this.documentProcessor.process(id);
-			await this.documentRepository.compareAndSwapStatus({
-				errorMessage: null,
-				expectedStatus: DocumentStatus.PROCESSING,
-				id,
-				status: DocumentStatus.WAITING_FOR_APPROVAL,
-			});
+			const isCompleted =
+				await this.documentProcessor.process(processingAttempt);
+
+			if (!isCompleted) {
+				this.logger.warn(
+					"Discarded results of a superseded processing attempt.",
+					{ ...processingAttempt },
+				);
+			}
 		} catch (error) {
 			this.logger.error("Failed to process document.", {
-				documentId: id,
+				...processingAttempt,
 				error,
 			});
 
-			await this.failProcessing(id);
+			await this.failProcessing(processingAttempt);
 		}
 	}
 
@@ -115,17 +121,21 @@ class DocumentService {
 		});
 	}
 
-	private async failProcessing(id: number): Promise<void> {
+	private async failProcessing({
+		attempt,
+		documentId,
+	}: ProcessingAttempt): Promise<void> {
 		try {
 			await this.documentRepository.compareAndSwapStatus({
 				errorMessage: DocumentErrorMessage.PROCESSING_FAILED,
 				expectedStatus: DocumentStatus.PROCESSING,
-				id,
+				id: documentId,
+				processingAttempt: attempt,
 				status: DocumentStatus.FAILED,
 			});
 		} catch (error) {
 			this.logger.error("Failed to mark document as failed.", {
-				documentId: id,
+				documentId,
 				error,
 			});
 		}
@@ -163,9 +173,27 @@ class DocumentService {
 		return trimmedTitle === "" ? null : trimmedTitle;
 	}
 
-	private scheduleProcessing(id: number): void {
+	private async restartFailedProcessing(id: number): Promise<DocumentEntity> {
+		const processing = await this.documentRepository.startProcessing({
+			allowedStatuses: [DocumentStatus.FAILED],
+			id,
+		});
+
+		if (!processing) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.RETRY_NOT_ALLOWED,
+				status: HTTPCode.CONFLICT,
+			});
+		}
+
+		this.scheduleProcessing({ attempt: processing.attempt, documentId: id });
+
+		return processing.document;
+	}
+
+	private scheduleProcessing(processingAttempt: ProcessingAttempt): void {
 		setImmediate(() => {
-			void this.completeProcessing(id);
+			void this.completeProcessing(processingAttempt);
 		});
 	}
 
@@ -258,15 +286,12 @@ class DocumentService {
 			});
 		}
 
-		const transitionedDocument =
-			await this.documentRepository.updateStatusIfCurrentIn({
-				allowedStatuses: [DocumentStatus.UPLOADED],
-				errorMessage: null,
-				id: documentId,
-				status: DocumentStatus.PROCESSING,
-			});
+		const processing = await this.documentRepository.startProcessing({
+			allowedStatuses: [DocumentStatus.UPLOADED],
+			id: documentObject.id,
+		});
 
-		if (!transitionedDocument) {
+		if (!processing) {
 			throw new HTTPError({
 				message: DocumentErrorMessage.CONFIRM_NOT_ALLOWED,
 				status: HTTPCode.CONFLICT,
@@ -320,11 +345,15 @@ class DocumentService {
 				status: HTTPCode.SERVICE_UNAVAILABLE,
 			});
 		}
-		this.scheduleProcessing(documentObject.id);
+
+		this.scheduleProcessing({
+			attempt: processing.attempt,
+			documentId: documentObject.id,
+		});
 
 		return {
 			documentId: documentObject.id,
-			status: transitionedDocument.toObject().status,
+			status: processing.document.toObject().status,
 		};
 	}
 
@@ -397,7 +426,10 @@ class DocumentService {
 
 		const createdDocumentDto = this.toManualTextResponse(createdDocument);
 
-		this.scheduleProcessing(createdDocumentDto.id);
+		this.scheduleProcessing({
+			attempt: INITIAL_PROCESSING_ATTEMPT,
+			documentId: createdDocumentDto.id,
+		});
 
 		return createdDocumentDto;
 	}
@@ -552,21 +584,7 @@ class DocumentService {
 			projectId: numericProjectId,
 		});
 
-		const retriedDocument = await this.documentRepository.compareAndSwapStatus({
-			errorMessage: null,
-			expectedStatus: DocumentStatus.FAILED,
-			id,
-			status: DocumentStatus.PROCESSING,
-		});
-
-		if (!retriedDocument) {
-			throw new HTTPError({
-				message: DocumentErrorMessage.RETRY_NOT_ALLOWED,
-				status: HTTPCode.CONFLICT,
-			});
-		}
-
-		this.scheduleProcessing(id);
+		const retriedDocument = await this.restartFailedProcessing(id);
 
 		return this.toManualTextResponse(retriedDocument);
 	}

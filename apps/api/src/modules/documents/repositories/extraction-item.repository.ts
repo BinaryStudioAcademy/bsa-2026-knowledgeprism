@@ -75,35 +75,30 @@ class ExtractionItemRepository {
 			.execute();
 	}
 
-	public async replacePending({
-		documentId,
-		items,
-	}: {
-		documentId: number;
-		items: NewExtractionItem[];
-	}): Promise<void> {
-		await this.extractionItemModel.transaction(async (transaction) => {
-			await this.extractionItemModel
-				.query(transaction)
-				.delete()
-				.where({ documentId, status: ExtractionItemStatus.PENDING })
-				.execute();
+	public async replacePending(
+		{ documentId, items }: { documentId: number; items: NewExtractionItem[] },
+		transaction: Transaction,
+	): Promise<void> {
+		await this.extractionItemModel
+			.query(transaction)
+			.delete()
+			.where({ documentId, status: ExtractionItemStatus.PENDING })
+			.execute();
 
-			if (items.length === EMPTY_LENGTH) {
-				return;
-			}
+		if (items.length === EMPTY_LENGTH) {
+			return;
+		}
 
-			await this.extractionItemModel
-				.query(transaction)
-				.insert(
-					items.map((item) => ({
-						...item,
-						documentId,
-						status: ExtractionItemStatus.PENDING,
-					})),
-				)
-				.execute();
-		});
+		await this.extractionItemModel
+			.query(transaction)
+			.insert(
+				items.map((item) => ({
+					...item,
+					documentId,
+					status: ExtractionItemStatus.PENDING,
+				})),
+			)
+			.execute();
 	}
 }
 

@@ -1,10 +1,12 @@
 import { DocumentStatus } from "@knowledgeprism/constants";
 import { type ValueOf } from "@knowledgeprism/types";
-import { type Transaction } from "objection";
+import { raw, type Transaction } from "objection";
 
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentModel } from "~/modules/documents/models/document.model.js";
 import { type Repository } from "~/shared/types/types.js";
+
+const NEXT_PROCESSING_ATTEMPT_SQL = "processing_attempt + 1";
 
 class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 	private documentModel: typeof DocumentModel;
@@ -18,11 +20,13 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 			errorMessage,
 			expectedStatus,
 			id,
+			processingAttempt,
 			status,
 		}: {
 			errorMessage: null | string;
 			expectedStatus: ValueOf<typeof DocumentStatus>;
 			id: number;
+			processingAttempt?: number;
 			status: ValueOf<typeof DocumentStatus>;
 		},
 		transaction?: Transaction,
@@ -36,6 +40,7 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 			.where({
 				id,
 				status: expectedStatus,
+				...(processingAttempt !== undefined && { processingAttempt }),
 			})
 			.returning("*")
 			.first();
@@ -131,6 +136,35 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		}
 
 		return DocumentEntity.initialize(document);
+	}
+
+	public async startProcessing({
+		allowedStatuses,
+		id,
+	}: {
+		allowedStatuses: ValueOf<typeof DocumentStatus>[];
+		id: number;
+	}): Promise<null | { attempt: number; document: DocumentEntity }> {
+		const document = await this.documentModel
+			.query()
+			.patch({
+				errorMessage: null,
+				processingAttempt: raw(NEXT_PROCESSING_ATTEMPT_SQL),
+				status: DocumentStatus.PROCESSING,
+			})
+			.where({ id })
+			.whereIn("status", allowedStatuses)
+			.returning("*")
+			.first();
+
+		if (!document) {
+			return null;
+		}
+
+		return {
+			attempt: document.processingAttempt,
+			document: DocumentEntity.initialize(document),
+		};
 	}
 
 	public async updateStatus(
