@@ -1,9 +1,16 @@
 import { Icon } from "~/components/icon/icon.js";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { LANDING_FLEX_COLUMN_CLASS } from "~/modules/landing/libs/constants.js";
 
 import { FOLDER_ICON_SIZE, KNOWLEDGE_TREE_PREVIEW } from "./libs/constants.js";
 
 const KnowledgeTreePreview: React.FC = () => (
-	<div className="min-w-[320px] flex-1 tablet:order-1">
+	<div
+		className={getValidClassNames(
+			LANDING_FLEX_COLUMN_CLASS,
+			"mobile:min-w-[320px] tablet:order-1",
+		)}
+	>
 		<div className="flex w-full max-w-[460px] flex-col gap-0.5 overflow-hidden rounded-xl border border-border bg-surface">
 			<div className="border-b border-border-subtle px-4 py-3 text-[12.5px] font-medium">
 				{KNOWLEDGE_TREE_PREVIEW.TITLE}
