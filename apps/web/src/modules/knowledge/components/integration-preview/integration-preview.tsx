@@ -191,13 +191,7 @@ const textToBlocks = (text: string): PartialBlock[] => {
 	];
 };
 
-const getStatusLabel = (status: ChangeStatus): string => {
-	return status;
-};
-
-const getSectionStatusLabel = (status: ChangeStatus): string => {
-	return `${status} section`;
-};
+const formatChangeStatusLabel = (status: ChangeStatus): string => status;
 
 const getStatusBadge = (status: ChangeStatus): JSX.Element => {
 	const isConflict = status === "conflict";
@@ -215,7 +209,7 @@ const getStatusBadge = (status: ChangeStatus): JSX.Element => {
 		},
 	);
 
-	return <span className={badgeClass}>{getStatusLabel(status)}</span>;
+	return <span className={badgeClass}>{formatChangeStatusLabel(status)}</span>;
 };
 
 const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
@@ -511,7 +505,7 @@ const SectionDetails = ({
 							},
 						)}
 					>
-						{getSectionStatusLabel(selectedNode.status)}
+						{formatChangeStatusLabel(selectedNode.status)}
 					</span>
 				</div>
 
