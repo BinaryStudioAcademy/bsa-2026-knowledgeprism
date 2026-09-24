@@ -9,11 +9,14 @@ import {
 } from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
+import { NotificationVariant } from "~/lib/enums/enums.js";
+import { notificationService } from "~/lib/notifications/notification.service.js";
 import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
 import {
 	DocumentValidationMessage,
+	KnowledgeNotificationMessage,
 	PDF_MIME_TYPE,
 } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
@@ -162,11 +165,18 @@ const updateKnowledgeEntry = createAsyncThunk<
 	AsyncThunkConfig
 >(`${sliceName}/update-entry`, async (payload, { extra }) => {
 	const { knowledgeApi } = extra;
-	return await knowledgeApi.updateKnowledgeEntry({
+	const entry = await knowledgeApi.updateKnowledgeEntry({
 		entryId: payload.entryId,
 		payload: payload.payload,
 		projectId: payload.projectId,
 	});
+
+	notificationService.notify({
+		message: KnowledgeNotificationMessage.ENTRY_UPDATED,
+		variant: NotificationVariant.SUCCESS,
+	});
+
+	return entry;
 });
 
 const submitManualText = createAsyncThunk<
@@ -175,12 +185,19 @@ const submitManualText = createAsyncThunk<
 	AsyncThunkConfig
 >(
 	`${sliceName}/submit-manual-text`,
-	({ payload, projectId }, { extra, signal }) => {
-		return extra.documentsApi.createManualText({
+	async ({ payload, projectId }, { extra, signal }) => {
+		const manualText = await extra.documentsApi.createManualText({
 			payload,
 			projectId,
 			signal,
 		});
+
+		notificationService.notify({
+			message: KnowledgeNotificationMessage.MANUAL_TEXT_SUBMITTED,
+			variant: NotificationVariant.SUCCESS,
+		});
+
+		return manualText;
 	},
 );
 

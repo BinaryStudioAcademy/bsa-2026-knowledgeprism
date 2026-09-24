@@ -27,6 +27,11 @@ const KNOWLEDGE_TREE_ITEM_CONFIG = {
 	TAB_INDEX_UNFOCUSABLE: -1,
 } as const;
 
+const KnowledgeNotificationMessage = {
+	ENTRY_UPDATED: "Changes successfully saved",
+	MANUAL_TEXT_SUBMITTED: "Text submitted for processing",
+} as const;
+
 export {
 	DocumentValidationMessage,
 	EMPTY_LENGTH,
@@ -34,6 +39,7 @@ export {
 	FOCUS_DELAY_MS,
 	INDEX_OFFSET,
 	KNOWLEDGE_TREE_ITEM_CONFIG,
+	KnowledgeNotificationMessage,
 	LAST_INDEX_OFFSET,
 	MIN_INDEX,
 	NOT_FOUND_INDEX,
