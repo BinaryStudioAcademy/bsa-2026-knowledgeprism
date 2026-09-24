@@ -80,7 +80,7 @@ class DocumentProcessor {
 						expectedStatus: DocumentStatus.PROCESSING,
 						id: documentId,
 						processingAttempt: attempt,
-						status: DocumentStatus.WAITING_FOR_APPROVAL,
+						status: DocumentStatus.WAITING_FOR_VALIDATION,
 					},
 					transaction,
 				);

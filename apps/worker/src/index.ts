@@ -13,7 +13,6 @@ export {
 	embed,
 	search,
 } from "./modules/embeddings/services/embedding.service.js";
-export { IntegrationChangeType } from "./modules/integration-analysis/libs/constants/integration-change-type.constant.js";
 export { type IntegrationAnalysisParameters } from "./modules/integration-analysis/libs/types/integration-analysis-parameters.type.js";
 export { type IntegrationAnalysisResult } from "./modules/integration-analysis/libs/types/integration-analysis-result.type.js";
 export { type IntegrationChangeTypeValue } from "./modules/integration-analysis/libs/types/integration-change-type-value.type.js";

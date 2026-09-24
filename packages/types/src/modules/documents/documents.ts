@@ -10,6 +10,8 @@ export {
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
+	type IntegrationChangeResponseDto,
+	type IntegrationChangesResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
 	type ManualTextRouteParametersDto,

@@ -9,6 +9,8 @@ export { type ExtractionItemResponseDto } from "./extraction-item-response-dto.t
 export { type ExtractionItemsResponseDto } from "./extraction-items-response-dto.type.js";
 export { type ExtractionItemsReviewRequestDto } from "./extraction-items-review-request-dto.type.js";
 export { type ExtractionItemsReviewResponseDto } from "./extraction-items-review-response-dto.type.js";
+export { type IntegrationChangeResponseDto } from "./integration-change-response-dto.type.js";
+export { type IntegrationChangesResponseDto } from "./integration-changes-response-dto.type.js";
 export { type ManualTextCreateRequestDto } from "./manual-text-create-request-dto.type.js";
 export { type ManualTextResponseDto } from "./manual-text-response-dto.type.js";
 export { type ManualTextRouteParametersDto } from "./manual-text-route-parameters-dto.type.js";

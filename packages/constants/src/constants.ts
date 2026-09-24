@@ -20,6 +20,7 @@ export {
 	DocumentValidationMessage,
 	DocumentValidationRule,
 	ExtractionItemStatus,
+	IntegrationChangeType,
 } from "./modules/documents/documents.js";
 export {
 	KnowledgeApiPath,

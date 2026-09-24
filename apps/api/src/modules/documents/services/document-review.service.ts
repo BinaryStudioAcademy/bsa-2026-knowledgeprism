@@ -2,7 +2,6 @@ import {
 	DocumentErrorMessage,
 	DocumentStatus,
 	ExtractionItemStatus,
-	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
 import {
 	type DocumentStatusResponseDto,
@@ -10,31 +9,34 @@ import {
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
+	type IntegrationChangeResponseDto,
+	type IntegrationChangesResponseDto,
 } from "@knowledgeprism/types";
-import { type Transaction } from "objection";
 
 import { type Database } from "~/infrastructure/database/database.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { toDocumentStatusResponse } from "~/modules/documents/libs/helpers/to-document-status-response.helper.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
+import { type IntegrationChangeEntity } from "~/modules/documents/models/integration-change.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
-import { KnowledgeNodeEntity } from "~/modules/knowledge/models/knowledge-node.entity.js";
-import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/knowledge-node.repository.js";
+import { type IntegrationChangeRepository } from "~/modules/documents/repositories/integration-change.repository.js";
 import {
 	type ProjectAccessContext,
 	type ProjectService,
 } from "~/modules/projects/services/project.service.js";
 
+import { type DocumentJobScheduler } from "./document-job-scheduler.js";
+
 const EMPTY_LENGTH = 0;
-const PARAGRAPH_BLOCK_TYPE = "paragraph";
 
 type Constructor = {
 	database: Database;
+	documentJobScheduler: DocumentJobScheduler;
 	documentRepository: DocumentRepository;
 	extractionItemRepository: ExtractionItemRepository;
-	knowledgeNodeRepository: KnowledgeNodeRepository;
+	integrationChangeRepository: IntegrationChangeRepository;
 	projectService: ProjectService;
 };
 
@@ -42,6 +44,13 @@ type DocumentReference = {
 	context: ProjectAccessContext;
 	documentId: number;
 	projectId: number;
+};
+
+const createReviewNotAllowedError = (): HTTPError => {
+	return new HTTPError({
+		message: DocumentErrorMessage.REVIEW_NOT_ALLOWED,
+		status: HTTPCode.CONFLICT,
+	});
 };
 
 const toExtractionItemResponse = (
@@ -70,6 +79,36 @@ const toExtractionItemResponse = (
 	};
 };
 
+const toIntegrationChangeResponse = (
+	change: IntegrationChangeEntity,
+): IntegrationChangeResponseDto => {
+	const {
+		explanation,
+		extractionItemId,
+		id,
+		incomingContent,
+		incomingTitle,
+		liveContent,
+		liveTitle,
+		matchedNodeId,
+		score,
+		type,
+	} = change.toObject();
+
+	return {
+		explanation,
+		extractionItemId,
+		id,
+		incomingContent,
+		incomingTitle,
+		liveContent,
+		liveTitle,
+		matchedNodeId,
+		score,
+		type,
+	};
+};
+
 const assertReviewCoversPendingItems = (
 	pendingItems: ExtractionItemEntity[],
 	{ approvedIds, rejectedIds }: ExtractionItemsReviewRequestDto,
@@ -93,90 +132,62 @@ const assertReviewCoversPendingItems = (
 class DocumentReviewService {
 	private database: Database;
 
+	private documentJobScheduler: DocumentJobScheduler;
+
 	private documentRepository: DocumentRepository;
 
 	private extractionItemRepository: ExtractionItemRepository;
 
-	private knowledgeNodeRepository: KnowledgeNodeRepository;
+	private integrationChangeRepository: IntegrationChangeRepository;
 
 	private projectService: ProjectService;
 
 	public constructor({
 		database,
+		documentJobScheduler,
 		documentRepository,
 		extractionItemRepository,
-		knowledgeNodeRepository,
+		integrationChangeRepository,
 		projectService,
 	}: Constructor) {
 		this.database = database;
+		this.documentJobScheduler = documentJobScheduler;
 		this.documentRepository = documentRepository;
 		this.extractionItemRepository = extractionItemRepository;
-		this.knowledgeNodeRepository = knowledgeNodeRepository;
+		this.integrationChangeRepository = integrationChangeRepository;
 		this.projectService = projectService;
 	}
 
-	private async createKnowledgeNodes(
-		{
-			approvedItems,
-			document,
-			userId,
-		}: {
-			approvedItems: ExtractionItemEntity[];
-			document: DocumentEntity;
-			userId: number;
-		},
-		transaction: Transaction,
-	): Promise<null | number> {
-		if (approvedItems.length === EMPTY_LENGTH) {
-			return null;
-		}
+	private async completeWithoutApprovals({
+		documentId,
+		rejectedIds,
+	}: {
+		documentId: number;
+		rejectedIds: number[];
+	}): Promise<DocumentEntity> {
+		return await this.database.transaction(async (transaction) => {
+			const completedDocument =
+				await this.documentRepository.compareAndSwapStatus(
+					{
+						errorMessage: null,
+						expectedStatus: DocumentStatus.WAITING_FOR_VALIDATION,
+						id: documentId,
+						status: DocumentStatus.COMPLETED,
+					},
+					transaction,
+				);
 
-		const { name, projectId } = document.toObject();
-		const pagePosition =
-			await this.knowledgeNodeRepository.findNextRootPosition(
-				projectId,
-				transaction,
-			);
-		const pageNode = await this.knowledgeNodeRepository.create(
-			{
-				entity: KnowledgeNodeEntity.initializeNew({
-					contentJson: [],
-					parentId: null,
-					position: pagePosition,
-					projectId,
-					title: name,
-					type: KnowledgeNodeType.PAGE,
-				}),
-				userId,
-			},
-			transaction,
-		);
-		const pageNodeId = pageNode.toObject().id;
+			if (!completedDocument) {
+				throw createReviewNotAllowedError();
+			}
 
-		for (const [position, item] of approvedItems.entries()) {
-			const { id, text, title } = item.toObject();
-			const entryNode = await this.knowledgeNodeRepository.create(
-				{
-					entity: KnowledgeNodeEntity.initializeNew({
-						contentJson: [{ content: text, type: PARAGRAPH_BLOCK_TYPE }],
-						parentId: pageNodeId,
-						position,
-						projectId,
-						title,
-						type: KnowledgeNodeType.ENTRY,
-					}),
-					userId,
-				},
+			await this.extractionItemRepository.markRejected(
+				rejectedIds,
 				transaction,
 			);
 
-			await this.extractionItemRepository.markApproved(
-				{ id, knowledgeNodeId: entryNode.toObject().id },
-				transaction,
-			);
-		}
-
-		return pageNodeId;
+			return completedDocument;
+		});
 	}
 
 	private async findProjectDocument({
@@ -196,6 +207,65 @@ class DocumentReviewService {
 		}
 
 		return document;
+	}
+
+	private async startIntegration({
+		approvedIds,
+		documentId,
+		rejectedIds,
+	}: ExtractionItemsReviewRequestDto & {
+		documentId: number;
+	}): Promise<DocumentEntity> {
+		const integration = await this.database.transaction(async (transaction) => {
+			const startedIntegration = await this.documentRepository.startProcessing(
+				{
+					allowedStatuses: [DocumentStatus.WAITING_FOR_VALIDATION],
+					id: documentId,
+					status: DocumentStatus.INTEGRATING,
+				},
+				transaction,
+			);
+
+			if (!startedIntegration) {
+				throw createReviewNotAllowedError();
+			}
+
+			await this.extractionItemRepository.markApproved(
+				approvedIds,
+				transaction,
+			);
+			await this.extractionItemRepository.markRejected(
+				rejectedIds,
+				transaction,
+			);
+
+			return startedIntegration;
+		});
+
+		this.documentJobScheduler.scheduleIntegration({
+			attempt: integration.attempt,
+			documentId,
+		});
+
+		return integration.document;
+	}
+
+	public async findIntegrationChanges(
+		reference: DocumentReference,
+	): Promise<IntegrationChangesResponseDto> {
+		await this.projectService.assertProjectAccess(
+			reference.projectId,
+			reference.context,
+		);
+		await this.findProjectDocument(reference);
+
+		const changes = await this.integrationChangeRepository.findByDocumentId(
+			reference.documentId,
+		);
+
+		return {
+			items: changes.map((change) => toIntegrationChangeResponse(change)),
+		};
 	}
 
 	public async findItems(
@@ -242,11 +312,8 @@ class DocumentReviewService {
 
 		const document = await this.findProjectDocument(reference);
 
-		if (document.toObject().status !== DocumentStatus.WAITING_FOR_APPROVAL) {
-			throw new HTTPError({
-				message: DocumentErrorMessage.REVIEW_NOT_ALLOWED,
-				status: HTTPCode.CONFLICT,
-			});
+		if (document.toObject().status !== DocumentStatus.WAITING_FOR_VALIDATION) {
+			throw createReviewNotAllowedError();
 		}
 
 		const items = await this.extractionItemRepository.findByDocumentId(
@@ -258,46 +325,21 @@ class DocumentReviewService {
 
 		assertReviewCoversPendingItems(pendingItems, payload);
 
-		const approvedIdSet = new Set(payload.approvedIds);
-		const approvedItems = pendingItems.filter((item) =>
-			approvedIdSet.has(item.toObject().id),
-		);
+		const reviewedDocument =
+			payload.approvedIds.length === EMPTY_LENGTH
+				? await this.completeWithoutApprovals({
+						documentId: reference.documentId,
+						rejectedIds: payload.rejectedIds,
+					})
+				: await this.startIntegration({
+						...payload,
+						documentId: reference.documentId,
+					});
 
-		return await this.database.transaction(async (transaction) => {
-			const completedDocument =
-				await this.documentRepository.compareAndSwapStatus(
-					{
-						errorMessage: null,
-						expectedStatus: DocumentStatus.WAITING_FOR_APPROVAL,
-						id: reference.documentId,
-						status: DocumentStatus.COMPLETED,
-					},
-					transaction,
-				);
-
-			if (!completedDocument) {
-				throw new HTTPError({
-					message: DocumentErrorMessage.REVIEW_NOT_ALLOWED,
-					status: HTTPCode.CONFLICT,
-				});
-			}
-
-			const pageNodeId = await this.createKnowledgeNodes(
-				{ approvedItems, document, userId: reference.context.userId },
-				transaction,
-			);
-
-			await this.extractionItemRepository.markRejected(
-				payload.rejectedIds,
-				transaction,
-			);
-
-			return {
-				documentId: reference.documentId,
-				pageNodeId,
-				status: completedDocument.toObject().status,
-			};
-		});
+		return {
+			documentId: reference.documentId,
+			status: reviewedDocument.toObject().status,
+		};
 	}
 }
 

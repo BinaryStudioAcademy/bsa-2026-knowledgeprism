@@ -1,4 +1,4 @@
-import { IntegrationChangeType } from "../constants/integration-change-type.constant.js";
+import { IntegrationChangeType } from "@knowledgeprism/constants";
 
 type IntegrationChangeTypeValue =
 	(typeof IntegrationChangeType)[keyof typeof IntegrationChangeType];

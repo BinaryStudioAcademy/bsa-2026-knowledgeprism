@@ -73,6 +73,56 @@ class DocumentReviewController extends BaseController {
 				params: documentRouteParametersValidationSchema,
 			},
 		});
+		this.addRoute({
+			handler: (options) =>
+				this.findIntegrationChanges(
+					options as APIHandlerOptions<{
+						params: DocumentRouteParametersDto;
+					}>,
+				),
+			method: "GET",
+			path: DocumentsApiPath.INTEGRATION_CHANGES,
+			validation: {
+				params: documentRouteParametersValidationSchema,
+			},
+		});
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/documents/{documentId}/integration-changes:
+	 *    get:
+	 *      description: List the integration analysis results of a document (NEW, UPDATE, DUPLICATE or CONFLICT for each approved item)
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: documentId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      responses:
+	 *        200:
+	 *          description: Integration changes
+	 *        403:
+	 *          description: User is not a member of the project
+	 *        404:
+	 *          description: Document not found
+	 */
+	private async findIntegrationChanges(
+		options: APIHandlerOptions<{
+			params: DocumentRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.documentReviewService.findIntegrationChanges(
+				this.getDocumentReference(options),
+			),
+			status: HTTPCode.OK,
+		};
 	}
 
 	/**
@@ -165,7 +215,7 @@ class DocumentReviewController extends BaseController {
 	 * @swagger
 	 * /projects/{projectId}/documents/{documentId}/extraction-items/review:
 	 *    post:
-	 *      description: Approve or reject every pending item. Approved items become knowledge nodes.
+	 *      description: Approve or reject every pending item. Approved items are sent to integration analysis; if every item is rejected the document is completed.
 	 *      parameters:
 	 *        - in: path
 	 *          name: projectId
@@ -205,7 +255,7 @@ class DocumentReviewController extends BaseController {
 	 *        403:
 	 *          description: Viewer cannot approve
 	 *        409:
-	 *          description: Document is not waiting for approval
+	 *          description: Document is not waiting for validation
 	 */
 	private async review(
 		options: APIHandlerOptions<{
