@@ -122,15 +122,17 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 
 	if (isPreviewOpen) {
 		return (
-			<div className="h-full w-full bg-bg">
-				<IntegrationPreview
-					baselineVersion={DEFAULT_BASELINE}
-					currentLiveVersion={LIVE_VERSION}
-					onAddMore={handleAddMore}
-					onApprove={handleApproveIntegration}
-					onClose={handleClosePreview}
-					proposedStructure={DEFAULT_PROPOSED_STRUCTURE}
-				/>
+			<div className="flex h-full w-full flex-col bg-bg">
+				<div className="min-h-0 flex-1">
+					<IntegrationPreview
+						baselineVersion={DEFAULT_BASELINE}
+						currentLiveVersion={LIVE_VERSION}
+						onAddMore={handleAddMore}
+						onApprove={handleApproveIntegration}
+						onClose={handleClosePreview}
+						proposedStructure={DEFAULT_PROPOSED_STRUCTURE}
+					/>
+				</div>
 				<AddKnowledgeModal
 					isOpen={isAddModalOpen}
 					onClose={handleCloseAddModal}
