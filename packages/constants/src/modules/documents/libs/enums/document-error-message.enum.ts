@@ -11,6 +11,11 @@ const DocumentErrorMessage = {
 		"Every pending item must be approved or rejected exactly once",
 	REVIEW_NOT_ALLOWED: "Document is not waiting for approval",
 	UNAUTHORIZED: "Unauthorized",
+	UPLOAD_OBJECT_NOT_FOUND: "Uploaded document was not found in S3.",
+	UPLOAD_OBJECT_TOO_LARGE:
+		"Uploaded document exceeds the maximum allowed file size.",
+	UPLOAD_VERIFICATION_FAILED:
+		"Failed to verify uploaded document in S3. Please try again.",
 } as const;
 
 export { DocumentErrorMessage };

@@ -53,6 +53,13 @@ type Constructor = {
 	projectService: ProjectService;
 };
 
+const createRetryNotAllowedError = (): HTTPError => {
+	return new HTTPError({
+		message: DocumentErrorMessage.RETRY_NOT_ALLOWED,
+		status: HTTPCode.CONFLICT,
+	});
+};
+
 class DocumentService {
 	private checkDocumentObjectExists: CheckDocumentObjectExists;
 
@@ -80,6 +87,44 @@ class DocumentService {
 		this.generatePresignedUploadUrl = generatePresignedUploadUrl;
 		this.logger = logger;
 		this.projectService = projectService;
+	}
+
+	private async assertRetryableUpload(document: DocumentEntity): Promise<void> {
+		const { s3Key, sourceType } = document.toObject();
+
+		if (sourceType !== DocumentSourceType.UPLOAD) {
+			return;
+		}
+
+		if (!s3Key) {
+			throw createRetryNotAllowedError();
+		}
+
+		try {
+			await this.verifyUploadedObject(s3Key);
+		} catch (error) {
+			if (error instanceof S3ObjectNotFoundError) {
+				throw new HTTPError({
+					cause: error,
+					message: DocumentErrorMessage.UPLOAD_OBJECT_NOT_FOUND,
+					status: HTTPCode.CONFLICT,
+				});
+			}
+
+			if (error instanceof S3ObjectTooLargeError) {
+				throw new HTTPError({
+					cause: error,
+					message: DocumentErrorMessage.UPLOAD_OBJECT_TOO_LARGE,
+					status: HTTPCode.CONFLICT,
+				});
+			}
+
+			throw new HTTPError({
+				cause: error,
+				message: DocumentErrorMessage.UPLOAD_VERIFICATION_FAILED,
+				status: HTTPCode.SERVICE_UNAVAILABLE,
+			});
+		}
 	}
 
 	private async completeProcessing(
@@ -183,10 +228,7 @@ class DocumentService {
 		});
 
 		if (!processing) {
-			throw new HTTPError({
-				message: DocumentErrorMessage.RETRY_NOT_ALLOWED,
-				status: HTTPCode.CONFLICT,
-			});
+			throw createRetryNotAllowedError();
 		}
 
 		this.scheduleProcessing({ attempt: processing.attempt, documentId: id });
@@ -218,6 +260,20 @@ class DocumentService {
 					: documentObject.name,
 			updatedAt: documentObject.updatedAt.toISOString(),
 		};
+	}
+
+	private async verifyUploadedObject(s3Key: string): Promise<void> {
+		const objectSizeInBytes = await this.checkDocumentObjectExists({
+			key: s3Key,
+		});
+
+		if (objectSizeInBytes === null) {
+			throw new S3ObjectNotFoundError("S3 object missing");
+		}
+
+		if (objectSizeInBytes > DocumentValidationRule.MAXIMUM_FILE_SIZE_IN_BYTES) {
+			throw new S3ObjectTooLargeError("S3 object exceeds maximum file size");
+		}
 	}
 
 	public async cancelManualText({
@@ -302,24 +358,12 @@ class DocumentService {
 		}
 
 		try {
-			const objectSizeInBytes = await this.checkDocumentObjectExists({
-				key: s3Key,
-			});
-
-			if (objectSizeInBytes === null) {
-				throw new S3ObjectNotFoundError("S3 object missing");
-			}
-
-			if (
-				objectSizeInBytes > DocumentValidationRule.MAXIMUM_FILE_SIZE_IN_BYTES
-			) {
-				throw new S3ObjectTooLargeError("S3 object exceeds maximum file size");
-			}
+			await this.verifyUploadedObject(s3Key);
 		} catch (error) {
 			if (error instanceof S3ObjectNotFoundError) {
 				await this.failAndThrow(
 					documentId,
-					"Uploaded document was not found in S3.",
+					DocumentErrorMessage.UPLOAD_OBJECT_NOT_FOUND,
 					error,
 				);
 			}
@@ -327,7 +371,7 @@ class DocumentService {
 			if (error instanceof S3ObjectTooLargeError) {
 				await this.failAndThrow(
 					documentId,
-					"Uploaded document exceeds the maximum allowed file size.",
+					DocumentErrorMessage.UPLOAD_OBJECT_TOO_LARGE,
 					error,
 				);
 			}
@@ -344,7 +388,7 @@ class DocumentService {
 
 			throw new HTTPError({
 				cause: error,
-				message: "Failed to verify uploaded document in S3. Please try again.",
+				message: DocumentErrorMessage.UPLOAD_VERIFICATION_FAILED,
 				status: HTTPCode.SERVICE_UNAVAILABLE,
 			});
 		}
@@ -606,7 +650,17 @@ class DocumentService {
 		projectId,
 	}: DocumentReference): Promise<DocumentStatusResponseDto> {
 		await this.projectService.assertCanWriteKnowledge(projectId, context);
-		await this.findOwnedDocument({ id: documentId, projectId });
+
+		const document = await this.findOwnedDocument({
+			id: documentId,
+			projectId,
+		});
+
+		if (document.toObject().status !== DocumentStatus.FAILED) {
+			throw createRetryNotAllowedError();
+		}
+
+		await this.assertRetryableUpload(document);
 
 		const retriedDocument = await this.restartFailedProcessing(documentId);
 
