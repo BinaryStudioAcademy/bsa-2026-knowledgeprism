@@ -1,4 +1,8 @@
 export {
+	askPrismRequestValidationSchema,
+	askPrismRouteParametersValidationSchema,
+} from "./modules/ask-prism/ask-prism.js";
+export {
 	documentConfirmUploadRouteParametersValidationSchema,
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,

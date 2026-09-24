@@ -3,6 +3,7 @@ import { database } from "~/infrastructure/database/database.js";
 import { health } from "~/infrastructure/health/health.js";
 import { logger } from "~/infrastructure/logger/logger.js";
 import { s3Client } from "~/infrastructure/s3/s3.js";
+import { askPrismController } from "~/modules/ask-prism/ask-prism.js";
 import { authController } from "~/modules/auth/auth.js";
 import { documentController } from "~/modules/documents/documents.js";
 import {
@@ -24,6 +25,7 @@ const apiV1 = new BaseServerApplicationApi(
 	...knowledgeController.routes,
 	...recentKnowledgeController.routes,
 	...userController.routes,
+	...askPrismController.routes,
 );
 const serverApplication = new BaseServerApplication({
 	apis: [apiV1],

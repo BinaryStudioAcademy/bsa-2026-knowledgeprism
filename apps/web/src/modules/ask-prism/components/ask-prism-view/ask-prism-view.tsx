@@ -7,6 +7,7 @@ import {
 	useEffect,
 	useState,
 } from "react";
+import { useParams } from "react-router-dom";
 
 import { Heading, Icon, Paragraph } from "~/components/components.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
@@ -19,6 +20,9 @@ import { PromptButton } from "../prompt-button/prompt-button.js";
 const QUESTION_PLACEHOLDER = "Ask anything about your knowledge base...";
 
 const AskPrismView = (): JSX.Element => {
+	const { projectId } = useParams<{ projectId: string }>();
+	const numericProjectId = Number(projectId);
+
 	const dispatch = useAppDispatch();
 	const [query, setQuery] = useState("");
 
@@ -35,8 +39,14 @@ const AskPrismView = (): JSX.Element => {
 	const isLoading = dataStatus === DataStatus.PENDING;
 
 	useEffect(() => {
-		void dispatch(askPrismActions.loadSuggestedQuestions());
-	}, [dispatch]);
+		dispatch(askPrismActions.reset());
+
+		if (numericProjectId) {
+			void dispatch(
+				askPrismActions.loadSuggestedQuestions({ projectId: numericProjectId }),
+			);
+		}
+	}, [dispatch, numericProjectId]);
 
 	const handleQueryChange = useCallback(
 		(event: ChangeEvent<HTMLInputElement>): void => {
@@ -50,14 +60,19 @@ const AskPrismView = (): JSX.Element => {
 			event?.preventDefault();
 			const trimmedQuery = query.trim();
 
-			if (!trimmedQuery || isLoading) {
+			if (!trimmedQuery || isLoading || !numericProjectId) {
 				return;
 			}
 
-			void dispatch(askPrismActions.askQuestion({ query: trimmedQuery }));
+			void dispatch(
+				askPrismActions.askQuestion({
+					projectId: numericProjectId,
+					query: trimmedQuery,
+				}),
+			);
 			setQuery("");
 		},
-		[dispatch, isLoading, query],
+		[dispatch, isLoading, numericProjectId, query],
 	);
 
 	const handleKeyDown = useCallback(
@@ -74,23 +89,33 @@ const AskPrismView = (): JSX.Element => {
 
 	const handlePromptClick = useCallback(
 		(prompt: string): void => {
-			if (isLoading) {
+			if (isLoading || !numericProjectId) {
 				return;
 			}
 
 			setQuery(prompt);
-			void dispatch(askPrismActions.askQuestion({ query: prompt }));
+			void dispatch(
+				askPrismActions.askQuestion({
+					projectId: numericProjectId,
+					query: prompt,
+				}),
+			);
 		},
-		[dispatch, isLoading],
+		[dispatch, isLoading, numericProjectId],
 	);
 
 	const handleRetry = useCallback((): void => {
-		if (!submittedQuery) {
+		if (!submittedQuery || !numericProjectId) {
 			return;
 		}
 
-		void dispatch(askPrismActions.askQuestion({ query: submittedQuery }));
-	}, [dispatch, submittedQuery]);
+		void dispatch(
+			askPrismActions.askQuestion({
+				projectId: numericProjectId,
+				query: submittedQuery,
+			}),
+		);
+	}, [dispatch, numericProjectId, submittedQuery]);
 
 	return (
 		<div className="mx-auto flex h-full w-full max-w-[680px] min-h-0 flex-col px-4 pt-6 tablet:pt-8">
@@ -122,7 +147,7 @@ const AskPrismView = (): JSX.Element => {
 							Suggested questions:
 						</span>
 						{isSuggestionsLoading ? (
-							<div className="flex gap-2 animate-pulse">
+							<div className="flex animate-pulse gap-2">
 								<span className="h-6 w-28 rounded-md bg-surface" />
 								<span className="h-6 w-36 rounded-md bg-surface" />
 							</div>
