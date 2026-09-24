@@ -20,8 +20,8 @@
 	"dependencies": {
 		"@aws-sdk/client-bedrock-runtime": "3.1120.0",
 		"@aws-sdk/client-s3": "3.1120.0",
-		"@knowledgeprism/config": "*",
-		"@knowledgeprism/constants": "*",
+		"@knowledgeprism/config": "1.0.0",
+		"@knowledgeprism/constants": "1.0.0",
 		"dotenv": "17.4.2",
 		"pdfjs-dist": "6.3.289",
 		"pino": "10.3.1",
