@@ -88,6 +88,10 @@ type StructureAsideProperties = {
 	pages: ProposedPage[];
 };
 
+type TextContentItem = {
+	text?: unknown;
+};
+
 type UpdatePageParameters = {
 	pageIndex: number;
 	pages: ProposedPage[];
@@ -117,6 +121,22 @@ const getNodeTitleLabel = (
 	fallbackLabel: string,
 ): string => `${getNodeTypeLabel(type, fallbackLabel)} title`;
 
+const isTextContentItem = (item: unknown): item is TextContentItem => {
+	return typeof item === "object" && item !== null && "text" in item;
+};
+
+const parseDatasetIndex = (value: string | undefined): null | number => {
+	if (value === undefined) {
+		return null;
+	}
+
+	const parsedValue = Number(value);
+
+	return Number.isSafeInteger(parsedValue) && parsedValue >= EMPTY_LENGTH
+		? parsedValue
+		: null;
+};
+
 const getInlineText = (content: unknown): string => {
 	if (typeof content === "string") {
 		return content;
@@ -132,8 +152,8 @@ const getInlineText = (content: unknown): string => {
 				return item;
 			}
 
-			if (typeof item === "object" && item !== null) {
-				const text = (item as Record<string, unknown>)["text"];
+			if (isTextContentItem(item)) {
+				const { text } = item;
 
 				return typeof text === "string" ? text : "";
 			}
@@ -796,10 +816,12 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 	const handleSelectPage = useCallback(
 		(event: MouseEvent<HTMLButtonElement>): void => {
-			const pageIndexString = event.currentTarget.dataset["pageIndex"];
+			const pageIndex = parseDatasetIndex(
+				event.currentTarget.dataset["pageIndex"],
+			);
 
-			if (pageIndexString !== undefined) {
-				setActivePageIndex(Number(pageIndexString));
+			if (pageIndex !== null) {
+				setActivePageIndex(pageIndex);
 				setActiveNodeType("parent");
 			}
 		},
@@ -809,12 +831,12 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	const handleSelectSection = useCallback(
 		(event: MouseEvent<HTMLButtonElement>): void => {
 			const target = event.currentTarget;
-			const pageIndexString = target.dataset["pageIndex"];
-			const sectionIndexString = target.dataset["sectionIndex"];
+			const pageIndex = parseDatasetIndex(target.dataset["pageIndex"]);
+			const sectionIndex = parseDatasetIndex(target.dataset["sectionIndex"]);
 
-			if (pageIndexString !== undefined && sectionIndexString !== undefined) {
-				setActivePageIndex(Number(pageIndexString));
-				setActiveSectionIndex(Number(sectionIndexString));
+			if (pageIndex !== null && sectionIndex !== null) {
+				setActivePageIndex(pageIndex);
+				setActiveSectionIndex(sectionIndex);
 				setActiveNodeType("child");
 			}
 		},
