@@ -1,8 +1,7 @@
-import React, { useCallback } from "react";
+import React from "react";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
-import { useNavigate } from "~/hooks/hooks.js";
 
 import { LAST_INDEX_OFFSET } from "../../libs/constants/constants.js";
 import { LoadingState } from "../loading-state/loading-state.js";
@@ -10,6 +9,9 @@ import { LoadingState } from "../loading-state/loading-state.js";
 type Properties = {
 	breadcrumbs: string[];
 	canEdit?: boolean;
+	isEditing?: boolean;
+	onCancel?: () => void;
+	onEdit?: () => void;
 	onOpenSidebar: () => void;
 	onPreview: () => void;
 	showCompactLoading?: boolean;
@@ -75,16 +77,14 @@ const KnowledgeTreeBreadcrumbs = ({
 const KnowledgeTreeHeader: React.FC<Properties> = ({
 	breadcrumbs,
 	canEdit = false,
+	isEditing = false,
+	onCancel,
+	onEdit,
 	onOpenSidebar,
 	onPreview,
 	showCompactLoading = false,
 }: Properties) => {
-	const navigate = useNavigate();
 	const currentFileName = breadcrumbs.at(-LAST_INDEX_OFFSET);
-
-	const handleEditClick = useCallback(() => {
-		void navigate("edit");
-	}, [navigate]);
 
 	return (
 		<div className="relative flex items-center justify-between border-b border-border bg-surface px-4 py-4 @5xl:px-8">
@@ -98,10 +98,37 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 						<LoadingState onPreview={onPreview} variant="compact" />
 					</div>
 				)}
-				{canEdit && (
-					<Button onClick={handleEditClick} variant="primary">
+				{canEdit && !isEditing && (
+					<Button onClick={onEdit} variant="primary">
 						Edit
 					</Button>
+				)}
+				{canEdit && isEditing && (
+					<>
+						<Button
+							aria-label="Cancel"
+							className="h-10 w-10 p-0! @5xl:h-auto @5xl:w-auto @5xl:px-5! @5xl:py-2.5!"
+							onClick={onCancel}
+							variant="ghost"
+						>
+							<span className="hidden @5xl:inline">Cancel</span>
+							<span className="inline @5xl:hidden">
+								<Icon aria-hidden="true" name="close" size={16} />
+							</span>
+						</Button>
+						<Button
+							aria-label="Save"
+							className="h-10 w-10 p-0! @5xl:h-auto @5xl:w-auto @5xl:px-5! @5xl:py-2.5!"
+							form="kb-entry-form"
+							type="submit"
+							variant="primary"
+						>
+							<span className="hidden @5xl:inline">Save</span>
+							<span className="inline @5xl:hidden">
+								<Icon aria-hidden="true" name="checkbox-tick" size={16} />
+							</span>
+						</Button>
+					</>
 				)}
 			</div>
 		</div>
