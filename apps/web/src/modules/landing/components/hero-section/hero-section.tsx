@@ -4,7 +4,10 @@ import { Button } from "~/components/button/button.js";
 import { useCallback } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import { LANDING_SECTION_CONTAINER_CLASS } from "~/modules/landing/libs/constants.js";
+import {
+	LANDING_FLEX_COLUMN_CLASS,
+	LANDING_SECTION_CONTAINER_CLASS,
+} from "~/modules/landing/libs/constants.js";
 
 import { SectionEyebrow } from "../section-eyebrow/section-eyebrow.js";
 import { HeroPreview } from "./hero-preview.js";
@@ -24,7 +27,12 @@ const HeroSection: React.FC = () => {
 				"flex flex-wrap items-center gap-x-14 gap-y-7 py-[clamp(48px,8vw,96px)]",
 			)}
 		>
-			<div className="min-w-[340px] flex-1">
+			<div
+				className={getValidClassNames(
+					LANDING_FLEX_COLUMN_CLASS,
+					"mobile:min-w-[340px]",
+				)}
+			>
 				<SectionEyebrow>{HERO_SECTION_COPY.eyebrow}</SectionEyebrow>
 
 				<h1 className="mb-5 font-serif text-[clamp(34px,5vw,54px)] font-normal leading-[1.08] tracking-[-0.5px] text-text">

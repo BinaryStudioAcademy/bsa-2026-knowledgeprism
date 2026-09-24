@@ -10,6 +10,8 @@ type FileValidationResult = {
 	isValid: boolean;
 };
 
+const EMPTY_FILE_SIZE = 0;
+
 const validateFile = (file: File): FileValidationResult => {
 	const hasValidExtension = SUPPORTED_FILE_EXTENSIONS.some((extension) =>
 		file.name.toLowerCase().endsWith(extension),
@@ -22,6 +24,13 @@ const validateFile = (file: File): FileValidationResult => {
 	if (!hasValidExtension || !hasValidMimeType) {
 		return {
 			error: DocumentValidationMessage.UNSUPPORTED_FORMAT,
+			isValid: false,
+		};
+	}
+
+	if (file.size === EMPTY_FILE_SIZE) {
+		return {
+			error: DocumentValidationMessage.EMPTY_FILE,
 			isValid: false,
 		};
 	}

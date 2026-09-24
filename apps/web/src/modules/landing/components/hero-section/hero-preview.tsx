@@ -1,7 +1,15 @@
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { LANDING_FLEX_COLUMN_CLASS } from "~/modules/landing/libs/constants.js";
+
 import { HERO_DEMO_PANEL } from "./libs/constants.js";
 
 const HeroPreview: React.FC = () => (
-	<div className="flex min-w-[340px] flex-1 justify-center">
+	<div
+		className={getValidClassNames(
+			LANDING_FLEX_COLUMN_CLASS,
+			"flex justify-center mobile:min-w-[340px]",
+		)}
+	>
 		<div className="w-full max-w-[440px] overflow-hidden rounded-[14px] border border-border bg-surface shadow-[0_20px_48px_rgba(45,42,38,0.12)]">
 			<div className="flex items-center justify-between border-b border-border-subtle px-[18px] py-3.5">
 				<span className="text-[12.5px] text-text-muted">

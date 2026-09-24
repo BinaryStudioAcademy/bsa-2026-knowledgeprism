@@ -5,6 +5,7 @@ import { DocumentProcessingStatus, SearchStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
 import { type KnowledgeState } from "../libs/types/types.js";
 import {
+	confirmDocumentUpload,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,
@@ -34,6 +35,19 @@ const IN_PROGRESS_PERCENTAGE = 50;
 
 const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
+		builder.addCase(confirmDocumentUpload.pending, (state) => {
+			state.errorMessage = null;
+			state.processingStatus = DocumentProcessingStatus.PROCESSING;
+		});
+		builder.addCase(confirmDocumentUpload.fulfilled, (state) => {
+			state.errorMessage = null;
+			state.processingStatus = DocumentProcessingStatus.READY;
+		});
+		builder.addCase(confirmDocumentUpload.rejected, (state, action) => {
+			state.errorMessage =
+				action.error.message ?? DocumentValidationMessage.PROCESSING_FAILED;
+			state.processingStatus = DocumentProcessingStatus.FAILED;
+		});
 		builder.addCase(processDocument.pending, (state) => {
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
@@ -49,7 +63,7 @@ const { actions, name, reducer } = createSlice({
 			}
 
 			state.errorMessage = null;
-			state.processingStatus = DocumentProcessingStatus.SUCCESS;
+			state.processingStatus = DocumentProcessingStatus.READY;
 			state.selectedFile = action.payload;
 		});
 		builder.addCase(processDocument.rejected, (state, action) => {

@@ -3,6 +3,8 @@ import {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
+	type ManualTextCreateRequestDto,
+	type ManualTextResponseDto,
 } from "@knowledgeprism/types";
 
 import { BaseHTTPApi } from "~/api/api.js";
@@ -45,6 +47,29 @@ class DocumentsApi extends BaseHTTPApi {
 		);
 
 		return await response.json<DocumentConfirmUploadResponseDto>();
+	}
+
+	public async createManualText({
+		payload,
+		projectId,
+		signal,
+	}: {
+		payload: ManualTextCreateRequestDto;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<ManualTextResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.MANUAL_TEXT, { projectId }),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify(payload),
+				signal,
+			},
+		);
+
+		return await response.json<ManualTextResponseDto>();
 	}
 
 	public async createUploadIntent({

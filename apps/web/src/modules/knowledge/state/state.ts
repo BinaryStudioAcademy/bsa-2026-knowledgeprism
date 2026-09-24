@@ -1,18 +1,22 @@
 import {
+	confirmDocumentUpload,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,
 	searchKnowledge,
+	submitManualText,
 	updateKnowledgeEntry,
 } from "./actions.js";
-import { actions as sliceActions } from "./knowledge.slice.js";
+import { actions } from "./knowledge.slice.js";
 
 const allActions = {
-	...sliceActions,
+	...actions,
+	confirmDocumentUpload,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,
 	searchKnowledge,
+	submitManualText,
 	updateKnowledgeEntry,
 };
 

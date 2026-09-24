@@ -94,10 +94,17 @@ class KnowledgeService {
 		await this.projectService.assertProjectAccess(projectId, context);
 
 		const nodes =
-			await this.knowledgeNodeRepository.findAllByProjectId(projectId);
+			await this.knowledgeNodeRepository.findTreeItemsByProjectId(projectId);
 
 		return {
-			items: nodes.map((node) => node.toTreeItem()),
+			items: nodes.map((node) => ({
+				id: node.id,
+				parentId: node.parentId,
+				position: node.position,
+				title: node.title,
+				type: node.type,
+				updatedAt: node.updatedAt.toISOString(),
+			})),
 		};
 	}
 

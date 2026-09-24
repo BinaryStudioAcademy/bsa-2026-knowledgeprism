@@ -3,6 +3,7 @@ const SUPPORTED_FILE_EXTENSIONS = [".pdf"] as const;
 const SUPPORTED_FILE_MIME_TYPES = ["application/pdf"] as const;
 
 const DocumentValidationMessage = {
+	EMPTY_FILE: "The selected file is empty.",
 	FILE_TOO_LARGE: "File is too large. Maximum file size is 25 MB.",
 	PROCESSING_FAILED: "Processing failed",
 	UNSUPPORTED_FORMAT: "Unsupported file format. Please upload a PDF file.",

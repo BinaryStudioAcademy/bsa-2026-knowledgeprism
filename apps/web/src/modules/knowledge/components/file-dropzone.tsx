@@ -85,7 +85,7 @@ const FileDropzone = ({
 				isDragActive
 					? "border-accent bg-accent/5"
 					: "border-border bg-bg hover:border-accent/60",
-				disabled && "pointer-events-none opacity-50",
+				disabled && "cursor-not-allowed opacity-50",
 			)}
 			onDragLeave={handleDragLeave}
 			onDragOver={handleDragOver}
@@ -98,7 +98,8 @@ const FileDropzone = ({
 			<div className="text-[13.5px] font-medium text-text">
 				Drag files here, or{" "}
 				<button
-					className="cursor-pointer font-medium text-accent underline hover:text-accent-hover"
+					className="cursor-pointer font-medium text-accent underline hover:text-accent-hover disabled:cursor-not-allowed disabled:text-text-faint"
+					disabled={disabled}
 					onClick={handleBrowseClick}
 					type="button"
 				>
