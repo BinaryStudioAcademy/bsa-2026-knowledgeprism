@@ -39,27 +39,35 @@ const resolveSectionField = (
 
 const resolveSection = (
 	section: ProposedSection,
+	conflicts: FieldConflict[],
 	resolutionMap: Map<string, ConflictResolution>,
 ): ProposedSection => {
-	if (!section.conflicts) {
-		return section;
-	}
+	const titleConflict = conflicts.find(
+		(conflict) =>
+			conflict.field === "title" &&
+			(conflict.id === `conf-title-${section.id}` ||
+				conflict.id === `conf-default-title-${section.id}`),
+	);
 
-	let resolvedTitle = section.title;
-	let resolvedContent = section.content;
+	const contentConflict = conflicts.find(
+		(conflict) =>
+			conflict.field === "content" &&
+			(conflict.id === `conf-content-${section.id}` ||
+				conflict.id === `conf-default-content-${section.id}`),
+	);
 
-	for (const conflict of section.conflicts) {
-		if (conflict.field === "title") {
-			resolvedTitle = resolveSectionField(conflict, resolutionMap);
-		} else {
-			resolvedContent = resolveSectionField(conflict, resolutionMap);
-		}
-	}
+	const resolvedTitle = titleConflict
+		? resolveSectionField(titleConflict, resolutionMap)
+		: section.title;
+
+	const resolvedContent = contentConflict
+		? resolveSectionField(contentConflict, resolutionMap)
+		: section.content;
 
 	return {
 		...section,
 		content: resolvedContent,
-		status: "UPDATE",
+		status: titleConflict || contentConflict ? "UPDATE" : section.status,
 		title: resolvedTitle,
 	};
 };
@@ -108,7 +116,7 @@ const MergeScreen = ({
 		const resolvedPages = pages.map((page) => ({
 			...page,
 			sections: page.sections.map((section) =>
-				resolveSection(section, resolutionMap),
+				resolveSection(section, conflicts, resolutionMap),
 			),
 		}));
 

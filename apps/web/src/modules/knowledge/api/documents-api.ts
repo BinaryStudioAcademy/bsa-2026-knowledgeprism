@@ -3,12 +3,16 @@ import {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
+	type ManualTextCreateRequestDto,
+	type ManualTextResponseDto,
 } from "@knowledgeprism/types";
 
 import { BaseHTTPApi } from "~/api/api.js";
 import { ContentType } from "~/lib/enums/enums.js";
 import { type HTTP } from "~/lib/http/http.js";
 import { type Storage } from "~/lib/storage/storage.js";
+
+import { PDF_MIME_TYPE } from "../libs/constants/constants.js";
 
 type Constructor = {
 	baseUrl: string;
@@ -47,6 +51,29 @@ class DocumentsApi extends BaseHTTPApi {
 		return await response.json<DocumentConfirmUploadResponseDto>();
 	}
 
+	public async createManualText({
+		payload,
+		projectId,
+		signal,
+	}: {
+		payload: ManualTextCreateRequestDto;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<ManualTextResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.MANUAL_TEXT, { projectId }),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify(payload),
+				signal,
+			},
+		);
+
+		return await response.json<ManualTextResponseDto>();
+	}
+
 	public async createUploadIntent({
 		payload,
 		projectId,
@@ -81,7 +108,7 @@ class DocumentsApi extends BaseHTTPApi {
 	}): Promise<void> {
 		const response = await fetch(uploadUrl, {
 			body: file,
-			headers: { "Content-Type": file.type },
+			headers: { "Content-Type": file.type || PDF_MIME_TYPE },
 			method: "PUT",
 			...(signal && { signal }),
 		});

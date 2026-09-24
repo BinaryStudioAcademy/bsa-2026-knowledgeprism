@@ -1,6 +1,8 @@
+import { UserStatus } from "@knowledgeprism/constants";
 import { type ProjectAssignmentDto } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
+import { DatabaseTableName } from "~/infrastructure/database/database.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { ProjectMemberModel } from "~/modules/projects/models/project-member.model.js";
 import { ProjectModel } from "~/modules/projects/models/project.model.js";
@@ -247,6 +249,10 @@ class UserRepository implements Repository {
 				.patchAndFetchById(id, entity)
 				.where({ organisationId })
 				.execute();
+
+			if (entity.status === UserStatus.INACTIVE) {
+				await trx(DatabaseTableName.SESSIONS).where({ user_id: id }).del();
+			}
 
 			if (assignedProjects) {
 				await ProjectMemberModel.query(trx).delete().where({ userId: id });

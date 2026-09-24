@@ -16,6 +16,7 @@ import {
 	useState,
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
+import { actions as projectsActions } from "~/modules/projects/projects.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 import { UserForm } from "../user-form/user-form.js";
@@ -33,25 +34,19 @@ type UserEditFormValues = {
 	password?: string;
 };
 
-// NOTE: Projects are currently mocked. When GET /projects endpoint is implemented, this should consume actual project data.
-const MOCKED_PROJECTS = [
-	{ id: 1, name: "Knowledge Base Alpha" },
-	{ id: 2, name: "Marketing Site" },
-];
-
 const UserEditPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const { id } = useParams<{ id: string }>();
 	const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
-	const { currentUser, selectedUser, selectedUserStatus } = useAppSelector(
-		({ auth, users }) => ({
+	const { availableProjects, currentUser, selectedUser, selectedUserStatus } =
+		useAppSelector(({ auth, projects, users }) => ({
+			availableProjects: projects.projects,
 			currentUser: auth.user,
 			selectedUser: users.selectedUser,
 			selectedUserStatus: users.selectedUserStatus,
-		}),
-	);
+		}));
 
 	const userId = Number(id);
 
@@ -59,6 +54,7 @@ const UserEditPage: React.FC = () => {
 		if (userId && !Number.isNaN(userId)) {
 			void dispatch(userActions.loadUserById(userId));
 		}
+		void dispatch(projectsActions.loadAllProjects());
 	}, [dispatch, userId]);
 
 	const { control, handleSubmit, reset } = useAppForm<UserEditFormValues>({
@@ -155,7 +151,7 @@ const UserEditPage: React.FC = () => {
 
 				{selectedUserStatus === DataStatus.FULFILLED && selectedUser && (
 					<UserForm
-						availableProjects={MOCKED_PROJECTS}
+						availableProjects={availableProjects}
 						control={control}
 						errorMessage={errorMessage}
 						isAdmin={isAdminEditingSelf}

@@ -1,4 +1,8 @@
-import { APIPath, UsersApiPath } from "@knowledgeprism/constants";
+import {
+	APIPath,
+	OrganisationRole,
+	UsersApiPath,
+} from "@knowledgeprism/constants";
 import {
 	userCreateValidationSchema,
 	userUpdateValidationSchema,
@@ -80,8 +84,8 @@ class UserController extends BaseController {
 
 		this.userService = userService;
 
-		// TODO: Apply RBAC Admin middleware here when implemented
 		this.addRoute({
+			allowedRoles: [OrganisationRole.ADMIN],
 			handler: (options) =>
 				this.createOrgUser(
 					options as APIHandlerOptions<{
@@ -95,15 +99,16 @@ class UserController extends BaseController {
 			},
 		});
 
-		// TODO: Apply RBAC Admin middleware here when implemented
 		this.addRoute({
+			allowedRoles: [OrganisationRole.ADMIN],
 			handler: (options) => this.findAllByOrgId(options),
 			method: "GET",
 			path: UsersApiPath.ROOT,
 		});
 
-		// TODO: Apply RBAC middleware (Admin OR Self) here when implemented
 		this.addRoute({
+			allowedRoles: [OrganisationRole.ADMIN],
+			allowSelf: true,
 			handler: (options) =>
 				this.findDetailsById(
 					options as APIHandlerOptions<{
@@ -114,8 +119,9 @@ class UserController extends BaseController {
 			path: UsersApiPath.ID,
 		});
 
-		// TODO: Apply RBAC middleware (Admin OR Self) here when implemented
 		this.addRoute({
+			allowedRoles: [OrganisationRole.ADMIN],
+			allowSelf: true,
 			handler: (options) =>
 				this.updateOrgUser(
 					options as APIHandlerOptions<{
@@ -287,9 +293,17 @@ class UserController extends BaseController {
 			params: { id: string };
 		}>,
 	): Promise<APIHandlerResponse> {
+		if (!options.session.organisationRole) {
+			throw new HTTPError({
+				message: "Organisation role is missing from session",
+				status: HTTPCode.UNAUTHORIZED,
+			});
+		}
+
 		return {
 			payload: await this.userService.updateOrgUser({
 				currentUserId: this.getSessionUserId(options),
+				currentUserRole: options.session.organisationRole,
 				id: Number(options.params.id),
 				organisationId: this.getSessionOrgId(options),
 				payload: options.body,

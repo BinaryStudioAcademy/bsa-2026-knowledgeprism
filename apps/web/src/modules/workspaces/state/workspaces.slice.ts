@@ -33,6 +33,28 @@ const getStoredLastActiveProjectId = (): null | string => {
 	}
 };
 
+const removeStoredLastActiveProjectId = (): void => {
+	try {
+		localStorage.removeItem(LAST_ACTIVE_PROJECT_STORAGE_KEY);
+	} catch {
+		// localStorage unavailable — non-fatal
+	}
+};
+
+const clearLastActiveProjectIfMissing = (state: WorkspacesState): void => {
+	const { lastActiveProjectId, projects } = state;
+	const isProjectAvailable = projects.some(
+		(project) => project.id === lastActiveProjectId,
+	);
+
+	if (!lastActiveProjectId || isProjectAvailable) {
+		return;
+	}
+
+	state.lastActiveProjectId = null;
+	removeStoredLastActiveProjectId();
+};
+
 const initialState: WorkspacesState = {
 	creationError: null,
 	error: null,
@@ -85,6 +107,7 @@ const workspacesSlice = createSlice({
 			.addCase(fetchProjects.fulfilled, (state, action) => {
 				state.isLoading = false;
 				state.projects = action.payload;
+				clearLastActiveProjectIfMissing(state);
 			})
 			.addCase(fetchProjects.rejected, (state) => {
 				state.isLoading = false;
@@ -116,6 +139,7 @@ const workspacesSlice = createSlice({
 				state.projects = state.projects.filter(
 					(project) => project.id !== action.payload,
 				);
+				clearLastActiveProjectIfMissing(state);
 			})
 			.addCase(updateProject.pending, (state) => {
 				state.isUpdating = true;
@@ -142,11 +166,7 @@ const workspacesSlice = createSlice({
 			})
 			.addCase(logout.fulfilled, (state) => {
 				state.lastActiveProjectId = null;
-				try {
-					localStorage.removeItem(LAST_ACTIVE_PROJECT_STORAGE_KEY);
-				} catch {
-					// localStorage unavailable — non-fatal
-				}
+				removeStoredLastActiveProjectId();
 			});
 	},
 	initialState,

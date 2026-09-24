@@ -120,10 +120,16 @@ const CreateProjectModal: React.FC<CreateProjectModalProperties> = ({
 	);
 
 	return (
-		<Modal isOpen={isOpen} onClose={handleClose} title="New Project">
+		<Modal
+			hasCloseButton
+			isOpen={isOpen}
+			onClose={handleClose}
+			title="New Project"
+		>
 			<ProjectManagmentModalForm
 				error={error}
 				isSubmitting={isSubmitting}
+				onClose={handleClose}
 				onSubmit={handleCreate}
 				submitLabel="Create Project"
 			/>
@@ -159,7 +165,12 @@ const EditProjectModal: React.FC<EditProjectModalProperties> = ({
 	);
 
 	return (
-		<Modal isOpen={isOpen} onClose={handleClose} title="Edit Project">
+		<Modal
+			hasCloseButton
+			isOpen={isOpen}
+			onClose={handleClose}
+			title="Edit Project"
+		>
 			<ProjectManagmentModalForm
 				error={error}
 				initialValues={{
@@ -167,6 +178,7 @@ const EditProjectModal: React.FC<EditProjectModalProperties> = ({
 					projectName: project.name,
 				}}
 				isSubmitting={isSubmitting}
+				onClose={handleClose}
 				onSubmit={handleUpdate}
 				submitLabel="Save Changes"
 			/>

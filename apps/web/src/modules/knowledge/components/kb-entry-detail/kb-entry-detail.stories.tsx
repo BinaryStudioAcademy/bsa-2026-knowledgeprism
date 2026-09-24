@@ -21,7 +21,6 @@ const BASE_ENTRY = {
 
 const meta: Meta<typeof KbEntryDetail> = {
 	args: {
-		canEdit: true,
 		onSave: fn(async () => {
 			await new Promise((resolve) => {
 				setTimeout(resolve, TIMEOUT_DELAY_MS);
@@ -36,21 +35,18 @@ type Story = StoryObj<typeof KbEntryDetail>;
 
 const Default: Story = {
 	args: {
-		canEdit: true,
 		entry: BASE_ENTRY,
 	},
 };
 
 const ViewerMode: Story = {
 	args: {
-		canEdit: false,
 		entry: BASE_ENTRY,
 	},
 };
 
 const SaveError: Story = {
 	args: {
-		canEdit: true,
 		entry: BASE_ENTRY,
 		onSave: fn(async () => {
 			await new Promise((resolve) => {

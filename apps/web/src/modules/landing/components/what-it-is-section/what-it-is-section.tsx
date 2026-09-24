@@ -1,5 +1,8 @@
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import { LANDING_SECTION_CONTAINER_CLASS } from "~/modules/landing/libs/constants.js";
+import {
+	LANDING_FLEX_COLUMN_CLASS,
+	LANDING_SECTION_CONTAINER_CLASS,
+} from "~/modules/landing/libs/constants.js";
 
 import { SectionEyebrow } from "../section-eyebrow/section-eyebrow.js";
 import { KnowledgeTreePreview } from "./knowledge-tree-preview.js";
@@ -13,7 +16,12 @@ const WhatItIsSection: React.FC = () => (
 		)}
 		id="what"
 	>
-		<div className="min-w-[320px] flex-1 tablet:order-2">
+		<div
+			className={getValidClassNames(
+				LANDING_FLEX_COLUMN_CLASS,
+				"mobile:min-w-[320px] tablet:order-2",
+			)}
+		>
 			<SectionEyebrow>{WHAT_IT_IS_SECTION_COPY.eyebrow}</SectionEyebrow>
 			<h2 className="mb-4 mt-3 font-serif text-[clamp(26px,3.2vw,34px)] font-normal leading-[1.2] text-text">
 				{WHAT_IT_IS_SECTION_COPY.heading}

@@ -1,8 +1,8 @@
 import { type PartialBlock } from "@blocknote/core";
 import { type SyntheticEvent, useCallback, useMemo, useState } from "react";
-import { useController, useFormState, useWatch } from "react-hook-form";
+import { useController, useWatch } from "react-hook-form";
 
-import { Button, Input, KnowledgeEditor } from "~/components/components.js";
+import { Input, KnowledgeEditor } from "~/components/components.js";
 import { useAppForm } from "~/hooks/hooks.js";
 import {
 	type KbEntry,
@@ -204,9 +204,6 @@ const KbEntryForm = ({
 		validationSchema: kbEntryValidationSchema,
 	});
 
-	const { errors } = useFormState({ control });
-
-	const currentTitle = useWatch({ control, name: "title" });
 	const currentContentJson = useWatch({ control, name: "contentJson" });
 
 	const {
@@ -277,32 +274,14 @@ const KbEntryForm = ({
 		[titleField],
 	);
 
-	const isTitleEmpty = currentTitle.trim().length === EMPTY_COUNT;
 	const isContentEmpty = isBlockNoteEmpty(currentContentJson);
 
-	const hasFormErrors = Boolean(
-		titleError || contentError || errors.title || errors.contentJson,
-	);
-
-	const isSaveDisabled =
-		isSubmitting || isTitleEmpty || isContentEmpty || hasFormErrors;
-
 	return (
-		<form className="flex flex-col gap-4" onSubmit={handleFormSubmit}>
-			<div className="kb-header flex justify-end gap-2 pb-4">
-				<Button
-					disabled={isSubmitting}
-					onClick={onCancel}
-					type="button"
-					variant="ghost"
-				>
-					Cancel
-				</Button>
-				<Button disabled={isSaveDisabled} type="submit">
-					Save
-				</Button>
-			</div>
-
+		<form
+			className="flex flex-col gap-4"
+			id="kb-entry-form"
+			onSubmit={handleFormSubmit}
+		>
 			{saveErrorMessage && (
 				<div className="rounded-md border border-error bg-error-bg p-3 text-sm text-error shadow-sm">
 					{saveErrorMessage}
@@ -314,9 +293,9 @@ const KbEntryForm = ({
 					<Input
 						control={control}
 						disabled={isSubmitting}
-						label="Event or club name"
+						label="Title"
 						name="title"
-						placeholder="Enter name..."
+						placeholder="Enter title..."
 					/>
 					{isMaxTitleReached && !titleError && (
 						<span className="font-sans text-xs text-warning">

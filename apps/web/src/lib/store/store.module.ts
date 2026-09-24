@@ -23,8 +23,13 @@ import {
 import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
 import {
 	documentsApi,
+	knowledgeApi,
 	reducer as knowledgeReducer,
 } from "~/modules/knowledge/knowledge.js";
+import {
+	projectsApi,
+	reducer as projectsReducer,
+} from "~/modules/projects/projects.js";
 import { userApi, reducer as usersReducer } from "~/modules/users/users.js";
 import { workspacesReducer } from "~/modules/workspaces/state/workspaces.slice.js";
 import { workspacesApi } from "~/modules/workspaces/workspaces.js";
@@ -35,6 +40,8 @@ type ExtraArguments = {
 	askPrismApi: typeof askPrismApi;
 	authApi: typeof authApi;
 	documentsApi: typeof documentsApi;
+	knowledgeApi: typeof knowledgeApi;
+	projectsApi: typeof projectsApi;
 	storage: typeof storage;
 	userApi: typeof userApi;
 	workspacesApi: typeof workspacesApi;
@@ -44,6 +51,7 @@ type RootReducer = {
 	askPrism: ReturnType<typeof askPrismReducer>;
 	auth: ReturnType<typeof authReducer>;
 	knowledge: ReturnType<typeof knowledgeReducer>;
+	projects: ReturnType<typeof projectsReducer>;
 	users: ReturnType<typeof usersReducer>;
 	workspaces: ReturnType<typeof workspacesReducer>;
 };
@@ -71,6 +79,7 @@ class Store {
 				askPrism: askPrismReducer,
 				auth: authReducer,
 				knowledge: knowledgeReducer,
+				projects: projectsReducer,
 				users: usersReducer,
 				workspaces: workspacesReducer,
 			},
@@ -82,6 +91,8 @@ class Store {
 			askPrismApi,
 			authApi,
 			documentsApi,
+			knowledgeApi,
+			projectsApi,
 			storage,
 			userApi,
 			workspacesApi,
