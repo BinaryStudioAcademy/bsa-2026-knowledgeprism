@@ -75,6 +75,7 @@ const KnowledgeTreePage: React.FC = () => {
 		<KnowledgeTreeLayout
 			canEdit={true}
 			entries={entries}
+			isTreeReady={isTreeReady}
 			items={tree}
 			onSelectPage={handleSelectPage}
 			selectedPageId={activePageId}

@@ -24,6 +24,7 @@ const LIVE_VERSION = 2;
 type Properties = {
 	canEdit?: boolean;
 	entries: Record<number, KnowledgeEntryResponseDto>;
+	isTreeReady?: boolean;
 	items: KnowledgeTreeItemResponseDto[];
 	onSelectPage: (id: number) => void;
 	selectedPageId?: number | undefined;
@@ -32,14 +33,14 @@ type Properties = {
 const KnowledgeTreeLayout: React.FC<Properties> = ({
 	canEdit = false,
 	entries,
+	isTreeReady = true,
 	items,
 	onSelectPage,
 	selectedPageId,
 }: Properties) => {
 	const dispatch = useAppDispatch();
-	const { isAddingKnowledge, isEntryLoading, isTreeLoading } = useAppSelector(
-		(state) => state.knowledge,
-	);
+	const { errorMessage, isAddingKnowledge, isEntryLoading, isTreeLoading } =
+		useAppSelector((state) => state.knowledge);
 	const [isEditing, setIsEditing] = useState<boolean>(false);
 
 	const {
@@ -138,7 +139,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		);
 	}
 
-	if (isTreeLoading) {
+	if (isTreeLoading || !isTreeReady) {
 		return (
 			<div className="flex h-full w-full items-center justify-center bg-bg">
 				<Loader size="lg" />
@@ -170,7 +171,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		</div>
 	);
 
-	if (isEntryLoading) {
+	if (isEntryLoading || (selectedPageId && !selectedEntry && !errorMessage)) {
 		mainContent = (
 			<div className="flex flex-1 items-center justify-center">
 				<Loader />
