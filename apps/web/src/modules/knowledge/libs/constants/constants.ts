@@ -1,6 +1,6 @@
+const PDF_MIME_TYPE = "application/pdf";
 const SUPPORTED_FILE_EXTENSIONS = [".pdf"] as const;
-
-const SUPPORTED_FILE_MIME_TYPES = ["application/pdf"] as const;
+const SUPPORTED_FILE_MIME_TYPES = [PDF_MIME_TYPE] as const;
 
 const DocumentValidationMessage = {
 	EMPTY_FILE: "The selected file is empty.",
@@ -37,6 +37,7 @@ export {
 	LAST_INDEX_OFFSET,
 	MIN_INDEX,
 	NOT_FOUND_INDEX,
+	PDF_MIME_TYPE,
 	START_INDEX,
 	SUPPORTED_FILE_EXTENSIONS,
 	SUPPORTED_FILE_MIME_TYPES,
