@@ -1,3 +1,5 @@
+import { KnowledgeNodeType } from "@knowledgeprism/constants";
+
 import { type ProposedPage } from "~/modules/knowledge/libs/types/types.js";
 
 const DEFAULT_PAGE_INDEX = 0;
@@ -31,7 +33,7 @@ Critical for real-time video preview inspection and color-critical asset validat
 				originalTitle: "Display specifications",
 				status: "modified",
 				title: "Display specifications",
-				type: "PAGE",
+				type: KnowledgeNodeType.PAGE,
 			},
 			{
 				content: `Overview:
@@ -61,7 +63,7 @@ High-resolution photogrammetry, low-noise asset documentation, and automated vis
 				originalTitle: "Camera system",
 				status: "modified",
 				title: "Camera system",
-				type: "PAGE",
+				type: KnowledgeNodeType.PAGE,
 			},
 			{
 				content: `Overview:
@@ -76,12 +78,12 @@ Extended all-day operation for high-throughput AI scanning workloads.`,
 				id: "sec-battery",
 				status: "created",
 				title: "Battery & charging",
-				type: "PAGE",
+				type: KnowledgeNodeType.PAGE,
 			},
 		],
 		status: "modified",
 		title: "Hardware specifications",
-		type: "SECTION",
+		type: KnowledgeNodeType.SECTION,
 	},
 	{
 		id: "page-sensors",
@@ -103,7 +105,7 @@ The LiDAR data feeds into both ARKit for scene geometry and the camera pipeline 
 				id: "sec-lidar",
 				status: "created",
 				title: "LiDAR scanner",
-				type: "PAGE",
+				type: KnowledgeNodeType.PAGE,
 			},
 			{
 				content: `Overview:
@@ -118,7 +120,7 @@ Autonomous TrueTone display adaptation and biometric facial proximity lock.`,
 				id: "sec-proximity",
 				status: "created",
 				title: "Proximity & ambient light",
-				type: "PAGE",
+				type: KnowledgeNodeType.PAGE,
 			},
 			{
 				content: `Overview:
@@ -133,12 +135,12 @@ Floor-level indoor localization, gesture tracking, and rapid orientation changes
 				id: "sec-barometer",
 				status: "created",
 				title: "Barometer & gyroscope",
-				type: "PAGE",
+				type: KnowledgeNodeType.PAGE,
 			},
 		],
 		status: "created",
 		title: "Sensor technology",
-		type: "SECTION",
+		type: KnowledgeNodeType.SECTION,
 	},
 	{
 		id: "page-qa",
@@ -156,12 +158,12 @@ Guarantees hardware reliability before firmware flashing and field deployment.`,
 				id: "sec-calibration",
 				status: "created",
 				title: "Sensor calibration QA",
-				type: "PAGE",
+				type: KnowledgeNodeType.PAGE,
 			},
 		],
 		status: "created",
 		title: "Quality & testing",
-		type: "SECTION",
+		type: KnowledgeNodeType.SECTION,
 	},
 ];
 

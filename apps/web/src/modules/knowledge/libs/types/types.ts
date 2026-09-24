@@ -1,4 +1,5 @@
 import { type PartialBlock } from "@blocknote/core";
+import { type KnowledgeNodeType } from "@knowledgeprism/constants";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeSearchItemDto,
@@ -57,14 +58,12 @@ type KnowledgeState = {
 	tree: KnowledgeTreeItemResponseDto[];
 };
 
-type ProposedNodeType = "ENTRY" | "PAGE" | "SECTION";
-
 type ProposedPage = {
 	id: string;
 	sections: ProposedSection[];
 	status: ChangeStatus;
 	title: string;
-	type: ProposedNodeType;
+	type: ValueOf<typeof KnowledgeNodeType>;
 };
 
 type ProposedSection = {
@@ -76,7 +75,7 @@ type ProposedSection = {
 	status: ChangeStatus;
 	summary?: string;
 	title: string;
-	type: ProposedNodeType;
+	type: ValueOf<typeof KnowledgeNodeType>;
 };
 
 type UploadedDocumentItem = {
@@ -98,7 +97,6 @@ export {
 	type IntegrationPreviewProperties,
 	type KbEntry,
 	type KnowledgeState,
-	type ProposedNodeType,
 	type ProposedPage,
 	type ProposedSection,
 	type UploadedDocumentItem,

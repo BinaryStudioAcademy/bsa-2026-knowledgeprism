@@ -4,6 +4,7 @@ import {
 	type BlockSpecs,
 	type PartialBlock,
 } from "@blocknote/core";
+import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import {
 	type ChangeEvent,
 	type JSX,
@@ -25,7 +26,6 @@ import {
 	type ChangeStatus,
 	type FieldConflict,
 	type IntegrationPreviewProperties,
-	type ProposedNodeType,
 	type ProposedPage,
 	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
@@ -58,6 +58,8 @@ type PreviewFooterProperties = {
 	onEnterEdit: () => void;
 	onSaveEdit: () => void;
 };
+
+type ProposedNodeType = ProposedPage["type"];
 
 type SectionContentEditorProperties = {
 	content: string;
@@ -99,24 +101,16 @@ type UpdateSectionParameters = {
 	sectionIndex: number;
 };
 
+const nodeTypeToLabel: Record<ProposedNodeType, string> = {
+	[KnowledgeNodeType.ENTRY]: "Entry",
+	[KnowledgeNodeType.PAGE]: "Page",
+	[KnowledgeNodeType.SECTION]: "Section",
+};
+
 const getNodeTypeLabel = (
 	type: ProposedNodeType | undefined,
 	fallbackLabel: string,
-): string => {
-	if (type === "ENTRY") {
-		return "Entry";
-	}
-
-	if (type === "SECTION") {
-		return "Section";
-	}
-
-	if (type === "PAGE") {
-		return "Page";
-	}
-
-	return fallbackLabel;
-};
+): string => (type ? nodeTypeToLabel[type] : fallbackLabel);
 
 const getNodeTitleLabel = (
 	type: ProposedNodeType | undefined,
