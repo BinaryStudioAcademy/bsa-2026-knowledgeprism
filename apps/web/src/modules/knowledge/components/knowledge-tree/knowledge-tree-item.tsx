@@ -60,19 +60,19 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 		[itemsByParentId, item.id],
 	);
 
-	const isSection = item.type === KnowledgeNodeType.SECTION;
+	const hasChildren = children.length > EMPTY_LENGTH;
+	const isFolder = item.type === KnowledgeNodeType.SECTION || hasChildren;
 	const isSelected = selectedId === item.id;
 	const isFocused = focusedNodeId === item.id;
 	const isSearching = searchQuery.trim() !== "";
 	const [isManuallyExpanded, setIsManuallyExpanded] = useState(true);
 
 	const isExpanded = isSearching || isManuallyExpanded;
-	const hasChildren = children.length > EMPTY_LENGTH;
 
 	const handleToggle = useCallback(
 		(event_: React.MouseEvent) => {
 			event_.stopPropagation();
-			if (isSection) {
+			if (isFolder) {
 				if (!isSearching) {
 					setIsManuallyExpanded((previous) => !previous);
 				}
@@ -81,7 +81,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 			}
 			onFocus(item.id);
 		},
-		[isSection, item.id, onSelect, onFocus, isSearching],
+		[isFolder, item.id, onSelect, onFocus, isSearching],
 	);
 
 	const handleKeyDown = useCallback(
@@ -92,7 +92,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 					event_,
 					isExpanded,
 					isSearching,
-					isSection,
+					isSection: isFolder,
 					item,
 					onFocus,
 					setIsExpanded: setIsManuallyExpanded,
@@ -105,7 +105,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 				handleVerticalNavigation(item.id, event_.key, onFocus);
 			}
 		},
-		[isSection, isExpanded, isSearching, children, item, onFocus],
+		[isFolder, isExpanded, isSearching, children, item, onFocus],
 	);
 
 	const paddingValue = level * LEVEL_MULTIPLIER + BASE_PADDING;
@@ -114,14 +114,14 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 	return (
 		<div className="flex flex-col gap-0.5" role="none">
 			<button
-				aria-expanded={isSection && hasChildren ? isExpanded : undefined}
+				aria-expanded={isFolder && hasChildren ? isExpanded : undefined}
 				aria-level={level + LEVEL_INCREMENT}
 				aria-owns={
-					isSection && isExpanded && hasChildren
+					isFolder && isExpanded && hasChildren
 						? `group-${String(item.id)}`
 						: undefined
 				}
-				aria-selected={isSection ? undefined : isSelected}
+				aria-selected={isFolder ? undefined : isSelected}
 				className={treeItemVariants({ isSelected })}
 				data-id={item.id}
 				onClick={handleToggle}
@@ -131,7 +131,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 				tabIndex={isFocused ? TAB_INDEX_FOCUSABLE : TAB_INDEX_UNFOCUSABLE}
 				type="button"
 			>
-				{isSection ? (
+				{isFolder ? (
 					<Icon aria-hidden="true" name="folder" size={13} />
 				) : (
 					<Icon aria-hidden="true" name="file-rounded" size={12} />
@@ -139,7 +139,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 				<HighlightedText highlight={searchQuery} text={item.title} />
 			</button>
 
-			{isSection && isExpanded && hasChildren && (
+			{isFolder && isExpanded && hasChildren && (
 				<div
 					className="flex flex-col gap-0.5"
 					id={`group-${String(item.id)}`}

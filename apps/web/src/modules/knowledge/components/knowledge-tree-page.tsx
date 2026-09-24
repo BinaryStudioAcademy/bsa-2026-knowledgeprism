@@ -39,8 +39,13 @@ const KnowledgeTreePage: React.FC = () => {
 	}, [dispatch, projectId]);
 
 	const isTreeReady = fetchedProjectId === projectId;
+	const parentIds = new Set(tree.map((item) => item.parentId));
 	const firstAvailablePage = isTreeReady
-		? tree.find((item) => item.type === "PAGE" || item.type === "ENTRY")
+		? tree.find(
+				(item) =>
+					(item.type === "PAGE" || item.type === "ENTRY") &&
+					!parentIds.has(item.id),
+			)
 		: undefined;
 	const activePageId = manualSelectedPageId ?? firstAvailablePage?.id;
 
