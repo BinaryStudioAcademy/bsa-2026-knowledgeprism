@@ -136,7 +136,8 @@ const AddKnowledgeModal = ({
 		processingStatus === DocumentProcessingStatus.FAILED && isReadyToAdd;
 	const isUploadConfirmationRetryable =
 		hasUploadConfirmationFailed &&
-		uploadConfirmationErrorStatus === HTTPCode.SERVICE_UNAVAILABLE;
+		(uploadConfirmationErrorStatus === null ||
+			uploadConfirmationErrorStatus === HTTPCode.SERVICE_UNAVAILABLE);
 	const hasTerminalUploadConfirmationFailure =
 		hasUploadConfirmationFailed && !isUploadConfirmationRetryable;
 
