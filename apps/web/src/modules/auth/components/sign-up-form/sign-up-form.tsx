@@ -1,3 +1,4 @@
+import { UserValidationMessage } from "@knowledgeprism/constants";
 import { type UserSignUpRequestDto } from "@knowledgeprism/types";
 
 import {
@@ -83,6 +84,7 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 				<Input
 					control={control}
 					hasPasswordToggle
+					hintInfo={UserValidationMessage.PASSWORD_HINT}
 					label="Password"
 					name="password"
 					placeholder="At least 8 characters"
