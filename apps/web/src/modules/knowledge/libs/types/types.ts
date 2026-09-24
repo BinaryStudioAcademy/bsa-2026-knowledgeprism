@@ -4,7 +4,7 @@ import { type ValueOf } from "~/lib/types/types.js";
 
 import { type DocumentProcessingStatus } from "../enums/enums.js";
 
-type ChangeStatus = "created" | "modified" | "updated";
+type ChangeStatus = "CONFLICT" | "DUPLICATE" | "NEW" | "UPDATE";
 
 type ConflictResolution = "keep" | "use-new";
 
@@ -41,11 +41,14 @@ type KnowledgeState = {
 	selectedFile: null | UploadedDocumentItem;
 };
 
+type ProposedNodeType = "ENTRY" | "PAGE" | "SECTION";
+
 type ProposedPage = {
 	id: string;
 	sections: ProposedSection[];
 	status: ChangeStatus;
 	title: string;
+	type: ProposedNodeType;
 };
 
 type ProposedSection = {
@@ -53,9 +56,11 @@ type ProposedSection = {
 	content: string;
 	id: string;
 	originalContent?: string;
+	originalTitle?: string;
 	status: ChangeStatus;
 	summary?: string;
 	title: string;
+	type: ProposedNodeType;
 };
 
 type UploadedDocumentItem = {
@@ -77,6 +82,7 @@ export {
 	type IntegrationPreviewProperties,
 	type KbEntry,
 	type KnowledgeState,
+	type ProposedNodeType,
 	type ProposedPage,
 	type ProposedSection,
 	type UploadedDocumentItem,

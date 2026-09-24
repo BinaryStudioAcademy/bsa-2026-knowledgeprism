@@ -19,8 +19,19 @@ Specifications:
 Use cases:
 Critical for real-time video preview inspection and color-critical asset validation.`,
 				id: "sec-display",
-				status: "updated",
+				originalContent: `Overview:
+Next-generation ProMotion OLED panel with adaptive refresh rate calibration from 1Hz to 120Hz.
+
+Specifications:
+• Peak brightness: up to 1800 nits in outdoor ambient conditions
+• Color accuracy: Delta E < 2 with full DCI-P3 wide color gamut coverage
+
+Use cases:
+Critical for real-time video preview inspection and color-critical asset validation.`,
+				originalTitle: "Display specifications",
+				status: "UPDATE",
 				title: "Display specifications",
+				type: "PAGE",
 			},
 			{
 				content: `Overview:
@@ -37,8 +48,20 @@ High-resolution photogrammetry, low-noise asset documentation, and automated vis
 Integration notes:
 Camera raw streams feed directly into the Neural Engine for real-time edge processing without thermal throttling.`,
 				id: "sec-cameras",
-				status: "updated",
+				originalContent: `Overview:
+Advanced triple-lens array with first-generation sensor-shift optical image stabilization and computational photography pipelines.
+
+Specifications:
+• Main wide: 48MP quad-pixel sensor with f/1.78 aperture
+• Ultra-wide: 12MP sensor with 120-degree field of view
+• Telephoto: 12MP 3x optical zoom module
+
+Use cases:
+High-resolution photogrammetry, low-noise asset documentation, and automated visual QA inspection.`,
+				originalTitle: "Camera system",
+				status: "UPDATE",
 				title: "Camera system",
+				type: "PAGE",
 			},
 			{
 				content: `Overview:
@@ -51,12 +74,14 @@ Specifications:
 Use cases:
 Extended all-day operation for high-throughput AI scanning workloads.`,
 				id: "sec-battery",
-				status: "created",
+				status: "NEW",
 				title: "Battery & charging",
+				type: "PAGE",
 			},
 		],
-		status: "updated",
+		status: "UPDATE",
 		title: "Hardware specifications",
+		type: "SECTION",
 	},
 	{
 		id: "page-sensors",
@@ -76,8 +101,9 @@ The scanner enables enhanced AR experiences with instant object occlusion, room-
 Integration notes:
 The LiDAR data feeds into both ARKit for scene geometry and the camera pipeline for focus assist. Third-party apps access depth data through the AVDepthData API. Point cloud output is available in USD format through the RealityKit framework.`,
 				id: "sec-lidar",
-				status: "created",
+				status: "NEW",
 				title: "LiDAR scanner",
+				type: "PAGE",
 			},
 			{
 				content: `Overview:
@@ -90,8 +116,9 @@ Specifications:
 Use cases:
 Autonomous TrueTone display adaptation and biometric facial proximity lock.`,
 				id: "sec-proximity",
-				status: "created",
+				status: "NEW",
 				title: "Proximity & ambient light",
+				type: "PAGE",
 			},
 			{
 				content: `Overview:
@@ -104,12 +131,14 @@ Specifications:
 Use cases:
 Floor-level indoor localization, gesture tracking, and rapid orientation changes.`,
 				id: "sec-barometer",
-				status: "created",
+				status: "NEW",
 				title: "Barometer & gyroscope",
+				type: "PAGE",
 			},
 		],
-		status: "created",
+		status: "NEW",
 		title: "Sensor technology",
+		type: "SECTION",
 	},
 	{
 		id: "page-qa",
@@ -125,12 +154,14 @@ Specifications:
 Use cases:
 Guarantees hardware reliability before firmware flashing and field deployment.`,
 				id: "sec-calibration",
-				status: "created",
+				status: "NEW",
 				title: "Sensor calibration QA",
+				type: "PAGE",
 			},
 		],
-		status: "created",
+		status: "NEW",
 		title: "Quality & testing",
+		type: "SECTION",
 	},
 ];
 

@@ -99,9 +99,14 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 					</div>
 				)}
 				{canEdit && (
-					<Button onClick={handleEditClick} variant="primary">
-						Edit
-					</Button>
+					<>
+						<Button onClick={onPreview} variant="secondary">
+							Preview
+						</Button>
+						<Button onClick={handleEditClick} variant="primary">
+							Edit
+						</Button>
+					</>
 				)}
 			</div>
 		</div>

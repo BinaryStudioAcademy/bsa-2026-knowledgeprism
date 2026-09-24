@@ -59,7 +59,7 @@ const resolveSection = (
 	return {
 		...section,
 		content: resolvedContent,
-		status: "modified" as const,
+		status: "UPDATE",
 		title: resolvedTitle,
 	};
 };

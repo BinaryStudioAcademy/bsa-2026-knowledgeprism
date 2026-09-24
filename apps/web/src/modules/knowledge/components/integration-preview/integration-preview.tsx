@@ -1,4 +1,10 @@
 import {
+	type Block,
+	type BlockSchemaFromSpecs,
+	type BlockSpecs,
+	type PartialBlock,
+} from "@blocknote/core";
+import {
 	type ChangeEvent,
 	type JSX,
 	type MouseEvent,
@@ -10,6 +16,7 @@ import {
 	Button,
 	Heading,
 	Icon,
+	KnowledgeEditor,
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
@@ -18,12 +25,13 @@ import {
 	type ChangeStatus,
 	type FieldConflict,
 	type IntegrationPreviewProperties,
+	type ProposedNodeType,
 	type ProposedPage,
 	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
 
 import { MergeScreen } from "./libs/components/merge-screen.js";
-import { SuccessModal } from "./libs/components/success-modal.js";
+import { ProposedStructureSuccessModal } from "./libs/components/proposed-structure-success-modal.js";
 import {
 	DEFAULT_PAGE_INDEX,
 	DEFAULT_PROPOSED_STRUCTURE,
@@ -36,6 +44,10 @@ const ICON_SIZE_MEDIUM = 16;
 const ICON_SIZE_SMALL = 14;
 const TITLE_MAX_LENGTH = 250;
 
+type ActiveNodeType = "child" | "parent";
+
+type EditorBlock = Block<BlockSchemaFromSpecs<BlockSpecs>>;
+
 type PreviewFooterProperties = {
 	hasContent: boolean;
 	isEditInvalid: boolean;
@@ -47,21 +59,37 @@ type PreviewFooterProperties = {
 	onSaveEdit: () => void;
 };
 
+type SectionContentEditorProperties = {
+	content: string;
+	isEditable?: boolean;
+	onContentChange?: (content: string) => void;
+};
+
 type SectionDetailsProperties = {
-	activePageTitle: string;
+	activeNodeType: ActiveNodeType;
+	activePage: ProposedPage | undefined;
 	activeSection: ProposedSection | undefined;
 	isContentEmpty: boolean;
 	isEditMode: boolean;
 	isTitleEmpty: boolean;
-	onContentChange: (event: ChangeEvent<HTMLTextAreaElement>) => void;
+	onContentChange: (content: string) => void;
+	onPageTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
 	onTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
 
 type StructureAsideProperties = {
+	activeNodeType: ActiveNodeType;
 	activePageIndex: number;
 	activeSectionIndex: number;
+	onSelectPage: (event: MouseEvent<HTMLButtonElement>) => void;
 	onSelectSection: (event: MouseEvent<HTMLButtonElement>) => void;
 	pages: ProposedPage[];
+};
+
+type UpdatePageParameters = {
+	pageIndex: number;
+	pages: ProposedPage[];
+	partialPage: Partial<ProposedPage>;
 };
 
 type UpdateSectionParameters = {
@@ -71,40 +99,130 @@ type UpdateSectionParameters = {
 	sectionIndex: number;
 };
 
+const getNodeTypeLabel = (
+	type: ProposedNodeType | undefined,
+	fallbackLabel: string,
+): string => {
+	if (type === "ENTRY") {
+		return "Entry";
+	}
+
+	if (type === "SECTION") {
+		return "Section";
+	}
+
+	if (type === "PAGE") {
+		return "Page";
+	}
+
+	return fallbackLabel;
+};
+
+const getNodeTitleLabel = (
+	type: ProposedNodeType | undefined,
+	fallbackLabel: string,
+): string => `${getNodeTypeLabel(type, fallbackLabel)} title`;
+
+const getInlineText = (content: unknown): string => {
+	if (typeof content === "string") {
+		return content;
+	}
+
+	if (!Array.isArray(content)) {
+		return "";
+	}
+
+	return content
+		.map((item) => {
+			if (typeof item === "string") {
+				return item;
+			}
+
+			if (typeof item === "object" && item !== null) {
+				const text = (item as Record<string, unknown>)["text"];
+
+				return typeof text === "string" ? text : "";
+			}
+
+			return "";
+		})
+		.join("");
+};
+
+const blocksToText = (blocks: readonly EditorBlock[]): string => {
+	return blocks
+		.map((block) => getInlineText(block.content))
+		.filter((text) => text.trim().length > EMPTY_LENGTH)
+		.join("\n\n");
+};
+
+const textToBlocks = (text: string): PartialBlock[] => {
+	const blocks = text
+		.split(/\n{2,}/u)
+		.map((blockText) => blockText.trim())
+		.filter((blockText) => blockText.length > EMPTY_LENGTH)
+		.map((blockText) => ({
+			content: blockText,
+			type: "paragraph" as const,
+		}));
+
+	if (blocks.length > EMPTY_LENGTH) {
+		return blocks;
+	}
+
+	return [
+		{
+			content: "",
+			type: "paragraph",
+		},
+	];
+};
+
 const getStatusLabel = (status: ChangeStatus): string => {
-	if (status === "created") {
-		return "created";
+	if (status === "NEW") {
+		return "new";
 	}
 
-	if (status === "modified") {
-		return "modified";
+	if (status === "UPDATE") {
+		return "update";
 	}
 
-	return "updated";
+	if (status === "DUPLICATE") {
+		return "duplicate";
+	}
+
+	return "conflict";
 };
 
 const getSectionStatusLabel = (status: ChangeStatus): string => {
-	if (status === "created") {
-		return "created section";
+	if (status === "NEW") {
+		return "new section";
 	}
 
-	if (status === "modified") {
-		return "modified section";
+	if (status === "UPDATE") {
+		return "updated section";
 	}
 
-	return "updated section";
+	if (status === "DUPLICATE") {
+		return "duplicate section";
+	}
+
+	return "conflict section";
 };
 
 const getStatusBadge = (status: ChangeStatus): JSX.Element => {
-	const isCreated = status === "created";
-	const isModified = status === "modified";
+	const isConflict = status === "CONFLICT";
+	const isDuplicate = status === "DUPLICATE";
+	const isNew = status === "NEW";
+	const isUpdate = status === "UPDATE";
 
 	const badgeClass = getValidClassNames(
 		"inline-flex items-center justify-center min-w-[64px] rounded-full px-2 py-0.5 font-sans text-2xs font-medium lowercase tracking-wide shrink-0 border transition-colors text-center leading-none whitespace-nowrap",
 		{
-			"bg-info-bg text-info border-info/25": isModified,
-			"bg-success-bg text-accent border-accent/25": isCreated,
-			"bg-warning-bg text-warning border-warning/35": !isCreated && !isModified,
+			"bg-error-bg text-error border-error/25": isConflict,
+			"bg-info-bg text-info border-info/25": isUpdate,
+			"bg-secondary text-text-muted border-border": isDuplicate,
+			"bg-success-bg text-accent border-accent/25": isNew,
 		},
 	);
 
@@ -112,13 +230,13 @@ const getStatusBadge = (status: ChangeStatus): JSX.Element => {
 };
 
 const getSectionConflicts = (section: ProposedSection): FieldConflict[] => {
-	if (section.status !== "modified") {
+	if (section.status !== "CONFLICT") {
 		return [];
 	}
 
 	return [
 		{
-			currentValue: section.title,
+			currentValue: section.originalTitle ?? section.title,
 			field: "title",
 			id: `conf-title-${section.id}`,
 			incomingValue: section.title,
@@ -145,12 +263,17 @@ const getGeneratedConflicts = (
 		}
 	}
 
-	if (activeSection && generatedConflicts.length === EMPTY_LENGTH) {
-		const { content, id, originalContent, title } = activeSection;
+	if (
+		activeSection &&
+		activeSection.status !== "NEW" &&
+		generatedConflicts.length === EMPTY_LENGTH
+	) {
+		const { content, id, originalContent, originalTitle, title } =
+			activeSection;
 
 		generatedConflicts.push(
 			{
-				currentValue: title,
+				currentValue: originalTitle ?? title,
 				field: "title",
 				id: `conf-default-title-${id}`,
 				incomingValue: title,
@@ -190,20 +313,69 @@ const updateSectionInPages = ({
 	updatedSections[sectionIndex] = {
 		...targetSection,
 		...partialSection,
-		status: "modified",
+		status:
+			targetSection.status === "NEW" ? targetSection.status : "UPDATE",
 	};
 
 	updatedPages[pageIndex] = {
 		...targetPage,
 		sections: updatedSections,
+		status: targetPage.status === "NEW" ? targetPage.status : "UPDATE",
 	};
 
 	return updatedPages;
 };
 
+const updatePageInPages = ({
+	pageIndex,
+	pages,
+	partialPage,
+}: UpdatePageParameters): ProposedPage[] => {
+	const targetPage = pages[pageIndex];
+
+	if (!targetPage) {
+		return pages;
+	}
+
+	const updatedPages = [...pages];
+
+	updatedPages[pageIndex] = {
+		...targetPage,
+		...partialPage,
+		status: targetPage.status === "NEW" ? targetPage.status : "UPDATE",
+	};
+
+	return updatedPages;
+};
+
+const SectionContentEditor = ({
+	content,
+	isEditable = true,
+	onContentChange,
+}: SectionContentEditorProperties): JSX.Element => {
+	const [initialContent] = useState<PartialBlock[]>(() => textToBlocks(content));
+
+	const handleChange = useCallback(
+		(blocks: EditorBlock[]): void => {
+			onContentChange?.(blocksToText(blocks));
+		},
+		[onContentChange],
+	);
+
+	return (
+		<KnowledgeEditor
+			initialContent={initialContent}
+			isEditable={isEditable}
+			onChange={handleChange}
+		/>
+	);
+};
+
 const StructureAside = ({
+	activeNodeType,
 	activePageIndex,
 	activeSectionIndex,
+	onSelectPage,
 	onSelectSection,
 	pages,
 }: StructureAsideProperties): JSX.Element => (
@@ -213,100 +385,137 @@ const StructureAside = ({
 		</div>
 
 		<div className="flex w-full min-w-0 flex-col gap-3">
-			{pages.map((page, pageIndex) => (
-				<div className="flex w-full min-w-0 flex-col gap-1" key={page.id}>
-					<div className="flex w-full min-w-0 items-center justify-between gap-2 py-1 pl-1.5 pr-1.5 font-sans text-xs font-semibold text-text">
-						<div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-							<div className="shrink-0 flex items-center justify-center text-text-muted">
-								<Icon name="paragraph" size={ICON_SIZE_SMALL} />
-							</div>
-							<span className="truncate block min-w-0 flex-1">
-								{page.title}
-							</span>
-						</div>
-						{getStatusBadge(page.status)}
-					</div>
+			{pages.map((page, pageIndex) => {
+				const isPageSelected =
+					pageIndex === activePageIndex && activeNodeType === "parent";
 
-					<div className="flex w-full min-w-0 flex-col gap-0.5">
-						{page.sections.map((section, sectionIndex) => {
-							const isSelected =
-								pageIndex === activePageIndex &&
-								sectionIndex === activeSectionIndex;
-							const sectionTitle =
-								section.title.trim().length > EMPTY_LENGTH
-									? section.title
-									: "Untitled section";
-
-							return (
-								<button
+				return (
+					<div className="flex w-full min-w-0 flex-col gap-1" key={page.id}>
+						<button
+							className={getValidClassNames(
+								"group flex w-full min-w-0 items-center justify-between gap-2 rounded-md py-1.5 pl-1.5 pr-1.5 text-left font-sans text-xs font-semibold transition-colors",
+								isPageSelected
+									? "bg-success-bg text-accent"
+									: "text-text hover:bg-secondary",
+							)}
+							data-page-index={pageIndex}
+							onClick={onSelectPage}
+							type="button"
+						>
+							<div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+								<div
 									className={getValidClassNames(
-										"group flex w-full min-w-0 items-center justify-between overflow-hidden rounded-md py-1.5 pl-4 pr-1.5 text-left font-sans text-xs transition-colors",
-										isSelected
-											? "bg-success-bg font-medium text-accent"
-											: "text-text-muted hover:bg-secondary hover:text-text",
+										"shrink-0 flex items-center justify-center transition-colors",
+										isPageSelected
+											? "text-accent"
+											: "text-text-muted group-hover:text-text",
 									)}
-									data-page-index={pageIndex}
-									data-section-index={sectionIndex}
-									key={section.id}
-									onClick={onSelectSection}
-									type="button"
 								>
-									<div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-										<div
-											className={getValidClassNames(
-												"shrink-0 flex items-center justify-center transition-colors",
-												isSelected
-													? "text-accent"
-													: "text-control-inactive group-hover:text-text-muted",
-											)}
-										>
-											<Icon name="file" size={ICON_SIZE_SMALL} />
+									<Icon name="paragraph" size={ICON_SIZE_SMALL} />
+								</div>
+								<span className="truncate block min-w-0 flex-1">
+									{page.title}
+								</span>
+							</div>
+							{getStatusBadge(page.status)}
+						</button>
+
+						<div className="flex w-full min-w-0 flex-col gap-0.5">
+							{page.sections.map((section, sectionIndex) => {
+								const isSelected =
+									pageIndex === activePageIndex &&
+									sectionIndex === activeSectionIndex &&
+									activeNodeType === "child";
+								const sectionTitle =
+									section.title.trim().length > EMPTY_LENGTH
+										? section.title
+										: "Untitled section";
+
+								return (
+									<button
+										className={getValidClassNames(
+											"group flex w-full min-w-0 items-center justify-between overflow-hidden rounded-md py-1.5 pl-4 pr-1.5 text-left font-sans text-xs transition-colors",
+											isSelected
+												? "bg-success-bg font-medium text-accent"
+												: "text-text-muted hover:bg-secondary hover:text-text",
+										)}
+										data-page-index={pageIndex}
+										data-section-index={sectionIndex}
+										key={section.id}
+										onClick={onSelectSection}
+										type="button"
+									>
+										<div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+											<div
+												className={getValidClassNames(
+													"shrink-0 flex items-center justify-center transition-colors",
+													isSelected
+														? "text-accent"
+														: "text-control-inactive group-hover:text-text-muted",
+												)}
+											>
+												<Icon name="file" size={ICON_SIZE_SMALL} />
+											</div>
+											<span className="truncate block min-w-0 flex-1">
+												{sectionTitle}
+											</span>
 										</div>
-										<span className="truncate block min-w-0 flex-1">
-											{sectionTitle}
-										</span>
-									</div>
-									{getStatusBadge(section.status)}
-								</button>
-							);
-						})}
+										{getStatusBadge(section.status)}
+									</button>
+								);
+							})}
+						</div>
 					</div>
-				</div>
-			))}
+				);
+			})}
 		</div>
 	</aside>
 );
 
 const SectionDetails = ({
-	activePageTitle,
+	activeNodeType,
+	activePage,
 	activeSection,
 	isContentEmpty,
 	isEditMode,
 	isTitleEmpty,
 	onContentChange,
+	onPageTitleChange,
 	onTitleChange,
 }: SectionDetailsProperties): JSX.Element => {
-	if (!activeSection) {
+	const isParentSelected = activeNodeType === "parent";
+	const selectedNode = isParentSelected ? activePage : activeSection;
+
+	if (!selectedNode) {
 		return (
 			<main className="flex flex-1 min-w-0 flex-col gap-3 p-3.5 tablet:p-6 tablet:overflow-y-auto">
 				<Paragraph size={ParagraphSize.BODY_SMALL}>
-					Select a section from the proposed tree to view details.
+					Select a node from the proposed tree to view details.
 				</Paragraph>
 			</main>
 		);
 	}
 
 	const currentTitle =
-		activeSection.title.trim().length > EMPTY_LENGTH
-			? activeSection.title
-			: "Untitled section";
+		selectedNode.title.trim().length > EMPTY_LENGTH
+			? selectedNode.title
+			: "Untitled node";
+	const breadcrumbLabel =
+		isParentSelected || !activePage
+			? currentTitle
+			: `${activePage.title} > ${currentTitle}`;
+	const selectedTitleLabel = getNodeTitleLabel(selectedNode.type, "Node");
+	const editorKey = `${selectedNode.id}-${isEditMode ? "edit" : "view"}`;
+	const handleTitleChange = isParentSelected
+		? onPageTitleChange
+		: onTitleChange;
 
 	return (
 		<main className="flex flex-1 min-w-0 flex-col gap-3 p-3.5 tablet:p-6 tablet:overflow-y-auto">
 			<div className="flex flex-col gap-2 border-b border-border-subtle pb-3">
 				<div className="flex items-center justify-between gap-2">
 					<span className="font-mono text-2xs uppercase tracking-wide text-text-muted truncate block min-w-0 flex-1">
-						{activePageTitle} &gt; {currentTitle}
+						{breadcrumbLabel}
 					</span>
 
 					<span
@@ -314,42 +523,47 @@ const SectionDetails = ({
 							"rounded-full px-2.5 py-0.5 font-sans text-2xs font-medium border shrink-0 whitespace-nowrap",
 							{
 								"bg-info-bg text-info border-info/25":
-									activeSection.status === "modified",
+									selectedNode.status === "UPDATE",
+								"bg-secondary text-text-muted border-border":
+									selectedNode.status === "DUPLICATE",
 								"bg-success-bg text-accent border-accent/25":
-									activeSection.status === "created",
+									selectedNode.status === "NEW",
 								"bg-warning-bg text-warning border-warning/35":
-									activeSection.status === "updated",
+									selectedNode.status === "CONFLICT",
 							},
 						)}
 					>
-						{getSectionStatusLabel(activeSection.status)}
+						{getSectionStatusLabel(selectedNode.status)}
 					</span>
 				</div>
 
 				{isEditMode ? (
 					<div className="flex w-full flex-col gap-1">
+						<span className="font-sans text-2xs font-semibold uppercase tracking-wide text-text-muted">
+							{selectedTitleLabel}
+						</span>
 						<input
 							className={getValidClassNames(
-								"w-full min-w-0 rounded-md border bg-surface px-3 py-1.5 font-serif text-base tablet:text-lg font-bold text-text transition-colors focus:outline-none",
+								"w-full min-w-0 rounded-md border bg-surface px-3 py-2 font-sans text-sm font-medium text-text transition-colors focus:outline-none",
 								isTitleEmpty
 									? "border-error focus:border-error"
 									: "border-border focus:border-accent",
 							)}
 							maxLength={TITLE_MAX_LENGTH}
-							onChange={onTitleChange}
-							placeholder="Enter section title..."
-							value={activeSection.title}
+							onChange={handleTitleChange}
+							placeholder={`Enter ${selectedTitleLabel.toLowerCase()}...`}
+							value={selectedNode.title}
 						/>
 						<div className="flex items-center justify-between text-2xs font-sans">
 							{isTitleEmpty ? (
 								<span className="text-error font-medium">
-									Title cannot be empty
+									{selectedTitleLabel} cannot be empty
 								</span>
 							) : (
 								<span />
 							)}
 							<span className="text-text-faint">
-								{activeSection.title.length}/{TITLE_MAX_LENGTH}
+								{selectedNode.title.length}/{TITLE_MAX_LENGTH}
 							</span>
 						</div>
 					</div>
@@ -358,39 +572,60 @@ const SectionDetails = ({
 						className="font-serif text-lg tablet:text-h2 font-bold tracking-tight text-text"
 						level="1"
 					>
-						{activeSection.title}
+						{selectedNode.title}
 					</Heading>
 				)}
 			</div>
 
-			<div className="flex flex-1 min-w-0 flex-col gap-3">
-				{isEditMode ? (
-					<div className="flex flex-1 flex-col gap-1">
-						<textarea
-							className={getValidClassNames(
-								"min-h-40 tablet:min-h-72 w-full flex-1 rounded-md border bg-surface p-3 tablet:p-4 font-sans text-sm leading-relaxed text-text transition-colors focus:outline-none",
-								isContentEmpty
-									? "border-error focus:border-error"
-									: "border-border focus:border-accent",
+			{activeSection && !isParentSelected && (
+				<div className="flex flex-1 min-w-0 flex-col gap-3">
+					{isEditMode ? (
+						<div className="flex flex-1 flex-col gap-1">
+							<div
+								className={getValidClassNames(
+									"min-h-40 tablet:min-h-72 w-full flex-1 rounded-md border bg-surface p-3 tablet:p-4 transition-colors",
+									isContentEmpty
+										? "border-error"
+										: "border-border focus:border-accent",
+								)}
+							>
+								<SectionContentEditor
+									content={activeSection.content}
+									key={editorKey}
+									onContentChange={onContentChange}
+								/>
+							</div>
+							{isContentEmpty && (
+								<span className="text-error font-sans text-2xs font-medium">
+									Content cannot be empty
+								</span>
 							)}
-							onChange={onContentChange}
-							placeholder="Enter section content..."
-							value={activeSection.content}
-						/>
-						{isContentEmpty && (
-							<span className="text-error font-sans text-2xs font-medium">
-								Content cannot be empty
-							</span>
-						)}
-					</div>
-				) : (
-					<div className="min-h-48 tablet:min-h-80 flex-1 rounded-md border border-border-subtle bg-bg p-3.5 tablet:p-5">
-						<div className="whitespace-pre-line font-sans text-sm leading-relaxed text-text">
-							{activeSection.content}
 						</div>
+					) : (
+						<div className="min-h-48 tablet:min-h-80 flex-1 rounded-md border border-border-subtle bg-bg p-3.5 tablet:p-5">
+							<SectionContentEditor
+								content={activeSection.content}
+								isEditable={false}
+								key={editorKey}
+							/>
+						</div>
+					)}
+				</div>
+			)}
+
+			{isParentSelected && (
+				<div className="flex flex-1 min-w-0 items-center justify-center rounded-md border border-dashed border-border-subtle bg-bg p-6 text-center">
+					<div className="max-w-sm">
+						<Paragraph
+							className="text-sm leading-relaxed text-text-muted"
+							size={ParagraphSize.BODY_SMALL}
+						>
+							This section groups proposed pages. Select a page to edit its
+							content.
+						</Paragraph>
 					</div>
-				)}
-			</div>
+				</div>
+			)}
 		</main>
 	);
 };
@@ -469,6 +704,8 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	const [activeSectionIndex, setActiveSectionIndex] = useState<number>(
 		DEFAULT_SECTION_INDEX,
 	);
+	const [activeNodeType, setActiveNodeType] =
+		useState<ActiveNodeType>("child");
 	const [isEditMode, setIsEditMode] = useState<boolean>(false);
 	const [isSuccessModalOpen, setIsSuccessModalOpen] = useState<boolean>(false);
 	const [isMergeScreenOpen, setIsMergeScreenOpen] = useState<boolean>(false);
@@ -478,12 +715,15 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	const activeSection =
 		activePage?.sections[activeSectionIndex] ??
 		activePage?.sections[DEFAULT_SECTION_INDEX];
+	const selectedNode =
+		activeNodeType === "parent" ? activePage : activeSection;
 
 	const isTitleEmpty =
-		(activeSection?.title.trim().length ?? EMPTY_LENGTH) === EMPTY_LENGTH;
+		(selectedNode?.title.trim().length ?? EMPTY_LENGTH) === EMPTY_LENGTH;
 	const isContentEmpty =
 		(activeSection?.content.trim().length ?? EMPTY_LENGTH) === EMPTY_LENGTH;
-	const isEditInvalid = isTitleEmpty || isContentEmpty;
+	const isEditInvalid =
+		isTitleEmpty || (activeNodeType === "child" && isContentEmpty);
 
 	const handleAddMoreAndClose = useCallback((): void => {
 		setIsSuccessModalOpen(false);
@@ -543,8 +783,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, [isEditInvalid]);
 
 	const handleSectionContentChange = useCallback(
-		(event: ChangeEvent<HTMLTextAreaElement>): void => {
-			const newContent = event.target.value;
+		(newContent: string): void => {
 			setPages((previousPages) =>
 				updateSectionInPages({
 					pageIndex: activePageIndex,
@@ -555,6 +794,20 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			);
 		},
 		[activePageIndex, activeSectionIndex],
+	);
+
+	const handlePageTitleChange = useCallback(
+		(event: ChangeEvent<HTMLInputElement>): void => {
+			const newTitle = event.target.value;
+			setPages((previousPages) =>
+				updatePageInPages({
+					pageIndex: activePageIndex,
+					pages: previousPages,
+					partialPage: { title: newTitle },
+				}),
+			);
+		},
+		[activePageIndex],
 	);
 
 	const handleSectionTitleChange = useCallback(
@@ -572,6 +825,18 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		[activePageIndex, activeSectionIndex],
 	);
 
+	const handleSelectPage = useCallback(
+		(event: MouseEvent<HTMLButtonElement>): void => {
+			const pageIndexString = event.currentTarget.dataset["pageIndex"];
+
+			if (pageIndexString !== undefined) {
+				setActivePageIndex(Number(pageIndexString));
+				setActiveNodeType("parent");
+			}
+		},
+		[],
+	);
+
 	const handleSelectSection = useCallback(
 		(event: MouseEvent<HTMLButtonElement>): void => {
 			const target = event.currentTarget;
@@ -581,6 +846,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			if (pageIndexString !== undefined && sectionIndexString !== undefined) {
 				setActivePageIndex(Number(pageIndexString));
 				setActiveSectionIndex(Number(sectionIndexString));
+				setActiveNodeType("child");
 			}
 		},
 		[],
@@ -595,7 +861,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					onPublish={handleConsolidatedPublish}
 					pages={pages}
 				/>
-				<SuccessModal
+				<ProposedStructureSuccessModal
 					isOpen={isSuccessModalOpen}
 					onAddMore={handleAddMoreAndClose}
 					onGoToKnowledgeBase={handleGoToKB}
@@ -609,22 +875,26 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	return (
 		<div className="mx-auto flex h-full w-full max-w-7xl flex-col justify-between gap-3 p-3 tablet:p-4 pb-2 tablet:pb-4 font-sans text-text">
 			<div className="flex flex-1 min-h-0 flex-col tablet:flex-row overflow-y-auto tablet:overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
-				<StructureAside
-					activePageIndex={activePageIndex}
-					activeSectionIndex={activeSectionIndex}
-					onSelectSection={handleSelectSection}
-					pages={pages}
-				/>
+					<StructureAside
+						activeNodeType={activeNodeType}
+						activePageIndex={activePageIndex}
+						activeSectionIndex={activeSectionIndex}
+						onSelectPage={handleSelectPage}
+						onSelectSection={handleSelectSection}
+						pages={pages}
+					/>
 
-				<SectionDetails
-					activePageTitle={activePage?.title ?? ""}
-					activeSection={activeSection}
-					isContentEmpty={isContentEmpty}
-					isEditMode={isEditMode}
-					isTitleEmpty={isTitleEmpty}
-					onContentChange={handleSectionContentChange}
-					onTitleChange={handleSectionTitleChange}
-				/>
+					<SectionDetails
+						activeNodeType={activeNodeType}
+						activePage={activePage}
+						activeSection={activeSection}
+						isContentEmpty={isContentEmpty}
+						isEditMode={isEditMode}
+						isTitleEmpty={isTitleEmpty}
+						onContentChange={handleSectionContentChange}
+						onPageTitleChange={handlePageTitleChange}
+						onTitleChange={handleSectionTitleChange}
+					/>
 			</div>
 
 			<PreviewFooter
@@ -638,7 +908,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 				onSaveEdit={handleSaveEdit}
 			/>
 
-			<SuccessModal
+			<ProposedStructureSuccessModal
 				isOpen={isSuccessModalOpen}
 				onAddMore={handleAddMoreAndClose}
 				onGoToKnowledgeBase={handleGoToKB}
