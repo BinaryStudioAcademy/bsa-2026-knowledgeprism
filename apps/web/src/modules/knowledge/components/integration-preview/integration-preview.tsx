@@ -289,7 +289,6 @@ const SectionDetails = ({
 	if (!activeSection) {
 		return (
 			<div className="flex flex-1 min-w-0 flex-col gap-3 p-3.5 tablet:p-6 tablet:overflow-y-auto">
-				{" "}
 				<Paragraph size={ParagraphSize.BODY_SMALL}>
 					Select a section from the proposed tree to view details.
 				</Paragraph>
@@ -303,7 +302,7 @@ const SectionDetails = ({
 			: "Untitled section";
 
 	return (
-		<main className="flex flex-1 min-w-0 flex-col gap-3 p-3.5 tablet:p-6 tablet:overflow-y-auto">
+		<div className="flex flex-1 min-w-0 flex-col gap-3 p-3.5 tablet:p-6 tablet:overflow-y-auto">
 			<div className="flex flex-col gap-2 border-b border-border-subtle pb-3">
 				<div className="flex items-center justify-between gap-2">
 					<span className="font-mono text-2xs uppercase tracking-wide text-text-muted truncate block min-w-0 flex-1">
@@ -392,7 +391,7 @@ const SectionDetails = ({
 					</div>
 				)}
 			</div>
-		</main>
+		</div>
 	);
 };
 
