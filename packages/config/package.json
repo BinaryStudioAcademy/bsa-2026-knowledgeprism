@@ -16,8 +16,8 @@
 		"build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json"
 	},
 	"dependencies": {
-		"@knowledgeprism/constants": "*",
-		"@knowledgeprism/types": "*"
+		"@knowledgeprism/constants": "1.0.0",
+		"@knowledgeprism/types": "1.0.0"
 	},
 	"devDependencies": {
 		"zod": "4.4.3"
