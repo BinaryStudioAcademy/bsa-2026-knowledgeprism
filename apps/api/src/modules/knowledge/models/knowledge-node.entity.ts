@@ -1,7 +1,6 @@
 import { type KnowledgeNodeType } from "@knowledgeprism/constants";
 import {
 	type KnowledgeNodeContentDto,
-	type KnowledgeTreeItemResponseDto,
 	type ValueOf,
 } from "@knowledgeprism/types";
 
@@ -128,17 +127,6 @@ class KnowledgeNodeEntity implements Entity {
 			parentId: this.parentId,
 			position: this.position,
 			projectId: this.projectId,
-			title: this.title,
-			type: this.type,
-			updatedAt: this.updatedAt.toISOString(),
-		};
-	}
-
-	public toTreeItem(): KnowledgeTreeItemResponseDto {
-		return {
-			id: this.id as number,
-			parentId: this.parentId,
-			position: this.position,
 			title: this.title,
 			type: this.type,
 			updatedAt: this.updatedAt.toISOString(),

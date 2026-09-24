@@ -36,13 +36,18 @@ const DEFAULT_MANUAL_TEXT_INPUT_PAYLOAD: ManualTextInputPayload = {
 };
 
 const resolveManualTextInput: Resolver<ManualTextInputPayload> = (payload) => {
-	const isContentEmpty = !payload.content.trim();
-	const isTitleTooLong = payload.title.length > TITLE_MAXIMUM_LENGTH;
+	const content = payload.content.trim();
+	const title = payload.title.trim();
+	const isContentEmpty = !content;
+	const isTitleTooLong = title.length > TITLE_MAXIMUM_LENGTH;
 
 	if (!isContentEmpty && !isTitleTooLong) {
 		return {
 			errors: {},
-			values: payload,
+			values: {
+				content,
+				title,
+			},
 		};
 	}
 
@@ -102,7 +107,7 @@ const ManualTextInput = ({
 	});
 
 	const isPayloadReady =
-		Boolean(content.trim()) && title.length <= TITLE_MAXIMUM_LENGTH;
+		Boolean(content.trim()) && title.trim().length <= TITLE_MAXIMUM_LENGTH;
 	const isProcessing = isLoading || isSubmitting;
 
 	let statusMessage = "No knowledge added yet";
