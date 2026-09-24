@@ -26,11 +26,13 @@ COPY package.json package-lock.json .npmrc .nvmrc tsconfig.json packages.d.ts ./
 # package has a "postinstall" script that compiles it with tsc.
 COPY packages ./packages
 COPY apps/api/package.json ./apps/api/package.json
+COPY apps/worker/package.json ./apps/worker/package.json
 RUN npm ci
 
 FROM deps AS builder
+COPY apps/worker ./apps/worker
 COPY apps/api ./apps/api
-RUN npm run build -w apps/api
+RUN npm run build -w apps/worker && npm run build -w apps/api
 # Point each package's runtime entry at its compiled output so plain `node`
 # can resolve `@knowledgeprism/*` imports from the compiled apps/api/build.
 # This only mutates package.json inside this build stage/image.
@@ -43,6 +45,8 @@ ENV NODE_ENV=production
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/packages ./packages
+COPY --from=builder /app/apps/worker/build ./apps/worker/build
+COPY --from=builder /app/apps/worker/package.json ./apps/worker/package.json
 COPY --from=builder /app/apps/api/build ./apps/api/build
 COPY --from=builder /app/apps/api/package.json ./apps/api/package.json
 
