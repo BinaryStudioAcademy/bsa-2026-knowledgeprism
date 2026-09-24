@@ -9,6 +9,7 @@
 		"lint:js": "npx eslint . --max-warnings=0",
 		"lint": "concurrently \"npm:lint:*\"",
 		"start:dev": "tsx watch src/index.ts",
+		"postinstall": "npm run build",
 		"build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json && npm run build:copy",
 		"build:copy": "cp -r package.json build",
 		"start": "node ./src/index.js"

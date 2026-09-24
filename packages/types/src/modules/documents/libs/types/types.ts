@@ -1,8 +1,14 @@
 export { type DocumentConfirmUploadResponseDto } from "./document-confirm-upload-response-dto.type.js";
 export { type DocumentConfirmUploadRouteParametersDto } from "./document-confirm-upload-route-parameters-dto.type.js";
+export { type DocumentRouteParametersDto } from "./document-route-parameters-dto.type.js";
+export { type DocumentStatusResponseDto } from "./document-status-response-dto.type.js";
 export { type DocumentUploadIntentRequestDto } from "./document-upload-intent-request-dto.type.js";
 export { type DocumentUploadIntentResponseDto } from "./document-upload-intent-response-dto.type.js";
 export { type DocumentUploadIntentRouteParametersDto } from "./document-upload-intent-route-parameters-dto.type.js";
+export { type ExtractionItemResponseDto } from "./extraction-item-response-dto.type.js";
+export { type ExtractionItemsResponseDto } from "./extraction-items-response-dto.type.js";
+export { type ExtractionItemsReviewRequestDto } from "./extraction-items-review-request-dto.type.js";
+export { type ExtractionItemsReviewResponseDto } from "./extraction-items-review-response-dto.type.js";
 export { type ManualTextCreateRequestDto } from "./manual-text-create-request-dto.type.js";
 export { type ManualTextResponseDto } from "./manual-text-response-dto.type.js";
 export { type ManualTextRouteParametersDto } from "./manual-text-route-parameters-dto.type.js";

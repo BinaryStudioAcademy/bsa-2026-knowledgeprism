@@ -15,7 +15,7 @@ import {
 	type ProjectResponseDto,
 	type ProjectUpdateRequestDto,
 } from "@knowledgeprism/types";
-import { ForeignKeyViolationError, UniqueViolationError } from "objection";
+import { UniqueViolationError } from "objection";
 
 import { DatabaseConstraintName } from "~/infrastructure/database/libs/enums/database-constraint-name.enum.js";
 import { HTTPError } from "~/infrastructure/http/http.js";
@@ -296,32 +296,16 @@ class ProjectService {
 		await this.assertOrganisationAdmin(context);
 		await this.findProjectOrThrow(id, context.organisationId);
 
-		try {
-			const wasDeleted =
-				await this.projectRepository.deleteByIdAndOrganisationId(
-					id,
-					context.organisationId,
-				);
+		const wasDeleted = await this.projectRepository.deleteByIdAndOrganisationId(
+			id,
+			context.organisationId,
+		);
 
-			if (!wasDeleted) {
-				throw new HTTPError({
-					message: ProjectValidationMessage.NOT_FOUND,
-					status: HTTPCode.NOT_FOUND,
-				});
-			}
-		} catch (error) {
-			if (
-				error instanceof ForeignKeyViolationError &&
-				error.constraint === DatabaseConstraintName.DOCUMENTS_PROJECT_ID_FOREIGN
-			) {
-				throw new HTTPError({
-					cause: error,
-					message: ProjectValidationMessage.HAS_DOCUMENTS,
-					status: HTTPCode.CONFLICT,
-				});
-			}
-
-			throw error;
+		if (!wasDeleted) {
+			throw new HTTPError({
+				message: ProjectValidationMessage.NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
 		}
 	}
 

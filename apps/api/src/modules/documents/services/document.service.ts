@@ -8,6 +8,7 @@ import {
 import {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentConfirmUploadRouteParametersDto,
+	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
@@ -22,9 +23,12 @@ import { type Logger } from "~/infrastructure/logger/logger.js";
 import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/helpers.js";
 import { type GeneratePresignedUploadUrl } from "~/infrastructure/s3/libs/types/types.js";
 import { type CheckDocumentObjectExists } from "~/infrastructure/s3/verify-object.js";
+import { ProcessingSweep } from "~/modules/documents/libs/constants/processing-sweep.constant.js";
 import { createContentHash } from "~/modules/documents/libs/helpers/create-content-hash.helper.js";
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
 import { isUniqueViolation } from "~/modules/documents/libs/helpers/is-unique-violation.helper.js";
+import { toDocumentStatusResponse } from "~/modules/documents/libs/helpers/to-document-status-response.helper.js";
+import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 import {
@@ -33,9 +37,12 @@ import {
 } from "~/modules/projects/services/project.service.js";
 
 import { type DocumentProcessor } from "./document-processor.js";
+import { type DocumentReference } from "./document-review.service.js";
 
 const MANUAL_TEXT_MIME_TYPE = "text/plain";
 const UNTITLED_MANUAL_DOCUMENT_NAME = "Untitled";
+const NO_DOCUMENTS = 0;
+const INITIAL_PROCESSING_ATTEMPT = 0;
 
 type Constructor = {
 	checkDocumentObjectExists: CheckDocumentObjectExists;
@@ -44,6 +51,13 @@ type Constructor = {
 	generatePresignedUploadUrl: GeneratePresignedUploadUrl;
 	logger: Logger;
 	projectService: ProjectService;
+};
+
+const createRetryNotAllowedError = (): HTTPError => {
+	return new HTTPError({
+		message: DocumentErrorMessage.RETRY_NOT_ALLOWED,
+		status: HTTPCode.CONFLICT,
+	});
 };
 
 class DocumentService {
@@ -75,22 +89,64 @@ class DocumentService {
 		this.projectService = projectService;
 	}
 
-	private async completeProcessing(id: number): Promise<void> {
+	private async assertRetryableUpload(document: DocumentEntity): Promise<void> {
+		const { s3Key, sourceType } = document.toObject();
+
+		if (sourceType !== DocumentSourceType.UPLOAD) {
+			return;
+		}
+
+		if (!s3Key) {
+			throw createRetryNotAllowedError();
+		}
+
 		try {
-			await this.documentProcessor.process();
-			await this.documentRepository.compareAndSwapStatus({
-				errorMessage: null,
-				expectedStatus: DocumentStatus.PROCESSING,
-				id,
-				status: DocumentStatus.WAITING_FOR_APPROVAL,
+			await this.verifyUploadedObject(s3Key);
+		} catch (error) {
+			if (error instanceof S3ObjectNotFoundError) {
+				throw new HTTPError({
+					cause: error,
+					message: DocumentErrorMessage.UPLOAD_OBJECT_NOT_FOUND,
+					status: HTTPCode.CONFLICT,
+				});
+			}
+
+			if (error instanceof S3ObjectTooLargeError) {
+				throw new HTTPError({
+					cause: error,
+					message: DocumentErrorMessage.UPLOAD_OBJECT_TOO_LARGE,
+					status: HTTPCode.CONFLICT,
+				});
+			}
+
+			throw new HTTPError({
+				cause: error,
+				message: DocumentErrorMessage.UPLOAD_VERIFICATION_FAILED,
+				status: HTTPCode.SERVICE_UNAVAILABLE,
 			});
-		} catch {
-			await this.documentRepository.compareAndSwapStatus({
-				errorMessage: DocumentErrorMessage.PROCESSING_FAILED,
-				expectedStatus: DocumentStatus.PROCESSING,
-				id,
-				status: DocumentStatus.FAILED,
+		}
+	}
+
+	private async completeProcessing(
+		processingAttempt: ProcessingAttempt,
+	): Promise<void> {
+		try {
+			const isCompleted =
+				await this.documentProcessor.process(processingAttempt);
+
+			if (!isCompleted) {
+				this.logger.warn(
+					"Discarded results of a superseded processing attempt.",
+					{ ...processingAttempt },
+				);
+			}
+		} catch (error) {
+			this.logger.error("Failed to process document.", {
+				...processingAttempt,
+				error,
 			});
+
+			await this.failProcessing(processingAttempt);
 		}
 	}
 
@@ -111,6 +167,26 @@ class DocumentService {
 			message,
 			status: HTTPCode.INTERNAL_SERVER_ERROR,
 		});
+	}
+
+	private async failProcessing({
+		attempt,
+		documentId,
+	}: ProcessingAttempt): Promise<void> {
+		try {
+			await this.documentRepository.compareAndSwapStatus({
+				errorMessage: DocumentErrorMessage.PROCESSING_FAILED,
+				expectedStatus: DocumentStatus.PROCESSING,
+				id: documentId,
+				processingAttempt: attempt,
+				status: DocumentStatus.FAILED,
+			});
+		} catch (error) {
+			this.logger.error("Failed to mark document as failed.", {
+				documentId,
+				error,
+			});
+		}
 	}
 
 	private async findOwnedDocument({
@@ -145,9 +221,24 @@ class DocumentService {
 		return trimmedTitle === "" ? null : trimmedTitle;
 	}
 
-	private scheduleProcessing(id: number): void {
+	private async restartFailedProcessing(id: number): Promise<DocumentEntity> {
+		const processing = await this.documentRepository.startProcessing({
+			allowedStatuses: [DocumentStatus.FAILED],
+			id,
+		});
+
+		if (!processing) {
+			throw createRetryNotAllowedError();
+		}
+
+		this.scheduleProcessing({ attempt: processing.attempt, documentId: id });
+
+		return processing.document;
+	}
+
+	private scheduleProcessing(processingAttempt: ProcessingAttempt): void {
 		setImmediate(() => {
-			void this.completeProcessing(id);
+			void this.completeProcessing(processingAttempt);
 		});
 	}
 
@@ -169,6 +260,20 @@ class DocumentService {
 					: documentDetails.name,
 			updatedAt: documentDetails.updatedAt.toISOString(),
 		};
+	}
+
+	private async verifyUploadedObject(s3Key: string): Promise<void> {
+		const objectSizeInBytes = await this.checkDocumentObjectExists({
+			key: s3Key,
+		});
+
+		if (objectSizeInBytes === null) {
+			throw new S3ObjectNotFoundError("S3 object missing");
+		}
+
+		if (objectSizeInBytes > DocumentValidationRule.MAXIMUM_FILE_SIZE_IN_BYTES) {
+			throw new S3ObjectTooLargeError("S3 object exceeds maximum file size");
+		}
 	}
 
 	public async cancelManualText({
@@ -240,15 +345,12 @@ class DocumentService {
 			});
 		}
 
-		const transitionedDocument =
-			await this.documentRepository.updateStatusIfCurrentIn({
-				allowedStatuses: [DocumentStatus.UPLOADED],
-				errorMessage: null,
-				id: documentId,
-				status: DocumentStatus.PROCESSING,
-			});
+		const processing = await this.documentRepository.startProcessing({
+			allowedStatuses: [DocumentStatus.UPLOADED],
+			id: documentObject.id,
+		});
 
-		if (!transitionedDocument) {
+		if (!processing) {
 			throw new HTTPError({
 				message: DocumentErrorMessage.CONFIRM_NOT_ALLOWED,
 				status: HTTPCode.CONFLICT,
@@ -256,24 +358,12 @@ class DocumentService {
 		}
 
 		try {
-			const objectSizeInBytes = await this.checkDocumentObjectExists({
-				key: s3Key,
-			});
-
-			if (objectSizeInBytes === null) {
-				throw new S3ObjectNotFoundError("S3 object missing");
-			}
-
-			if (
-				objectSizeInBytes > DocumentValidationRule.MAXIMUM_FILE_SIZE_IN_BYTES
-			) {
-				throw new S3ObjectTooLargeError("S3 object exceeds maximum file size");
-			}
+			await this.verifyUploadedObject(s3Key);
 		} catch (error) {
 			if (error instanceof S3ObjectNotFoundError) {
 				await this.failAndThrow(
 					documentId,
-					"Uploaded document was not found in S3.",
+					DocumentErrorMessage.UPLOAD_OBJECT_NOT_FOUND,
 					error,
 				);
 			}
@@ -281,7 +371,7 @@ class DocumentService {
 			if (error instanceof S3ObjectTooLargeError) {
 				await this.failAndThrow(
 					documentId,
-					"Uploaded document exceeds the maximum allowed file size.",
+					DocumentErrorMessage.UPLOAD_OBJECT_TOO_LARGE,
 					error,
 				);
 			}
@@ -298,14 +388,19 @@ class DocumentService {
 
 			throw new HTTPError({
 				cause: error,
-				message: "Failed to verify uploaded document in S3. Please try again.",
+				message: DocumentErrorMessage.UPLOAD_VERIFICATION_FAILED,
 				status: HTTPCode.SERVICE_UNAVAILABLE,
 			});
 		}
 
+		this.scheduleProcessing({
+			attempt: processing.attempt,
+			documentId: documentObject.id,
+		});
+
 		return {
-			documentId,
-			status: transitionedDocument.toObject().status,
+			documentId: documentObject.id,
+			status: processing.document.toObject().status,
 		};
 	}
 
@@ -378,7 +473,10 @@ class DocumentService {
 
 		const createdDocumentDto = this.toManualTextResponse(createdDocument);
 
-		this.scheduleProcessing(createdDocumentDto.id);
+		this.scheduleProcessing({
+			attempt: INITIAL_PROCESSING_ATTEMPT,
+			documentId: createdDocumentDto.id,
+		});
 
 		return createdDocumentDto;
 	}
@@ -473,6 +571,25 @@ class DocumentService {
 		};
 	}
 
+	public async failStaleProcessing(): Promise<void> {
+		try {
+			const failedCount = await this.documentRepository.failStaleProcessing({
+				errorMessage: DocumentErrorMessage.PROCESSING_INTERRUPTED,
+				updatedBefore: new Date(Date.now() - ProcessingSweep.STALE_AFTER_MS),
+			});
+
+			if (failedCount > NO_DOCUMENTS) {
+				this.logger.warn("Marked stale processing documents as failed.", {
+					failedCount,
+				});
+			}
+		} catch (error) {
+			this.logger.error("Failed to sweep stale processing documents.", {
+				error,
+			});
+		}
+	}
+
 	public async findManualText({
 		context,
 		id,
@@ -509,28 +626,45 @@ class DocumentService {
 			numericProjectId,
 			context,
 		);
-		await this.findOwnedDocument({
+
+		const document = await this.findOwnedDocument({
 			id,
 			projectId: numericProjectId,
 		});
 
-		const retriedDocument = await this.documentRepository.compareAndSwapStatus({
-			errorMessage: null,
-			expectedStatus: DocumentStatus.FAILED,
-			id,
-			status: DocumentStatus.PROCESSING,
-		});
-
-		if (!retriedDocument) {
+		if (document.toObject().sourceType !== DocumentSourceType.MANUAL) {
 			throw new HTTPError({
-				message: DocumentErrorMessage.RETRY_NOT_ALLOWED,
-				status: HTTPCode.CONFLICT,
+				message: DocumentErrorMessage.NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
 			});
 		}
 
-		this.scheduleProcessing(id);
+		const retriedDocument = await this.restartFailedProcessing(id);
 
 		return this.toManualTextResponse(retriedDocument);
+	}
+
+	public async retryProcessing({
+		context,
+		documentId,
+		projectId,
+	}: DocumentReference): Promise<DocumentStatusResponseDto> {
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
+
+		const document = await this.findOwnedDocument({
+			id: documentId,
+			projectId,
+		});
+
+		if (document.toObject().status !== DocumentStatus.FAILED) {
+			throw createRetryNotAllowedError();
+		}
+
+		await this.assertRetryableUpload(document);
+
+		const retriedDocument = await this.restartFailedProcessing(documentId);
+
+		return toDocumentStatusResponse(retriedDocument);
 	}
 }
 

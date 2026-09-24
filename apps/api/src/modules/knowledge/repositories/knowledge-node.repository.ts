@@ -6,6 +6,7 @@ import {
 	type KnowledgeNodeContentDto,
 	type KnowledgeTreeItemResponseDto,
 } from "@knowledgeprism/types";
+import { type Transaction } from "objection";
 
 import { KnowledgeNodeEntity } from "../models/knowledge-node.entity.js";
 import { type KnowledgeNodeModel } from "../models/knowledge-node.model.js";
@@ -27,12 +28,41 @@ type TreeKnowledgeDatabaseRow = {
 };
 
 const EMPTY_LENGTH = 0;
+const FIRST_POSITION = 0;
+const POSITION_STEP = 1;
 
 class KnowledgeNodeRepository {
 	private knowledgeNodeModel: typeof KnowledgeNodeModel;
 
 	public constructor(knowledgeNodeModel: typeof KnowledgeNodeModel) {
 		this.knowledgeNodeModel = knowledgeNodeModel;
+	}
+
+	public async create(
+		{ entity, userId }: { entity: KnowledgeNodeEntity; userId: number },
+		transaction: Transaction,
+	): Promise<KnowledgeNodeEntity> {
+		const node = await this.knowledgeNodeModel
+			.query(transaction)
+			.insert({
+				...entity.toNewObject(),
+				createdBy: userId,
+				updatedBy: userId,
+			})
+			.returning("*")
+			.execute();
+
+		return KnowledgeNodeEntity.initialize({
+			contentJson: node.contentJson,
+			createdAt: node.createdAt,
+			id: node.id,
+			parentId: node.parentId,
+			position: node.position,
+			projectId: node.projectId,
+			title: node.title,
+			type: node.type,
+			updatedAt: node.updatedAt,
+		});
 	}
 
 	public async findAllByProjectId(
@@ -86,6 +116,24 @@ class KnowledgeNodeRepository {
 		});
 	}
 
+	public async findNextRootPosition(
+		projectId: number,
+		transaction: Transaction,
+	): Promise<number> {
+		const lastRootNode = await this.knowledgeNodeModel
+			.query(transaction)
+			.select("position")
+			.where({ projectId })
+			.whereNull("parentId")
+			.orderBy("position", "desc")
+			.first()
+			.execute();
+
+		return lastRootNode
+			? lastRootNode.position + POSITION_STEP
+			: FIRST_POSITION;
+	}
+
 	public async findRecentByProjectIds(
 		projectIds: number[],
 	): Promise<RecentKnowledgeDatabaseRow[]> {
@@ -98,6 +146,7 @@ class KnowledgeNodeRepository {
 			.select(["id", "projectId", "title", "updatedAt"])
 			.whereIn("projectId", projectIds)
 			.whereNot("type", KnowledgeNodeType.SECTION)
+			.whereNull("parentId")
 			.orderBy("updatedAt", "desc")
 			.castTo<RecentKnowledgeDatabaseRow[]>()
 			.execute();
@@ -130,7 +179,7 @@ class KnowledgeNodeRepository {
 
 		const nodes = await this.knowledgeNodeModel
 			.query()
-			.where({ projectId })
+			.where({ projectId, type: KnowledgeNodeType.ENTRY })
 			.andWhere((builder) => {
 				void builder
 					.where("title", "ilike", pattern)
