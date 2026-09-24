@@ -44,8 +44,8 @@ const WorkspaceContainer: React.FC = () => {
 		updateError,
 	} = useSelector((state: RootState) => state.workspaces);
 
-	const userObject = userResponse?.user as undefined | UserWithRole;
-	const isOrgAdmin = userObject?.organisationRole === "ADMIN";
+	const userDetails = userResponse?.user as undefined | UserWithRole;
+	const isOrgAdmin = userDetails?.organisationRole === "ADMIN";
 
 	const handleFetchData = useCallback((): void => {
 		void dispatch(fetchProjects(workspacesApi));

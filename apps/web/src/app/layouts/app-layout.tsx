@@ -22,7 +22,7 @@ const AppLayout: React.FC = () => {
 	const navigate = useNavigate();
 
 	const userResponse = useSelector((state: RootState) => state.auth.user);
-	const userObject = userResponse?.user as undefined | UserWithRole;
+	const userDetails = userResponse?.user as undefined | UserWithRole;
 	const isOrgAdmin = userResponse?.user.organisationRole === "ADMIN";
 
 	const handleLogOut = useCallback((): void => {
@@ -37,9 +37,9 @@ const AppLayout: React.FC = () => {
 	return (
 		<div className="flex h-dvh flex-col bg-bg">
 			<WorkspaceHeader
-				firstName={userObject?.firstName ?? null}
+				firstName={userDetails?.firstName ?? null}
 				isAdmin={isOrgAdmin}
-				lastName={userObject?.lastName ?? null}
+				lastName={userDetails?.lastName ?? null}
 				onLogOut={handleLogOut}
 				onOpenSettings={handleOpenSettings}
 				organizationName={userResponse?.organisation.name ?? null}

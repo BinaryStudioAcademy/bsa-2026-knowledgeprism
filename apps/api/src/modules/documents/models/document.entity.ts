@@ -23,7 +23,7 @@ type DocumentEntityPayload = {
 	uploadedBy: null | number;
 };
 
-type DocumentObject = {
+type DocumentDetails = {
 	content: null | string;
 	contentHash: null | string;
 	createdAt: Date;
@@ -221,7 +221,7 @@ class DocumentEntity implements Entity {
 		};
 	}
 
-	public toObject(): DocumentObject {
+	public toObject(): DocumentDetails {
 		return {
 			content: this.content,
 			contentHash: this.contentHash,
