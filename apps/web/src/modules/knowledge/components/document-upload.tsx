@@ -1,4 +1,4 @@
-import { type JSX, useCallback, useRef } from "react";
+import { type JSX, useCallback, useEffect, useRef } from "react";
 
 import { Alert } from "~/components/components.js";
 import {
@@ -24,6 +24,12 @@ const DocumentUpload = ({ className = "" }: Properties): JSX.Element => {
 	);
 	const fileReference = useRef<File | null>(null);
 	const uploadTaskReference = useRef<null | { abort: () => void }>(null);
+
+	useEffect(() => {
+		return () => {
+			uploadTaskReference.current?.abort();
+		};
+	}, []);
 
 	const handleFileSelect = useCallback(
 		(file: File): void => {

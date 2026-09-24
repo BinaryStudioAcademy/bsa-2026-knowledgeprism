@@ -12,6 +12,7 @@ type Properties = Readonly<{
 	error?: null | string;
 	initialValues?: ProjectFormValue;
 	isSubmitting?: boolean;
+	onClose: () => void;
 	onSubmit: (payload: ProjectFormValue) => void;
 	submitLabel: string;
 }>;
@@ -20,6 +21,7 @@ function ProjectManagmentModalForm({
 	error,
 	initialValues,
 	isSubmitting,
+	onClose,
 	onSubmit,
 	submitLabel,
 }: Properties) {
@@ -70,9 +72,14 @@ function ProjectManagmentModalForm({
 			{error && (
 				<p className="text-xs text-error w-full text-center">{error}</p>
 			)}
-			<Button disabled={isFormDisabled} type="submit">
-				{isSubmitting ? <Loader size="sm" /> : submitLabel}
-			</Button>
+			<div className="flex items-center gap-5 w-full justify-between">
+				<Button disabled={isFormDisabled} type="submit">
+					{isSubmitting ? <Loader size="sm" /> : submitLabel}
+				</Button>
+				<Button onClick={onClose} variant="destructive">
+					Close
+				</Button>
+			</div>
 		</form>
 	);
 }

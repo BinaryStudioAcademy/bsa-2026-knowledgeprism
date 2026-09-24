@@ -295,12 +295,13 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 				<h3 className="mb-1 font-serif text-h4 font-normal text-text wrap-break-words">
 					{name}
 				</h3>
-
-				{description && (
-					<p className="line-clamp-2 text-control leading-relaxed text-text-muted wrap-break-words">
-						{description}
-					</p>
-				)}
+				<div className="h-11 overflow-y-auto">
+					{description && (
+						<p className="whitespace-normal break-words text-control leading-relaxed text-text-muted">
+							{description}
+						</p>
+					)}
+				</div>
 			</div>
 
 			<div className="mt-5 border-t border-(--color-border-subtle) pt-4">
