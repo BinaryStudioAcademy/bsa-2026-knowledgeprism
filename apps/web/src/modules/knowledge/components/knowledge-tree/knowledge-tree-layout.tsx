@@ -148,13 +148,23 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	}
 
 	if (isKbEmpty) {
+		let emptyStateContent = <KnowledgeTreeEmptyState />;
+
+		if (isAddingKnowledge) {
+			emptyStateContent = (
+				<LoadingState onFinish={handleFinishLoading} variant="full" />
+			);
+		} else if (errorMessage) {
+			emptyStateContent = (
+				<div className="flex flex-col items-center gap-4 text-text-muted">
+					<p>{errorMessage}</p>
+				</div>
+			);
+		}
+
 		return (
 			<div className="flex h-full w-full items-center justify-center bg-bg">
-				{isAddingKnowledge ? (
-					<LoadingState onFinish={handleFinishLoading} variant="full" />
-				) : (
-					<KnowledgeTreeEmptyState />
-				)}
+				{emptyStateContent}
 				<AddKnowledgeModal
 					isOpen={isAddModalOpen}
 					onClose={handleCloseAddModal}
@@ -167,7 +177,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 
 	let mainContent = (
 		<div className="flex flex-1 items-center justify-center text-text-muted">
-			Select a page to view its content.
+			{errorMessage ?? "Select a page to view its content."}
 		</div>
 	);
 

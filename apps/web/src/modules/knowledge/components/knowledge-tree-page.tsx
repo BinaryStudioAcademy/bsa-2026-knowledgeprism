@@ -14,21 +14,18 @@ const KnowledgeTreePage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const { selectedEntry, tree } = useAppSelector((state) => state.knowledge);
 
-	// Track manual selection
 	const [manualSelectedPageId, setManualSelectedPageId] = useState<
 		number | undefined
 	>();
 	const [lastProjectId, setLastProjectId] = useState<null | string>(null);
 	const [fetchedProjectId, setFetchedProjectId] = useState<null | string>(null);
 
-	// Reset manual selection when project changes
 	if (projectId !== lastProjectId) {
 		setLastProjectId(projectId);
 		setManualSelectedPageId(undefined);
 		setFetchedProjectId(null);
 	}
 
-	// Fetch tree when project changes
 	useEffect(() => {
 		if (!projectId) {
 			return;
@@ -36,20 +33,17 @@ const KnowledgeTreePage: React.FC = () => {
 
 		void dispatch(actions.fetchKnowledgeTree({ projectId }))
 			.unwrap()
-			.then(() => {
+			.finally(() => {
 				setFetchedProjectId(projectId);
 			});
 	}, [dispatch, projectId]);
 
-	// Derive the active page: either manually selected, or the first available
-	// Only calculate first available if the tree actually belongs to the current project!
 	const isTreeReady = fetchedProjectId === projectId;
 	const firstAvailablePage = isTreeReady
 		? tree.find((item) => item.type === "PAGE" || item.type === "ENTRY")
 		: undefined;
 	const activePageId = manualSelectedPageId ?? firstAvailablePage?.id;
 
-	// Fetch entry content when the active page changes
 	useEffect(() => {
 		if (activePageId === undefined || !projectId) {
 			return;

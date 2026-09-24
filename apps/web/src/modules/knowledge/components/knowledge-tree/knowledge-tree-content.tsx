@@ -52,8 +52,8 @@ const KnowledgeTreeContent: React.FC<Properties> = ({
 					<KbEntryDetail
 						entry={entry}
 						isEditing={isEditing}
+						onCancel={onCancel}
 						onSave={handleSave}
-						{...(onCancel ? { onCancel } : {})}
 					/>
 				</div>
 			</div>

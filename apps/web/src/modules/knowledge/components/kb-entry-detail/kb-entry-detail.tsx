@@ -36,7 +36,7 @@ const parseInitialContent = (content?: unknown): PartialBlock[] => {
 interface KbEntryDetailProperties {
 	entry: KbEntry;
 	isEditing?: boolean;
-	onCancel?: () => void;
+	onCancel?: (() => void) | undefined;
 	onSave: (payload: KnowledgeEntryUpdateRequestDto) => Promise<void>;
 }
 
