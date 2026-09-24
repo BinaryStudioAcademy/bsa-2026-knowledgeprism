@@ -12,6 +12,9 @@ const password = z
 	.max(UserValidationRule.PASSWORD_MAXIMUM_LENGTH, {
 		error: UserValidationMessage.PASSWORD_MAXIMUM_LENGTH,
 	})
+	.regex(/[A-Za-z]/, {
+		error: UserValidationMessage.PASSWORD_LETTER_REQUIRE,
+	})
 	.regex(/\d/, {
 		error: UserValidationMessage.PASSWORD_DIGIT_REQUIRE,
 	})
