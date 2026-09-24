@@ -121,6 +121,7 @@ class KnowledgeNodeRepository {
 			.select(["id", "projectId", "title", "updatedAt"])
 			.whereIn("projectId", projectIds)
 			.whereNot("type", KnowledgeNodeType.SECTION)
+			.whereNull("parentId")
 			.orderBy("updatedAt", "desc")
 			.castTo<RecentKnowledgeDatabaseRow[]>()
 			.execute();
