@@ -49,6 +49,12 @@ class ExtractionItemRepository {
 		return items.map((item) => toEntity(item));
 	}
 
+	public async findById(id: number): Promise<ExtractionItemEntity | null> {
+		const item = await this.extractionItemModel.query().findById(id).execute();
+
+		return item ? toEntity(item) : null;
+	}
+
 	public async markApproved(
 		{ id, knowledgeNodeId }: { id: number; knowledgeNodeId: number },
 		transaction: Transaction,
@@ -99,6 +105,18 @@ class ExtractionItemRepository {
 				})),
 			)
 			.execute();
+	}
+
+	public async updateContent(
+		id: number,
+		payload: { text: string; title: string },
+	): Promise<ExtractionItemEntity> {
+		const updated = await this.extractionItemModel
+			.query()
+			.patchAndFetchById(id, payload)
+			.execute();
+
+		return toEntity(updated);
 	}
 }
 

@@ -7,7 +7,9 @@ export {
 	documentRouteParametersValidationSchema,
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
+	extractionItemRouteParametersValidationSchema,
 	extractionItemsReviewValidationSchema,
+	extractionItemUpdateValidationSchema,
 	manualTextCreateValidationSchema,
 	manualTextRouteParametersValidationSchema,
 } from "./modules/documents/documents.js";

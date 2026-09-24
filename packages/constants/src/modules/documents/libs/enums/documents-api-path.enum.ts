@@ -4,6 +4,8 @@ const DocumentsApiPath = {
 	DOCUMENT_$ID: "/:projectId/documents/:documentId",
 	DOCUMENT_RETRY: "/:projectId/documents/:documentId/retry",
 	EXTRACTION_ITEMS: "/:projectId/documents/:documentId/extraction-items",
+	EXTRACTION_ITEMS_$ID:
+		"/:projectId/documents/:documentId/extraction-items/:id",
 	EXTRACTION_ITEMS_REVIEW:
 		"/:projectId/documents/:documentId/extraction-items/review",
 	MANUAL_TEXT: "/:projectId/manual-text",
