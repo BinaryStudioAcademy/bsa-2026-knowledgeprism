@@ -25,7 +25,6 @@ const FILTER_ICON_SIZE = 12;
 const ADD_TERM_ICON_SIZE = 10;
 const EMPTY_RESULTS_LENGTH = 0;
 const SEARCH_DEBOUNCE_MS = 300;
-const MINIMUM_QUERY_LENGTH = 1;
 
 const KnowledgeSearchPage: React.FC = () => {
 	const [query, setQuery] = useState("");
@@ -36,13 +35,9 @@ const KnowledgeSearchPage: React.FC = () => {
 	const { searchResults } = useAppSelector((state) => state.knowledge);
 
 	useEffect(() => {
-		const trimmedQuery = debouncedQuery.trim();
-
-		if (trimmedQuery.length < MINIMUM_QUERY_LENGTH) {
-			return;
-		}
-
-		void dispatch(actions.searchKnowledge({ projectId, query: trimmedQuery }));
+		void dispatch(
+			actions.searchKnowledge({ projectId, query: debouncedQuery.trim() }),
+		);
 	}, [debouncedQuery, dispatch, projectId]);
 
 	const entries: KnowledgeEntry[] = searchResults.map((item) => ({

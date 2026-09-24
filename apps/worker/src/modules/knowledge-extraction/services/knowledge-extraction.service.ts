@@ -10,12 +10,16 @@ const EMPTY_ITEM_COUNT = 0;
 
 const extract = async (blocks: ExtractionBlock[]): Promise<KnowledgeItem[]> => {
 	const items: KnowledgeItem[] = [];
+	const attemptedPages: number[] = [];
+	const failedPages: number[] = [];
 
 	for (const block of blocks) {
 		if (isBlankPageContent(block.content)) {
 			logger.info(`Skipped blank page ${block.pageNumber.toString()}`);
 			continue;
 		}
+
+		attemptedPages.push(block.pageNumber);
 
 		try {
 			const raw = await invokePageExtraction(block.content);
@@ -29,11 +33,19 @@ const extract = async (blocks: ExtractionBlock[]): Promise<KnowledgeItem[]> => {
 
 			items.push(...pageItems);
 		} catch (error) {
+			failedPages.push(block.pageNumber);
 			logger.error(
 				`Failed to extract knowledge from page ${block.pageNumber.toString()}`,
 				{ error },
 			);
 		}
+	}
+
+	if (
+		attemptedPages.length > EMPTY_ITEM_COUNT &&
+		failedPages.length === attemptedPages.length
+	) {
+		throw new Error("Knowledge extraction failed for every page.");
 	}
 
 	return items;

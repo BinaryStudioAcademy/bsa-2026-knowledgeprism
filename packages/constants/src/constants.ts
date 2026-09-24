@@ -19,6 +19,7 @@ export {
 	DocumentStatus,
 	DocumentValidationMessage,
 	DocumentValidationRule,
+	ExtractionItemStatus,
 } from "./modules/documents/documents.js";
 export {
 	KnowledgeApiPath,
