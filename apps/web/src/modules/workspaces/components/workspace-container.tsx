@@ -18,6 +18,7 @@ import {
 } from "~/modules/workspaces/state/workspaces.slice.js";
 import { workspacesApi } from "~/modules/workspaces/workspaces.js";
 
+import { WelcomePage } from "./welcome-page.js";
 import { WorkspacePage } from "./workspace-page.js";
 
 const EMPTY_LENGTH = 0;
@@ -119,6 +120,10 @@ const WorkspaceContainer: React.FC = () => {
 				</div>
 			</div>
 		);
+	}
+
+	if (!isOrgAdmin && projects.length === EMPTY_LENGTH) {
+		return <WelcomePage />;
 	}
 
 	return (
