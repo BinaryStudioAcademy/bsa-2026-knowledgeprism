@@ -5,21 +5,23 @@ import {
 import React, { useCallback, useMemo, useState } from "react";
 
 import { Loader } from "~/components/components.js";
-import { useAppDispatch, useAppSelector, useModal } from "~/hooks/hooks.js";
+import {
+	useAppDispatch,
+	useAppSelector,
+	useCurrentProjectId,
+	useModal,
+} from "~/hooks/hooks.js";
 
 import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
+import { type ProposedSection } from "../../libs/types/types.js";
 import { AddKnowledgeModal } from "../add-knowledge-modal/add-knowledge-modal.js";
-import { IntegrationPreview } from "../integration-preview/integration-preview.js";
-import { DEFAULT_PROPOSED_STRUCTURE } from "../integration-preview/libs/constants.js";
 import { LoadingState } from "../loading-state/loading-state.js";
+import { IntegrationPreviewPanel } from "./integration-preview-panel.js";
 import { KnowledgeTreeContent } from "./knowledge-tree-content.js";
 import { KnowledgeTreeEmptyState } from "./knowledge-tree-empty-state.js";
 import { KnowledgeTreeHeader } from "./knowledge-tree-header.js";
 import { KnowledgeTreeSidebar } from "./knowledge-tree-sidebar.js";
-
-const DEFAULT_BASELINE = 1;
-const LIVE_VERSION = 2;
 
 type Properties = {
 	canEdit?: boolean;
@@ -38,9 +40,15 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	onSelectPage,
 	selectedPageId,
 }: Properties) => {
+	const projectId = useCurrentProjectId();
 	const dispatch = useAppDispatch();
-	const { errorMessage, isAddingKnowledge, isEntryLoading, isTreeLoading } =
-		useAppSelector((state) => state.knowledge);
+	const {
+		activeDocumentId,
+		errorMessage,
+		isAddingKnowledge,
+		isEntryLoading,
+		isTreeLoading,
+	} = useAppSelector((state) => state.knowledge);
 	const [isEditing, setIsEditing] = useState<boolean>(false);
 
 	const {
@@ -56,16 +64,29 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 
 	const handleAddMore = useCallback((): void => {
 		setIsPreviewOpen(false);
+		dispatch(actions.clearIntegrationPreview());
 		handleOpenAddModal();
-	}, [handleOpenAddModal]);
+	}, [dispatch, handleOpenAddModal]);
 
-	const handleApproveIntegration = useCallback((): void => {
-		dispatch(actions.finishAddingKnowledge());
-	}, [dispatch]);
+	const handleApproveIntegration = useCallback(
+		(resolvedSections: ProposedSection[]): void => {
+			const resolvedEntryCount = resolvedSections.reduce(
+				(count, section) => count + section.pages.length,
+				EMPTY_LENGTH,
+			);
+
+			if (resolvedEntryCount >= EMPTY_LENGTH) {
+				dispatch(actions.finishAddingKnowledge());
+				dispatch(actions.clearIntegrationPreview());
+			}
+		},
+		[dispatch],
+	);
 
 	const handleClosePreview = useCallback((): void => {
 		setIsPreviewOpen(false);
-	}, []);
+		dispatch(actions.clearIntegrationPreview());
+	}, [dispatch]);
 
 	const handleCloseSidebar = useCallback((): void => {
 		setIsSidebarOpen(false);
@@ -122,22 +143,19 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 
 	if (isPreviewOpen) {
 		return (
-			<div className="flex h-full w-full flex-col bg-bg">
-				<div className="min-h-0 flex-1">
-					<IntegrationPreview
-						baselineVersion={DEFAULT_BASELINE}
-						currentLiveVersion={LIVE_VERSION}
-						onAddMore={handleAddMore}
-						onApprove={handleApproveIntegration}
-						onClose={handleClosePreview}
-						proposedStructure={DEFAULT_PROPOSED_STRUCTURE}
-					/>
-				</div>
+			<>
+				<IntegrationPreviewPanel
+					documentId={activeDocumentId ?? undefined}
+					onAddMore={handleAddMore}
+					onApprove={handleApproveIntegration}
+					onClose={handleClosePreview}
+					projectId={projectId}
+				/>
 				<AddKnowledgeModal
 					isOpen={isAddModalOpen}
 					onClose={handleCloseAddModal}
 				/>
-			</div>
+			</>
 		);
 	}
 

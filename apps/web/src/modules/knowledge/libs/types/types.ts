@@ -18,21 +18,20 @@ type ChangeStatus = "conflict" | "created" | "duplicate" | "modified";
 type ConflictResolution = "keep" | "use-new";
 
 type FieldConflict = {
+	changeId: number;
 	currentValue: string;
 	field: "content" | "title";
 	id: string;
 	incomingValue: string;
+	matchedNodeId: null | number;
 	resolution?: ConflictResolution;
 };
 
 type IntegrationPreviewProperties = {
-	baselineVersion?: number;
-	currentLiveVersion?: number;
-	isInitialCreation?: boolean;
 	onAddMore: () => void;
 	onApprove: (sections: ProposedSection[]) => void;
 	onClose: () => void;
-	proposedStructure?: ProposedSection[];
+	proposedStructure: ProposedSection[];
 };
 
 interface KbEntry {
@@ -44,9 +43,13 @@ interface KbEntry {
 }
 
 type KnowledgeState = {
+	activeDocumentId: null | number;
 	errorMessage: null | string;
+	integrationPreviewError: null | string;
+	integrationPreviewSections: ProposedSection[];
 	isAddingKnowledge: boolean;
 	isEntryLoading: boolean;
+	isIntegrationPreviewLoading: boolean;
 	isTreeLoading: boolean;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
 	searchErrorMessage: null | string;
@@ -61,7 +64,10 @@ type KnowledgeState = {
 type ProposedPage = {
 	conflicts?: FieldConflict[];
 	content: string;
+	explanation?: string;
 	id: string;
+	integrationChangeId: number;
+	matchedNodeId?: number;
 	originalContent?: string;
 	originalTitle?: string;
 	status: ChangeStatus;

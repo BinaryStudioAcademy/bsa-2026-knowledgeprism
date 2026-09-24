@@ -11,6 +11,7 @@ const IGNORED_ACTION_TYPES = new Set([
 	"askPrism/load-suggested-questions/rejected",
 	"auth/load-current-user/rejected",
 	"knowledge/confirm-document-upload/rejected",
+	"knowledge/fetch-integration-changes/rejected",
 	"knowledge/process-document/rejected",
 	"knowledge/submit-manual-text/rejected",
 ]);

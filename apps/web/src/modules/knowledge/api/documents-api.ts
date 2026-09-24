@@ -1,8 +1,10 @@
 import { APIPath, DocumentsApiPath } from "@knowledgeprism/constants";
 import {
 	type DocumentConfirmUploadResponseDto,
+	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
+	type IntegrationChangesResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
 } from "@knowledgeprism/types";
@@ -95,6 +97,56 @@ class DocumentsApi extends BaseHTTPApi {
 		);
 
 		return await response.json<DocumentUploadIntentResponseDto>();
+	}
+
+	public async getDocumentStatus({
+		documentId,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<DocumentStatusResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.DOCUMENT_$ID, {
+				documentId: String(documentId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "GET",
+				signal,
+			},
+		);
+
+		return await response.json<DocumentStatusResponseDto>();
+	}
+
+	public async getIntegrationChanges({
+		documentId,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<IntegrationChangesResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.INTEGRATION_CHANGES, {
+				documentId: String(documentId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "GET",
+				signal,
+			},
+		);
+
+		return await response.json<IntegrationChangesResponseDto>();
 	}
 
 	public async uploadFileToStorage({
