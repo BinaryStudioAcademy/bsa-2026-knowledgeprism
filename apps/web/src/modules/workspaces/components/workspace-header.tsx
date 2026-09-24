@@ -112,7 +112,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 		}
 
 		void navigate(AppRoute.USERS);
-	}, [navigate, onOpenUserManagement]);
+	}, [navigate, onOpenUserManagement, setIsDropdownOpen]);
 
 	const toggleDropdown = useCallback((): void => {
 		setIsDropdownOpen((previous) => !previous);
