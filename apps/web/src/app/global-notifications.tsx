@@ -132,7 +132,7 @@ const GlobalNotifications = (): React.JSX.Element => {
 	return (
 		<section
 			aria-label="Notifications"
-			className="pointer-events-none fixed inset-x-4 top-4 z-50 flex max-h-[calc(100dvh-2rem)] flex-col overflow-y-auto tablet:left-auto tablet:w-96"
+			className="pointer-events-none fixed inset-x-4 top-4 z-50 ml-auto flex max-h-[calc(100dvh-2rem)] max-w-96 flex-col overflow-y-auto"
 		>
 			{notifications.map(({ id, isLeaving, message, variant }) => (
 				<div
