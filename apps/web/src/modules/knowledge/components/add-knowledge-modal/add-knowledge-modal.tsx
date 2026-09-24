@@ -128,6 +128,7 @@ const AddKnowledgeModal = ({
 		"";
 	const selectedDocumentId = selectedFile?.documentId;
 	const isSubmissionPending = isManualTextSubmitting || isUploadSubmitting;
+	const hasSelectedFile = Boolean(selectedFile);
 
 	const isReadyToAdd =
 		selectedFile?.status === DocumentProcessingStatus.READY &&
@@ -149,9 +150,13 @@ const AddKnowledgeModal = ({
 
 	const handleTabChange = useCallback(
 		(tab: ValueOf<typeof AddKnowledgeTab>) => (): void => {
+			if (isSubmissionPending || hasSelectedFile) {
+				return;
+			}
+
 			setActiveTab(tab);
 		},
-		[],
+		[hasSelectedFile, isSubmissionPending],
 	);
 
 	const resetAndClose = useCallback((): void => {
@@ -236,6 +241,10 @@ const AddKnowledgeModal = ({
 
 	const handleTabKeyDown = useCallback(
 		(event: KeyboardEvent<HTMLButtonElement>): void => {
+			if (isSubmissionPending || hasSelectedFile) {
+				return;
+			}
+
 			const currentTabIndex = TAB_ITEMS.findIndex(
 				(tab) => tab.id === activeTab,
 			);
@@ -281,7 +290,7 @@ const AddKnowledgeModal = ({
 			setActiveTab(nextTab.id);
 			tabReferences.current.get(nextTab.id)?.focus();
 		},
-		[activeTab],
+		[activeTab, hasSelectedFile, isSubmissionPending],
 	);
 
 	return (
@@ -320,7 +329,7 @@ const AddKnowledgeModal = ({
 										? "border-accent text-accent"
 										: "border-transparent text-text-muted hover:text-text",
 								)}
-								disabled={isSubmissionPending}
+								disabled={isSubmissionPending || (hasSelectedFile && !isActive)}
 								id={`${tabIdPrefix}-tab-${id}`}
 								key={id}
 								onClick={handleTabChange(id)}
@@ -351,7 +360,7 @@ const AddKnowledgeModal = ({
 						id={`${tabIdPrefix}-panel-${AddKnowledgeTab.UPLOAD}`}
 						role="tabpanel"
 					>
-						<DocumentUpload />
+						<DocumentUpload isInteractionDisabled={isUploadSubmitting} />
 
 						<KnowledgeInputFooter
 							actionLabel={uploadActionLabel}

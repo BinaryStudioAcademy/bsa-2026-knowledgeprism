@@ -9,7 +9,10 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
-import { DocumentValidationMessage } from "../libs/constants/constants.js";
+import {
+	DocumentValidationMessage,
+	PDF_MIME_TYPE,
+} from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
@@ -83,7 +86,7 @@ const processDocument = createAsyncThunk<
 			if (!resolvedDocumentId || !resolvedUploadUrl) {
 				const intent = await documentsApi.createUploadIntent({
 					payload: {
-						contentType: file.type,
+						contentType: file.type || PDF_MIME_TYPE,
 						fileName: file.name,
 						sizeInBytes: file.size,
 					},
