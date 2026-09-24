@@ -54,9 +54,9 @@ class UserRepository implements Repository {
 		return UserEntity.initialize({
 			...typedUser,
 			assignedProjects:
-				typedUser.projectMembers?.map((pm) => ({
-					projectId: pm.projectId,
-					role: pm.role,
+				typedUser.projectMembers?.map((projectMember) => ({
+					projectId: projectMember.projectId,
+					role: projectMember.role,
 				})) ?? [],
 		});
 	}
@@ -128,7 +128,7 @@ class UserRepository implements Repository {
 				.execute();
 
 			if (assignedProjects && assignedProjects.length > EMPTY_LENGTH) {
-				const projectIds = assignedProjects.map((p) => p.projectId);
+				const projectIds = assignedProjects.map((project) => project.projectId);
 				await this.assertProjectsBelongToOrganisation(
 					projectIds,
 					organisationId,
@@ -258,7 +258,9 @@ class UserRepository implements Repository {
 				await ProjectMemberModel.query(trx).delete().where({ userId: id });
 
 				if (assignedProjects.length > EMPTY_LENGTH) {
-					const projectIds = assignedProjects.map((p) => p.projectId);
+					const projectIds = assignedProjects.map(
+						(project) => project.projectId,
+					);
 					await this.assertProjectsBelongToOrganisation(
 						projectIds,
 						organisationId,
