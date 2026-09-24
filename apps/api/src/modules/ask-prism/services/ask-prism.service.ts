@@ -29,7 +29,9 @@ class AskPrismService {
 	private extractTextFromBlocks(blocks: Record<string, unknown>[]): string {
 		let text = "";
 		const traverse = (node: unknown): void => {
-			if (Array.isArray(node)) {
+			if (typeof node === "string") {
+				text += node + " ";
+			} else if (Array.isArray(node)) {
 				for (const child of node) {
 					traverse(child);
 				}
