@@ -9,7 +9,7 @@ type OrganisationRoleValue = ValueOf<typeof OrganisationRole>;
 const ID_REQUIRED_MESSAGE = "User id is required";
 
 class UserEntity implements Entity {
-	private _passwordHash: string;
+	private passwordHash: string;
 
 	private assignedProjects: ProjectAssignmentDto[];
 
@@ -55,7 +55,7 @@ class UserEntity implements Entity {
 		this.lastName = lastName;
 		this.organisationId = organisationId;
 		this.organisationRole = organisationRole;
-		this._passwordHash = passwordHash;
+		this.passwordHash = passwordHash;
 		this.status = status;
 	}
 
@@ -168,7 +168,7 @@ class UserEntity implements Entity {
 			lastName: this.lastName,
 			organisationId: this.organisationId,
 			organisationRole: this.organisationRole,
-			passwordHash: this._passwordHash,
+			passwordHash: this.passwordHash,
 			status: this.status,
 		};
 	}
@@ -199,7 +199,7 @@ class UserEntity implements Entity {
 	): Promise<boolean> {
 		return await encryptService.compare({
 			data: password,
-			hash: this._passwordHash,
+			hash: this.passwordHash,
 		});
 	}
 }
