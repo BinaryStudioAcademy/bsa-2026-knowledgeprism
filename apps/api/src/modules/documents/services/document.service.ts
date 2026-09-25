@@ -347,7 +347,7 @@ class DocumentService {
 
 		const processing = await this.documentRepository.startProcessing({
 			allowedStatuses: [DocumentStatus.UPLOADED],
-			id: documentObject.id,
+			id: documentDetails.id,
 		});
 
 		if (!processing) {
@@ -395,11 +395,11 @@ class DocumentService {
 
 		this.scheduleProcessing({
 			attempt: processing.attempt,
-			documentId: documentObject.id,
+			documentId: documentDetails.id,
 		});
 
 		return {
-			documentId: documentObject.id,
+			documentId: documentDetails.id,
 			status: processing.document.toObject().status,
 		};
 	}

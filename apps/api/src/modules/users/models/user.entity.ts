@@ -9,8 +9,6 @@ type OrganisationRoleValue = ValueOf<typeof OrganisationRole>;
 const ID_REQUIRED_MESSAGE = "User id is required";
 
 class UserEntity implements Entity {
-	private passwordHash: string;
-
 	private assignedProjects: ProjectAssignmentDto[];
 
 	private email: string;
@@ -24,6 +22,8 @@ class UserEntity implements Entity {
 	private organisationId: number;
 
 	private organisationRole: null | OrganisationRoleValue;
+
+	private passwordHash: string;
 
 	private status: "active" | "inactive";
 
