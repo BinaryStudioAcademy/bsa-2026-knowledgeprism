@@ -227,14 +227,25 @@ const { actions, name, reducer } = createSlice({
 
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
-			state.selectedFiles.push({
+
+			const existingIndex = state.selectedFiles.findIndex(
+				(file) => file.id === id,
+			);
+
+			const processingItem = {
 				id,
 				name,
 				progress: INITIAL_PROGRESS,
 				size,
 				sizeLabel: formatFileSize(size),
 				status: DocumentProcessingStatus.PROCESSING,
-			});
+			};
+
+			if (existingIndex === NOT_FOUND_INDEX) {
+				state.selectedFiles.push(processingItem);
+			} else {
+				state.selectedFiles[existingIndex] = processingItem;
+			}
 		},
 	},
 });
