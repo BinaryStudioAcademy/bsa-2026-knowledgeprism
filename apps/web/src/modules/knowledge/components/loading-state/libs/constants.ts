@@ -5,10 +5,7 @@ import { type ValueOf } from "~/lib/types/types.js";
 const STATUS_PROGRESSION: ValueOf<typeof DocumentStatus>[] = [
 	DocumentStatus.UPLOADED,
 	DocumentStatus.PROCESSING,
-	DocumentStatus.PARSED,
-	DocumentStatus.EXTRACTING,
-	DocumentStatus.EXTRACTED,
-	DocumentStatus.WAITING_FOR_APPROVAL,
+	DocumentStatus.WAITING_FOR_VALIDATION,
 ];
 
 const FULL_PERCENTAGE = 100;

@@ -165,37 +165,49 @@ const { actions, name, reducer } = createSlice({
 		builder.addCase(submitManualText.rejected, (state, action) => {
 			state.errorMessage = action.error.message ?? "Failed to submit text";
 		});
+		builder.addCase(pollDocumentStatus.pending, (state) => {
+			state.errorMessage = null;
+		});
 		builder.addCase(pollDocumentStatus.fulfilled, (state, action) => {
-			if (state.activeDocumentId === action.meta.arg.documentId) {
-				state.activeDocumentStatus = action.payload.status;
+			if (state.activeDocumentId !== action.meta.arg.documentId) {
+				return;
 			}
+			state.activeDocumentStatus = action.payload.status;
+			state.errorMessage = null;
 		});
 		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
 			if (state.activeDocumentId !== action.meta.arg.documentId) {
 				return;
 			}
 
-			state.activeDocumentStatus = "FAILED";
 			state.errorMessage = action.error.message ?? "Failed to poll status";
 		});
+		builder.addCase(fetchExtractionItems.pending, (state) => {
+			state.errorMessage = null;
+		});
 		builder.addCase(fetchExtractionItems.fulfilled, (state, action) => {
-			if (state.activeDocumentId === action.meta.arg.documentId) {
-				state.extractionItems = action.payload.items;
+			if (state.activeDocumentId !== action.meta.arg.documentId) {
+				return;
 			}
+			state.extractionItems = action.payload.items;
+			state.errorMessage = null;
 		});
 		builder.addCase(fetchExtractionItems.rejected, (state, action) => {
 			if (state.activeDocumentId !== action.meta.arg.documentId) {
 				return;
 			}
 
-			state.activeDocumentStatus = "FAILED";
 			state.errorMessage =
 				action.error.message ?? "Failed to fetch extraction items";
 		});
-		builder.addCase(submitExtractionReview.fulfilled, (state) => {
-			state.activeDocumentId = null;
-			state.activeDocumentStatus = "IDLE";
-			state.extractionItems = [];
+		builder.addCase(submitExtractionReview.fulfilled, (state, action) => {
+			if (action.payload.status === "COMPLETED") {
+				state.activeDocumentId = null;
+				state.activeDocumentStatus = "IDLE";
+				state.extractionItems = [];
+			} else {
+				state.activeDocumentStatus = action.payload.status;
+			}
 		});
 		builder.addCase(submitExtractionReview.rejected, (state, action) => {
 			state.errorMessage =
@@ -235,6 +247,7 @@ const { actions, name, reducer } = createSlice({
 			state.activeDocumentId = null;
 			state.activeDocumentStatus = "IDLE";
 			state.extractionItems = [];
+			state.isAddingKnowledge = false;
 		},
 		setError(state, action: PayloadAction<string>) {
 			state.errorMessage = action.payload;

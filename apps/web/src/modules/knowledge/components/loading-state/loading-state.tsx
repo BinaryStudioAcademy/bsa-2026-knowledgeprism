@@ -22,7 +22,7 @@ const LoadingState = (properties: Properties): JSX.Element => {
 
 	const isError = hasError || currentStatus === DocumentStatus.FAILED;
 	const isTerminal =
-		currentStatus === DocumentStatus.WAITING_FOR_APPROVAL ||
+		currentStatus === DocumentStatus.WAITING_FOR_VALIDATION ||
 		currentStatus === DocumentStatus.FAILED;
 
 	const onFinish = "onFinish" in properties ? properties.onFinish : undefined;
@@ -31,7 +31,7 @@ const LoadingState = (properties: Properties): JSX.Element => {
 		if (
 			!isTerminal ||
 			!onFinish ||
-			currentStatus !== DocumentStatus.WAITING_FOR_APPROVAL
+			currentStatus !== DocumentStatus.WAITING_FOR_VALIDATION
 		) {
 			return;
 		}

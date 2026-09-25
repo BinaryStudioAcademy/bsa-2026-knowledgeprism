@@ -1,3 +1,4 @@
+import { DocumentStatus } from "@knowledgeprism/constants";
 import {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentStatusResponseDto,
@@ -14,7 +15,7 @@ import {
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
 import { createAppAsyncThunk } from "~/lib/store/store.module.js";
-import { type AsyncThunkConfig } from "~/lib/types/types.js";
+import { type AsyncThunkConfig, type ValueOf } from "~/lib/types/types.js";
 
 import {
 	DocumentValidationMessage,
@@ -209,7 +210,12 @@ const pollDocumentStatus = createAppAsyncThunk<
 			signal,
 		});
 
-		const terminalStatuses = ["WAITING_FOR_APPROVAL", "COMPLETED", "FAILED"];
+		const terminalStatuses: ValueOf<typeof DocumentStatus>[] = [
+			DocumentStatus.WAITING_FOR_VALIDATION,
+			DocumentStatus.WAITING_FOR_APPROVAL,
+			DocumentStatus.COMPLETED,
+			DocumentStatus.FAILED,
+		];
 
 		if (!terminalStatuses.includes(statusResponse.status)) {
 			const timerId = setTimeout(() => {
@@ -219,8 +225,10 @@ const pollDocumentStatus = createAppAsyncThunk<
 			signal.addEventListener("abort", () => {
 				clearTimeout(timerId);
 			});
-		} else if (statusResponse.status === "WAITING_FOR_APPROVAL") {
-			void dispatch(fetchExtractionItems({ documentId, projectId }));
+		} else if (
+			statusResponse.status === DocumentStatus.WAITING_FOR_VALIDATION
+		) {
+			await dispatch(fetchExtractionItems({ documentId, projectId })).unwrap();
 		}
 
 		return statusResponse;

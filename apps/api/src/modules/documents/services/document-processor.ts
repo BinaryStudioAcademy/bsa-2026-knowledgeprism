@@ -70,42 +70,17 @@ class DocumentProcessor {
 		}
 
 		const pages = await this.loadPages(document);
-
-		await this.documentRepository.compareAndSwapStatus({
-			errorMessage: null,
-			expectedStatus: DocumentStatus.PROCESSING,
-			id: documentId,
-			processingAttempt: attempt,
-			status: DocumentStatus.PARSED,
-		});
-
-		await this.documentRepository.compareAndSwapStatus({
-			errorMessage: null,
-			expectedStatus: DocumentStatus.PARSED,
-			id: documentId,
-			processingAttempt: attempt,
-			status: DocumentStatus.EXTRACTING,
-		});
-
 		const items = await extract(pages);
-
-		await this.documentRepository.compareAndSwapStatus({
-			errorMessage: null,
-			expectedStatus: DocumentStatus.EXTRACTING,
-			id: documentId,
-			processingAttempt: attempt,
-			status: DocumentStatus.EXTRACTED,
-		});
 
 		return await this.database.transaction(async (transaction) => {
 			const completedDocument =
 				await this.documentRepository.compareAndSwapStatus(
 					{
 						errorMessage: null,
-						expectedStatus: DocumentStatus.EXTRACTED,
+						expectedStatus: DocumentStatus.PROCESSING,
 						id: documentId,
 						processingAttempt: attempt,
-						status: DocumentStatus.WAITING_FOR_APPROVAL,
+						status: DocumentStatus.WAITING_FOR_VALIDATION,
 					},
 					transaction,
 				);

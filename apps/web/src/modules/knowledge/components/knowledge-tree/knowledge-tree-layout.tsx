@@ -3,7 +3,7 @@ import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
 } from "@knowledgeprism/types";
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { Loader } from "~/components/components.js";
@@ -15,7 +15,10 @@ import {
 	EMPTY_LENGTH,
 	LIVE_VERSION,
 } from "../../libs/constants/constants.js";
-import { type ProposedPage } from "../../libs/types/types.js";
+import {
+	type ProposedPage,
+	type ProposedSection,
+} from "../../libs/types/types.js";
 import { AddKnowledgeModal } from "../add-knowledge-modal/add-knowledge-modal.js";
 import { IntegrationPreview } from "../integration-preview/integration-preview.js";
 import { DEFAULT_PROPOSED_STRUCTURE } from "../integration-preview/libs/constants.js";
@@ -52,7 +55,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		isEntryLoading,
 		isTreeLoading,
 	} = useAppSelector((state) => state.knowledge);
-	const { id: projectId } = useParams();
+	const { projectId } = useParams<{ projectId: string }>();
 	const [isEditing, setIsEditing] = useState<boolean>(false);
 
 	const {
@@ -66,14 +69,59 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 
 	const isKbEmpty = items.length === EMPTY_LENGTH;
 
+	useEffect(() => {
+		dispatch(actions.resetState());
+	}, [dispatch, projectId]);
+
 	const handleAddMore = useCallback((): void => {
 		setIsPreviewOpen(false);
 		handleOpenAddModal();
 	}, [handleOpenAddModal]);
 
-	const handleApproveIntegration = useCallback((): void => {
-		dispatch(actions.finishAddingKnowledge());
-	}, [dispatch]);
+	const handleApproveIntegration = useCallback(
+		(pages: ProposedSection[]): void => {
+			if (!activeDocumentId || !projectId) {
+				return;
+			}
+
+			const approvedIds = pages
+				.flatMap((page) => page.pages)
+				.map((section) => Number(section.id))
+				.filter((id) => !Number.isNaN(id));
+
+			const allItemIds = extractionItems.map((item) => item.id);
+			const rejectedIds = allItemIds.filter((id) => !approvedIds.includes(id));
+
+			void (async () => {
+				try {
+					const response = await dispatch(
+						actions.submitExtractionReview({
+							documentId: activeDocumentId,
+							payload: { approvedIds, rejectedIds },
+							projectId,
+						}),
+					).unwrap();
+
+					if (response.status === "INTEGRATING") {
+						setIsPreviewOpen(false);
+						void dispatch(
+							actions.pollDocumentStatus({
+								documentId: activeDocumentId,
+								projectId,
+							}),
+						);
+					} else if (response.status === "COMPLETED") {
+						setIsPreviewOpen(false);
+						dispatch(actions.finishAddingKnowledge());
+						void dispatch(actions.fetchKnowledgeTree({ projectId }));
+					}
+				} catch {
+					// Redux handles the error state
+				}
+			})();
+		},
+		[activeDocumentId, dispatch, extractionItems, projectId],
+	);
 
 	const handleClosePreview = useCallback((): void => {
 		setIsPreviewOpen(false);
@@ -106,13 +154,42 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			return;
 		}
 
-		void dispatch(
-			actions.retryDocumentProcessing({
-				documentId: activeDocumentId,
-				projectId,
-			}),
-		);
-	}, [activeDocumentId, dispatch, projectId]);
+		if (activeDocumentStatus === "FAILED") {
+			void (async () => {
+				try {
+					await dispatch(
+						actions.retryDocumentProcessing({
+							documentId: activeDocumentId,
+							projectId,
+						}),
+					).unwrap();
+
+					void dispatch(
+						actions.pollDocumentStatus({
+							documentId: activeDocumentId,
+							projectId,
+						}),
+					);
+				} catch {
+					// Redux handles the error state
+				}
+			})();
+		} else if (activeDocumentStatus === "WAITING_FOR_VALIDATION") {
+			void dispatch(
+				actions.fetchExtractionItems({
+					documentId: activeDocumentId,
+					projectId,
+				}),
+			);
+		} else {
+			void dispatch(
+				actions.pollDocumentStatus({
+					documentId: activeDocumentId,
+					projectId,
+				}),
+			);
+		}
+	}, [activeDocumentId, activeDocumentStatus, dispatch, projectId]);
 
 	const breadcrumbs = useMemo(() => {
 		if (!selectedPageId) {
@@ -289,6 +366,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					breadcrumbs={breadcrumbs}
 					canEdit={canEdit}
 					currentStatus={activeDocumentStatus}
+					hasError={!!errorMessage}
 					isEditing={isEditing}
 					onCancel={handleCancelEdit}
 					onEdit={handleStartEdit}
@@ -300,7 +378,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				/>
 				{isAddingKnowledge && (
 					<div className="border-b border-border bg-surface px-4 py-4 @5xl:hidden">
-						{activeDocumentStatus === "FAILED" ? (
+						{!!errorMessage || activeDocumentStatus === "FAILED" ? (
 							<LoadingState
 								currentStatus={activeDocumentStatus}
 								hasError={true}

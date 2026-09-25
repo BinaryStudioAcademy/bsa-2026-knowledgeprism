@@ -99,7 +99,7 @@ const FullVariant = ({
 		<div className="flex w-full max-w-lg flex-col items-center justify-center rounded-lg p-10 text-center">
 			<div className="mb-6">
 				{isError ? (
-					<div className="flex h-[40px] w-[40px] items-center justify-center rounded-full bg-error-bg text-error">
+					<div className="flex h-10 w-10 items-center justify-center rounded-full bg-error-bg text-error">
 						<Icon name="close" size={24} />
 					</div>
 				) : (
@@ -119,28 +119,24 @@ const FullVariant = ({
 					: "This usually takes a few seconds"}
 			</Paragraph>
 
-			<div className="flex w-full max-w-[200px] flex-col gap-4 text-left">
+			<div className="flex w-full max-w-50 flex-col gap-4 text-left">
 				<LoadingStep
-					label="Processing given data"
+					label="Initializing process"
 					status={getStepStatus(
-						[DocumentStatus.UPLOADED, DocumentStatus.PROCESSING],
-						DocumentStatus.PROCESSING,
+						[DocumentStatus.UPLOADED],
+						DocumentStatus.UPLOADED,
 					)}
 				/>
 				<LoadingStep
-					label="Chunking & embedding"
-					status={getStepStatus([DocumentStatus.PARSED], DocumentStatus.PARSED)}
-				/>
-				<LoadingStep
-					label="Extracting knowledge"
+					label="Chunking & extracting knowledge"
 					status={getStepStatus(
-						[DocumentStatus.EXTRACTING],
-						DocumentStatus.EXTRACTING,
+						[DocumentStatus.PROCESSING],
+						DocumentStatus.PROCESSING,
 					)}
 				/>
 			</div>
 
-			<div className="mt-8 flex min-h-[44px] w-full justify-center gap-3">
+			<div className="mt-8 flex min-h-11 w-full justify-center gap-3">
 				{isError && (
 					<>
 						<Button className="min-w-28" onClick={onCancel} variant="secondary">

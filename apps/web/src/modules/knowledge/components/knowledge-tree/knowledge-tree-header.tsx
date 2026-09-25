@@ -12,6 +12,7 @@ type Properties = {
 	breadcrumbs: string[];
 	canEdit?: boolean;
 	currentStatus: "IDLE" | "UPLOADED" | ValueOf<typeof DocumentStatus>;
+	hasError?: boolean;
 	isEditing?: boolean;
 	onCancel?: () => void;
 	onEdit?: () => void;
@@ -83,6 +84,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 	breadcrumbs,
 	canEdit = false,
 	currentStatus,
+	hasError = false,
 	isEditing = false,
 	onCancel,
 	onEdit,
@@ -103,7 +105,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 			<div className="flex items-center gap-3.5">
 				{showCompactLoading && (
 					<div className="hidden @5xl:block">
-						{currentStatus === "FAILED" ? (
+						{hasError || currentStatus === "FAILED" ? (
 							<LoadingState
 								currentStatus={currentStatus}
 								hasError={true}
