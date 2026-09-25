@@ -25,9 +25,12 @@ import { type ProjectRepository } from "~/modules/projects/repositories/project.
 import { type UserEntity } from "~/modules/users/models/user.entity.js";
 import { type UserService } from "~/modules/users/services/user.service.js";
 
+import { type ProjectStorageCleanupService } from "./project-storage-cleanup.service.js";
+
 type Constructor = {
 	projectMemberRepository: ProjectMemberRepository;
 	projectRepository: ProjectRepository;
+	projectStorageCleanupService: ProjectStorageCleanupService;
 	userService: UserService;
 };
 
@@ -49,15 +52,19 @@ class ProjectService {
 
 	private projectRepository: ProjectRepository;
 
+	private projectStorageCleanupService: ProjectStorageCleanupService;
+
 	private userService: UserService;
 
 	public constructor({
 		projectMemberRepository,
 		projectRepository,
+		projectStorageCleanupService,
 		userService,
 	}: Constructor) {
 		this.projectMemberRepository = projectMemberRepository;
 		this.projectRepository = projectRepository;
+		this.projectStorageCleanupService = projectStorageCleanupService;
 		this.userService = userService;
 	}
 
@@ -307,6 +314,8 @@ class ProjectService {
 				status: HTTPCode.NOT_FOUND,
 			});
 		}
+
+		this.projectStorageCleanupService.scheduleCleanup(id);
 	}
 
 	public async findAccessibleProjectIds(
