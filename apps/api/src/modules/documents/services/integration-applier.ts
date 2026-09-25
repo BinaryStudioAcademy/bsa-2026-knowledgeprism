@@ -1,6 +1,5 @@
 import {
 	IntegrationChangeType,
-	IntegrationResolution,
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
 import {
@@ -9,6 +8,7 @@ import {
 } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
+import { getIncomingFields } from "~/modules/documents/libs/helpers/get-incoming-fields.helper.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type IntegrationChangeEntity } from "~/modules/documents/models/integration-change.entity.js";
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
@@ -64,11 +64,8 @@ class IntegrationApplier {
 		const { extractionItemId, incomingContent, incomingTitle, type } =
 			change.toObject();
 		const { contentJson, id, title } = node.toObject();
-		const isUseIncomingTitle =
-			resolution?.title === IntegrationResolution.USE_NEW;
-		const isUseIncomingContent =
-			type === IntegrationChangeType.UPDATE ||
-			resolution?.content === IntegrationResolution.USE_NEW;
+		const { content: isUseIncomingContent, title: isUseIncomingTitle } =
+			getIncomingFields(type, resolution);
 
 		if (isUseIncomingTitle || isUseIncomingContent) {
 			await this.knowledgeNodeRepository.update(
@@ -166,6 +163,7 @@ class IntegrationApplier {
 					: await this.knowledgeNodeRepository.findByIdAndProjectId(
 							matchedNodeId,
 							projectId,
+							transaction,
 						);
 
 			if (matchedNode) {

@@ -93,9 +93,10 @@ class KnowledgeNodeRepository {
 	public async findByIdAndProjectId(
 		id: number,
 		projectId: number,
+		transaction?: Transaction,
 	): Promise<KnowledgeNodeEntity | null> {
 		const node = await this.knowledgeNodeModel
-			.query()
+			.query(transaction)
 			.findOne({ id, projectId })
 			.execute();
 

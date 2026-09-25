@@ -172,7 +172,7 @@ class DocumentReviewController extends BaseController {
 	 *        200:
 	 *          description: Changes applied; document completed
 	 *        400:
-	 *          description: Resolutions do not match the conflicts
+	 *          description: Resolutions do not match the conflicts, or two changes would write the same field of one entry
 	 *        403:
 	 *          description: Viewer cannot approve
 	 *        404:
