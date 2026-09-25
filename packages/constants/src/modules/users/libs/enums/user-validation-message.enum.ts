@@ -9,7 +9,8 @@ const UserValidationMessage = {
 	PASSWORD_EMOJI_WRONG: "Password must not contain emojis",
 	PASSWORD_HINT:
 		"Password must be 8–32 characters long and include at least 1 letter, 1 digit, and 1 special symbol.",
-	PASSWORD_INVALID_CHARACTERS: "Password must not contain Non-Latin letters",
+	PASSWORD_INVALID_CHARACTERS:
+		"Password can only contain Latin letters, digits and special characters, with no spaces",
 	PASSWORD_LETTER_REQUIRE: "Password must contain at least one letter",
 	PASSWORD_MAXIMUM_LENGTH: "Password must be at most 32 characters long",
 	PASSWORD_MINIMUM_LENGTH: "Password must be at least 8 characters long",
