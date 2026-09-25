@@ -179,6 +179,7 @@ const AskPrismView = (): JSX.Element => {
 							value={query}
 						/>
 						<button
+							aria-label="Send question"
 							className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-accent text-white shadow-2xs transition-all duration-200 hover:scale-105 hover:bg-accent-hover active:scale-95 disabled:scale-100 disabled:opacity-40"
 							disabled={!query.trim() || isLoading}
 							title="Send question"

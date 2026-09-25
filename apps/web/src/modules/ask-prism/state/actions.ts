@@ -5,16 +5,11 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 import { HTTPError } from "~/lib/http/http.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
+import { DEFAULT_SUGGESTED_QUESTIONS } from "../libs/constants.js";
 import {
 	type AskPrismErrorType,
 	name as sliceName,
 } from "./ask-prism.slice.js";
-
-const DEFAULT_SUGGESTED_QUESTIONS = [
-	"What are the validation rules for user password?",
-	"How does knowledge base integration work?",
-	"What are the roles and permissions in a project?",
-];
 
 const askQuestion = createAsyncThunk<
 	AskPrismResponseDto,

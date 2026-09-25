@@ -439,7 +439,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 	return (
 		<div className="workspace-page relative min-h-screen bg-bg">
-			<main className="workspace-content mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+			<div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
 				<div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 sm:flex-row sm:items-center">
 					<div>
 						<Heading level="2">Your Workspaces</Heading>
@@ -532,7 +532,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 					isLoading={isLoadingRecent}
 					{...(onSelectDocument ? { onSelectDocument } : {})}
 				/>
-			</main>
+			</div>
 
 			{isCreateModalOpen && (
 				<CreateProjectModal

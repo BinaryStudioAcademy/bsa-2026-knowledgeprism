@@ -13,21 +13,36 @@ const ColumnName = {
 } as const;
 
 async function down(knex: Knex): Promise<void> {
-	await knex.raw(`DROP INDEX IF EXISTS ${INDEX_NAME}`);
+	await knex.raw("DROP INDEX IF EXISTS ??", [INDEX_NAME]);
 }
 
 async function up(knex: Knex): Promise<void> {
-	await knex.raw(`
-		CREATE UNIQUE INDEX ${INDEX_NAME}
-		ON ${TABLE_NAME} (
-			${ColumnName.PROJECT_ID},
-			${ColumnName.UPLOADED_BY},
-			${ColumnName.CONTENT_HASH}
+	const processingStatus = knex.raw("?", [DocumentStatus.PROCESSING]).toQuery();
+	const manualSourceType = knex.raw("?", [DocumentSourceType.MANUAL]).toQuery();
+
+	await knex.raw(
+		`
+		CREATE UNIQUE INDEX ??
+		ON ?? (
+			??,
+			??,
+			??
 		)
-		WHERE ${ColumnName.STATUS} = '${DocumentStatus.PROCESSING}'
-			AND ${ColumnName.SOURCE_TYPE} = '${DocumentSourceType.MANUAL}'
-			AND ${ColumnName.CONTENT_HASH} IS NOT NULL
-	`);
+		WHERE ?? = ${processingStatus}
+			AND ?? = ${manualSourceType}
+			AND ?? IS NOT NULL
+	`,
+		[
+			INDEX_NAME,
+			TABLE_NAME,
+			ColumnName.PROJECT_ID,
+			ColumnName.UPLOADED_BY,
+			ColumnName.CONTENT_HASH,
+			ColumnName.STATUS,
+			ColumnName.SOURCE_TYPE,
+			ColumnName.CONTENT_HASH,
+		],
+	);
 }
 
 export { down, up };

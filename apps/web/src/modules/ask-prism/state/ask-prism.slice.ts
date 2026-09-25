@@ -4,6 +4,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { DataStatus } from "~/lib/enums/enums.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
+import { DEFAULT_SUGGESTED_QUESTIONS } from "../libs/constants.js";
 import { askQuestion, loadSuggestedQuestions } from "./actions.js";
 
 type AskPrismErrorType = "connection" | "not_found" | null;
@@ -19,12 +20,6 @@ type State = {
 };
 
 const EMPTY_COUNT = 0;
-
-const DEFAULT_SUGGESTED_QUESTIONS = [
-	"What are the validation rules for user password?",
-	"How does knowledge base integration work?",
-	"What are the roles and permissions in a project?",
-];
 
 const initialState: State = {
 	answer: null,

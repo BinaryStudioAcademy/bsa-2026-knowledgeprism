@@ -6,7 +6,7 @@ import {
 
 import { type Entity } from "~/shared/types/types.js";
 
-type KnowledgeNodeObject = {
+type KnowledgeNodeDetails = {
 	contentJson: KnowledgeNodeContentDto;
 	createdAt: string;
 	id: number;
@@ -119,7 +119,7 @@ class KnowledgeNodeEntity implements Entity {
 		};
 	}
 
-	public toObject(): KnowledgeNodeObject {
+	public toObject(): KnowledgeNodeDetails {
 		return {
 			contentJson: this.contentJson,
 			createdAt: this.createdAt.toISOString(),
