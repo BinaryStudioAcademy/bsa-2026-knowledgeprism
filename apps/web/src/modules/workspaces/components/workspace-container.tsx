@@ -34,7 +34,6 @@ const WorkspaceContainer: React.FC = () => {
 	const userResponse = useSelector((state: RootState) => state.auth.user);
 
 	const {
-		creationError,
 		error,
 		isCreating,
 		isLoading,
@@ -42,7 +41,6 @@ const WorkspaceContainer: React.FC = () => {
 		isUpdating,
 		projects,
 		recentDocuments,
-		updateError,
 	} = useSelector((state: RootState) => state.workspaces);
 
 	const userObject = userResponse?.user as undefined | UserWithRole;
@@ -128,7 +126,6 @@ const WorkspaceContainer: React.FC = () => {
 
 	return (
 		<WorkspacePage
-			creationError={creationError}
 			isCreating={isCreating}
 			isLoadingRecent={isLoadingRecent}
 			isOrgAdmin={isOrgAdmin}
@@ -139,7 +136,6 @@ const WorkspaceContainer: React.FC = () => {
 			onSelectProject={handleSelectProject}
 			projects={projects}
 			recentDocuments={recentDocuments}
-			updateError={updateError}
 		/>
 	);
 };

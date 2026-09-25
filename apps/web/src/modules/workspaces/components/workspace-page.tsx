@@ -1,8 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from "react";
-import { useDispatch } from "react-redux";
 
 import { Button, Heading, Icon, Modal } from "~/components/components.js";
-import { type AppDispatch } from "~/lib/store/store.js";
 import { ProjectFormValue } from "~/modules/project-managment-modal/components/project-managment-modal-form/lib/type.js";
 import { ProjectManagmentModalForm } from "~/modules/project-managment-modal/components/project-managment-modal-form/project-managment-modal-form.js";
 
@@ -10,11 +8,7 @@ import {
 	CreateProjectPayload,
 	UpdateProjectPayload,
 } from "../api/workspaces-api.js";
-import {
-	createProject,
-	updateProject,
-	workspacesActions,
-} from "../state/workspaces.slice.js";
+import { createProject, updateProject } from "../state/workspaces.slice.js";
 import {
 	type ProjectItem,
 	type RecentDocumentItem,
@@ -35,7 +29,6 @@ const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
 ];
 
 interface CreateProjectModalProperties {
-	error: null | string;
 	isOpen: boolean;
 	isSubmitting: boolean;
 	onClose: () => void;
@@ -43,7 +36,6 @@ interface CreateProjectModalProperties {
 }
 
 interface EditProjectModalProperties {
-	error: null | string;
 	isOpen: boolean;
 	isSubmitting: boolean;
 	onClose: () => void;
@@ -75,7 +67,6 @@ interface ProjectItemCardProperties {
 }
 
 interface WorkspacePageProperties {
-	creationError?: null | string;
 	isCreating?: boolean;
 	isLoadingRecent?: boolean;
 	isOrgAdmin?: boolean;
@@ -91,11 +82,9 @@ interface WorkspacePageProperties {
 	onSelectProject: (id: string) => void;
 	projects: ProjectItem[];
 	recentDocuments?: RecentDocumentItem[];
-	updateError?: null | string;
 }
 
 const CreateProjectModal: React.FC<CreateProjectModalProperties> = ({
-	error,
 	isOpen,
 	isSubmitting,
 	onClose,
@@ -127,7 +116,6 @@ const CreateProjectModal: React.FC<CreateProjectModalProperties> = ({
 			title="New Project"
 		>
 			<ProjectManagmentModalForm
-				error={error}
 				isSubmitting={isSubmitting}
 				onClose={handleClose}
 				onSubmit={handleCreate}
@@ -138,7 +126,6 @@ const CreateProjectModal: React.FC<CreateProjectModalProperties> = ({
 };
 
 const EditProjectModal: React.FC<EditProjectModalProperties> = ({
-	error,
 	isOpen,
 	isSubmitting,
 	onClose,
@@ -172,7 +159,6 @@ const EditProjectModal: React.FC<EditProjectModalProperties> = ({
 			title="Edit Project"
 		>
 			<ProjectManagmentModalForm
-				error={error}
 				initialValues={{
 					description: project.description ?? "",
 					projectName: project.name,
@@ -283,7 +269,6 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 };
 
 const WorkspacePage: React.FC<WorkspacePageProperties> = ({
-	creationError = null,
 	isCreating = false,
 	isLoadingRecent = false,
 	isOrgAdmin = false,
@@ -295,10 +280,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	onSelectProject,
 	projects: initialProjects,
 	recentDocuments = [],
-	updateError = null,
 }) => {
-	const dispatch = useDispatch<AppDispatch>();
-
 	const [localProjects, setLocalProjects] =
 		useState<ProjectItem[]>(initialProjects);
 	const [previousInitialProjects, setPreviousInitialProjects] =
@@ -364,9 +346,8 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 			return;
 		}
 
-		dispatch(workspacesActions.clearCreationError());
 		setIsCreateModalOpen(false);
-	}, [dispatch, isCreating]);
+	}, [isCreating]);
 
 	const handleSubmitCreateModal = useCallback(
 		(payload: CreateProjectPayload): void => {
@@ -386,9 +367,8 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 			return;
 		}
 
-		dispatch(workspacesActions.clearUpdateError());
 		setEditingProject(null);
-	}, [dispatch, isUpdating]);
+	}, [isUpdating]);
 
 	const handleSubmitEditModal = useCallback(
 		(payload: UpdateProjectPayload): void => {
@@ -536,7 +516,6 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 			{isCreateModalOpen && (
 				<CreateProjectModal
-					error={creationError}
 					isOpen={isCreateModalOpen}
 					isSubmitting={isCreating}
 					onClose={handleCloseCreateModal}
@@ -546,7 +525,6 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 			{editingProject && (
 				<EditProjectModal
-					error={updateError}
 					isOpen={Boolean(editingProject)}
 					isSubmitting={isUpdating}
 					key={editingProject.id}
