@@ -72,7 +72,8 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.activeDocumentId = action.payload.documentId ?? state.activeDocumentId;
+			state.activeDocumentId =
+				action.payload.documentId ?? state.activeDocumentId;
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.READY;
 			state.selectedFile = action.payload;

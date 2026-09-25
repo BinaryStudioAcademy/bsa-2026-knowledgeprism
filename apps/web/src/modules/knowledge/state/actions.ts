@@ -141,10 +141,7 @@ const fetchIntegrationChanges = createAppAsyncThunk<
 	FetchIntegrationChangesPayload
 >(
 	`${sliceName}/fetch-integration-changes`,
-	async (
-		{ documentId, projectId },
-		{ extra, rejectWithValue, signal },
-	) => {
+	async ({ documentId, projectId }, { extra, rejectWithValue, signal }) => {
 		const documentStatus = await extra.documentsApi.getDocumentStatus({
 			documentId,
 			projectId,

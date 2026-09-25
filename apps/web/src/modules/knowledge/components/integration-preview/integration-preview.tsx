@@ -32,10 +32,7 @@ import {
 
 import { MergeScreen } from "./libs/components/merge-screen.js";
 import { ProposedStructureSuccessModal } from "./libs/components/proposed-structure-success-modal.js";
-import {
-	DEFAULT_PAGE_INDEX,
-	DEFAULT_SECTION_INDEX,
-} from "./libs/constants.js";
+import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
 
 const EMPTY_LENGTH = 0;
 const LIVE_KB_CONTENT_FALLBACK = "No live knowledge base content.";
