@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	useAppDispatch,
 	useAppSelector,
+	useCanWriteKnowledge,
 	useCurrentProjectId,
 } from "~/hooks/hooks.js";
 
@@ -12,6 +13,7 @@ import { KnowledgeTreeLayout } from "./knowledge-tree/knowledge-tree-layout.js";
 const KnowledgeTreePage: React.FC = () => {
 	const projectId = useCurrentProjectId();
 	const dispatch = useAppDispatch();
+	const canWriteKnowledge = useCanWriteKnowledge();
 	const { selectedEntry, tree } = useAppSelector((state) => state.knowledge);
 
 	const [manualSelectedPageId, setManualSelectedPageId] = useState<
@@ -72,7 +74,7 @@ const KnowledgeTreePage: React.FC = () => {
 
 	return (
 		<KnowledgeTreeLayout
-			canEdit={true}
+			canEdit={canWriteKnowledge}
 			entries={entries}
 			isTreeReady={isTreeReady}
 			items={tree}

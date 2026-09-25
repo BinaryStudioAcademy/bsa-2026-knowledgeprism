@@ -6,6 +6,7 @@ import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
 import {
 	useAppSelector,
+	useCanWriteKnowledge,
 	useLocation,
 	useModal,
 	useOptionalCurrentProjectId,
@@ -147,9 +148,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 
 	const primaryNavItems = buildPrimaryNavItems(projectId);
 	const utilityNavItems = buildUtilityNavItems(role);
-	const canAddKnowledge =
-		Boolean(projectId) &&
-		(role === ProjectMemberRole.ADMIN || role === ProjectMemberRole.EDITOR);
+	const canAddKnowledge = useCanWriteKnowledge();
 
 	const handleAddClick = useCallback((): void => {
 		if (onAddKnowledge) {
