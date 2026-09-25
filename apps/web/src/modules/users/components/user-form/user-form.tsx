@@ -1,3 +1,4 @@
+import { UserValidationMessage } from "@knowledgeprism/constants";
 import React, { useCallback, useMemo } from "react";
 import {
 	type Control,
@@ -197,7 +198,7 @@ const UserForm = <T extends FieldValues>({
 				<Input
 					control={control}
 					hasPasswordToggle={true}
-					hintInfo="Password must be at least 8 characters long"
+					hintInfo={UserValidationMessage.PASSWORD_HINT}
 					label={isEditMode ? "Password (Optional)" : "Password"}
 					maxLength={32}
 					name={"password" as Path<T>}

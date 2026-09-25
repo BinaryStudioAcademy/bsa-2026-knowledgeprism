@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { UserValidationMessage } from "@knowledgeprism/constants";
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 
@@ -96,7 +97,7 @@ const Password: Story = {
 const PasswordWithToggle: Story = {
 	args: {
 		hasPasswordToggle: true,
-		hintInfo: "Password must be at least 8 characters long",
+		hintInfo: UserValidationMessage.PASSWORD_HINT,
 		label: "Password",
 		maxLength: 32,
 		placeholder: "Enter your password",

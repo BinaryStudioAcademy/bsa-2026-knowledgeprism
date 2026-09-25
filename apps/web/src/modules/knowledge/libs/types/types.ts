@@ -1,4 +1,5 @@
 import { type PartialBlock } from "@blocknote/core";
+import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeSearchItemDto,
@@ -12,7 +13,7 @@ import {
 	type SearchStatus,
 } from "../enums/enums.js";
 
-type ChangeStatus = "created" | "modified" | "updated";
+type ChangeStatus = "conflict" | "created" | "duplicate" | "modified";
 
 type ConflictResolution = "keep" | "use-new";
 
@@ -29,9 +30,9 @@ type IntegrationPreviewProperties = {
 	currentLiveVersion?: number;
 	isInitialCreation?: boolean;
 	onAddMore: () => void;
-	onApprove: (pages: ProposedPage[]) => void;
+	onApprove: (sections: ProposedSection[]) => void;
 	onClose: () => void;
-	proposedStructure?: ProposedPage[];
+	proposedStructure?: ProposedSection[];
 };
 
 interface KbEntry {
@@ -58,20 +59,23 @@ type KnowledgeState = {
 };
 
 type ProposedPage = {
-	id: string;
-	sections: ProposedSection[];
-	status: ChangeStatus;
-	title: string;
-};
-
-type ProposedSection = {
 	conflicts?: FieldConflict[];
 	content: string;
 	id: string;
 	originalContent?: string;
+	originalTitle?: string;
 	status: ChangeStatus;
 	summary?: string;
 	title: string;
+	type: typeof KnowledgeNodeType.ENTRY | typeof KnowledgeNodeType.PAGE;
+};
+
+type ProposedSection = {
+	id: string;
+	pages: ProposedPage[];
+	status: ChangeStatus;
+	title: string;
+	type: typeof KnowledgeNodeType.SECTION;
 };
 
 type UploadedDocumentItem = {

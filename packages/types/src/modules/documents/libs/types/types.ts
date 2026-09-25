@@ -6,6 +6,8 @@ export { type DocumentUploadIntentRequestDto } from "./document-upload-intent-re
 export { type DocumentUploadIntentResponseDto } from "./document-upload-intent-response-dto.type.js";
 export { type DocumentUploadIntentRouteParametersDto } from "./document-upload-intent-route-parameters-dto.type.js";
 export { type ExtractionItemResponseDto } from "./extraction-item-response-dto.type.js";
+export { type ExtractionItemRouteParametersDto } from "./extraction-item-route-parameters-dto.type.js";
+export { type ExtractionItemUpdateRequestDto } from "./extraction-item-update-request-dto.type.js";
 export { type ExtractionItemsResponseDto } from "./extraction-items-response-dto.type.js";
 export { type ExtractionItemsReviewRequestDto } from "./extraction-items-review-request-dto.type.js";
 export { type ExtractionItemsReviewResponseDto } from "./extraction-items-review-response-dto.type.js";

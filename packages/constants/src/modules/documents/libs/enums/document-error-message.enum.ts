@@ -1,6 +1,8 @@
 const DocumentErrorMessage = {
 	CANCEL_NOT_ALLOWED: "Document cannot be cancelled in its current state",
 	CONFIRM_NOT_ALLOWED: "Document cannot be confirmed in its current state",
+	EXTRACTION_ITEM_NOT_FOUND: "Extraction item not found",
+	EXTRACTION_ITEM_NOT_PENDING: "Only pending extraction items can be edited",
 	FORBIDDEN: "You do not have permission to add knowledge",
 	INTEGRATION_FAILED: "Integration analysis failed",
 	NOT_FOUND: "Document not found",
