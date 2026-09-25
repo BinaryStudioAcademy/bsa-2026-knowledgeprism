@@ -1,5 +1,5 @@
 import { DocumentStatus } from "@knowledgeprism/constants";
-import { type JSX } from "react";
+import { type JSX, useEffect, useState } from "react";
 
 import {
 	Button,
@@ -10,14 +10,15 @@ import {
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
-import { FULL_PERCENTAGE } from "../../constants.js";
+import { FULL_PERCENTAGE, LOADING_FINISH_DELAY_MS } from "../../constants.js";
 import { type InternalVariantProperties } from "../../types.js";
 
 const getCompactStatusText = (
 	status: ValueOf<typeof DocumentStatus>,
 ): string => {
 	switch (status) {
-		case DocumentStatus.EXTRACTED: {
+		case DocumentStatus.EXTRACTED:
+		case DocumentStatus.WAITING_FOR_APPROVAL: {
 			return "New knowledge is ready";
 		}
 		case DocumentStatus.EXTRACTING: {
@@ -46,11 +47,32 @@ const CompactVariant = ({
 	onRetry,
 	percentage,
 }: InternalVariantProperties): JSX.Element => {
-	const isReady = currentStatus === DocumentStatus.EXTRACTED;
+	const isReady = currentStatus === DocumentStatus.WAITING_FOR_APPROVAL;
+	const [previousIsReady, setPreviousIsReady] = useState<boolean>(isReady);
+	const [showButton, setShowButton] = useState<boolean>(false);
+
+	if (isReady !== previousIsReady) {
+		setPreviousIsReady(isReady);
+		setShowButton(false);
+	}
+
+	useEffect(() => {
+		if (!isReady) {
+			return;
+		}
+
+		const timer = setTimeout(() => {
+			setShowButton(true);
+		}, LOADING_FINISH_DELAY_MS);
+
+		return () => {
+			clearTimeout(timer);
+		};
+	}, [isReady]);
 
 	return (
 		<div className="flex w-full min-w-65 flex-col">
-			{!isReady && (
+			{!showButton && (
 				<div className="mb-1 flex w-full flex-col gap-1 @5xl:pr-6">
 					<div className="flex min-h-7 items-center justify-between">
 						{isError ? (
@@ -109,7 +131,7 @@ const CompactVariant = ({
 				</div>
 			)}
 
-			{isReady && (
+			{showButton && (
 				<Button
 					className="w-full sm:w-fit sm:self-end"
 					onClick={onPreview}

@@ -1,64 +1,64 @@
 import { DocumentStatus } from "@knowledgeprism/constants";
-import { type JSX, useEffect, useState } from "react";
+import { type JSX, useEffect } from "react";
 
 import { type ValueOf } from "~/lib/types/types.js";
 
+import {
+	NOT_FOUND_INDEX,
+	START_INDEX,
+} from "../../libs/constants/constants.js";
 import { CompactVariant } from "./libs/components/compact-variant/compact-variant.js";
 import { FullVariant } from "./libs/components/full-variant/full-variant.js";
 import {
 	FULL_PERCENTAGE,
-	INITIAL_STATUS_INDEX,
-	MOCK_TIMER_DELAY_MS,
+	LOADING_FINISH_DELAY_MS,
 	PERCENTAGE_OFFSET,
-	STATUS_INDEX_INCREMENT,
 	STATUS_PROGRESSION,
 } from "./libs/constants.js";
 import { type Properties } from "./libs/types.js";
 
-// TODO: Add `currentStatus: ValueOf<typeof DocumentStatus>` passed down from TanStack Query
 const LoadingState = (properties: Properties): JSX.Element => {
-	const { hasError = false, variant = "full" } = properties;
-
-	// TODO: Delete this mock state and use the `currentStatus` prop from TanStack Query instead
-	const [currentStatusIndex, setCurrentStatusIndex] =
-		useState(INITIAL_STATUS_INDEX);
-
-	const currentStatus = STATUS_PROGRESSION[currentStatusIndex] as ValueOf<
-		typeof DocumentStatus
-	>;
+	const { currentStatus, hasError = false, variant = "full" } = properties;
 
 	const isError = hasError || currentStatus === DocumentStatus.FAILED;
+	const isTerminal =
+		currentStatus === DocumentStatus.WAITING_FOR_APPROVAL ||
+		currentStatus === DocumentStatus.FAILED;
 
 	const onFinish = "onFinish" in properties ? properties.onFinish : undefined;
 
-	// TODO: Delete this entire useEffect mock timer when backend is connected
 	useEffect(() => {
-		if (isError || currentStatus === DocumentStatus.EXTRACTED) {
-			if (onFinish && currentStatus === DocumentStatus.EXTRACTED) {
-				onFinish();
-			}
-
+		if (
+			!isTerminal ||
+			!onFinish ||
+			currentStatus !== DocumentStatus.WAITING_FOR_APPROVAL
+		) {
 			return;
 		}
 
 		const timer = setTimeout(() => {
-			setCurrentStatusIndex((previous) => previous + STATUS_INDEX_INCREMENT);
-		}, MOCK_TIMER_DELAY_MS);
+			onFinish();
+		}, LOADING_FINISH_DELAY_MS);
 
 		return () => {
 			clearTimeout(timer);
 		};
-	}, [currentStatus, hasError, isError, onFinish]);
+	}, [isTerminal, currentStatus, onFinish]);
 
-	// TODO: When mock state is removed, derive percentage by finding the index of `currentStatus` in `STATUS_PROGRESSION`
+	const statusIndex = STATUS_PROGRESSION.indexOf(
+		currentStatus as ValueOf<typeof DocumentStatus>,
+	);
+	const effectiveIndex =
+		statusIndex === NOT_FOUND_INDEX ? START_INDEX : statusIndex;
+
 	const percentage = Math.round(
-		(currentStatusIndex / (STATUS_PROGRESSION.length - PERCENTAGE_OFFSET)) *
+		(effectiveIndex / (STATUS_PROGRESSION.length - PERCENTAGE_OFFSET)) *
 			FULL_PERCENTAGE,
 	);
 
 	const internalProperties = {
 		...properties,
-		currentStatus,
+		currentStatus: currentStatus as ValueOf<typeof DocumentStatus>,
 		isError,
 		percentage,
 	};

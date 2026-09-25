@@ -1,5 +1,9 @@
 import {
 	type DocumentConfirmUploadResponseDto,
+	type DocumentStatusResponseDto,
+	type ExtractionItemsResponseDto,
+	type ExtractionItemsReviewRequestDto,
+	type ExtractionItemsReviewResponseDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeSearchResponseDto,
@@ -15,6 +19,7 @@ import { type AsyncThunkConfig } from "~/lib/types/types.js";
 import {
 	DocumentValidationMessage,
 	PDF_MIME_TYPE,
+	POLL_DOCUMENT_STATUS_INTERVAL_MS,
 } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
@@ -50,12 +55,16 @@ const confirmDocumentUpload = createAppAsyncThunk<
 	ConfirmDocumentUploadPayload
 >(
 	`${sliceName}/confirm-document-upload`,
-	({ documentId, projectId }, { extra, signal }) => {
-		return extra.documentsApi.confirmUpload({
+	async ({ documentId, projectId }, { dispatch, extra, signal }) => {
+		const response = await extra.documentsApi.confirmUpload({
 			documentId,
 			projectId,
 			signal,
 		});
+
+		void dispatch(pollDocumentStatus({ documentId, projectId }));
+
+		return response;
 	},
 );
 
@@ -175,10 +184,91 @@ const submitManualText = createAsyncThunk<
 	AsyncThunkConfig
 >(
 	`${sliceName}/submit-manual-text`,
-	({ payload, projectId }, { extra, signal }) => {
-		return extra.documentsApi.createManualText({
+	async ({ payload, projectId }, { dispatch, extra, signal }) => {
+		const response = await extra.documentsApi.createManualText({
 			payload,
 			projectId,
+			signal,
+		});
+
+		void dispatch(pollDocumentStatus({ documentId: response.id, projectId }));
+
+		return response;
+	},
+);
+
+const pollDocumentStatus = createAppAsyncThunk<
+	DocumentStatusResponseDto,
+	{ documentId: number; projectId: string }
+>(
+	`${sliceName}/poll-document-status`,
+	async ({ documentId, projectId }, { dispatch, extra, signal }) => {
+		const statusResponse = await extra.documentsApi.getDocumentStatus({
+			documentId,
+			projectId,
+			signal,
+		});
+
+		const terminalStatuses = ["WAITING_FOR_APPROVAL", "COMPLETED", "FAILED"];
+
+		if (!terminalStatuses.includes(statusResponse.status)) {
+			const timerId = setTimeout(() => {
+				void dispatch(pollDocumentStatus({ documentId, projectId }));
+			}, POLL_DOCUMENT_STATUS_INTERVAL_MS);
+
+			signal.addEventListener("abort", () => {
+				clearTimeout(timerId);
+			});
+		} else if (statusResponse.status === "WAITING_FOR_APPROVAL") {
+			void dispatch(fetchExtractionItems({ documentId, projectId }));
+		}
+
+		return statusResponse;
+	},
+);
+
+const fetchExtractionItems = createAppAsyncThunk<
+	ExtractionItemsResponseDto,
+	{ documentId: number; projectId: string }
+>(`${sliceName}/fetch-extraction-items`, async (payload, { extra, signal }) => {
+	const { documentsApi } = extra;
+	return await documentsApi.getExtractionItems({
+		documentId: payload.documentId,
+		projectId: payload.projectId,
+		signal,
+	});
+});
+
+const submitExtractionReview = createAppAsyncThunk<
+	ExtractionItemsReviewResponseDto,
+	{
+		documentId: number;
+		payload: ExtractionItemsReviewRequestDto;
+		projectId: string;
+	}
+>(
+	`${sliceName}/submit-extraction-review`,
+	async (payload, { extra, signal }) => {
+		const { documentsApi } = extra;
+		return await documentsApi.submitExtractionReview({
+			documentId: payload.documentId,
+			payload: payload.payload,
+			projectId: payload.projectId,
+			signal,
+		});
+	},
+);
+
+const retryDocumentProcessing = createAppAsyncThunk<
+	unknown,
+	{ documentId: number; projectId: string }
+>(
+	`${sliceName}/retry-document-processing`,
+	async (payload, { extra, signal }) => {
+		const { documentsApi } = extra;
+		await documentsApi.retryProcessing({
+			documentId: payload.documentId,
+			projectId: payload.projectId,
 			signal,
 		});
 	},
@@ -186,10 +276,14 @@ const submitManualText = createAsyncThunk<
 
 export {
 	confirmDocumentUpload,
+	fetchExtractionItems,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
+	pollDocumentStatus,
 	processDocument,
+	retryDocumentProcessing,
 	searchKnowledge,
+	submitExtractionReview,
 	submitManualText,
 	updateKnowledgeEntry,
 };

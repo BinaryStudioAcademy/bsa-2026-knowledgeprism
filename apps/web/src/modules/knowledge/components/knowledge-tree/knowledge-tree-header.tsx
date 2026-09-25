@@ -1,7 +1,9 @@
+import { type DocumentStatus } from "@knowledgeprism/constants";
 import React from "react";
 
 import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
+import { type ValueOf } from "~/lib/types/types.js";
 
 import { LAST_INDEX_OFFSET } from "../../libs/constants/constants.js";
 import { LoadingState } from "../loading-state/loading-state.js";
@@ -9,11 +11,14 @@ import { LoadingState } from "../loading-state/loading-state.js";
 type Properties = {
 	breadcrumbs: string[];
 	canEdit?: boolean;
+	currentStatus: "IDLE" | "UPLOADED" | ValueOf<typeof DocumentStatus>;
 	isEditing?: boolean;
 	onCancel?: () => void;
 	onEdit?: () => void;
 	onOpenSidebar: () => void;
 	onPreview: () => void;
+	onResetState: () => void;
+	onRetry: () => void;
 	showCompactLoading?: boolean;
 };
 
@@ -77,11 +82,14 @@ const KnowledgeTreeBreadcrumbs = ({
 const KnowledgeTreeHeader: React.FC<Properties> = ({
 	breadcrumbs,
 	canEdit = false,
+	currentStatus,
 	isEditing = false,
 	onCancel,
 	onEdit,
 	onOpenSidebar,
 	onPreview,
+	onResetState,
+	onRetry,
 	showCompactLoading = false,
 }: Properties) => {
 	const currentFileName = breadcrumbs.at(-LAST_INDEX_OFFSET);
@@ -95,7 +103,21 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 			<div className="flex items-center gap-3.5">
 				{showCompactLoading && (
 					<div className="hidden @5xl:block">
-						<LoadingState onPreview={onPreview} variant="compact" />
+						{currentStatus === "FAILED" ? (
+							<LoadingState
+								currentStatus={currentStatus}
+								hasError={true}
+								onCancel={onResetState}
+								onRetry={onRetry}
+								variant="compact"
+							/>
+						) : (
+							<LoadingState
+								currentStatus={currentStatus}
+								onPreview={onPreview}
+								variant="compact"
+							/>
+						)}
 					</div>
 				)}
 				{canEdit && !isEditing && (
