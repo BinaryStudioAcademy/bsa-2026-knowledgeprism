@@ -1,5 +1,6 @@
+import { IntegrationChangeType } from "@knowledgeprism/constants";
+
 import { type SimilarityMatch } from "../../../embeddings/libs/types/similarity-match.type.js";
-import { IntegrationChangeType } from "../constants/integration-change-type.constant.js";
 import { type IntegrationAnalysisResult } from "../types/integration-analysis-result.type.js";
 import { type IntegrationChangeTypeValue } from "../types/integration-change-type-value.type.js";
 

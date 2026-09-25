@@ -10,34 +10,56 @@ import { DocumentController } from "./controllers/document.controller.js";
 import { ProcessingSweep } from "./libs/constants/processing-sweep.constant.js";
 import { DocumentModel } from "./models/document.model.js";
 import { ExtractionItemModel } from "./models/extraction-item.model.js";
+import { IntegrationChangeModel } from "./models/integration-change.model.js";
 import { DocumentRepository } from "./repositories/document.repository.js";
 import { ExtractionItemRepository } from "./repositories/extraction-item.repository.js";
+import { IntegrationChangeRepository } from "./repositories/integration-change.repository.js";
+import { DocumentJobScheduler } from "./services/document-job-scheduler.js";
 import { DocumentProcessor } from "./services/document-processor.js";
 import { DocumentReviewService } from "./services/document-review.service.js";
 import { DocumentService } from "./services/document.service.js";
+import { IntegrationAnalyzer } from "./services/integration-analyzer.js";
 
 const documentRepository = new DocumentRepository(DocumentModel);
 const extractionItemRepository = new ExtractionItemRepository(
 	ExtractionItemModel,
+);
+const integrationChangeRepository = new IntegrationChangeRepository(
+	IntegrationChangeModel,
 );
 const documentProcessor = new DocumentProcessor({
 	database,
 	documentRepository,
 	extractionItemRepository,
 });
-const documentService = new DocumentService({
-	checkDocumentObjectExists,
+const integrationAnalyzer = new IntegrationAnalyzer({
+	database,
+	documentRepository,
+	extractionItemRepository,
+	integrationChangeRepository,
+	knowledgeNodeRepository,
+});
+const documentJobScheduler = new DocumentJobScheduler({
 	documentProcessor,
 	documentRepository,
+	integrationAnalyzer,
+	logger,
+});
+const documentService = new DocumentService({
+	checkDocumentObjectExists,
+	documentJobScheduler,
+	documentRepository,
+	extractionItemRepository,
 	generatePresignedUploadUrl,
 	logger,
 	projectService,
 });
 const documentReviewService = new DocumentReviewService({
 	database,
+	documentJobScheduler,
 	documentRepository,
 	extractionItemRepository,
-	knowledgeNodeRepository,
+	integrationChangeRepository,
 	projectService,
 });
 const documentController = new DocumentController(logger, documentService);

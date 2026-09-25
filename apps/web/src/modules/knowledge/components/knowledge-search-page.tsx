@@ -1,3 +1,5 @@
+import { flattenContentToText } from "@knowledgeprism/config";
+
 import { Heading, Icon } from "~/components/components.js";
 import {
 	useAppDispatch,
@@ -10,7 +12,6 @@ import {
 } from "~/hooks/hooks.js";
 import { useDebouncedValue } from "~/hooks/use-debounced-value/use-debounced-value.hook.js";
 
-import { flattenContentToText } from "../libs/helpers/helpers.js";
 import { actions } from "../state/state.js";
 import {
 	AddTermModal,

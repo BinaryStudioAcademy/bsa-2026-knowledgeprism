@@ -1,4 +1,5 @@
 import { ExtractionItemStatus } from "@knowledgeprism/constants";
+import { type ValueOf } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
 import { ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
@@ -36,6 +37,24 @@ class ExtractionItemRepository {
 		this.extractionItemModel = extractionItemModel;
 	}
 
+	private async updateStatus(
+		{
+			ids,
+			status,
+		}: { ids: number[]; status: ValueOf<typeof ExtractionItemStatus> },
+		transaction: Transaction,
+	): Promise<void> {
+		if (ids.length === EMPTY_LENGTH) {
+			return;
+		}
+
+		await this.extractionItemModel
+			.query(transaction)
+			.patch({ status })
+			.whereIn("id", ids)
+			.execute();
+	}
+
 	public async findByDocumentId(
 		documentId: number,
 	): Promise<ExtractionItemEntity[]> {
@@ -56,29 +75,23 @@ class ExtractionItemRepository {
 	}
 
 	public async markApproved(
-		{ id, knowledgeNodeId }: { id: number; knowledgeNodeId: number },
+		ids: number[],
 		transaction: Transaction,
 	): Promise<void> {
-		await this.extractionItemModel
-			.query(transaction)
-			.patch({ knowledgeNodeId, status: ExtractionItemStatus.APPROVED })
-			.where({ id })
-			.execute();
+		await this.updateStatus(
+			{ ids, status: ExtractionItemStatus.APPROVED },
+			transaction,
+		);
 	}
 
 	public async markRejected(
 		ids: number[],
 		transaction: Transaction,
 	): Promise<void> {
-		if (ids.length === EMPTY_LENGTH) {
-			return;
-		}
-
-		await this.extractionItemModel
-			.query(transaction)
-			.patch({ status: ExtractionItemStatus.REJECTED })
-			.whereIn("id", ids)
-			.execute();
+		await this.updateStatus(
+			{ ids, status: ExtractionItemStatus.REJECTED },
+			transaction,
+		);
 	}
 
 	public async replacePending(
@@ -107,16 +120,23 @@ class ExtractionItemRepository {
 			.execute();
 	}
 
-	public async updateContent(
-		id: number,
-		payload: { text: string; title: string },
-	): Promise<ExtractionItemEntity> {
+	public async updatePendingContent({
+		documentId,
+		id,
+		payload,
+	}: {
+		documentId: number;
+		id: number;
+		payload: { text: string; title: string };
+	}): Promise<ExtractionItemEntity | null> {
 		const updated = await this.extractionItemModel
 			.query()
-			.patchAndFetchById(id, payload)
-			.execute();
+			.patch(payload)
+			.where({ documentId, id, status: ExtractionItemStatus.PENDING })
+			.returning("*")
+			.first();
 
-		return toEntity(updated);
+		return updated ? toEntity(updated) : null;
 	}
 }
 

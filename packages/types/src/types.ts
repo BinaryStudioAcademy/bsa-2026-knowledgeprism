@@ -30,6 +30,8 @@ export {
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
 	type ExtractionItemUpdateRequestDto,
+	type IntegrationChangeResponseDto,
+	type IntegrationChangesResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
 	type ManualTextRouteParametersDto,

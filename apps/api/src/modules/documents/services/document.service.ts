@@ -3,6 +3,7 @@ import {
 	DocumentSourceType,
 	DocumentStatus,
 	DocumentValidationRule,
+	ExtractionItemStatus,
 	ProjectValidationMessage,
 } from "@knowledgeprism/constants";
 import {
@@ -28,15 +29,15 @@ import { createContentHash } from "~/modules/documents/libs/helpers/create-conte
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
 import { isUniqueViolation } from "~/modules/documents/libs/helpers/is-unique-violation.helper.js";
 import { toDocumentStatusResponse } from "~/modules/documents/libs/helpers/to-document-status-response.helper.js";
-import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
+import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
 import {
 	type ProjectAccessContext,
 	type ProjectService,
 } from "~/modules/projects/services/project.service.js";
 
-import { type DocumentProcessor } from "./document-processor.js";
+import { type DocumentJobScheduler } from "./document-job-scheduler.js";
 import { type DocumentReference } from "./document-review.service.js";
 
 const MANUAL_TEXT_MIME_TYPE = "text/plain";
@@ -46,8 +47,9 @@ const INITIAL_PROCESSING_ATTEMPT = 0;
 
 type Constructor = {
 	checkDocumentObjectExists: CheckDocumentObjectExists;
-	documentProcessor: DocumentProcessor;
+	documentJobScheduler: DocumentJobScheduler;
 	documentRepository: DocumentRepository;
+	extractionItemRepository: ExtractionItemRepository;
 	generatePresignedUploadUrl: GeneratePresignedUploadUrl;
 	logger: Logger;
 	projectService: ProjectService;
@@ -63,9 +65,11 @@ const createRetryNotAllowedError = (): HTTPError => {
 class DocumentService {
 	private checkDocumentObjectExists: CheckDocumentObjectExists;
 
-	private documentProcessor: DocumentProcessor;
+	private documentJobScheduler: DocumentJobScheduler;
 
 	private documentRepository: DocumentRepository;
+
+	private extractionItemRepository: ExtractionItemRepository;
 
 	private generatePresignedUploadUrl: GeneratePresignedUploadUrl;
 
@@ -75,15 +79,17 @@ class DocumentService {
 
 	public constructor({
 		checkDocumentObjectExists,
-		documentProcessor,
+		documentJobScheduler,
 		documentRepository,
+		extractionItemRepository,
 		generatePresignedUploadUrl,
 		logger,
 		projectService,
 	}: Constructor) {
 		this.checkDocumentObjectExists = checkDocumentObjectExists;
-		this.documentProcessor = documentProcessor;
+		this.documentJobScheduler = documentJobScheduler;
 		this.documentRepository = documentRepository;
+		this.extractionItemRepository = extractionItemRepository;
 		this.generatePresignedUploadUrl = generatePresignedUploadUrl;
 		this.logger = logger;
 		this.projectService = projectService;
@@ -127,29 +133,6 @@ class DocumentService {
 		}
 	}
 
-	private async completeProcessing(
-		processingAttempt: ProcessingAttempt,
-	): Promise<void> {
-		try {
-			const isCompleted =
-				await this.documentProcessor.process(processingAttempt);
-
-			if (!isCompleted) {
-				this.logger.warn(
-					"Discarded results of a superseded processing attempt.",
-					{ ...processingAttempt },
-				);
-			}
-		} catch (error) {
-			this.logger.error("Failed to process document.", {
-				...processingAttempt,
-				error,
-			});
-
-			await this.failProcessing(processingAttempt);
-		}
-	}
-
 	private async failAndThrow(
 		documentId: number,
 		message: string,
@@ -167,26 +150,6 @@ class DocumentService {
 			message,
 			status: HTTPCode.INTERNAL_SERVER_ERROR,
 		});
-	}
-
-	private async failProcessing({
-		attempt,
-		documentId,
-	}: ProcessingAttempt): Promise<void> {
-		try {
-			await this.documentRepository.compareAndSwapStatus({
-				errorMessage: DocumentErrorMessage.PROCESSING_FAILED,
-				expectedStatus: DocumentStatus.PROCESSING,
-				id: documentId,
-				processingAttempt: attempt,
-				status: DocumentStatus.FAILED,
-			});
-		} catch (error) {
-			this.logger.error("Failed to mark document as failed.", {
-				documentId,
-				error,
-			});
-		}
 	}
 
 	private async findOwnedDocument({
@@ -211,6 +174,15 @@ class DocumentService {
 		return document;
 	}
 
+	private async hasApprovedItems(documentId: number): Promise<boolean> {
+		const items =
+			await this.extractionItemRepository.findByDocumentId(documentId);
+
+		return items.some(
+			(item) => item.toObject().status === ExtractionItemStatus.APPROVED,
+		);
+	}
+
 	private normalizeTitle(title: string | undefined): null | string {
 		if (!title) {
 			return null;
@@ -221,25 +193,37 @@ class DocumentService {
 		return trimmedTitle === "" ? null : trimmedTitle;
 	}
 
-	private async restartFailedProcessing(id: number): Promise<DocumentEntity> {
+	private async restartFailedProcessing(
+		document: DocumentEntity,
+	): Promise<DocumentEntity> {
+		const { id } = document.toObject();
+		const isIntegrationFailure = await this.hasApprovedItems(id);
+
+		if (!isIntegrationFailure) {
+			await this.assertRetryableUpload(document);
+		}
+
 		const processing = await this.documentRepository.startProcessing({
 			allowedStatuses: [DocumentStatus.FAILED],
 			id,
+			status: isIntegrationFailure
+				? DocumentStatus.INTEGRATING
+				: DocumentStatus.PROCESSING,
 		});
 
 		if (!processing) {
 			throw createRetryNotAllowedError();
 		}
 
-		this.scheduleProcessing({ attempt: processing.attempt, documentId: id });
+		const processingAttempt = { attempt: processing.attempt, documentId: id };
+
+		if (isIntegrationFailure) {
+			this.documentJobScheduler.scheduleIntegration(processingAttempt);
+		} else {
+			this.documentJobScheduler.scheduleProcessing(processingAttempt);
+		}
 
 		return processing.document;
-	}
-
-	private scheduleProcessing(processingAttempt: ProcessingAttempt): void {
-		setImmediate(() => {
-			void this.completeProcessing(processingAttempt);
-		});
 	}
 
 	private toManualTextResponse(
@@ -348,6 +332,7 @@ class DocumentService {
 		const processing = await this.documentRepository.startProcessing({
 			allowedStatuses: [DocumentStatus.UPLOADED],
 			id: documentDetails.id,
+			status: DocumentStatus.PROCESSING,
 		});
 
 		if (!processing) {
@@ -393,7 +378,7 @@ class DocumentService {
 			});
 		}
 
-		this.scheduleProcessing({
+		this.documentJobScheduler.scheduleProcessing({
 			attempt: processing.attempt,
 			documentId: documentDetails.id,
 		});
@@ -473,7 +458,7 @@ class DocumentService {
 
 		const createdDocumentDto = this.toManualTextResponse(createdDocument);
 
-		this.scheduleProcessing({
+		this.documentJobScheduler.scheduleProcessing({
 			attempt: INITIAL_PROCESSING_ATTEMPT,
 			documentId: createdDocumentDto.id,
 		});
@@ -639,7 +624,7 @@ class DocumentService {
 			});
 		}
 
-		const retriedDocument = await this.restartFailedProcessing(id);
+		const retriedDocument = await this.restartFailedProcessing(document);
 
 		return this.toManualTextResponse(retriedDocument);
 	}
@@ -660,9 +645,7 @@ class DocumentService {
 			throw createRetryNotAllowedError();
 		}
 
-		await this.assertRetryableUpload(document);
-
-		const retriedDocument = await this.restartFailedProcessing(documentId);
+		const retriedDocument = await this.restartFailedProcessing(document);
 
 		return toDocumentStatusResponse(retriedDocument);
 	}
