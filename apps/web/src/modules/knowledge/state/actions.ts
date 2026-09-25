@@ -1,5 +1,7 @@
+import { DocumentStatus } from "@knowledgeprism/constants";
 import {
 	type DocumentConfirmUploadResponseDto,
+	type IntegrationChangesResponseDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeSearchResponseDto,
@@ -22,6 +24,11 @@ import { type UploadedDocumentItem } from "../libs/types/types.js";
 import { name as sliceName } from "./knowledge.slice.js";
 
 type ConfirmDocumentUploadPayload = {
+	documentId: number;
+	projectId: string;
+};
+
+type FetchIntegrationChangesPayload = {
 	documentId: number;
 	projectId: string;
 };
@@ -129,6 +136,38 @@ const processDocument = createAsyncThunk<
 	},
 );
 
+const fetchIntegrationChanges = createAppAsyncThunk<
+	IntegrationChangesResponseDto,
+	FetchIntegrationChangesPayload
+>(
+	`${sliceName}/fetch-integration-changes`,
+	async ({ documentId, projectId }, { extra, rejectWithValue, signal }) => {
+		const documentStatus = await extra.documentsApi.getDocumentStatus({
+			documentId,
+			projectId,
+			signal,
+		});
+
+		if (documentStatus.status === DocumentStatus.INTEGRATING) {
+			return rejectWithValue(
+				"Integration analysis is still running. Try again in a moment.",
+			);
+		}
+
+		if (documentStatus.status !== DocumentStatus.WAITING_FOR_APPROVAL) {
+			return rejectWithValue(
+				"Integration preview is available when the document is waiting for approval.",
+			);
+		}
+
+		return await extra.documentsApi.getIntegrationChanges({
+			documentId,
+			projectId,
+			signal,
+		});
+	},
+);
+
 const fetchKnowledgeTree = createAsyncThunk<
 	KnowledgeTreeResponseDto,
 	{ projectId: string },
@@ -186,6 +225,7 @@ const submitManualText = createAsyncThunk<
 
 export {
 	confirmDocumentUpload,
+	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,

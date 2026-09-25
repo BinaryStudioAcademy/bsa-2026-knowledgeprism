@@ -2,23 +2,32 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import { DocumentValidationMessage } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus, SearchStatus } from "../libs/enums/enums.js";
-import { formatFileSize } from "../libs/helpers/helpers.js";
+import {
+	formatFileSize,
+	mapIntegrationChangesToProposedStructure,
+} from "../libs/helpers/helpers.js";
 import { type KnowledgeState } from "../libs/types/types.js";
 import {
 	confirmDocumentUpload,
+	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,
 	searchKnowledge,
+	submitManualText,
 	updateKnowledgeEntry,
 } from "./actions.js";
 
 type State = KnowledgeState;
 
 const initialState: State = {
+	activeDocumentId: null,
 	errorMessage: null,
+	integrationPreviewError: null,
+	integrationPreviewSections: [],
 	isAddingKnowledge: false,
 	isEntryLoading: false,
+	isIntegrationPreviewLoading: false,
 	isTreeLoading: false,
 	processingStatus: DocumentProcessingStatus.IDLE,
 	searchErrorMessage: null,
@@ -39,7 +48,8 @@ const { actions, name, reducer } = createSlice({
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 		});
-		builder.addCase(confirmDocumentUpload.fulfilled, (state) => {
+		builder.addCase(confirmDocumentUpload.fulfilled, (state, action) => {
+			state.activeDocumentId = action.meta.arg.documentId;
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.READY;
 		});
@@ -62,6 +72,8 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
+			state.activeDocumentId =
+				action.payload.documentId ?? state.activeDocumentId;
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.READY;
 			state.selectedFile = action.payload;
@@ -77,6 +89,27 @@ const { actions, name, reducer } = createSlice({
 			state.selectedFile.status = DocumentProcessingStatus.FAILED;
 			state.selectedFile.documentId = action.payload?.documentId;
 			state.selectedFile.uploadUrl = action.payload?.uploadUrl;
+		});
+		builder.addCase(fetchIntegrationChanges.pending, (state) => {
+			state.integrationPreviewError = null;
+			state.isIntegrationPreviewLoading = true;
+		});
+		builder.addCase(fetchIntegrationChanges.fulfilled, (state, action) => {
+			state.integrationPreviewSections =
+				mapIntegrationChangesToProposedStructure(action.payload);
+			state.integrationPreviewError = null;
+			state.isIntegrationPreviewLoading = false;
+		});
+		builder.addCase(fetchIntegrationChanges.rejected, (state, action) => {
+			state.integrationPreviewError =
+				typeof action.payload === "string"
+					? action.payload
+					: (action.error.message ?? "Failed to load integration preview");
+			state.integrationPreviewSections = [];
+			state.isIntegrationPreviewLoading = false;
+		});
+		builder.addCase(submitManualText.fulfilled, (state, action) => {
+			state.activeDocumentId = action.payload.id;
 		});
 		builder.addCase(fetchKnowledgeTree.pending, (state) => {
 			state.isTreeLoading = true;
@@ -154,6 +187,11 @@ const { actions, name, reducer } = createSlice({
 		clearError(state) {
 			state.errorMessage = null;
 		},
+		clearIntegrationPreview(state) {
+			state.integrationPreviewError = null;
+			state.integrationPreviewSections = [];
+			state.isIntegrationPreviewLoading = false;
+		},
 		finishAddingKnowledge(state) {
 			state.isAddingKnowledge = false;
 		},
@@ -166,6 +204,9 @@ const { actions, name, reducer } = createSlice({
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFile = null;
+		},
+		setActiveDocumentId(state, action: PayloadAction<null | number>) {
+			state.activeDocumentId = action.payload;
 		},
 		setError(state, action: PayloadAction<string>) {
 			state.errorMessage = action.payload;

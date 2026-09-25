@@ -32,14 +32,10 @@ import {
 
 import { MergeScreen } from "./libs/components/merge-screen.js";
 import { ProposedStructureSuccessModal } from "./libs/components/proposed-structure-success-modal.js";
-import {
-	DEFAULT_PAGE_INDEX,
-	DEFAULT_PROPOSED_STRUCTURE,
-	DEFAULT_SECTION_INDEX,
-} from "./libs/constants.js";
+import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
 
-const DEFAULT_BASELINE = 1;
 const EMPTY_LENGTH = 0;
+const LIVE_KB_CONTENT_FALLBACK = "No live knowledge base content.";
 const ICON_SIZE_MEDIUM = 16;
 const ICON_SIZE_SMALL = 14;
 const TITLE_MAX_LENGTH = 250;
@@ -192,13 +188,7 @@ const textToBlocks = (text: string): PartialBlock[] => {
 	];
 };
 
-const getStatusLabel = (status: ChangeStatus): string => {
-	return status;
-};
-
-const getSectionStatusLabel = (status: ChangeStatus): string => {
-	return `${status} section`;
-};
+const formatChangeStatusLabel = (status: ChangeStatus): string => status;
 
 const getStatusBadge = (status: ChangeStatus): JSX.Element => {
 	const isConflict = status === "conflict";
@@ -216,7 +206,7 @@ const getStatusBadge = (status: ChangeStatus): JSX.Element => {
 		},
 	);
 
-	return <span className={badgeClass}>{getStatusLabel(status)}</span>;
+	return <span className={badgeClass}>{formatChangeStatusLabel(status)}</span>;
 };
 
 const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
@@ -224,60 +214,47 @@ const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
 		return [];
 	}
 
-	return [
-		{
-			currentValue: section.originalTitle ?? section.title,
+	const liveTitle = section.originalTitle ?? section.title;
+	const liveContent = section.originalContent ?? LIVE_KB_CONTENT_FALLBACK;
+	const conflicts: FieldConflict[] = [];
+
+	if (liveTitle !== section.title) {
+		conflicts.push({
+			changeId: section.integrationChangeId,
+			currentValue: liveTitle,
 			field: "title",
-			id: `conf-title-${section.id}`,
+			id: `conf-title-${String(section.integrationChangeId)}`,
 			incomingValue: section.title,
-		},
-		{
-			currentValue:
-				section.originalContent ?? "Initial base version in Live KB",
+			matchedNodeId: section.matchedNodeId ?? null,
+		});
+	}
+
+	if (liveContent !== section.content) {
+		conflicts.push({
+			changeId: section.integrationChangeId,
+			currentValue: liveContent,
 			field: "content",
-			id: `conf-content-${section.id}`,
+			id: `conf-content-${String(section.integrationChangeId)}`,
 			incomingValue: section.content,
-		},
-	];
+			matchedNodeId: section.matchedNodeId ?? null,
+		});
+	}
+
+	return conflicts;
 };
 
-const getGeneratedConflicts = (
+const getAllIntegrationConflicts = (
 	pages: ProposedSection[],
-	activeSection: ProposedPage | undefined,
 ): FieldConflict[] => {
-	const generatedConflicts: FieldConflict[] = [];
+	const conflicts: FieldConflict[] = [];
 
 	for (const page of pages) {
 		for (const section of page.pages) {
-			generatedConflicts.push(...getSectionConflicts(section));
+			conflicts.push(...getSectionConflicts(section));
 		}
 	}
 
-	if (
-		activeSection &&
-		activeSection.status !== "created" &&
-		generatedConflicts.length === EMPTY_LENGTH
-	) {
-		const { content, id, originalContent, originalTitle, title } =
-			activeSection;
-
-		generatedConflicts.push(
-			{
-				currentValue: originalTitle ?? title,
-				field: "title",
-				id: `conf-default-title-${id}`,
-				incomingValue: title,
-			},
-			{
-				currentValue: originalContent ?? "Initial base version in Live KB",
-				field: "content",
-				id: `conf-default-content-${id}`,
-				incomingValue: content,
-			},
-		);
-	}
-
-	return generatedConflicts;
+	return conflicts;
 };
 
 const updateSectionInPages = ({
@@ -525,7 +502,7 @@ const SectionDetails = ({
 							},
 						)}
 					>
-						{getSectionStatusLabel(selectedNode.status)}
+						{formatChangeStatusLabel(selectedNode.status)}
 					</span>
 				</div>
 
@@ -675,17 +652,12 @@ const PreviewFooter = ({
 );
 
 const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
-	baselineVersion = DEFAULT_BASELINE,
-	currentLiveVersion = DEFAULT_BASELINE,
 	onAddMore,
 	onApprove,
 	onClose,
 	proposedStructure,
 }: IntegrationPreviewProperties): JSX.Element => {
-	const initialStructure =
-		proposedStructure && proposedStructure.length > EMPTY_LENGTH
-			? proposedStructure
-			: DEFAULT_PROPOSED_STRUCTURE;
+	const initialStructure = proposedStructure;
 
 	const [pages, setPages] = useState<ProposedSection[]>(initialStructure);
 	const [backupPages, setBackupPages] =
@@ -720,19 +692,18 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, [onAddMore]);
 
 	const handleApprove = useCallback((): void => {
-		const hasVersionMismatch = currentLiveVersion !== baselineVersion;
+		const integrationConflicts = getAllIntegrationConflicts(pages);
 
-		if (!hasVersionMismatch) {
+		if (integrationConflicts.length === EMPTY_LENGTH) {
 			onApprove(pages);
 			setIsSuccessModalOpen(true);
 
 			return;
 		}
 
-		const generatedConflicts = getGeneratedConflicts(pages, activeSection);
-		setActiveConflicts(generatedConflicts);
+		setActiveConflicts(integrationConflicts);
 		setIsMergeScreenOpen(true);
-	}, [activeSection, baselineVersion, currentLiveVersion, onApprove, pages]);
+	}, [onApprove, pages]);
 
 	const handleCancelEdit = useCallback((): void => {
 		setPages(backupPages);
