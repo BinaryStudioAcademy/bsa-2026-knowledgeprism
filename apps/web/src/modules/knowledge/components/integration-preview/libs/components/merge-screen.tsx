@@ -16,6 +16,8 @@ import {
 } from "~/modules/knowledge/libs/types/types.js";
 
 const CHECK_ICON_SIZE = 14;
+const DUPLICATE_INCOMING_FIELD_MESSAGE =
+	"Two conflicts cannot both apply incoming values to the same field on the same knowledge entry. Change at least one resolution to Keep Live Version.";
 const VALID_RESOLUTIONS: readonly ConflictResolution[] = [
 	"keep",
 	"use-new",
@@ -45,15 +47,13 @@ const resolveSection = (
 	const titleConflict = conflicts.find(
 		(conflict) =>
 			conflict.field === "title" &&
-			(conflict.id === `conf-title-${section.id}` ||
-				conflict.id === `conf-default-title-${section.id}`),
+			conflict.changeId === section.integrationChangeId,
 	);
 
 	const contentConflict = conflicts.find(
 		(conflict) =>
 			conflict.field === "content" &&
-			(conflict.id === `conf-content-${section.id}` ||
-				conflict.id === `conf-default-content-${section.id}`),
+			conflict.changeId === section.integrationChangeId,
 	);
 
 	const resolvedTitle = titleConflict
@@ -72,6 +72,28 @@ const resolveSection = (
 	};
 };
 
+const hasDuplicateIncomingFieldConflict = (
+	conflicts: FieldConflict[],
+): boolean => {
+	const incomingFields = new Set<string>();
+
+	for (const conflict of conflicts) {
+		if (conflict.resolution !== "use-new" || conflict.matchedNodeId === null) {
+			continue;
+		}
+
+		const key = `${String(conflict.matchedNodeId)}:${conflict.field}`;
+
+		if (incomingFields.has(key)) {
+			return true;
+		}
+
+		incomingFields.add(key);
+	}
+
+	return false;
+};
+
 const MergeScreen = ({
 	conflicts: initialConflicts,
 	onCancel,
@@ -84,6 +106,7 @@ const MergeScreen = ({
 			resolution: conflict.resolution ?? "use-new",
 		})),
 	);
+	const [validationError, setValidationError] = useState<null | string>(null);
 
 	const handleResolveConflict = useCallback(
 		(event: MouseEvent<HTMLButtonElement>): void => {
@@ -95,6 +118,7 @@ const MergeScreen = ({
 				: undefined;
 
 			if (conflictId && resolution) {
+				setValidationError(null);
 				setConflicts((previousConflicts) =>
 					previousConflicts.map((item) =>
 						item.id === conflictId ? { ...item, resolution } : item,
@@ -106,6 +130,12 @@ const MergeScreen = ({
 	);
 
 	const handleConsolidatedPublish = useCallback((): void => {
+		if (hasDuplicateIncomingFieldConflict(conflicts)) {
+			setValidationError(DUPLICATE_INCOMING_FIELD_MESSAGE);
+
+			return;
+		}
+
 		const resolutionMap = new Map<string, ConflictResolution>();
 		for (const item of conflicts) {
 			if (item.resolution) {
@@ -146,6 +176,14 @@ const MergeScreen = ({
 					Review differences below and choose which version to apply for each
 					field.
 				</Paragraph>
+				{validationError && (
+					<Paragraph
+						className="text-error font-sans text-xs tablet:text-sm"
+						size={ParagraphSize.BODY_SMALL}
+					>
+						{validationError}
+					</Paragraph>
+				)}
 			</div>
 
 			<div className="flex flex-1 min-h-0 flex-col gap-4 overflow-y-auto pr-1">
