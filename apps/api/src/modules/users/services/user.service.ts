@@ -16,6 +16,7 @@ import { type Transaction, UniqueViolationError } from "objection";
 
 import { HTTPError } from "~/infrastructure/http/http.js";
 import { type EncryptService } from "~/libs/services/encrypt/encrypt.service.js";
+import { normalizeEmail } from "~/modules/users/libs/helpers/helpers.js";
 import { UserEntity } from "~/modules/users/models/user.entity.js";
 import { type UserRepository } from "~/modules/users/repositories/user.repository.js";
 import { type Service } from "~/shared/types/types.js";
@@ -113,7 +114,7 @@ class UserService implements Service {
 		try {
 			return await this.userRepository.create(
 				UserEntity.initializeNew({
-					email: payload.email,
+					email: normalizeEmail(payload.email),
 					firstName: payload.firstName,
 					lastName: payload.lastName,
 					organisationId: payload.organisationId,
@@ -155,7 +156,7 @@ class UserService implements Service {
 
 		const item = await this.userRepository.createOrgUser(
 			UserEntity.initializeNew({
-				email: payload.email,
+				email: normalizeEmail(payload.email),
 				firstName: payload.firstName,
 				lastName: payload.lastName,
 				organisationId,
@@ -251,8 +252,9 @@ class UserService implements Service {
 		this.guardRestrictedFieldsForNonAdmin(currentUserRole, payload);
 		this.guardSelfModification(id, currentUserId, payload);
 
-		const { assignedProjects, email, firstName, lastName, password, status } =
-			payload;
+		const { assignedProjects, firstName, lastName, password, status } = payload;
+		const email =
+			payload.email === undefined ? undefined : normalizeEmail(payload.email);
 
 		const entity: Partial<ReturnType<UserEntity["toNewObject"]>> = {
 			...(email !== undefined && { email }),
@@ -266,8 +268,8 @@ class UserService implements Service {
 		}
 
 		if (email && email !== existingUser.toObject().email) {
-			const emailTaken = await this.userRepository.findByEmail(email);
-			if (emailTaken) {
+			const emailOwner = await this.userRepository.findByEmail(email);
+			if (emailOwner && emailOwner.toObject().id !== id) {
 				throw new HTTPError({
 					message: UserValidationMessage.EMAIL_ALREADY_EXISTS,
 					status: HTTPCode.CONFLICT,
