@@ -10,6 +10,7 @@ import {
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
+	type ExtractionItemUpdateRequestDto,
 } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
@@ -298,6 +299,52 @@ class DocumentReviewService {
 				status: completedDocument.toObject().status,
 			};
 		});
+	}
+
+	public async updateItem({
+		id,
+		payload,
+		...reference
+	}: DocumentReference & {
+		id: number;
+		payload: ExtractionItemUpdateRequestDto;
+	}): Promise<ExtractionItemResponseDto> {
+		await this.projectService.assertCanWriteKnowledge(
+			reference.projectId,
+			reference.context,
+		);
+
+		const document = await this.findProjectDocument(reference);
+
+		if (document.toObject().status !== DocumentStatus.WAITING_FOR_APPROVAL) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.REVIEW_NOT_ALLOWED,
+				status: HTTPCode.CONFLICT,
+			});
+		}
+
+		const item = await this.extractionItemRepository.findById(id);
+
+		if (!item || item.toObject().documentId !== reference.documentId) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.EXTRACTION_ITEM_NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
+		if (item.toObject().status !== ExtractionItemStatus.PENDING) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.EXTRACTION_ITEM_NOT_PENDING,
+				status: HTTPCode.CONFLICT,
+			});
+		}
+
+		const updated = await this.extractionItemRepository.updateContent(id, {
+			text: payload.text.trim(),
+			title: payload.title.trim(),
+		});
+
+		return toExtractionItemResponse(updated);
 	}
 }
 

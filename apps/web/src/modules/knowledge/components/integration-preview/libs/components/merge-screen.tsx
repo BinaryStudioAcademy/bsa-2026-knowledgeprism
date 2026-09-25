@@ -24,8 +24,8 @@ const VALID_RESOLUTIONS: readonly ConflictResolution[] = [
 type MergeScreenProperties = {
 	conflicts: FieldConflict[];
 	onCancel: () => void;
-	onPublish: (resolvedPages: ProposedPage[]) => void;
-	pages: ProposedPage[];
+	onPublish: (resolvedPages: ProposedSection[]) => void;
+	pages: ProposedSection[];
 };
 
 const resolveSectionField = (
@@ -38,10 +38,10 @@ const resolveSectionField = (
 };
 
 const resolveSection = (
-	section: ProposedSection,
+	section: ProposedPage,
 	conflicts: FieldConflict[],
 	resolutionMap: Map<string, ConflictResolution>,
-): ProposedSection => {
+): ProposedPage => {
 	const titleConflict = conflicts.find(
 		(conflict) =>
 			conflict.field === "title" &&
@@ -67,8 +67,7 @@ const resolveSection = (
 	return {
 		...section,
 		content: resolvedContent,
-		status:
-			titleConflict || contentConflict ? ("modified" as const) : section.status,
+		status: titleConflict || contentConflict ? "modified" : section.status,
 		title: resolvedTitle,
 	};
 };
@@ -116,7 +115,7 @@ const MergeScreen = ({
 
 		const resolvedPages = pages.map((page) => ({
 			...page,
-			sections: page.sections.map((section) =>
+			pages: page.pages.map((section) =>
 				resolveSection(section, conflicts, resolutionMap),
 			),
 		}));
