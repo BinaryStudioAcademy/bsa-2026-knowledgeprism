@@ -17,6 +17,9 @@ async function down(knex: Knex): Promise<void> {
 }
 
 async function up(knex: Knex): Promise<void> {
+	const processingStatus = knex.raw("?", [DocumentStatus.PROCESSING]).toQuery();
+	const manualSourceType = knex.raw("?", [DocumentSourceType.MANUAL]).toQuery();
+
 	await knex.raw(
 		`
 		CREATE UNIQUE INDEX ??
@@ -25,8 +28,8 @@ async function up(knex: Knex): Promise<void> {
 			??,
 			??
 		)
-		WHERE ?? = ?
-			AND ?? = ?
+		WHERE ?? = ${processingStatus}
+			AND ?? = ${manualSourceType}
 			AND ?? IS NOT NULL
 	`,
 		[
@@ -36,9 +39,7 @@ async function up(knex: Knex): Promise<void> {
 			ColumnName.UPLOADED_BY,
 			ColumnName.CONTENT_HASH,
 			ColumnName.STATUS,
-			DocumentStatus.PROCESSING,
 			ColumnName.SOURCE_TYPE,
-			DocumentSourceType.MANUAL,
 			ColumnName.CONTENT_HASH,
 		],
 	);
