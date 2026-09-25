@@ -9,6 +9,7 @@ import { email } from "./email.validation-schema.js";
 
 const DIGIT_PATTERN = /\d/u;
 const EMOJI_PATTERN = /(?:\p{Emoji_Presentation}|\p{Extended_Pictographic})/u;
+const LETTER_PATTERN = /[A-Za-z]/u;
 const SPECIAL_CHARACTER_PATTERN = /[!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]/u;
 const VALID_PASSWORD_CHARACTERS_PATTERN =
 	/^[\dA-Za-z!"#$%&'()*+,\-./:;<=>?@[\\\]^_`{|}~]*$/u;
@@ -42,6 +43,10 @@ const hasNameDigit = (name: string): boolean => {
 
 const hasPasswordDigit = (password: string): boolean => {
 	return DIGIT_PATTERN.test(password);
+};
+
+const hasPasswordLetter = (password: string): boolean => {
+	return LETTER_PATTERN.test(password);
 };
 
 const hasPasswordSpecialCharacter = (password: string): boolean => {
@@ -113,6 +118,14 @@ const userSignUp = z
 					code: "custom",
 					message: AuthValidationMessage.ORGANISATION_NAME_EMOJI_WRONG,
 					path: ["organisationName"],
+				});
+			}
+
+			if (!hasPasswordLetter(password)) {
+				context.addIssue({
+					code: "custom",
+					message: UserValidationMessage.PASSWORD_LETTER_REQUIRE,
+					path: ["password"],
 				});
 			}
 

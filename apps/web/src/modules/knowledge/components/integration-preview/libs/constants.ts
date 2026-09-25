@@ -1,12 +1,14 @@
-import { type ProposedPage } from "~/modules/knowledge/libs/types/types.js";
+import { KnowledgeNodeType } from "@knowledgeprism/constants";
+
+import { type ProposedSection } from "~/modules/knowledge/libs/types/types.js";
 
 const DEFAULT_PAGE_INDEX = 0;
 const DEFAULT_SECTION_INDEX = 1;
 
-const DEFAULT_PROPOSED_STRUCTURE: ProposedPage[] = [
+const DEFAULT_PROPOSED_STRUCTURE: ProposedSection[] = [
 	{
 		id: "page-hardware",
-		sections: [
+		pages: [
 			{
 				content: `Overview:
 Next-generation ProMotion OLED panel with adaptive refresh rate calibration from 1Hz to 120Hz.
@@ -19,8 +21,19 @@ Specifications:
 Use cases:
 Critical for real-time video preview inspection and color-critical asset validation.`,
 				id: "sec-display",
-				status: "updated",
+				originalContent: `Overview:
+Next-generation ProMotion OLED panel with adaptive refresh rate calibration from 1Hz to 120Hz.
+
+Specifications:
+• Peak brightness: up to 1800 nits in outdoor ambient conditions
+• Color accuracy: Delta E < 2 with full DCI-P3 wide color gamut coverage
+
+Use cases:
+Critical for real-time video preview inspection and color-critical asset validation.`,
+				originalTitle: "Display specifications",
+				status: "modified",
 				title: "Display specifications",
+				type: KnowledgeNodeType.PAGE,
 			},
 			{
 				content: `Overview:
@@ -37,8 +50,20 @@ High-resolution photogrammetry, low-noise asset documentation, and automated vis
 Integration notes:
 Camera raw streams feed directly into the Neural Engine for real-time edge processing without thermal throttling.`,
 				id: "sec-cameras",
-				status: "updated",
+				originalContent: `Overview:
+Advanced triple-lens array with first-generation sensor-shift optical image stabilization and computational photography pipelines.
+
+Specifications:
+• Main wide: 48MP quad-pixel sensor with f/1.78 aperture
+• Ultra-wide: 12MP sensor with 120-degree field of view
+• Telephoto: 12MP 3x optical zoom module
+
+Use cases:
+High-resolution photogrammetry, low-noise asset documentation, and automated visual QA inspection.`,
+				originalTitle: "Camera system",
+				status: "modified",
 				title: "Camera system",
+				type: KnowledgeNodeType.PAGE,
 			},
 			{
 				content: `Overview:
@@ -53,14 +78,16 @@ Extended all-day operation for high-throughput AI scanning workloads.`,
 				id: "sec-battery",
 				status: "created",
 				title: "Battery & charging",
+				type: KnowledgeNodeType.PAGE,
 			},
 		],
-		status: "updated",
+		status: "modified",
 		title: "Hardware specifications",
+		type: KnowledgeNodeType.SECTION,
 	},
 	{
 		id: "page-sensors",
-		sections: [
+		pages: [
 			{
 				content: `Overview:
 The LiDAR scanner is a direct time-of-flight sensor that measures distance by emitting laser light and calculating the time for reflected photons to return. It operates at the near-infrared wavelength range and is invisible to the human eye.
@@ -78,6 +105,7 @@ The LiDAR data feeds into both ARKit for scene geometry and the camera pipeline 
 				id: "sec-lidar",
 				status: "created",
 				title: "LiDAR scanner",
+				type: KnowledgeNodeType.PAGE,
 			},
 			{
 				content: `Overview:
@@ -92,6 +120,7 @@ Autonomous TrueTone display adaptation and biometric facial proximity lock.`,
 				id: "sec-proximity",
 				status: "created",
 				title: "Proximity & ambient light",
+				type: KnowledgeNodeType.PAGE,
 			},
 			{
 				content: `Overview:
@@ -106,14 +135,16 @@ Floor-level indoor localization, gesture tracking, and rapid orientation changes
 				id: "sec-barometer",
 				status: "created",
 				title: "Barometer & gyroscope",
+				type: KnowledgeNodeType.PAGE,
 			},
 		],
 		status: "created",
 		title: "Sensor technology",
+		type: KnowledgeNodeType.SECTION,
 	},
 	{
 		id: "page-qa",
-		sections: [
+		pages: [
 			{
 				content: `Overview:
 Automated factory-level optical and sensor calibration procedures ensuring uniform telemetry across production units.
@@ -127,10 +158,12 @@ Guarantees hardware reliability before firmware flashing and field deployment.`,
 				id: "sec-calibration",
 				status: "created",
 				title: "Sensor calibration QA",
+				type: KnowledgeNodeType.PAGE,
 			},
 		],
 		status: "created",
 		title: "Quality & testing",
+		type: KnowledgeNodeType.SECTION,
 	},
 ];
 

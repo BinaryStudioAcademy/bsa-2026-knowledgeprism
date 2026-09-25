@@ -1,5 +1,5 @@
 const LANDING_FLEX_COLUMN_CLASS =
-	"min-w-0 basis-full flex-1 mobile:basis-auto" as const;
+	"min-w-0 basis-full flex-1 mobile:basis-0" as const;
 
 const LANDING_FOCUS_RING =
 	"focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-accent/35" as const;

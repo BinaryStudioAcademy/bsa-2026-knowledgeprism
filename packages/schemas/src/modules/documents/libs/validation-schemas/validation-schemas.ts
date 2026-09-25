@@ -2,6 +2,8 @@ export { documentConfirmUploadRouteParameters as documentConfirmUploadRouteParam
 export { documentRouteParameters as documentRouteParametersValidationSchema } from "./document-route-parameters.validation-schema.js";
 export { documentUploadIntentRouteParameters as documentUploadIntentRouteParametersValidationSchema } from "./document-upload-intent-route-parameters.validation-schema.js";
 export { documentUploadIntent as documentUploadIntentValidationSchema } from "./document-upload-intent.validation-schema.js";
+export { extractionItemRouteParameters as extractionItemRouteParametersValidationSchema } from "./extraction-item-route-parameters.validation-schema.js";
+export { extractionItemUpdate as extractionItemUpdateValidationSchema } from "./extraction-item-update.validation-schema.js";
 export { extractionItemsReview as extractionItemsReviewValidationSchema } from "./extraction-items-review.validation-schema.js";
 export { integrationChangesApply as integrationChangesApplyValidationSchema } from "./integration-changes-apply.validation-schema.js";
 export { manualTextCreate as manualTextCreateValidationSchema } from "./manual-text-create.validation-schema.js";

@@ -11,17 +11,17 @@ import {
 
 const CHECK_ICON_SIZE = 24;
 
-type SuccessModalProperties = {
+type ProposedStructureSuccessModalProperties = {
 	isOpen: boolean;
 	onAddMore: () => void;
 	onGoToKnowledgeBase: () => void;
 };
 
-const SuccessModal = ({
+const ProposedStructureSuccessModal = ({
 	isOpen,
 	onAddMore,
 	onGoToKnowledgeBase,
-}: SuccessModalProperties): JSX.Element | null => {
+}: ProposedStructureSuccessModalProperties): JSX.Element | null => {
 	if (!isOpen) {
 		return null;
 	}
@@ -37,15 +37,15 @@ const SuccessModal = ({
 					className="font-serif text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-neutral-900"
 					level="2"
 				>
-					Knowledge added
+					Proposed structure approved
 				</Heading>
 
 				<Paragraph
 					className="mt-3 max-w-md font-sans text-xs sm:text-sm leading-relaxed text-neutral-600"
 					size={ParagraphSize.BODY_SMALL}
 				>
-					Your content has been processed and integrated into the knowledge
-					base. The new sections are now available for browsing and search.
+					Your edits were saved in this preview. Final publishing to the
+					official knowledge base will be connected separately.
 				</Paragraph>
 
 				<div className="mt-6 flex w-full shrink-0 flex-col sm:flex-row items-center justify-center gap-3">
@@ -73,4 +73,4 @@ const SuccessModal = ({
 	return createPortal(modalContent, document.body);
 };
 
-export { SuccessModal };
+export { ProposedStructureSuccessModal };

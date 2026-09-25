@@ -1,12 +1,16 @@
 import { APIPath, DocumentsApiPath } from "@knowledgeprism/constants";
 import {
 	documentRouteParametersValidationSchema,
+	extractionItemRouteParametersValidationSchema,
 	extractionItemsReviewValidationSchema,
+	extractionItemUpdateValidationSchema,
 	integrationChangesApplyValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
 	type DocumentRouteParametersDto,
+	type ExtractionItemRouteParametersDto,
 	type ExtractionItemsReviewRequestDto,
+	type ExtractionItemUpdateRequestDto,
 	type IntegrationChangesApplyRequestDto,
 } from "@knowledgeprism/types";
 
@@ -58,6 +62,21 @@ class DocumentReviewController extends BaseController {
 			path: DocumentsApiPath.EXTRACTION_ITEMS,
 			validation: {
 				params: documentRouteParametersValidationSchema,
+			},
+		});
+		this.addRoute({
+			handler: (options) =>
+				this.updateItem(
+					options as APIHandlerOptions<{
+						body: ExtractionItemUpdateRequestDto;
+						params: ExtractionItemRouteParametersDto;
+					}>,
+				),
+			method: "PATCH",
+			path: DocumentsApiPath.EXTRACTION_ITEMS_$ID,
+			validation: {
+				body: extractionItemUpdateValidationSchema,
+				params: extractionItemRouteParametersValidationSchema,
 			},
 		});
 		this.addRoute({
@@ -345,6 +364,7 @@ class DocumentReviewController extends BaseController {
 	 *        409:
 	 *          description: Document is not waiting for validation
 	 */
+
 	private async review(
 		options: APIHandlerOptions<{
 			body: ExtractionItemsReviewRequestDto;
@@ -354,6 +374,22 @@ class DocumentReviewController extends BaseController {
 		return {
 			payload: await this.documentReviewService.review({
 				...this.getDocumentReference(options),
+				payload: options.body,
+			}),
+			status: HTTPCode.OK,
+		};
+	}
+
+	private async updateItem(
+		options: APIHandlerOptions<{
+			body: ExtractionItemUpdateRequestDto;
+			params: ExtractionItemRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.documentReviewService.updateItem({
+				...this.getDocumentReference(options),
+				id: parseIdentifier(options.params.id),
 				payload: options.body,
 			}),
 			status: HTTPCode.OK,
