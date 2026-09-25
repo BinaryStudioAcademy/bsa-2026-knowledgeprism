@@ -2,27 +2,23 @@ import { DocumentStatus } from "@knowledgeprism/constants";
 
 import { type ValueOf } from "~/lib/types/types.js";
 
-// TODO: Delete these mock timer constants when backend is connected
-const INITIAL_STATUS_INDEX = 0;
-const MOCK_TIMER_DELAY_MS = 2000;
-const STATUS_INDEX_INCREMENT = 1;
-
 const STATUS_PROGRESSION: ValueOf<typeof DocumentStatus>[] = [
 	DocumentStatus.UPLOADED,
 	DocumentStatus.PROCESSING,
-	DocumentStatus.PARSED,
-	DocumentStatus.EXTRACTING,
-	DocumentStatus.EXTRACTED,
+	DocumentStatus.WAITING_FOR_VALIDATION,
+	DocumentStatus.INTEGRATING,
+	DocumentStatus.WAITING_FOR_APPROVAL,
 ];
 
 const FULL_PERCENTAGE = 100;
+const HALF_PERCENTAGE = 50;
 const PERCENTAGE_OFFSET = 1;
+const LOADING_FINISH_DELAY_MS = 1000;
 
 export {
 	FULL_PERCENTAGE,
-	INITIAL_STATUS_INDEX,
-	MOCK_TIMER_DELAY_MS,
+	HALF_PERCENTAGE,
+	LOADING_FINISH_DELAY_MS,
 	PERCENTAGE_OFFSET,
-	STATUS_INDEX_INCREMENT,
 	STATUS_PROGRESSION,
 };

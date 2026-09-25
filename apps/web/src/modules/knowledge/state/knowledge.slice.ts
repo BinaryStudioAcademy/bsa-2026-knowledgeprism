@@ -9,11 +9,15 @@ import {
 import { type KnowledgeState } from "../libs/types/types.js";
 import {
 	confirmDocumentUpload,
+	fetchExtractionItems,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
+	pollDocumentStatus,
 	processDocument,
+	retryDocumentProcessing,
 	searchKnowledge,
+	submitExtractionReview,
 	submitManualText,
 	updateKnowledgeEntry,
 } from "./actions.js";
@@ -22,7 +26,9 @@ type State = KnowledgeState;
 
 const initialState: State = {
 	activeDocumentId: null,
+	activeDocumentStatus: "IDLE",
 	errorMessage: null,
+	extractionItems: [],
 	integrationPreviewError: null,
 	integrationPreviewSections: [],
 	isAddingKnowledge: false,
@@ -51,9 +57,10 @@ const { actions, name, reducer } = createSlice({
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 		});
 		builder.addCase(confirmDocumentUpload.fulfilled, (state, action) => {
-			state.activeDocumentId = action.meta.arg.documentId;
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.READY;
+			state.activeDocumentId = action.payload.documentId;
+			state.activeDocumentStatus = "UPLOADED";
 		});
 		builder.addCase(confirmDocumentUpload.rejected, (state, action) => {
 			state.errorMessage =
@@ -154,9 +161,6 @@ const { actions, name, reducer } = createSlice({
 			state.integrationPreviewSections = [];
 			state.isIntegrationPreviewLoading = false;
 		});
-		builder.addCase(submitManualText.fulfilled, (state, action) => {
-			state.activeDocumentId = action.payload.id;
-		});
 		builder.addCase(fetchKnowledgeTree.pending, (state) => {
 			state.isTreeLoading = true;
 			state.errorMessage = null;
@@ -226,6 +230,81 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? "Failed to search knowledge base";
 			state.searchStatus = SearchStatus.FAILED;
 		});
+		builder.addCase(submitManualText.fulfilled, (state, action) => {
+			state.errorMessage = null;
+			state.activeDocumentId = action.payload.id;
+			state.activeDocumentStatus = "UPLOADED";
+		});
+		builder.addCase(submitManualText.rejected, (state, action) => {
+			state.errorMessage = action.error.message ?? "Failed to submit text";
+		});
+		builder.addCase(pollDocumentStatus.pending, (state) => {
+			state.errorMessage = null;
+		});
+		builder.addCase(pollDocumentStatus.fulfilled, (state, action) => {
+			if (state.activeDocumentId !== action.meta.arg.documentId) {
+				return;
+			}
+			state.activeDocumentStatus = action.payload.status;
+			state.errorMessage = null;
+
+			if (action.payload.status === "COMPLETED") {
+				state.isAddingKnowledge = false;
+				state.activeDocumentId = null;
+				state.activeDocumentStatus = "IDLE";
+				state.extractionItems = [];
+			}
+		});
+		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
+			if (state.activeDocumentId !== action.meta.arg.documentId) {
+				return;
+			}
+
+			state.errorMessage = action.error.message ?? "Failed to poll status";
+		});
+		builder.addCase(fetchExtractionItems.pending, (state) => {
+			state.errorMessage = null;
+		});
+		builder.addCase(fetchExtractionItems.fulfilled, (state, action) => {
+			if (state.activeDocumentId !== action.meta.arg.documentId) {
+				return;
+			}
+			state.extractionItems = action.payload.items;
+			state.errorMessage = null;
+		});
+		builder.addCase(fetchExtractionItems.rejected, (state, action) => {
+			if (state.activeDocumentId !== action.meta.arg.documentId) {
+				return;
+			}
+
+			state.errorMessage =
+				action.error.message ?? "Failed to fetch extraction items";
+		});
+		builder.addCase(submitExtractionReview.fulfilled, (state, action) => {
+			if (action.payload.status === "COMPLETED") {
+				state.activeDocumentId = null;
+				state.activeDocumentStatus = "IDLE";
+				state.extractionItems = [];
+			} else {
+				state.activeDocumentStatus = action.payload.status;
+			}
+		});
+		builder.addCase(submitExtractionReview.rejected, (state, action) => {
+			state.errorMessage =
+				action.error.message ?? "Failed to submit extraction review";
+		});
+		builder.addCase(retryDocumentProcessing.pending, (state) => {
+			state.errorMessage = null;
+			state.activeDocumentStatus = "PROCESSING";
+		});
+		builder.addCase(retryDocumentProcessing.fulfilled, (state, action) => {
+			state.errorMessage = null;
+			state.activeDocumentStatus = action.payload.status;
+		});
+		builder.addCase(retryDocumentProcessing.rejected, (state, action) => {
+			state.errorMessage = action.error.message ?? "Failed to retry processing";
+			state.activeDocumentStatus = "FAILED";
+		});
 	},
 	initialState,
 	name: "knowledge",
@@ -265,7 +344,14 @@ const { actions, name, reducer } = createSlice({
 			}
 		},
 		resetState(state) {
+			state.activeDocumentId = null;
+			state.activeDocumentStatus = "IDLE";
 			state.errorMessage = null;
+			state.extractionItems = [];
+			state.integrationPreviewError = null;
+			state.integrationPreviewSections = [];
+			state.isAddingKnowledge = false;
+			state.isIntegrationPreviewLoading = false;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
 		},

@@ -3,6 +3,7 @@ import { DocumentStatus } from "@knowledgeprism/constants";
 import { type ValueOf } from "~/lib/types/types.js";
 
 type CompactSuccessProperties = {
+	currentStatus: "IDLE" | "UPLOADED" | ValueOf<typeof DocumentStatus>;
 	hasError?: false;
 	onCancel?: never;
 	onFinish?: never;
@@ -12,6 +13,7 @@ type CompactSuccessProperties = {
 };
 
 type ErrorProperties = {
+	currentStatus: "IDLE" | "UPLOADED" | ValueOf<typeof DocumentStatus>;
 	hasError: true;
 	onCancel: () => void;
 	onFinish?: never;
@@ -21,6 +23,7 @@ type ErrorProperties = {
 };
 
 type FullSuccessProperties = {
+	currentStatus: "IDLE" | "UPLOADED" | ValueOf<typeof DocumentStatus>;
 	hasError?: false;
 	onCancel?: never;
 	onFinish?: () => void;

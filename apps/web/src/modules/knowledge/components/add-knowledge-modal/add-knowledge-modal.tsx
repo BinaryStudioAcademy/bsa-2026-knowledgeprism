@@ -180,6 +180,17 @@ const AddKnowledgeModal = ({
 		onClose();
 	}, [dispatch, onClose]);
 
+	const submitAndClose = useCallback((): void => {
+		dispatch(actions.startAddingKnowledge());
+		for (const item of readyDocuments) {
+			dispatch(actions.removeDocument({ id: item.id }));
+		}
+		setActiveTab(AddKnowledgeTab.UPLOAD);
+		setFormSessionKey((currentKey) => currentKey + FORM_SESSION_KEY_INCREMENT);
+		setUploadConfirmationErrorStatus(null);
+		onClose();
+	}, [dispatch, onClose, readyDocuments]);
+
 	const handleClose = useCallback((): void => {
 		if (isSubmissionPending) {
 			return;
@@ -219,12 +230,12 @@ const AddKnowledgeModal = ({
 			}
 
 			setUploadConfirmationErrorStatus(null);
-			resetAndClose();
+			submitAndClose();
 		} finally {
 			isUploadSubmissionPendingReference.current = false;
 			setIsUploadSubmitting(false);
 		}
-	}, [dispatch, projectId, readyDocuments, resetAndClose]);
+	}, [dispatch, projectId, readyDocuments, submitAndClose]);
 
 	const handleUploadActionClick = useCallback((): void => {
 		if (hasTerminalUploadConfirmationFailure) {
@@ -260,12 +271,12 @@ const AddKnowledgeModal = ({
 					}),
 				).unwrap();
 
-				resetAndClose();
+				submitAndClose();
 			} finally {
 				setIsManualTextSubmitting(false);
 			}
 		},
-		[dispatch, projectId, resetAndClose],
+		[dispatch, projectId, submitAndClose],
 	);
 
 	const handleTabKeyDown = useCallback(
