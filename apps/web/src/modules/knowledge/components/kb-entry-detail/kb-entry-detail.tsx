@@ -46,13 +46,11 @@ const KbEntryDetail = ({
 	onCancel,
 	onSave,
 }: KbEntryDetailProperties) => {
-	const [saveErrorMessage, setSaveErrorMessage] = useState<null | string>(null);
 	const [previousEntryId, setPreviousEntryId] = useState(entry.id);
 	const savingEntryIdReference = useRef<null | number>(null);
 
 	if (entry.id !== previousEntryId) {
 		setPreviousEntryId(entry.id);
-		setSaveErrorMessage(null);
 	}
 
 	useEffect(() => {
@@ -65,7 +63,6 @@ const KbEntryDetail = ({
 	);
 
 	const handleCancel = useCallback((): void => {
-		setSaveErrorMessage(null);
 		savingEntryIdReference.current = null;
 		if (onCancel) {
 			onCancel();
@@ -79,21 +76,10 @@ const KbEntryDetail = ({
 			savingEntryIdReference.current = currentId;
 
 			try {
-				setSaveErrorMessage(null);
 				await onSave(payload);
 
 				return savingEntryIdReference.current === currentId;
-			} catch (error: unknown) {
-				if (savingEntryIdReference.current !== currentId) {
-					return false;
-				}
-
-				const candidate = error as { message?: string };
-
-				setSaveErrorMessage(
-					candidate.message ?? "Failed to save changes. Please try again.",
-				);
-
+			} catch {
 				return false;
 			} finally {
 				if (savingEntryIdReference.current === currentId) {
@@ -112,7 +98,6 @@ const KbEntryDetail = ({
 					key={entry.id}
 					onCancel={handleCancel}
 					onSave={handleSave}
-					saveErrorMessage={saveErrorMessage}
 				/>
 			) : (
 				<>
