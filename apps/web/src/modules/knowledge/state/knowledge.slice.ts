@@ -67,7 +67,9 @@ const { actions, name, reducer } = createSlice({
 				(file) => file.id === action.meta.arg.id,
 			);
 
-			if (targetFileIndex !== NOT_FOUND_INDEX) {
+			if (targetFileIndex === NOT_FOUND_INDEX) {
+				state.selectedFiles.push(action.payload);
+			} else {
 				state.selectedFiles[targetFileIndex] = action.payload;
 			}
 
@@ -76,23 +78,23 @@ const { actions, name, reducer } = createSlice({
 			const hasProcessing = state.selectedFiles.some(
 				(file) => file.status === DocumentProcessingStatus.PROCESSING,
 			);
-			const hasFailed = state.selectedFiles.some(
-				(file) => file.status === DocumentProcessingStatus.FAILED,
+			const hasReady = state.selectedFiles.some(
+				(file) => file.status === DocumentProcessingStatus.READY,
 			);
 
 			if (hasProcessing) {
 				state.processingStatus = DocumentProcessingStatus.PROCESSING;
-			} else if (hasFailed) {
-				state.processingStatus = DocumentProcessingStatus.FAILED;
-			} else {
+			} else if (hasReady) {
 				state.processingStatus = DocumentProcessingStatus.READY;
+			} else {
+				state.processingStatus = DocumentProcessingStatus.FAILED;
 			}
 		});
-
 		builder.addCase(processDocument.rejected, (state, action) => {
 			const targetFile = state.selectedFiles.find(
 				(file) => file.id === action.meta.arg.id,
 			);
+
 			if (targetFile) {
 				targetFile.status = DocumentProcessingStatus.FAILED;
 				targetFile.documentId = action.payload?.documentId;
@@ -101,9 +103,26 @@ const { actions, name, reducer } = createSlice({
 					action.payload?.message ??
 					DocumentValidationMessage.PROCESSING_FAILED;
 			}
-			state.errorMessage =
-				action.payload?.message ?? DocumentValidationMessage.PROCESSING_FAILED;
-			state.processingStatus = DocumentProcessingStatus.FAILED;
+
+			const hasProcessing = state.selectedFiles.some(
+				(file) => file.status === DocumentProcessingStatus.PROCESSING,
+			);
+			const hasReady = state.selectedFiles.some(
+				(file) => file.status === DocumentProcessingStatus.READY,
+			);
+
+			if (hasProcessing) {
+				state.processingStatus = DocumentProcessingStatus.PROCESSING;
+				state.errorMessage = null;
+			} else if (hasReady) {
+				state.processingStatus = DocumentProcessingStatus.READY;
+				state.errorMessage = null;
+			} else {
+				state.processingStatus = DocumentProcessingStatus.FAILED;
+				state.errorMessage =
+					action.payload?.message ??
+					DocumentValidationMessage.PROCESSING_FAILED;
+			}
 		});
 		builder.addCase(fetchKnowledgeTree.pending, (state) => {
 			state.isTreeLoading = true;

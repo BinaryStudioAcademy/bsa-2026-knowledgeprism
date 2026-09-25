@@ -135,13 +135,17 @@ const AddKnowledgeModal = ({
 	const isSubmissionPending = isManualTextSubmitting || isUploadSubmitting;
 	const hasSelectedFiles = selectedFiles.length > EMPTY_COUNT;
 
+	const hasProcessingFiles = selectedFiles.some(
+		(file) => file.status === DocumentProcessingStatus.PROCESSING,
+	);
+
 	const readyDocuments = selectedFiles.filter(
 		(file) =>
 			file.status === DocumentProcessingStatus.READY &&
 			Boolean(file.documentId),
 	);
-	const isReadyToAdd = readyDocuments.length > EMPTY_COUNT;
-
+	const isReadyToAdd =
+		readyDocuments.length > EMPTY_COUNT && !hasProcessingFiles;
 	const hasUploadConfirmationFailed =
 		processingStatus === DocumentProcessingStatus.FAILED && isReadyToAdd;
 	const isUploadConfirmationRetryable =
