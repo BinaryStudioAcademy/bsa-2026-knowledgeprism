@@ -1,9 +1,8 @@
 import {
 	DocumentValidationMessage,
 	FileValidationRule,
-	SUPPORTED_FILE_EXTENSIONS,
-	SUPPORTED_FILE_MIME_TYPES,
 } from "../constants/constants.js";
+import { findSupportedFileType } from "./find-supported-file-type.helper.js";
 
 type FileValidationResult = {
 	error: null | string;
@@ -13,15 +12,11 @@ type FileValidationResult = {
 const EMPTY_FILE_SIZE = 0;
 
 const validateFile = (file: File): FileValidationResult => {
-	const hasValidExtension = SUPPORTED_FILE_EXTENSIONS.some((extension) =>
-		file.name.toLowerCase().endsWith(extension),
-	);
+	const supportedFileType = findSupportedFileType(file.name);
+	const hasMatchingMimeType =
+		!file.type || file.type === supportedFileType?.contentType;
 
-	const hasValidMimeType =
-		!file.type ||
-		(SUPPORTED_FILE_MIME_TYPES as readonly string[]).includes(file.type);
-
-	if (!hasValidExtension || !hasValidMimeType) {
+	if (!supportedFileType || !hasMatchingMimeType) {
 		return {
 			error: DocumentValidationMessage.UNSUPPORTED_FORMAT,
 			isValid: false,
