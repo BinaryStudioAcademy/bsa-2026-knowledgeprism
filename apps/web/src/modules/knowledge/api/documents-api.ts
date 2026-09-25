@@ -159,8 +159,8 @@ class DocumentsApi extends BaseHTTPApi {
 		documentId: number;
 		projectId: string;
 		signal?: AbortSignal | undefined;
-	}): Promise<void> {
-		await this.load(
+	}): Promise<DocumentStatusResponseDto> {
+		const response = await this.load(
 			this.getFullEndpoint(DocumentsApiPath.DOCUMENT_RETRY, {
 				documentId: String(documentId),
 				projectId,
@@ -172,6 +172,8 @@ class DocumentsApi extends BaseHTTPApi {
 				signal,
 			},
 		);
+
+		return await response.json<DocumentStatusResponseDto>();
 	}
 
 	public async submitExtractionReview({

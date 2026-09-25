@@ -11,9 +11,9 @@ import { CompactVariant } from "./libs/components/compact-variant/compact-varian
 import { FullVariant } from "./libs/components/full-variant/full-variant.js";
 import {
 	FULL_PERCENTAGE,
+	HALF_PERCENTAGE,
 	LOADING_FINISH_DELAY_MS,
 	PERCENTAGE_OFFSET,
-	STATUS_PROGRESSION,
 } from "./libs/constants.js";
 import { type Properties } from "./libs/types.js";
 
@@ -21,18 +21,25 @@ const LoadingState = (properties: Properties): JSX.Element => {
 	const { currentStatus, hasError = false, variant = "full" } = properties;
 
 	const isError = hasError || currentStatus === DocumentStatus.FAILED;
-	const isTerminal =
-		currentStatus === DocumentStatus.WAITING_FOR_VALIDATION ||
-		currentStatus === DocumentStatus.FAILED;
+	const isTerminal = (
+		[
+			DocumentStatus.WAITING_FOR_VALIDATION,
+			DocumentStatus.WAITING_FOR_APPROVAL,
+			DocumentStatus.FAILED,
+		] as ValueOf<typeof DocumentStatus>[]
+	).includes(currentStatus as ValueOf<typeof DocumentStatus>);
 
 	const onFinish = "onFinish" in properties ? properties.onFinish : undefined;
 
 	useEffect(() => {
-		if (
-			!isTerminal ||
-			!onFinish ||
-			currentStatus !== DocumentStatus.WAITING_FOR_VALIDATION
-		) {
+		const isReadyToFinish = (
+			[
+				DocumentStatus.WAITING_FOR_VALIDATION,
+				DocumentStatus.WAITING_FOR_APPROVAL,
+			] as ValueOf<typeof DocumentStatus>[]
+		).includes(currentStatus as ValueOf<typeof DocumentStatus>);
+
+		if (!isTerminal || !onFinish || !isReadyToFinish) {
 			return;
 		}
 
@@ -45,16 +52,32 @@ const LoadingState = (properties: Properties): JSX.Element => {
 		};
 	}, [isTerminal, currentStatus, onFinish]);
 
-	const statusIndex = STATUS_PROGRESSION.indexOf(
-		currentStatus as ValueOf<typeof DocumentStatus>,
-	);
-	const effectiveIndex =
-		statusIndex === NOT_FOUND_INDEX ? START_INDEX : statusIndex;
+	const isIntegrationPhase =
+		currentStatus === DocumentStatus.INTEGRATING ||
+		currentStatus === DocumentStatus.WAITING_FOR_APPROVAL;
 
-	const percentage = Math.round(
-		(effectiveIndex / (STATUS_PROGRESSION.length - PERCENTAGE_OFFSET)) *
-			FULL_PERCENTAGE,
-	);
+	let percentage: number;
+
+	if (isIntegrationPhase) {
+		percentage =
+			currentStatus === DocumentStatus.WAITING_FOR_APPROVAL
+				? FULL_PERCENTAGE
+				: HALF_PERCENTAGE;
+	} else {
+		const extractionStatuses: ValueOf<typeof DocumentStatus>[] = [
+			DocumentStatus.UPLOADED,
+			DocumentStatus.PROCESSING,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		];
+		const index = extractionStatuses.indexOf(
+			currentStatus as ValueOf<typeof DocumentStatus>,
+		);
+		const effectiveIndex = index === NOT_FOUND_INDEX ? START_INDEX : index;
+		percentage = Math.round(
+			(effectiveIndex / (extractionStatuses.length - PERCENTAGE_OFFSET)) *
+				FULL_PERCENTAGE,
+		);
+	}
 
 	const internalProperties = {
 		...properties,

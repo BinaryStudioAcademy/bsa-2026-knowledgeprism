@@ -174,6 +174,13 @@ const { actions, name, reducer } = createSlice({
 			}
 			state.activeDocumentStatus = action.payload.status;
 			state.errorMessage = null;
+
+			if (action.payload.status === "COMPLETED") {
+				state.isAddingKnowledge = false;
+				state.activeDocumentId = null;
+				state.activeDocumentStatus = "IDLE";
+				state.extractionItems = [];
+			}
 		});
 		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
 			if (state.activeDocumentId !== action.meta.arg.documentId) {
@@ -217,9 +224,9 @@ const { actions, name, reducer } = createSlice({
 			state.errorMessage = null;
 			state.activeDocumentStatus = "PROCESSING";
 		});
-		builder.addCase(retryDocumentProcessing.fulfilled, (state) => {
+		builder.addCase(retryDocumentProcessing.fulfilled, (state, action) => {
 			state.errorMessage = null;
-			state.activeDocumentStatus = "UPLOADED";
+			state.activeDocumentStatus = action.payload.status;
 		});
 		builder.addCase(retryDocumentProcessing.rejected, (state, action) => {
 			state.errorMessage = action.error.message ?? "Failed to retry processing";

@@ -17,12 +17,16 @@ const getCompactStatusText = (
 	status: ValueOf<typeof DocumentStatus>,
 ): string => {
 	switch (status) {
+		case DocumentStatus.INTEGRATING: {
+			return "New knowledge is being integrated";
+		}
 		case DocumentStatus.PROCESSING: {
 			return "New knowledge is being processed";
 		}
 		case DocumentStatus.UPLOADED: {
 			return "New knowledge is being initialized";
 		}
+		case DocumentStatus.WAITING_FOR_APPROVAL:
 		case DocumentStatus.WAITING_FOR_VALIDATION: {
 			return "New knowledge is ready";
 		}
@@ -40,7 +44,9 @@ const CompactVariant = ({
 	onRetry,
 	percentage,
 }: InternalVariantProperties): JSX.Element => {
-	const isReady = currentStatus === DocumentStatus.WAITING_FOR_VALIDATION;
+	const isReady =
+		currentStatus === DocumentStatus.WAITING_FOR_VALIDATION ||
+		currentStatus === DocumentStatus.WAITING_FOR_APPROVAL;
 	const [previousIsReady, setPreviousIsReady] = useState<boolean>(isReady);
 	const [showButton, setShowButton] = useState<boolean>(false);
 

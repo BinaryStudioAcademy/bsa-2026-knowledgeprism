@@ -268,13 +268,13 @@ const submitExtractionReview = createAppAsyncThunk<
 );
 
 const retryDocumentProcessing = createAppAsyncThunk<
-	unknown,
+	DocumentStatusResponseDto,
 	{ documentId: number; projectId: string }
 >(
 	`${sliceName}/retry-document-processing`,
 	async (payload, { extra, signal }) => {
 		const { documentsApi } = extra;
-		await documentsApi.retryProcessing({
+		return await documentsApi.retryProcessing({
 			documentId: payload.documentId,
 			projectId: payload.projectId,
 			signal,
