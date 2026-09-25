@@ -1,4 +1,4 @@
-import { type Logger as LibraryLogger, pino } from "pino";
+import { type Logger as LibraryLogger, pino, stdSerializers } from "pino";
 import pretty from "pino-pretty";
 
 import { type Logger } from "./libs/types/types.js";
@@ -7,7 +7,10 @@ class BaseLogger implements Logger {
 	private logger: LibraryLogger;
 
 	public constructor() {
-		this.logger = pino(pretty());
+		this.logger = pino(
+			{ serializers: { error: stdSerializers.errWithCause } },
+			pretty(),
+		);
 
 		this.logger.info("Logger is created…");
 	}
