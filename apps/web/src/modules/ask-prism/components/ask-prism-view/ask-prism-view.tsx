@@ -39,7 +39,7 @@ const AskPrismView = (): JSX.Element => {
 	const isLoading = dataStatus === DataStatus.PENDING;
 
 	useEffect(() => {
-		dispatch(askPrismActions.reset());
+		dispatch(askPrismActions.reset(numericProjectId || null));
 
 		if (numericProjectId) {
 			void dispatch(

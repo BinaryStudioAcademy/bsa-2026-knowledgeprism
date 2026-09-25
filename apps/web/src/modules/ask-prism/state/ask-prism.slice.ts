@@ -1,5 +1,5 @@
 import { type AskPrismSourceDto } from "@knowledgeprism/types";
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import { DataStatus } from "~/lib/enums/enums.js";
 import { type ValueOf } from "~/lib/types/types.js";
@@ -10,6 +10,7 @@ type AskPrismErrorType = "connection" | "not_found" | null;
 
 type State = {
 	answer: null | string;
+	currentProjectId: null | number;
 	dataStatus: ValueOf<typeof DataStatus>;
 	errorType: AskPrismErrorType;
 	isSuggestionsLoading: boolean;
@@ -28,6 +29,7 @@ const DEFAULT_SUGGESTED_QUESTIONS = [
 
 const initialState: State = {
 	answer: null,
+	currentProjectId: null,
 	dataStatus: DataStatus.IDLE,
 	errorType: null,
 	isSuggestionsLoading: false,
@@ -39,6 +41,9 @@ const initialState: State = {
 const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
 		builder.addCase(askQuestion.pending, (state, action) => {
+			if (state.currentProjectId !== Number(action.meta.arg.projectId)) {
+				return;
+			}
 			state.answer = null;
 			state.dataStatus = DataStatus.PENDING;
 			state.errorType = null;
@@ -46,6 +51,9 @@ const { actions, name, reducer } = createSlice({
 			state.sources = [];
 		});
 		builder.addCase(askQuestion.fulfilled, (state, action) => {
+			if (state.currentProjectId !== Number(action.meta.arg.projectId)) {
+				return;
+			}
 			state.answer = action.payload.answer;
 			state.dataStatus = DataStatus.FULFILLED;
 			state.sources = action.payload.sources;
@@ -58,6 +66,9 @@ const { actions, name, reducer } = createSlice({
 			state.errorType = isNotFoundInKnowledge ? "not_found" : null;
 		});
 		builder.addCase(askQuestion.rejected, (state, action) => {
+			if (state.currentProjectId !== Number(action.meta.arg.projectId)) {
+				return;
+			}
 			state.answer = null;
 			state.dataStatus = DataStatus.REJECTED;
 			state.sources = [];
@@ -69,22 +80,32 @@ const { actions, name, reducer } = createSlice({
 					: "connection";
 		});
 
-		builder.addCase(loadSuggestedQuestions.pending, (state) => {
+		builder.addCase(loadSuggestedQuestions.pending, (state, action) => {
+			if (state.currentProjectId !== Number(action.meta.arg.projectId)) {
+				return;
+			}
 			state.isSuggestionsLoading = true;
 		});
 		builder.addCase(loadSuggestedQuestions.fulfilled, (state, action) => {
+			if (state.currentProjectId !== Number(action.meta.arg.projectId)) {
+				return;
+			}
 			state.isSuggestionsLoading = false;
 			state.suggestedQuestions = action.payload;
 		});
-		builder.addCase(loadSuggestedQuestions.rejected, (state) => {
+		builder.addCase(loadSuggestedQuestions.rejected, (state, action) => {
+			if (state.currentProjectId !== Number(action.meta.arg.projectId)) {
+				return;
+			}
 			state.isSuggestionsLoading = false;
 		});
 	},
 	initialState,
 	name: "askPrism",
 	reducers: {
-		reset(state) {
+		reset(state, action: PayloadAction<null | number>) {
 			state.answer = null;
+			state.currentProjectId = action.payload;
 			state.dataStatus = DataStatus.IDLE;
 			state.errorType = null;
 			state.query = "";
