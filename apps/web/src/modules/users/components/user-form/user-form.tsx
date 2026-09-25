@@ -7,7 +7,7 @@ import {
 	useController,
 } from "react-hook-form";
 
-import { Button, Input, Select, Toggle } from "~/components/components.js";
+import { Button, Dropdown, Input, Toggle } from "~/components/components.js";
 import { useFormController } from "~/hooks/hooks.js";
 
 type AssignedProject = {
@@ -323,13 +323,23 @@ const ProjectListItem = ({
 
 			{isAssigned && (
 				<div className="w-full tablet:w-40">
-					<Select
-						onChange={handleRoleChange}
-						options={[
-							{ label: "Viewer", value: "VIEWER" },
-							{ label: "Editor", value: "EDITOR" },
+					<Dropdown
+						className="w-full [&>button]:w-full"
+						items={[
+							{
+								label: "Viewer",
+								onSelect: () => {
+									handleRoleChange("VIEWER");
+								},
+							},
+							{
+								label: "Editor",
+								onSelect: () => {
+									handleRoleChange("EDITOR");
+								},
+							},
 						]}
-						value={role}
+						label={role === "EDITOR" ? "Editor" : "Viewer"}
 					/>
 				</div>
 			)}
