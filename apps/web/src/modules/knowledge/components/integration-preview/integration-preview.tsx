@@ -22,6 +22,7 @@ import {
 	ParagraphSize,
 } from "~/components/components.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { toConflictResolutions } from "~/modules/knowledge/libs/helpers/helpers.js";
 import {
 	type ChangeStatus,
 	type FieldConflict,
@@ -32,10 +33,7 @@ import {
 
 import { MergeScreen } from "./libs/components/merge-screen.js";
 import { ProposedStructureSuccessModal } from "./libs/components/proposed-structure-success-modal.js";
-import {
-	DEFAULT_PAGE_INDEX,
-	DEFAULT_SECTION_INDEX,
-} from "./libs/constants.js";
+import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
 
 const EMPTY_LENGTH = 0;
 const LIVE_KB_CONTENT_FALLBACK = "No live knowledge base content.";
@@ -675,6 +673,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	const [isSuccessModalOpen, setIsSuccessModalOpen] = useState<boolean>(false);
 	const [isMergeScreenOpen, setIsMergeScreenOpen] = useState<boolean>(false);
 	const [activeConflicts, setActiveConflicts] = useState<FieldConflict[]>([]);
+	const [isApplying, setIsApplying] = useState<boolean>(false);
 
 	const activePage = pages[activePageIndex] ?? pages[DEFAULT_PAGE_INDEX];
 	const activeSection =
@@ -694,19 +693,40 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		onAddMore();
 	}, [onAddMore]);
 
+	const applyChanges = useCallback(
+		async (conflicts: FieldConflict[]): Promise<void> => {
+			if (isApplying) {
+				return;
+			}
+
+			setIsApplying(true);
+
+			const isApplied = await onApprove(
+				toConflictResolutions({ conflicts, sections: proposedStructure }),
+			);
+
+			setIsApplying(false);
+
+			if (isApplied) {
+				setIsMergeScreenOpen(false);
+				setIsSuccessModalOpen(true);
+			}
+		},
+		[isApplying, onApprove, proposedStructure],
+	);
+
 	const handleApprove = useCallback((): void => {
 		const integrationConflicts = getAllIntegrationConflicts(pages);
 
 		if (integrationConflicts.length === EMPTY_LENGTH) {
-			onApprove(pages);
-			setIsSuccessModalOpen(true);
+			void applyChanges([]);
 
 			return;
 		}
 
 		setActiveConflicts(integrationConflicts);
 		setIsMergeScreenOpen(true);
-	}, [onApprove, pages]);
+	}, [applyChanges, pages]);
 
 	const handleCancelEdit = useCallback((): void => {
 		setPages(backupPages);
@@ -718,13 +738,14 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, []);
 
 	const handleConsolidatedPublish = useCallback(
-		(resolvedPages: ProposedSection[]): void => {
+		(
+			resolvedPages: ProposedSection[],
+			resolvedConflicts: FieldConflict[],
+		): void => {
 			setPages(resolvedPages);
-			setIsMergeScreenOpen(false);
-			onApprove(resolvedPages);
-			setIsSuccessModalOpen(true);
+			void applyChanges(resolvedConflicts);
 		},
-		[onApprove],
+		[applyChanges],
 	);
 
 	const handleEnterEdit = useCallback((): void => {

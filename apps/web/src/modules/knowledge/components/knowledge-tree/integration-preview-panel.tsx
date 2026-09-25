@@ -1,4 +1,5 @@
-import React, { useEffect } from "react";
+import { type IntegrationConflictResolutionDto } from "@knowledgeprism/types";
+import React, { useCallback, useEffect } from "react";
 
 import {
 	Button,
@@ -10,7 +11,6 @@ import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 
 import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
-import { type ProposedSection } from "../../libs/types/types.js";
 import { IntegrationPreview } from "../integration-preview/integration-preview.js";
 
 const EMPTY_INTEGRATION_CHANGES_MESSAGE =
@@ -21,7 +21,7 @@ const MISSING_DOCUMENT_MESSAGE =
 type Properties = {
 	documentId: number | undefined;
 	onAddMore: () => void;
-	onApprove: (sections: ProposedSection[]) => void;
+	onApprove: () => void;
 	onClose: () => void;
 	projectId: null | string;
 };
@@ -47,6 +47,33 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 
 		void dispatch(actions.fetchIntegrationChanges({ documentId, projectId }));
 	}, [dispatch, documentId, projectId]);
+
+	const handleApply = useCallback(
+		async (
+			resolutions: IntegrationConflictResolutionDto[],
+		): Promise<boolean> => {
+			if (!projectId || documentId === undefined) {
+				return false;
+			}
+
+			try {
+				await dispatch(
+					actions.applyIntegrationChanges({
+						documentId,
+						payload: { resolutions },
+						projectId,
+					}),
+				).unwrap();
+			} catch {
+				return false;
+			}
+
+			onApprove();
+
+			return true;
+		},
+		[dispatch, documentId, onApprove, projectId],
+	);
 
 	if (documentId === undefined) {
 		return (
@@ -102,7 +129,7 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 			<IntegrationPreview
 				key={previewKey}
 				onAddMore={onAddMore}
-				onApprove={onApprove}
+				onApprove={handleApply}
 				onClose={onClose}
 				proposedStructure={integrationPreviewSections}
 			/>
