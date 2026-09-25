@@ -18,10 +18,27 @@ const getBlockText = (block: Record<string, unknown>): string => {
 		: "";
 };
 
+const isBlock = (value: unknown): value is Record<string, unknown> =>
+	typeof value === "object" && value !== null;
+
+const getChildBlocks = (
+	block: Record<string, unknown>,
+): Record<string, unknown>[] => {
+	const children = block["children"];
+
+	return Array.isArray(children)
+		? children.filter((child) => isBlock(child))
+		: [];
+};
+
 const flattenContentToText = (content: Record<string, unknown>[]): string =>
 	content
-		.map((block) => getBlockText(block))
-		.join(" ")
-		.trim();
+		.map((block) =>
+			[getBlockText(block), flattenContentToText(getChildBlocks(block))]
+				.join(" ")
+				.trim(),
+		)
+		.filter((text) => text !== "")
+		.join(" ");
 
 export { flattenContentToText };

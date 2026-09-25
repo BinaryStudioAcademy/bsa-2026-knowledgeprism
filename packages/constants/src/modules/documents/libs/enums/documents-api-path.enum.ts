@@ -8,6 +8,7 @@ const DocumentsApiPath = {
 		"/:projectId/documents/:documentId/extraction-items/:id",
 	EXTRACTION_ITEMS_REVIEW:
 		"/:projectId/documents/:documentId/extraction-items/review",
+	INTEGRATION_CHANGES: "/:projectId/documents/:documentId/integration-changes",
 	MANUAL_TEXT: "/:projectId/manual-text",
 	MANUAL_TEXT_$ID: "/:projectId/manual-text/:id",
 	RETRY: "/:projectId/manual-text/:id/retry",

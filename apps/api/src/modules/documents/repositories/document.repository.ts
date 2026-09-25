@@ -73,7 +73,10 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		return await this.documentModel
 			.query()
 			.patch({ errorMessage, status: DocumentStatus.FAILED })
-			.where({ status: DocumentStatus.PROCESSING })
+			.whereIn("status", [
+				DocumentStatus.INTEGRATING,
+				DocumentStatus.PROCESSING,
+			])
 			.where("updatedAt", "<", updatedBefore)
 			.execute();
 	}
@@ -138,19 +141,24 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		return DocumentEntity.initialize(document);
 	}
 
-	public async startProcessing({
-		allowedStatuses,
-		id,
-	}: {
-		allowedStatuses: ValueOf<typeof DocumentStatus>[];
-		id: number;
-	}): Promise<null | { attempt: number; document: DocumentEntity }> {
+	public async startProcessing(
+		{
+			allowedStatuses,
+			id,
+			status,
+		}: {
+			allowedStatuses: ValueOf<typeof DocumentStatus>[];
+			id: number;
+			status: ValueOf<typeof DocumentStatus>;
+		},
+		transaction?: Transaction,
+	): Promise<null | { attempt: number; document: DocumentEntity }> {
 		const document = await this.documentModel
-			.query()
+			.query(transaction)
 			.patch({
 				errorMessage: null,
 				processingAttempt: raw(NEXT_PROCESSING_ATTEMPT_SQL),
-				status: DocumentStatus.PROCESSING,
+				status,
 			})
 			.where({ id })
 			.whereIn("status", allowedStatuses)

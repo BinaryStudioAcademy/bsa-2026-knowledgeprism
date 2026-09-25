@@ -4,6 +4,7 @@ const DocumentErrorMessage = {
 	EXTRACTION_ITEM_NOT_FOUND: "Extraction item not found",
 	EXTRACTION_ITEM_NOT_PENDING: "Only pending extraction items can be edited",
 	FORBIDDEN: "You do not have permission to add knowledge",
+	INTEGRATION_FAILED: "Integration analysis failed",
 	NOT_FOUND: "Document not found",
 	PROCESSING_FAILED: "Processing failed",
 	PROCESSING_INTERRUPTED: "Processing was interrupted. Please retry.",
@@ -11,7 +12,7 @@ const DocumentErrorMessage = {
 	RETRY_NOT_ALLOWED: "Document cannot be retried in its current state",
 	REVIEW_ITEMS_MISMATCH:
 		"Every pending item must be approved or rejected exactly once",
-	REVIEW_NOT_ALLOWED: "Document is not waiting for approval",
+	REVIEW_NOT_ALLOWED: "Document is not waiting for validation",
 	UNAUTHORIZED: "Unauthorized",
 	UPLOAD_OBJECT_NOT_FOUND: "Uploaded document was not found in S3.",
 	UPLOAD_OBJECT_TOO_LARGE:
