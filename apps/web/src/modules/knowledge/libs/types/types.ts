@@ -54,7 +54,7 @@ type KnowledgeState = {
 	searchResults: KnowledgeSearchItemDto[];
 	searchStatus: ValueOf<typeof SearchStatus>;
 	selectedEntry: KnowledgeEntryResponseDto | null;
-	selectedFile: null | UploadedDocumentItem;
+	selectedFiles: UploadedDocumentItem[];
 	tree: KnowledgeTreeItemResponseDto[];
 };
 
@@ -80,6 +80,7 @@ type ProposedSection = {
 
 type UploadedDocumentItem = {
 	documentId?: number | undefined;
+	errorMessage?: string | undefined;
 	id: string;
 	name: string;
 	progress: number;
