@@ -6,6 +6,23 @@ import { type ValueOf } from "@knowledgeprism/types";
 
 import { type Entity } from "~/shared/types/types.js";
 
+type DocumentDetails = {
+	content: null | string;
+	contentHash: null | string;
+	createdAt: Date;
+	errorMessage: null | string;
+	id: number;
+	mimeType: string;
+	name: string;
+	projectId: number;
+	s3Key: null | string;
+	sizeInBytes: null | number;
+	sourceType: ValueOf<typeof DocumentSourceType>;
+	status: ValueOf<typeof DocumentStatus>;
+	updatedAt: Date;
+	uploadedBy: null | number;
+};
+
 type DocumentEntityPayload = {
 	content: null | string;
 	contentHash: null | string;
@@ -20,23 +37,6 @@ type DocumentEntityPayload = {
 	sourceType: ValueOf<typeof DocumentSourceType>;
 	status: ValueOf<typeof DocumentStatus>;
 	updatedAt: Date | null;
-	uploadedBy: null | number;
-};
-
-type DocumentObject = {
-	content: null | string;
-	contentHash: null | string;
-	createdAt: Date;
-	errorMessage: null | string;
-	id: number;
-	mimeType: string;
-	name: string;
-	projectId: number;
-	s3Key: null | string;
-	sizeInBytes: null | number;
-	sourceType: ValueOf<typeof DocumentSourceType>;
-	status: ValueOf<typeof DocumentStatus>;
-	updatedAt: Date;
 	uploadedBy: null | number;
 };
 
@@ -221,7 +221,7 @@ class DocumentEntity implements Entity {
 		};
 	}
 
-	public toObject(): DocumentObject {
+	public toObject(): DocumentDetails {
 		return {
 			content: this.content,
 			contentHash: this.contentHash,

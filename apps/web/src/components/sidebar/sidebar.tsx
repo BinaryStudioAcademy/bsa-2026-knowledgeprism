@@ -107,6 +107,7 @@ const NavRow = ({ icon, label, to }: NavItem) => {
 		return (
 			<Link
 				aria-current={isActive ? "page" : undefined}
+				aria-label={label}
 				className={className}
 				to={to}
 			>
@@ -117,7 +118,7 @@ const NavRow = ({ icon, label, to }: NavItem) => {
 	}
 
 	return (
-		<button className={className} type="button">
+		<button aria-label={label} className={className} type="button">
 			{icon}
 			<span className="hidden desktop:inline">{label}</span>
 		</button>

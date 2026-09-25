@@ -95,7 +95,7 @@ class BaseServerApplication implements ServerApplication {
 				if ("issues" in error) {
 					this.logger.error(`[Validation Error]: ${error.message}`);
 
-					for (let issue of error.issues) {
+					for (const issue of error.issues) {
 						this.logger.error(`[${issue.path.toString()}] — ${issue.message}`);
 					}
 
@@ -206,7 +206,7 @@ class BaseServerApplication implements ServerApplication {
 	}
 
 	public addRoutes(parameters: ServerApplicationRouteParameters[]): void {
-		for (let parameter of parameters) {
+		for (const parameter of parameters) {
 			this.addRoute(parameter);
 		}
 	}

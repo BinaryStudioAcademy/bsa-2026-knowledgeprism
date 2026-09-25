@@ -123,7 +123,7 @@ const Checkbox = <T extends FieldValues = FieldValues>({
 
 	return (
 		<div className={wrapper()}>
-			<div className={labelWrapper()}>
+			<label className={labelWrapper()} htmlFor={checkboxId}>
 				<input
 					aria-describedby={errorId}
 					aria-invalid={hasError}
@@ -137,17 +137,13 @@ const Checkbox = <T extends FieldValues = FieldValues>({
 					ref={ref}
 					type="checkbox"
 				/>
-				<label aria-hidden="true" className={box()} htmlFor={checkboxId}>
-					<div className={icon()}>
+				<span className={box()}>
+					<span className={icon()}>
 						<Icon name="checkbox-tick" size={10} />
-					</div>
-				</label>
-				{label && (
-					<label className={labelText()} htmlFor={checkboxId}>
-						{label}
-					</label>
-				)}
-			</div>
+					</span>
+				</span>
+				{label && <span className={labelText()}>{label}</span>}
+			</label>
 			{hasError && !isChecked && (
 				<span className={errorMessageStyle()} id={errorId}>
 					{errorMessage}
