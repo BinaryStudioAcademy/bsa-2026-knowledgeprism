@@ -77,4 +77,4 @@ const normalizeError = (error: unknown): AppError => {
 	return normalizedError;
 };
 
-export { normalizeError };
+export { DEFAULT_ERROR_MESSAGE, normalizeError };
