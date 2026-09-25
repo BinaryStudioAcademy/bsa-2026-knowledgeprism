@@ -1,6 +1,8 @@
 import { DocumentStatus } from "@knowledgeprism/constants";
 import {
 	type DocumentConfirmUploadResponseDto,
+	type DocumentStatusResponseDto,
+	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
@@ -22,6 +24,12 @@ import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { formatFileSize } from "../libs/helpers/helpers.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
 import { name as sliceName } from "./knowledge.slice.js";
+
+type ApplyIntegrationChangesPayload = {
+	documentId: number;
+	payload: IntegrationChangesApplyRequestDto;
+	projectId: string;
+};
 
 type ConfirmDocumentUploadPayload = {
 	documentId: number;
@@ -179,6 +187,25 @@ const fetchKnowledgeTree = createAsyncThunk<
 	});
 });
 
+const applyIntegrationChanges = createAppAsyncThunk<
+	DocumentStatusResponseDto,
+	ApplyIntegrationChangesPayload
+>(
+	`${sliceName}/apply-integration-changes`,
+	async ({ documentId, payload, projectId }, { dispatch, extra, signal }) => {
+		const document = await extra.documentsApi.applyIntegrationChanges({
+			documentId,
+			payload,
+			projectId,
+			signal,
+		});
+
+		void dispatch(fetchKnowledgeTree({ projectId }));
+
+		return document;
+	},
+);
+
 const fetchKnowledgeEntry = createAsyncThunk<
 	KnowledgeEntryResponseDto,
 	{ entryId: number; projectId: string },
@@ -224,6 +251,7 @@ const submitManualText = createAsyncThunk<
 );
 
 export {
+	applyIntegrationChanges,
 	confirmDocumentUpload,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,

@@ -26,7 +26,10 @@ const VALID_RESOLUTIONS: readonly ConflictResolution[] = [
 type MergeScreenProperties = {
 	conflicts: FieldConflict[];
 	onCancel: () => void;
-	onPublish: (resolvedPages: ProposedSection[]) => void;
+	onPublish: (
+		resolvedPages: ProposedSection[],
+		resolvedConflicts: FieldConflict[],
+	) => void;
 	pages: ProposedSection[];
 };
 
@@ -150,7 +153,7 @@ const MergeScreen = ({
 			),
 		}));
 
-		onPublish(resolvedPages);
+		onPublish(resolvedPages, conflicts);
 	}, [conflicts, onPublish, pages]);
 
 	const hasAllResolved = conflicts.every((item) => Boolean(item.resolution));

@@ -4,12 +4,14 @@ import {
 	extractionItemRouteParametersValidationSchema,
 	extractionItemsReviewValidationSchema,
 	extractionItemUpdateValidationSchema,
+	integrationChangesApplyValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
 	type DocumentRouteParametersDto,
 	type ExtractionItemRouteParametersDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemUpdateRequestDto,
+	type IntegrationChangesApplyRequestDto,
 } from "@knowledgeprism/types";
 
 import {
@@ -105,6 +107,92 @@ class DocumentReviewController extends BaseController {
 				params: documentRouteParametersValidationSchema,
 			},
 		});
+		this.addRoute({
+			handler: (options) =>
+				this.applyIntegrationChanges(
+					options as APIHandlerOptions<{
+						body: IntegrationChangesApplyRequestDto;
+						params: DocumentRouteParametersDto;
+					}>,
+				),
+			method: "POST",
+			path: DocumentsApiPath.INTEGRATION_CHANGES_APPLY,
+			validation: {
+				body: integrationChangesApplyValidationSchema,
+				params: documentRouteParametersValidationSchema,
+			},
+		});
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/documents/{documentId}/integration-changes/apply:
+	 *    post:
+	 *      description: Approve the integration results and write them to the knowledge base in one transaction. NEW creates entries, UPDATE replaces the matched entry's content, DUPLICATE writes nothing, CONFLICT applies the chosen value per field.
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: documentId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      requestBody:
+	 *        required: true
+	 *        content:
+	 *          application/json:
+	 *            schema:
+	 *              type: object
+	 *              required:
+	 *                - resolutions
+	 *              properties:
+	 *                resolutions:
+	 *                  type: array
+	 *                  description: Exactly one entry per CONFLICT change
+	 *                  items:
+	 *                    type: object
+	 *                    required:
+	 *                      - changeId
+	 *                      - title
+	 *                      - content
+	 *                    properties:
+	 *                      changeId:
+	 *                        type: integer
+	 *                        example: 7
+	 *                      title:
+	 *                        type: string
+	 *                        enum: [keep, use-new]
+	 *                      content:
+	 *                        type: string
+	 *                        enum: [keep, use-new]
+	 *      responses:
+	 *        200:
+	 *          description: Changes applied; document completed
+	 *        400:
+	 *          description: Resolutions do not match the conflicts, or two changes would write the same field of one entry
+	 *        403:
+	 *          description: Viewer cannot approve
+	 *        404:
+	 *          description: Document not found
+	 *        409:
+	 *          description: Document is not waiting for approval, or the knowledge base changed after the analysis (the analysis is restarted)
+	 */
+	private async applyIntegrationChanges(
+		options: APIHandlerOptions<{
+			body: IntegrationChangesApplyRequestDto;
+			params: DocumentRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.documentReviewService.applyIntegrationChanges({
+				...this.getDocumentReference(options),
+				payload: options.body,
+			}),
+			status: HTTPCode.OK,
+		};
 	}
 
 	/**

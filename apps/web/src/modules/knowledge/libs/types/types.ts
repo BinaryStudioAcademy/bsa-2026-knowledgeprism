@@ -1,6 +1,7 @@
 import { type PartialBlock } from "@blocknote/core";
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import {
+	type IntegrationConflictResolutionDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeSearchItemDto,
 	type KnowledgeTreeItemResponseDto,
@@ -29,7 +30,9 @@ type FieldConflict = {
 
 type IntegrationPreviewProperties = {
 	onAddMore: () => void;
-	onApprove: (sections: ProposedSection[]) => void;
+	onApprove: (
+		resolutions: IntegrationConflictResolutionDto[],
+	) => Promise<boolean>;
 	onClose: () => void;
 	proposedStructure: ProposedSection[];
 };

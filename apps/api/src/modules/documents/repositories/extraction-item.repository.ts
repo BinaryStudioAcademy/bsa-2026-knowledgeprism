@@ -74,6 +74,17 @@ class ExtractionItemRepository {
 		return item ? toEntity(item) : null;
 	}
 
+	public async linkKnowledgeNode(
+		{ id, knowledgeNodeId }: { id: number; knowledgeNodeId: number },
+		transaction: Transaction,
+	): Promise<void> {
+		await this.extractionItemModel
+			.query(transaction)
+			.patch({ knowledgeNodeId })
+			.where({ id })
+			.execute();
+	}
+
 	public async markApproved(
 		ids: number[],
 		transaction: Transaction,

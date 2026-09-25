@@ -14,7 +14,6 @@ import {
 
 import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
-import { type ProposedSection } from "../../libs/types/types.js";
 import { AddKnowledgeModal } from "../add-knowledge-modal/add-knowledge-modal.js";
 import { LoadingState } from "../loading-state/loading-state.js";
 import { IntegrationPreviewPanel } from "./integration-preview-panel.js";
@@ -68,20 +67,9 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		handleOpenAddModal();
 	}, [dispatch, handleOpenAddModal]);
 
-	const handleApproveIntegration = useCallback(
-		(resolvedSections: ProposedSection[]): void => {
-			const resolvedEntryCount = resolvedSections.reduce(
-				(count, section) => count + section.pages.length,
-				EMPTY_LENGTH,
-			);
-
-			if (resolvedEntryCount >= EMPTY_LENGTH) {
-				dispatch(actions.finishAddingKnowledge());
-				dispatch(actions.clearIntegrationPreview());
-			}
-		},
-		[dispatch],
-	);
+	const handleApproveIntegration = useCallback((): void => {
+		dispatch(actions.finishAddingKnowledge());
+	}, [dispatch]);
 
 	const handleClosePreview = useCallback((): void => {
 		setIsPreviewOpen(false);

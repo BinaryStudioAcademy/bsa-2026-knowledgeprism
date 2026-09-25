@@ -4,6 +4,7 @@ import {
 	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
+	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
@@ -25,6 +26,34 @@ type Constructor = {
 class DocumentsApi extends BaseHTTPApi {
 	public constructor({ baseUrl, http, storage }: Constructor) {
 		super({ baseUrl, http, path: APIPath.PROJECTS, storage });
+	}
+
+	public async applyIntegrationChanges({
+		documentId,
+		payload,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		payload: IntegrationChangesApplyRequestDto;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<DocumentStatusResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.INTEGRATION_CHANGES_APPLY, {
+				documentId: String(documentId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify(payload),
+				signal,
+			},
+		);
+
+		return await response.json<DocumentStatusResponseDto>();
 	}
 
 	public async confirmUpload({

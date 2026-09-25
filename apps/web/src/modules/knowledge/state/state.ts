@@ -1,4 +1,5 @@
 import {
+	applyIntegrationChanges,
 	confirmDocumentUpload,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
@@ -12,6 +13,7 @@ import { actions } from "./knowledge.slice.js";
 
 const allActions = {
 	...actions,
+	applyIntegrationChanges,
 	confirmDocumentUpload,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,

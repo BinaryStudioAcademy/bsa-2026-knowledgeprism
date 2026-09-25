@@ -10,6 +10,7 @@ export {
 	extractionItemRouteParametersValidationSchema,
 	extractionItemsReviewValidationSchema,
 	extractionItemUpdateValidationSchema,
+	integrationChangesApplyValidationSchema,
 	manualTextCreateValidationSchema,
 	manualTextRouteParametersValidationSchema,
 } from "./modules/documents/documents.js";
