@@ -11,6 +11,9 @@ const manualTextCreate = z
 			.trim()
 			.min(DocumentValidationRule.CONTENT_MINIMUM_LENGTH, {
 				message: DocumentValidationMessage.CONTENT_REQUIRED,
+			})
+			.max(DocumentValidationRule.CONTENT_MAXIMUM_LENGTH, {
+				message: DocumentValidationMessage.CONTENT_MAXIMUM_LENGTH,
 			}),
 		title: z
 			.string()

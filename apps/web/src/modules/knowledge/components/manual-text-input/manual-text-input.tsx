@@ -1,4 +1,8 @@
 import {
+	DocumentValidationMessage,
+	DocumentValidationRule,
+} from "@knowledgeprism/constants";
+import {
 	type BaseSyntheticEvent,
 	type JSX,
 	useCallback,
@@ -39,9 +43,11 @@ const resolveManualTextInput: Resolver<ManualTextInputPayload> = (payload) => {
 	const content = payload.content.trim();
 	const title = payload.title.trim();
 	const isContentEmpty = !content;
+	const isContentTooLong =
+		content.length > DocumentValidationRule.CONTENT_MAXIMUM_LENGTH;
 	const isTitleTooLong = title.length > TITLE_MAXIMUM_LENGTH;
 
-	if (!isContentEmpty && !isTitleTooLong) {
+	if (!isContentEmpty && !isContentTooLong && !isTitleTooLong) {
 		return {
 			errors: {},
 			values: {
@@ -57,6 +63,12 @@ const resolveManualTextInput: Resolver<ManualTextInputPayload> = (payload) => {
 				content: {
 					message: ValidationMessage.CONTENT_REQUIRED,
 					type: "required",
+				},
+			}),
+			...(isContentTooLong && {
+				content: {
+					message: DocumentValidationMessage.CONTENT_MAXIMUM_LENGTH,
+					type: "maxLength",
 				},
 			}),
 			...(isTitleTooLong && {
@@ -106,8 +118,11 @@ const ManualTextInput = ({
 		name: "title",
 	});
 
+	const trimmedContent = content.trim();
 	const isPayloadReady =
-		Boolean(content.trim()) && title.trim().length <= TITLE_MAXIMUM_LENGTH;
+		Boolean(trimmedContent) &&
+		trimmedContent.length <= DocumentValidationRule.CONTENT_MAXIMUM_LENGTH &&
+		title.trim().length <= TITLE_MAXIMUM_LENGTH;
 	const isProcessing = isLoading || isSubmitting;
 
 	let statusMessage = "No knowledge added yet";
