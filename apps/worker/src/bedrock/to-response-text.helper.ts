@@ -1,5 +1,7 @@
 import { logger } from "~/logger/logger.js";
 
+import { BedrockStopReason } from "./bedrock-stop-reason.constant.js";
+
 type AnthropicTextBlock = {
 	text: string;
 };
@@ -31,6 +33,13 @@ const toResponseText = (decoded: string): string => {
 		!Array.isArray(envelope.content)
 	) {
 		return "";
+	}
+
+	if (
+		"stop_reason" in envelope &&
+		envelope.stop_reason === BedrockStopReason.MAX_TOKENS
+	) {
+		throw new Error("Bedrock response was truncated at the max_tokens limit.");
 	}
 
 	return envelope.content

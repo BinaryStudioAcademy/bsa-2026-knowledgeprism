@@ -4,6 +4,7 @@ const FileSizeRule = {
 } as const;
 
 const DocumentValidationRule = {
+	CONTENT_MAXIMUM_LENGTH: 100_000,
 	CONTENT_MINIMUM_LENGTH: 1,
 	FILE_NAME_MAXIMUM_LENGTH: 255,
 	FILE_NAME_MINIMUM_LENGTH: 1,
