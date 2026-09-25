@@ -120,16 +120,23 @@ class ExtractionItemRepository {
 			.execute();
 	}
 
-	public async updateContent(
-		id: number,
-		payload: { text: string; title: string },
-	): Promise<ExtractionItemEntity> {
+	public async updatePendingContent({
+		documentId,
+		id,
+		payload,
+	}: {
+		documentId: number;
+		id: number;
+		payload: { text: string; title: string };
+	}): Promise<ExtractionItemEntity | null> {
 		const updated = await this.extractionItemModel
 			.query()
-			.patchAndFetchById(id, payload)
-			.execute();
+			.patch(payload)
+			.where({ documentId, id, status: ExtractionItemStatus.PENDING })
+			.returning("*")
+			.first();
 
-		return toEntity(updated);
+		return updated ? toEntity(updated) : null;
 	}
 }
 
