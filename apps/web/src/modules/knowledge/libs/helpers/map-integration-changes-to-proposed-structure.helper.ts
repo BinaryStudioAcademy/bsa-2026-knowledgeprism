@@ -4,7 +4,11 @@ import {
 	type IntegrationChangesResponseDto,
 } from "@knowledgeprism/types";
 
-import { type ProposedPage, type ProposedSection } from "../types/types.js";
+import {
+	type ChangeStatus,
+	type ProposedPage,
+	type ProposedSection,
+} from "../types/types.js";
 import { mapIntegrationChangeTypeToChangeStatus } from "./map-integration-change-type-to-change-status.helper.js";
 
 const PROPOSED_CHANGES_SECTION_ID = "proposed-changes-section";
@@ -43,6 +47,18 @@ const mapIntegrationChangeToPage = (
 	return page;
 };
 
+const resolveProposedSectionStatus = (pages: ProposedPage[]): ChangeStatus => {
+	const hasConflict = pages.some((page) => page.status === "conflict");
+
+	if (hasConflict) {
+		return "conflict";
+	}
+
+	const [firstPage] = pages;
+
+	return firstPage?.status ?? "created";
+};
+
 const mapIntegrationChangesToProposedStructure = (
 	response: IntegrationChangesResponseDto,
 ): ProposedSection[] => {
@@ -54,13 +70,11 @@ const mapIntegrationChangesToProposedStructure = (
 		return [];
 	}
 
-	const [firstPage] = pages;
-
 	return [
 		{
 			id: PROPOSED_CHANGES_SECTION_ID,
 			pages,
-			status: firstPage?.status ?? "created",
+			status: resolveProposedSectionStatus(pages),
 			title: PROPOSED_CHANGES_SECTION_TITLE,
 			type: KnowledgeNodeType.SECTION,
 		},
