@@ -17,7 +17,7 @@ import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-
 const MOBILE_NAV_ICON_SIZE = 16;
 const PROJECT_ICON_SIZE = 18;
 const RESPONSIVE_NAV_ITEM_CLASS =
-	"tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:justify-start desktop:px-3 desktop:py-2.5";
+	"tablet:h-8.5 tablet:w-8.5 tablet:justify-center tablet:p-0 desktop:h-auto desktop:w-auto desktop:px-3 desktop:py-2.5";
 
 type NavItem = {
 	icon: React.ReactNode;
@@ -59,20 +59,27 @@ const buildPrimaryNavItems = (projectId: string | undefined): NavItem[] => [
 	},
 ];
 
-const utilityNavItems: NavItem[] = [
-	{
-		icon: <Icon name="settings" />,
-		id: "settings",
-		label: "Settings",
-		to: AppRoute.SETTINGS,
-	},
-	{
-		icon: <Icon name="users" />,
-		id: "users",
-		label: "Users",
-		to: AppRoute.USERS,
-	},
-];
+const buildUtilityNavItems = (role: string): NavItem[] => {
+	const items: NavItem[] = [
+		{
+			icon: <Icon name="settings" />,
+			id: "settings",
+			label: "Settings",
+			to: AppRoute.SETTINGS,
+		},
+	];
+
+	if (role === ProjectMemberRole.ADMIN) {
+		items.push({
+			icon: <Icon name="users" />,
+			id: "users",
+			label: "Users",
+			to: AppRoute.USERS,
+		});
+	}
+
+	return items;
+};
 
 const buildMobileNavItems = (projectId: string | undefined): NavItem[] => [
 	{
@@ -99,9 +106,13 @@ const NavRow = ({ icon, label, to }: NavItem) => {
 	const { pathname } = useLocation();
 	const isActive = Boolean(to) && pathname === to;
 
-	const className = getValidClassNames("nav-item", RESPONSIVE_NAV_ITEM_CLASS, {
-		"is-active": isActive,
-	});
+	const className = getValidClassNames(
+		"nav-item desktop:justify-start",
+		RESPONSIVE_NAV_ITEM_CLASS,
+		{
+			"is-active": isActive,
+		},
+	);
 
 	if (to) {
 		return (
@@ -135,6 +146,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 
 	const primaryNavItems = buildPrimaryNavItems(projectId);
+	const utilityNavItems = buildUtilityNavItems(role);
 	const canAddKnowledge =
 		Boolean(projectId) &&
 		(role === ProjectMemberRole.ADMIN || role === ProjectMemberRole.EDITOR);
@@ -175,7 +187,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 						<Button
 							aria-label="Add Knowledge"
 							className={getValidClassNames(
-								"inline-flex",
+								"inline-flex items-center gap-2 desktop:justify-center",
 								RESPONSIVE_NAV_ITEM_CLASS,
 							)}
 							disabled={isAddingKnowledge}
