@@ -6,6 +6,7 @@ export {
 	extractionItemRouteParametersValidationSchema,
 	extractionItemsReviewValidationSchema,
 	extractionItemUpdateValidationSchema,
+	integrationChangesApplyValidationSchema,
 	manualTextCreateValidationSchema,
 	manualTextRouteParametersValidationSchema,
 } from "./libs/validation-schemas/validation-schemas.js";

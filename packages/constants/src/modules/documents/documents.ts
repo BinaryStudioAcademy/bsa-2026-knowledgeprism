@@ -7,4 +7,5 @@ export {
 	DocumentValidationRule,
 	ExtractionItemStatus,
 	IntegrationChangeType,
+	IntegrationResolution,
 } from "./libs/enums/enums.js";

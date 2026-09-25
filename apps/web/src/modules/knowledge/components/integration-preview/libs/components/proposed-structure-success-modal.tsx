@@ -37,15 +37,15 @@ const ProposedStructureSuccessModal = ({
 					className="font-serif text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-neutral-900"
 					level="2"
 				>
-					Proposed structure approved
+					Changes published
 				</Heading>
 
 				<Paragraph
 					className="mt-3 max-w-md font-sans text-xs sm:text-sm leading-relaxed text-neutral-600"
 					size={ParagraphSize.BODY_SMALL}
 				>
-					Your edits were saved in this preview. Final publishing to the
-					official knowledge base will be connected separately.
+					The approved changes were added to the knowledge base. You can find
+					them in the Knowledge Tree.
 				</Paragraph>
 
 				<div className="mt-6 flex w-full shrink-0 flex-col sm:flex-row items-center justify-center gap-3">

@@ -22,9 +22,9 @@ const HeroPreview: React.FC = () => (
 			</div>
 
 			<div className="px-[18px] py-5">
-				<h3 className="mb-3.5 font-serif text-[19px] font-normal text-text">
+				<p className="mb-3.5 font-serif text-[19px] font-normal text-text">
 					{HERO_DEMO_PANEL.TITLE}
-				</h3>
+				</p>
 
 				<div className="mb-[18px] flex gap-2.5">
 					<div className="flex-1 rounded-lg border border-border bg-bg px-3 py-2.5">

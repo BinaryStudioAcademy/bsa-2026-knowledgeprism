@@ -5,5 +5,6 @@ export { documentUploadIntent as documentUploadIntentValidationSchema } from "./
 export { extractionItemRouteParameters as extractionItemRouteParametersValidationSchema } from "./extraction-item-route-parameters.validation-schema.js";
 export { extractionItemUpdate as extractionItemUpdateValidationSchema } from "./extraction-item-update.validation-schema.js";
 export { extractionItemsReview as extractionItemsReviewValidationSchema } from "./extraction-items-review.validation-schema.js";
+export { integrationChangesApply as integrationChangesApplyValidationSchema } from "./integration-changes-apply.validation-schema.js";
 export { manualTextCreate as manualTextCreateValidationSchema } from "./manual-text-create.validation-schema.js";
 export { manualTextRouteParameters as manualTextRouteParametersValidationSchema } from "./manual-text-route-parameters.validation-schema.js";

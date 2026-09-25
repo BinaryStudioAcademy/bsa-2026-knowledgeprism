@@ -6,3 +6,4 @@ export { DocumentValidationRule } from "./document-validation-rule.enum.js";
 export { DocumentsApiPath } from "./documents-api-path.enum.js";
 export { ExtractionItemStatus } from "./extraction-item-status.enum.js";
 export { IntegrationChangeType } from "./integration-change-type.enum.js";
+export { IntegrationResolution } from "./integration-resolution.enum.js";

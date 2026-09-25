@@ -165,6 +165,33 @@ class KnowledgeNodeRepository {
 			.execute();
 	}
 
+	public async lockByIdAndProjectId(
+		{ id, projectId }: { id: number; projectId: number },
+		transaction: Transaction,
+	): Promise<KnowledgeNodeEntity | null> {
+		const node = await this.knowledgeNodeModel
+			.query(transaction)
+			.findOne({ id, projectId })
+			.forUpdate()
+			.execute();
+
+		if (!node) {
+			return null;
+		}
+
+		return KnowledgeNodeEntity.initialize({
+			contentJson: node.contentJson,
+			createdAt: node.createdAt,
+			id: node.id,
+			parentId: node.parentId,
+			position: node.position,
+			projectId: node.projectId,
+			title: node.title,
+			type: node.type,
+			updatedAt: node.updatedAt,
+		});
+	}
+
 	public async searchByTitleOrKeyword({
 		projectId,
 		query,
@@ -204,19 +231,22 @@ class KnowledgeNodeRepository {
 		);
 	}
 
-	public async update({
-		contentJson,
-		id,
-		title,
-		updatedBy,
-	}: {
-		contentJson: KnowledgeNodeContentDto;
-		id: number;
-		title: string;
-		updatedBy: number;
-	}): Promise<KnowledgeNodeEntity> {
+	public async update(
+		{
+			contentJson,
+			id,
+			title,
+			updatedBy,
+		}: {
+			contentJson: KnowledgeNodeContentDto;
+			id: number;
+			title: string;
+			updatedBy: number;
+		},
+		transaction?: Transaction,
+	): Promise<KnowledgeNodeEntity> {
 		const updatedNode = await this.knowledgeNodeModel
-			.query()
+			.query(transaction)
 			.patchAndFetchById(id, {
 				contentJson,
 				title,

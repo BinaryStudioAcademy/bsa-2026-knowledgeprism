@@ -19,6 +19,7 @@ import { DocumentProcessor } from "./services/document-processor.js";
 import { DocumentReviewService } from "./services/document-review.service.js";
 import { DocumentService } from "./services/document.service.js";
 import { IntegrationAnalyzer } from "./services/integration-analyzer.js";
+import { IntegrationApplier } from "./services/integration-applier.js";
 
 const documentRepository = new DocumentRepository(DocumentModel);
 const extractionItemRepository = new ExtractionItemRepository(
@@ -37,6 +38,10 @@ const integrationAnalyzer = new IntegrationAnalyzer({
 	documentRepository,
 	extractionItemRepository,
 	integrationChangeRepository,
+	knowledgeNodeRepository,
+});
+const integrationApplier = new IntegrationApplier({
+	extractionItemRepository,
 	knowledgeNodeRepository,
 });
 const documentJobScheduler = new DocumentJobScheduler({
@@ -59,6 +64,7 @@ const documentReviewService = new DocumentReviewService({
 	documentJobScheduler,
 	documentRepository,
 	extractionItemRepository,
+	integrationApplier,
 	integrationChangeRepository,
 	projectService,
 });

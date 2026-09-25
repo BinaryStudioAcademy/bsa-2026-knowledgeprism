@@ -13,6 +13,7 @@ import {
 } from "@knowledgeprism/worker";
 
 import { type Database } from "~/infrastructure/database/database.js";
+import { toResolvableChanges } from "~/modules/documents/libs/helpers/to-resolvable-changes.helper.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
 import { IntegrationChangeEntity } from "~/modules/documents/models/integration-change.entity.js";
@@ -97,7 +98,7 @@ class IntegrationAnalyzer {
 			);
 		}
 
-		return changes;
+		return toResolvableChanges(changes);
 	}
 
 	private async loadCandidates(

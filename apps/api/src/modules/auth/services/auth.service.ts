@@ -54,9 +54,9 @@ class AuthService {
 			});
 		}
 
-		const userObject = user.toObject();
+		const userDetails = user.toObject();
 		const organisation = await this.organisationService.find(
-			userObject.organisationId,
+			userDetails.organisationId,
 		);
 
 		if (!organisation) {
@@ -96,8 +96,8 @@ class AuthService {
 			});
 		}
 
-		const userObject = user.toObject();
-		if (userObject.status === UserStatus.INACTIVE) {
+		const userDetails = user.toObject();
+		if (userDetails.status === UserStatus.INACTIVE) {
 			throw new HTTPError({
 				message: UserValidationMessage.USER_INACTIVE,
 				status: HTTPCode.FORBIDDEN,
@@ -105,7 +105,7 @@ class AuthService {
 		}
 
 		const organisation = await this.organisationService.find(
-			userObject.organisationId,
+			userDetails.organisationId,
 		);
 
 		if (!organisation) {
@@ -129,17 +129,17 @@ class AuthService {
 				},
 				transaction,
 			);
-			const organisationObject = organisation.toObject();
+			const organisationDetails = organisation.toObject();
 			const user = await this.userService.createOrganisationAdmin(
 				{
 					...payload,
-					organisationId: organisationObject.id,
+					organisationId: organisationDetails.id,
 				},
 				transaction,
 			);
 
 			return {
-				organisation: organisationObject,
+				organisation: organisationDetails,
 				user: user.toAuthObject(),
 			};
 		});

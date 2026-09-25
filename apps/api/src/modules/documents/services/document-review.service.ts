@@ -2,6 +2,7 @@ import {
 	DocumentErrorMessage,
 	DocumentStatus,
 	ExtractionItemStatus,
+	IntegrationChangeType,
 } from "@knowledgeprism/constants";
 import {
 	type DocumentStatusResponseDto,
@@ -11,12 +12,14 @@ import {
 	type ExtractionItemsReviewResponseDto,
 	type ExtractionItemUpdateRequestDto,
 	type IntegrationChangeResponseDto,
+	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
 } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
 import { type Database } from "~/infrastructure/database/database.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
+import { getIncomingFields } from "~/modules/documents/libs/helpers/get-incoming-fields.helper.js";
 import { toDocumentStatusResponse } from "~/modules/documents/libs/helpers/to-document-status-response.helper.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
@@ -30,6 +33,10 @@ import {
 } from "~/modules/projects/services/project.service.js";
 
 import { type DocumentJobScheduler } from "./document-job-scheduler.js";
+import {
+	IntegrationAnalysisOutdatedError,
+	type IntegrationApplier,
+} from "./integration-applier.js";
 
 const EMPTY_LENGTH = 0;
 
@@ -38,6 +45,7 @@ type Constructor = {
 	documentJobScheduler: DocumentJobScheduler;
 	documentRepository: DocumentRepository;
 	extractionItemRepository: ExtractionItemRepository;
+	integrationApplier: IntegrationApplier;
 	integrationChangeRepository: IntegrationChangeRepository;
 	projectService: ProjectService;
 };
@@ -46,6 +54,13 @@ type DocumentReference = {
 	context: ProjectAccessContext;
 	documentId: number;
 	projectId: number;
+};
+
+const createApplyNotAllowedError = (): HTTPError => {
+	return new HTTPError({
+		message: DocumentErrorMessage.APPLY_NOT_ALLOWED,
+		status: HTTPCode.CONFLICT,
+	});
 };
 
 const createReviewNotAllowedError = (): HTTPError => {
@@ -111,23 +126,87 @@ const toIntegrationChangeResponse = (
 	};
 };
 
+const isExactIdMatch = (
+	expectedIds: number[],
+	providedIds: number[],
+): boolean => {
+	const providedIdSet = new Set(providedIds);
+	const expectedIdSet = new Set(expectedIds);
+
+	return (
+		providedIdSet.size === providedIds.length &&
+		providedIdSet.size === expectedIdSet.size &&
+		providedIds.every((id) => expectedIdSet.has(id))
+	);
+};
+
 const assertReviewCoversPendingItems = (
 	pendingItems: ExtractionItemEntity[],
 	{ approvedIds, rejectedIds }: ExtractionItemsReviewRequestDto,
 ): void => {
-	const reviewedIds = [...approvedIds, ...rejectedIds];
-	const reviewedIdSet = new Set(reviewedIds);
-	const pendingIdSet = new Set(pendingItems.map((item) => item.toObject().id));
-	const isExactMatch =
-		reviewedIdSet.size === reviewedIds.length &&
-		reviewedIdSet.size === pendingIdSet.size &&
-		reviewedIds.every((id) => pendingIdSet.has(id));
+	const pendingIds = pendingItems.map((item) => item.toObject().id);
 
-	if (!isExactMatch) {
+	if (!isExactIdMatch(pendingIds, [...approvedIds, ...rejectedIds])) {
 		throw new HTTPError({
 			message: DocumentErrorMessage.REVIEW_ITEMS_MISMATCH,
 			status: HTTPCode.BAD_REQUEST,
 		});
+	}
+};
+
+const assertResolutionsCoverConflicts = (
+	changes: IntegrationChangeEntity[],
+	{ resolutions }: IntegrationChangesApplyRequestDto,
+): void => {
+	const conflictIds = changes
+		.map((change) => change.toObject())
+		.filter(({ type }) => type === IntegrationChangeType.CONFLICT)
+		.map(({ id }) => id);
+	const resolvedIds = resolutions.map(({ changeId }) => changeId);
+
+	if (!isExactIdMatch(conflictIds, resolvedIds)) {
+		throw new HTTPError({
+			message: DocumentErrorMessage.CONFLICT_RESOLUTIONS_MISMATCH,
+			status: HTTPCode.BAD_REQUEST,
+		});
+	}
+};
+
+const assertSingleWritePerEntryField = (
+	changes: IntegrationChangeEntity[],
+	{ resolutions }: IntegrationChangesApplyRequestDto,
+): void => {
+	const resolutionByChangeId = new Map(
+		resolutions.map((resolution) => [resolution.changeId, resolution]),
+	);
+	const writtenFields = new Set<string>();
+
+	for (const change of changes) {
+		const { id, matchedNodeId, type } = change.toObject();
+
+		if (matchedNodeId === null) {
+			continue;
+		}
+
+		const incomingFields = getIncomingFields(
+			type,
+			resolutionByChangeId.get(id),
+		);
+
+		for (const [field, isWritten] of Object.entries(incomingFields)) {
+			const fieldKey = `${String(matchedNodeId)}:${field}`;
+
+			if (isWritten && writtenFields.has(fieldKey)) {
+				throw new HTTPError({
+					message: DocumentErrorMessage.DUPLICATE_ENTRY_WRITES,
+					status: HTTPCode.BAD_REQUEST,
+				});
+			}
+
+			if (isWritten) {
+				writtenFields.add(fieldKey);
+			}
+		}
 	}
 };
 
@@ -140,6 +219,8 @@ class DocumentReviewService {
 
 	private extractionItemRepository: ExtractionItemRepository;
 
+	private integrationApplier: IntegrationApplier;
+
 	private integrationChangeRepository: IntegrationChangeRepository;
 
 	private projectService: ProjectService;
@@ -149,6 +230,7 @@ class DocumentReviewService {
 		documentJobScheduler,
 		documentRepository,
 		extractionItemRepository,
+		integrationApplier,
 		integrationChangeRepository,
 		projectService,
 	}: Constructor) {
@@ -156,8 +238,45 @@ class DocumentReviewService {
 		this.documentJobScheduler = documentJobScheduler;
 		this.documentRepository = documentRepository;
 		this.extractionItemRepository = extractionItemRepository;
+		this.integrationApplier = integrationApplier;
 		this.integrationChangeRepository = integrationChangeRepository;
 		this.projectService = projectService;
+	}
+
+	private async applyInTransaction({
+		changes,
+		document,
+		resolutions,
+		userId,
+	}: {
+		changes: IntegrationChangeEntity[];
+		document: DocumentEntity;
+		resolutions: IntegrationChangesApplyRequestDto["resolutions"];
+		userId: number;
+	}): Promise<DocumentEntity> {
+		return await this.database.transaction(async (transaction) => {
+			const approvedDocument =
+				await this.documentRepository.compareAndSwapStatus(
+					{
+						errorMessage: null,
+						expectedStatus: DocumentStatus.WAITING_FOR_APPROVAL,
+						id: document.toObject().id,
+						status: DocumentStatus.COMPLETED,
+					},
+					transaction,
+				);
+
+			if (!approvedDocument) {
+				throw createApplyNotAllowedError();
+			}
+
+			await this.integrationApplier.apply(
+				{ changes, document, resolutions, userId },
+				transaction,
+			);
+
+			return approvedDocument;
+		});
 	}
 
 	private async executeCompletionWithoutApprovals(
@@ -241,6 +360,68 @@ class DocumentReviewService {
 		return document;
 	}
 
+	private async restartIntegration(documentId: number): Promise<void> {
+		const integration = await this.documentRepository.startProcessing({
+			allowedStatuses: [DocumentStatus.WAITING_FOR_APPROVAL],
+			id: documentId,
+			status: DocumentStatus.INTEGRATING,
+		});
+
+		if (integration) {
+			this.documentJobScheduler.scheduleIntegration({
+				attempt: integration.attempt,
+				documentId,
+			});
+		}
+	}
+
+	public async applyIntegrationChanges({
+		payload,
+		...reference
+	}: DocumentReference & {
+		payload: IntegrationChangesApplyRequestDto;
+	}): Promise<DocumentStatusResponseDto> {
+		await this.projectService.assertCanWriteKnowledge(
+			reference.projectId,
+			reference.context,
+		);
+
+		const document = await this.findProjectDocument(reference);
+
+		if (document.toObject().status !== DocumentStatus.WAITING_FOR_APPROVAL) {
+			throw createApplyNotAllowedError();
+		}
+
+		const changes = await this.integrationChangeRepository.findByDocumentId(
+			reference.documentId,
+		);
+
+		assertResolutionsCoverConflicts(changes, payload);
+		assertSingleWritePerEntryField(changes, payload);
+
+		try {
+			const completedDocument = await this.applyInTransaction({
+				changes,
+				document,
+				resolutions: payload.resolutions,
+				userId: reference.context.userId,
+			});
+
+			return toDocumentStatusResponse(completedDocument);
+		} catch (error) {
+			if (!(error instanceof IntegrationAnalysisOutdatedError)) {
+				throw error;
+			}
+
+			await this.restartIntegration(reference.documentId);
+
+			throw new HTTPError({
+				cause: error,
+				message: DocumentErrorMessage.ANALYSIS_OUTDATED,
+				status: HTTPCode.CONFLICT,
+			});
+		}
+	}
 	public async findIntegrationChanges(
 		reference: DocumentReference,
 	): Promise<IntegrationChangesResponseDto> {

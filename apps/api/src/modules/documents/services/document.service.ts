@@ -229,20 +229,20 @@ class DocumentService {
 	private toManualTextResponse(
 		document: DocumentEntity,
 	): ManualTextResponseDto {
-		const documentObject = document.toObject();
+		const documentDetails = document.toObject();
 
 		return {
-			createdAt: documentObject.createdAt.toISOString(),
-			errorMessage: documentObject.errorMessage,
-			id: documentObject.id,
-			projectId: documentObject.projectId,
-			sourceType: documentObject.sourceType,
-			status: documentObject.status,
+			createdAt: documentDetails.createdAt.toISOString(),
+			errorMessage: documentDetails.errorMessage,
+			id: documentDetails.id,
+			projectId: documentDetails.projectId,
+			sourceType: documentDetails.sourceType,
+			status: documentDetails.status,
 			title:
-				documentObject.name === UNTITLED_MANUAL_DOCUMENT_NAME
+				documentDetails.name === UNTITLED_MANUAL_DOCUMENT_NAME
 					? null
-					: documentObject.name,
-			updatedAt: documentObject.updatedAt.toISOString(),
+					: documentDetails.name,
+			updatedAt: documentDetails.updatedAt.toISOString(),
 		};
 	}
 
@@ -311,16 +311,16 @@ class DocumentService {
 
 		const { documentId } = routeParameters;
 		const document = await this.documentRepository.findById(documentId);
-		const documentObject = document?.toObject();
+		const documentDetails = document?.toObject();
 
-		if (!documentObject || documentObject.projectId !== projectId) {
+		if (!documentDetails || documentDetails.projectId !== projectId) {
 			throw new HTTPError({
 				message: "Document not found.",
 				status: HTTPCode.NOT_FOUND,
 			});
 		}
 
-		const { s3Key } = documentObject;
+		const { s3Key } = documentDetails;
 
 		if (!s3Key) {
 			throw new HTTPError({
@@ -331,7 +331,7 @@ class DocumentService {
 
 		const processing = await this.documentRepository.startProcessing({
 			allowedStatuses: [DocumentStatus.UPLOADED],
-			id: documentObject.id,
+			id: documentDetails.id,
 			status: DocumentStatus.PROCESSING,
 		});
 
@@ -380,11 +380,11 @@ class DocumentService {
 
 		this.documentJobScheduler.scheduleProcessing({
 			attempt: processing.attempt,
-			documentId: documentObject.id,
+			documentId: documentDetails.id,
 		});
 
 		return {
-			documentId: documentObject.id,
+			documentId: documentDetails.id,
 			status: processing.document.toObject().status,
 		};
 	}
@@ -546,10 +546,10 @@ class DocumentService {
 			});
 		}
 
-		const documentObject = document.toObject();
+		const documentDetails = document.toObject();
 
 		return {
-			documentId: documentObject.id,
+			documentId: documentDetails.id,
 			expiresInSeconds: PRESIGNED_URL_EXPIRY_SECONDS,
 			storageKey,
 			uploadUrl,

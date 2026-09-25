@@ -1,6 +1,12 @@
 const DocumentErrorMessage = {
+	ANALYSIS_OUTDATED:
+		"The knowledge base changed after the analysis. The analysis is running again.",
+	APPLY_NOT_ALLOWED: "Document is not waiting for approval",
 	CANCEL_NOT_ALLOWED: "Document cannot be cancelled in its current state",
 	CONFIRM_NOT_ALLOWED: "Document cannot be confirmed in its current state",
+	CONFLICT_RESOLUTIONS_MISMATCH: "Every conflict must be resolved exactly once",
+	DUPLICATE_ENTRY_WRITES:
+		"Two changes cannot write the same field of one knowledge entry",
 	EXTRACTION_ITEM_NOT_FOUND: "Extraction item not found",
 	EXTRACTION_ITEM_NOT_PENDING: "Only pending extraction items can be edited",
 	FORBIDDEN: "You do not have permission to add knowledge",

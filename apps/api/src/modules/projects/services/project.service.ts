@@ -78,11 +78,11 @@ class ProjectService {
 			this.throwAccessForbidden();
 		}
 
-		const userObject = user.toObject();
+		const userDetails = user.toObject();
 
 		if (
-			userObject.organisationId !== context.organisationId ||
-			userObject.status !== UserStatus.ACTIVE
+			userDetails.organisationId !== context.organisationId ||
+			userDetails.status !== UserStatus.ACTIVE
 		) {
 			this.throwAccessForbidden();
 		}

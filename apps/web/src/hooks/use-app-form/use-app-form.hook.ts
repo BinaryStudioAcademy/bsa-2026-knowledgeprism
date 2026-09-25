@@ -43,8 +43,7 @@ const useAppForm = <T extends FieldValues = FieldValues>({
 	if (validationSchema) {
 		parameters = {
 			...parameters,
-			// eslint-disable-next-line @typescript-eslint/no-explicit-any -- ValidationSchema is intentionally untyped generic shared type
-			resolver: zodResolver(validationSchema as any),
+			resolver: zodResolver(validationSchema as never),
 		};
 	}
 

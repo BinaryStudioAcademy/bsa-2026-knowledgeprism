@@ -20,6 +20,7 @@ import { type ProjectService } from "~/modules/projects/services/project.service
 
 import { type DocumentJobScheduler } from "./document-job-scheduler.js";
 import { DocumentReviewService } from "./document-review.service.js";
+import { type IntegrationApplier } from "./integration-applier.js";
 
 const DOCUMENT_ID = 1;
 const PROJECT_ID = 1;
@@ -227,6 +228,10 @@ const createTestSetup = (): {
 		scheduleIntegration: () => {},
 	} as unknown as DocumentJobScheduler;
 
+	const integrationApplier = {
+		apply: () => Promise.resolve(),
+	} as unknown as IntegrationApplier;
+
 	const integrationChangeRepository = {
 		findByDocumentId: (): Promise<[]> => Promise.resolve([]),
 	} as unknown as IntegrationChangeRepository;
@@ -236,6 +241,7 @@ const createTestSetup = (): {
 		documentJobScheduler,
 		documentRepository,
 		extractionItemRepository,
+		integrationApplier,
 		integrationChangeRepository,
 		projectService,
 	});

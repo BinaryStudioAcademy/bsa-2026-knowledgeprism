@@ -49,14 +49,14 @@ const FeatureTab: React.FC<Properties> = ({
 				<Icon name={feature.iconName} size={FEATURE_TAB_ICON_SIZE} />
 			</span>
 			<div>
-				<h4
+				<h3
 					className={getValidClassNames(
 						"mb-1 text-[15px] font-medium",
 						isActive ? "text-accent" : "text-text",
 					)}
 				>
 					{feature.title}
-				</h4>
+				</h3>
 				<p className="text-[12.5px] leading-[1.55] text-text-muted">
 					{feature.body}
 				</p>
