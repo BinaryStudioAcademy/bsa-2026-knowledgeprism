@@ -33,42 +33,78 @@ const isServerErrorType = (
 	);
 };
 
-const normalizeError = (error: unknown): AppError => {
-	if (typeof error === "string") {
-		return {
-			message: error.trim() === "" ? DEFAULT_ERROR_MESSAGE : error,
-		};
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+	return typeof value === "object" && value !== null;
+};
+
+const parseJsonSafe = (value: string): unknown => {
+	try {
+		return JSON.parse(value);
+	} catch {
+		return null;
+	}
+};
+
+const extractErrorMessage = (candidate: Record<string, unknown>): string => {
+	const message = candidate["message"];
+
+	if (typeof message !== "string" || message.trim() === "") {
+		return DEFAULT_ERROR_MESSAGE;
 	}
 
-	if (typeof error !== "object" || error === null) {
+	const parsed = parseJsonSafe(message);
+
+	if (isRecord(parsed)) {
+		const nestedMessage = parsed["message"];
+
+		if (typeof nestedMessage === "string" && nestedMessage.trim() !== "") {
+			return nestedMessage;
+		}
+	}
+
+	return message;
+};
+
+const normalizeStringError = (error: string): AppError => {
+	const parsed = parseJsonSafe(error);
+
+	if (isRecord(parsed)) {
+		return normalizeError(parsed);
+	}
+
+	return {
+		message: error.trim() === "" ? DEFAULT_ERROR_MESSAGE : error,
+	};
+};
+
+const normalizeError = (error: unknown): AppError => {
+	if (typeof error === "string") {
+		return normalizeStringError(error);
+	}
+
+	if (!isRecord(error)) {
 		return {
 			message: DEFAULT_ERROR_MESSAGE,
 		};
 	}
 
-	const candidate = error as Record<string, unknown>;
-	const message = candidate["message"];
-
 	const normalizedError: AppError = {
-		message:
-			typeof message === "string" && message.trim() !== ""
-				? message
-				: DEFAULT_ERROR_MESSAGE,
+		message: extractErrorMessage(error),
 	};
 
-	const details = candidate["details"];
+	const details = error["details"];
 
 	if (Array.isArray(details) && details.every(isServerErrorDetail)) {
 		normalizedError.details = details;
 	}
 
-	const errorType = candidate["errorType"];
+	const errorType = error["errorType"];
 
 	if (isServerErrorType(errorType)) {
 		normalizedError.errorType = errorType;
 	}
 
-	const status = candidate["status"];
+	const status = error["status"];
 
 	if (typeof status === "number") {
 		normalizedError.status = status;
