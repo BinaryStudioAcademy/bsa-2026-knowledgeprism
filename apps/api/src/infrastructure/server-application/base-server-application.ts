@@ -95,9 +95,9 @@ class BaseServerApplication implements ServerApplication {
 				if ("issues" in error) {
 					this.logger.error(`[Validation Error]: ${error.message}`);
 
-					error.issues.forEach((issue): void => {
+					for (const issue of error.issues) {
 						this.logger.error(`[${issue.path.toString()}] — ${issue.message}`);
-					});
+					}
 
 					const response: ServerValidationErrorResponse = {
 						details: error.issues.map((issue) => ({
@@ -206,9 +206,9 @@ class BaseServerApplication implements ServerApplication {
 	}
 
 	public addRoutes(parameters: ServerApplicationRouteParameters[]): void {
-		parameters.forEach((parameter): void => {
+		for (const parameter of parameters) {
 			this.addRoute(parameter);
-		});
+		}
 	}
 
 	public async init(): Promise<void> {
