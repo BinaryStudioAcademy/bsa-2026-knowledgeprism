@@ -57,9 +57,10 @@ class ExtractionItemRepository {
 
 	public async findByDocumentId(
 		documentId: number,
+		transaction?: Transaction,
 	): Promise<ExtractionItemEntity[]> {
 		const items = await this.extractionItemModel
-			.query()
+			.query(transaction)
 			.where({ documentId })
 			.orderBy("sourcePageNumber", "asc")
 			.orderBy("id", "asc")
@@ -68,8 +69,14 @@ class ExtractionItemRepository {
 		return items.map((item) => toEntity(item));
 	}
 
-	public async findById(id: number): Promise<ExtractionItemEntity | null> {
-		const item = await this.extractionItemModel.query().findById(id).execute();
+	public async findById(
+		id: number,
+		transaction?: Transaction,
+	): Promise<ExtractionItemEntity | null> {
+		const item = await this.extractionItemModel
+			.query(transaction)
+			.findById(id)
+			.execute();
 
 		return item ? toEntity(item) : null;
 	}
@@ -120,17 +127,20 @@ class ExtractionItemRepository {
 			.execute();
 	}
 
-	public async updatePendingContent({
-		documentId,
-		id,
-		payload,
-	}: {
-		documentId: number;
-		id: number;
-		payload: { text: string; title: string };
-	}): Promise<ExtractionItemEntity | null> {
+	public async updatePendingContent(
+		{
+			documentId,
+			id,
+			payload,
+		}: {
+			documentId: number;
+			id: number;
+			payload: { text: string; title: string };
+		},
+		transaction?: Transaction,
+	): Promise<ExtractionItemEntity | null> {
 		const updated = await this.extractionItemModel
-			.query()
+			.query(transaction)
 			.patch(payload)
 			.where({ documentId, id, status: ExtractionItemStatus.PENDING })
 			.returning("*")
