@@ -1,14 +1,21 @@
+import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
 } from "@knowledgeprism/types";
 import React, { useCallback, useMemo, useState } from "react";
+import { useParams } from "react-router-dom";
 
 import { Loader } from "~/components/components.js";
 import { useAppDispatch, useAppSelector, useModal } from "~/hooks/hooks.js";
 
 import { actions } from "../../knowledge.js";
-import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
+import {
+	DEFAULT_BASELINE,
+	EMPTY_LENGTH,
+	LIVE_VERSION,
+} from "../../libs/constants/constants.js";
+import { type ProposedPage } from "../../libs/types/types.js";
 import { AddKnowledgeModal } from "../add-knowledge-modal/add-knowledge-modal.js";
 import { IntegrationPreview } from "../integration-preview/integration-preview.js";
 import { DEFAULT_PROPOSED_STRUCTURE } from "../integration-preview/libs/constants.js";
@@ -17,9 +24,6 @@ import { KnowledgeTreeContent } from "./knowledge-tree-content.js";
 import { KnowledgeTreeEmptyState } from "./knowledge-tree-empty-state.js";
 import { KnowledgeTreeHeader } from "./knowledge-tree-header.js";
 import { KnowledgeTreeSidebar } from "./knowledge-tree-sidebar.js";
-
-const DEFAULT_BASELINE = 1;
-const LIVE_VERSION = 2;
 
 type Properties = {
 	canEdit?: boolean;
@@ -39,8 +43,16 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	selectedPageId,
 }: Properties) => {
 	const dispatch = useAppDispatch();
-	const { errorMessage, isAddingKnowledge, isEntryLoading, isTreeLoading } =
-		useAppSelector((state) => state.knowledge);
+	const {
+		activeDocumentId,
+		activeDocumentStatus,
+		errorMessage,
+		extractionItems,
+		isAddingKnowledge,
+		isEntryLoading,
+		isTreeLoading,
+	} = useAppSelector((state) => state.knowledge);
+	const { id: projectId } = useParams();
 	const [isEditing, setIsEditing] = useState<boolean>(false);
 
 	const {
@@ -84,6 +96,24 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		setIsSidebarOpen(true);
 	}, []);
 
+	const handleResetState = useCallback((): void => {
+		dispatch(actions.resetState());
+		dispatch(actions.finishAddingKnowledge());
+	}, [dispatch]);
+
+	const handleRetry = useCallback((): void => {
+		if (!projectId || !activeDocumentId) {
+			return;
+		}
+
+		void dispatch(
+			actions.retryDocumentProcessing({
+				documentId: activeDocumentId,
+				projectId,
+			}),
+		);
+	}, [activeDocumentId, dispatch, projectId]);
+
 	const breadcrumbs = useMemo(() => {
 		if (!selectedPageId) {
 			return [];
@@ -120,6 +150,39 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		[onSelectPage],
 	);
 
+	const mappedProposedStructure = useMemo(() => {
+		if (extractionItems.length === EMPTY_LENGTH) {
+			return DEFAULT_PROPOSED_STRUCTURE;
+		}
+
+		const sectionsMap = new Map<number, ProposedPage[]>();
+
+		for (const item of extractionItems) {
+			const pageNumber = item.sourcePageNumber;
+			const pages = sectionsMap.get(pageNumber) ?? [];
+
+			pages.push({
+				content: item.text,
+				id: String(item.id),
+				status: "created",
+				title: item.title,
+				type: KnowledgeNodeType.PAGE,
+			});
+
+			sectionsMap.set(pageNumber, pages);
+		}
+
+		return [...sectionsMap]
+			.toSorted(([pageA], [pageB]) => pageA - pageB)
+			.map(([pageNumber, pages]) => ({
+				id: `sec-${String(pageNumber)}`,
+				pages,
+				status: "created" as const,
+				title: `Extracted from Page ${String(pageNumber)}`,
+				type: KnowledgeNodeType.SECTION,
+			}));
+	}, [extractionItems]);
+
 	if (isPreviewOpen) {
 		return (
 			<div className="flex h-full w-full flex-col bg-bg">
@@ -130,7 +193,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 						onAddMore={handleAddMore}
 						onApprove={handleApproveIntegration}
 						onClose={handleClosePreview}
-						proposedStructure={DEFAULT_PROPOSED_STRUCTURE}
+						proposedStructure={mappedProposedStructure}
 					/>
 				</div>
 				<AddKnowledgeModal
@@ -153,9 +216,22 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		let emptyStateContent = <KnowledgeTreeEmptyState />;
 
 		if (isAddingKnowledge) {
-			emptyStateContent = (
-				<LoadingState onFinish={handleFinishLoading} variant="full" />
-			);
+			emptyStateContent =
+				activeDocumentStatus === "FAILED" ? (
+					<LoadingState
+						currentStatus={activeDocumentStatus}
+						hasError={true}
+						onCancel={handleResetState}
+						onRetry={handleRetry}
+						variant="full"
+					/>
+				) : (
+					<LoadingState
+						currentStatus={activeDocumentStatus}
+						onFinish={handleFinishLoading}
+						variant="full"
+					/>
+				);
 		} else if (errorMessage) {
 			emptyStateContent = (
 				<div className="flex flex-col items-center gap-4 text-text-muted">
@@ -212,16 +288,33 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				<KnowledgeTreeHeader
 					breadcrumbs={breadcrumbs}
 					canEdit={canEdit}
+					currentStatus={activeDocumentStatus}
 					isEditing={isEditing}
 					onCancel={handleCancelEdit}
 					onEdit={handleStartEdit}
 					onOpenSidebar={handleOpenSidebar}
 					onPreview={handleOpenPreview}
+					onResetState={handleResetState}
+					onRetry={handleRetry}
 					showCompactLoading={isAddingKnowledge}
 				/>
 				{isAddingKnowledge && (
 					<div className="border-b border-border bg-surface px-4 py-4 @5xl:hidden">
-						<LoadingState onPreview={handleOpenPreview} variant="compact" />
+						{activeDocumentStatus === "FAILED" ? (
+							<LoadingState
+								currentStatus={activeDocumentStatus}
+								hasError={true}
+								onCancel={handleResetState}
+								onRetry={handleRetry}
+								variant="compact"
+							/>
+						) : (
+							<LoadingState
+								currentStatus={activeDocumentStatus}
+								onPreview={handleOpenPreview}
+								variant="compact"
+							/>
+						)}
 					</div>
 				)}
 				{mainContent}
