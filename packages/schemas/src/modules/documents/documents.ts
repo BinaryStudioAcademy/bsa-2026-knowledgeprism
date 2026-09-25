@@ -4,6 +4,7 @@ export {
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
 	extractionItemsReviewValidationSchema,
+	integrationChangesApplyValidationSchema,
 	manualTextCreateValidationSchema,
 	manualTextRouteParametersValidationSchema,
 } from "./libs/validation-schemas/validation-schemas.js";

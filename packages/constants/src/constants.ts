@@ -21,6 +21,7 @@ export {
 	DocumentValidationRule,
 	ExtractionItemStatus,
 	IntegrationChangeType,
+	IntegrationResolution,
 } from "./modules/documents/documents.js";
 export {
 	KnowledgeApiPath,

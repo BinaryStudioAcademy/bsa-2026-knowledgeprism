@@ -8,6 +8,7 @@ export {
 	documentUploadIntentRouteParametersValidationSchema,
 	documentUploadIntentValidationSchema,
 	extractionItemsReviewValidationSchema,
+	integrationChangesApplyValidationSchema,
 	manualTextCreateValidationSchema,
 	manualTextRouteParametersValidationSchema,
 } from "./modules/documents/documents.js";

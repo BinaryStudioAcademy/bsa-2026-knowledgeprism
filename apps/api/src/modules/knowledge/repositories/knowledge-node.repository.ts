@@ -204,19 +204,22 @@ class KnowledgeNodeRepository {
 		);
 	}
 
-	public async update({
-		contentJson,
-		id,
-		title,
-		updatedBy,
-	}: {
-		contentJson: KnowledgeNodeContentDto;
-		id: number;
-		title: string;
-		updatedBy: number;
-	}): Promise<KnowledgeNodeEntity> {
+	public async update(
+		{
+			contentJson,
+			id,
+			title,
+			updatedBy,
+		}: {
+			contentJson: KnowledgeNodeContentDto;
+			id: number;
+			title: string;
+			updatedBy: number;
+		},
+		transaction?: Transaction,
+	): Promise<KnowledgeNodeEntity> {
 		const updatedNode = await this.knowledgeNodeModel
-			.query()
+			.query(transaction)
 			.patchAndFetchById(id, {
 				contentJson,
 				title,

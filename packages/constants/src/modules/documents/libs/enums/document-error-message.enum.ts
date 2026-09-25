@@ -1,6 +1,8 @@
 const DocumentErrorMessage = {
+	APPLY_NOT_ALLOWED: "Document is not waiting for approval",
 	CANCEL_NOT_ALLOWED: "Document cannot be cancelled in its current state",
 	CONFIRM_NOT_ALLOWED: "Document cannot be confirmed in its current state",
+	CONFLICT_RESOLUTIONS_MISMATCH: "Every conflict must be resolved exactly once",
 	FORBIDDEN: "You do not have permission to add knowledge",
 	INTEGRATION_FAILED: "Integration analysis failed",
 	NOT_FOUND: "Document not found",

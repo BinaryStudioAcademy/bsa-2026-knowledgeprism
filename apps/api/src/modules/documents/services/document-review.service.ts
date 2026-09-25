@@ -2,6 +2,7 @@ import {
 	DocumentErrorMessage,
 	DocumentStatus,
 	ExtractionItemStatus,
+	IntegrationChangeType,
 } from "@knowledgeprism/constants";
 import {
 	type DocumentStatusResponseDto,
@@ -10,6 +11,7 @@ import {
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
 	type IntegrationChangeResponseDto,
+	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
 } from "@knowledgeprism/types";
 
@@ -28,6 +30,7 @@ import {
 } from "~/modules/projects/services/project.service.js";
 
 import { type DocumentJobScheduler } from "./document-job-scheduler.js";
+import { type IntegrationApplier } from "./integration-applier.js";
 
 const EMPTY_LENGTH = 0;
 
@@ -36,6 +39,7 @@ type Constructor = {
 	documentJobScheduler: DocumentJobScheduler;
 	documentRepository: DocumentRepository;
 	extractionItemRepository: ExtractionItemRepository;
+	integrationApplier: IntegrationApplier;
 	integrationChangeRepository: IntegrationChangeRepository;
 	projectService: ProjectService;
 };
@@ -44,6 +48,13 @@ type DocumentReference = {
 	context: ProjectAccessContext;
 	documentId: number;
 	projectId: number;
+};
+
+const createApplyNotAllowedError = (): HTTPError => {
+	return new HTTPError({
+		message: DocumentErrorMessage.APPLY_NOT_ALLOWED,
+		status: HTTPCode.CONFLICT,
+	});
 };
 
 const createReviewNotAllowedError = (): HTTPError => {
@@ -109,21 +120,47 @@ const toIntegrationChangeResponse = (
 	};
 };
 
+const isExactIdMatch = (
+	expectedIds: number[],
+	providedIds: number[],
+): boolean => {
+	const providedIdSet = new Set(providedIds);
+	const expectedIdSet = new Set(expectedIds);
+
+	return (
+		providedIdSet.size === providedIds.length &&
+		providedIdSet.size === expectedIdSet.size &&
+		providedIds.every((id) => expectedIdSet.has(id))
+	);
+};
+
 const assertReviewCoversPendingItems = (
 	pendingItems: ExtractionItemEntity[],
 	{ approvedIds, rejectedIds }: ExtractionItemsReviewRequestDto,
 ): void => {
-	const reviewedIds = [...approvedIds, ...rejectedIds];
-	const reviewedIdSet = new Set(reviewedIds);
-	const pendingIdSet = new Set(pendingItems.map((item) => item.toObject().id));
-	const isExactMatch =
-		reviewedIdSet.size === reviewedIds.length &&
-		reviewedIdSet.size === pendingIdSet.size &&
-		reviewedIds.every((id) => pendingIdSet.has(id));
+	const pendingIds = pendingItems.map((item) => item.toObject().id);
 
-	if (!isExactMatch) {
+	if (!isExactIdMatch(pendingIds, [...approvedIds, ...rejectedIds])) {
 		throw new HTTPError({
 			message: DocumentErrorMessage.REVIEW_ITEMS_MISMATCH,
+			status: HTTPCode.BAD_REQUEST,
+		});
+	}
+};
+
+const assertResolutionsCoverConflicts = (
+	changes: IntegrationChangeEntity[],
+	{ resolutions }: IntegrationChangesApplyRequestDto,
+): void => {
+	const conflictIds = changes
+		.map((change) => change.toObject())
+		.filter(({ type }) => type === IntegrationChangeType.CONFLICT)
+		.map(({ id }) => id);
+	const resolvedIds = resolutions.map(({ changeId }) => changeId);
+
+	if (!isExactIdMatch(conflictIds, resolvedIds)) {
+		throw new HTTPError({
+			message: DocumentErrorMessage.CONFLICT_RESOLUTIONS_MISMATCH,
 			status: HTTPCode.BAD_REQUEST,
 		});
 	}
@@ -138,6 +175,8 @@ class DocumentReviewService {
 
 	private extractionItemRepository: ExtractionItemRepository;
 
+	private integrationApplier: IntegrationApplier;
+
 	private integrationChangeRepository: IntegrationChangeRepository;
 
 	private projectService: ProjectService;
@@ -147,6 +186,7 @@ class DocumentReviewService {
 		documentJobScheduler,
 		documentRepository,
 		extractionItemRepository,
+		integrationApplier,
 		integrationChangeRepository,
 		projectService,
 	}: Constructor) {
@@ -154,6 +194,7 @@ class DocumentReviewService {
 		this.documentJobScheduler = documentJobScheduler;
 		this.documentRepository = documentRepository;
 		this.extractionItemRepository = extractionItemRepository;
+		this.integrationApplier = integrationApplier;
 		this.integrationChangeRepository = integrationChangeRepository;
 		this.projectService = projectService;
 	}
@@ -248,6 +289,63 @@ class DocumentReviewService {
 		});
 
 		return integration.document;
+	}
+
+	public async applyIntegrationChanges({
+		payload,
+		...reference
+	}: DocumentReference & {
+		payload: IntegrationChangesApplyRequestDto;
+	}): Promise<DocumentStatusResponseDto> {
+		await this.projectService.assertCanWriteKnowledge(
+			reference.projectId,
+			reference.context,
+		);
+
+		const document = await this.findProjectDocument(reference);
+
+		if (document.toObject().status !== DocumentStatus.WAITING_FOR_APPROVAL) {
+			throw createApplyNotAllowedError();
+		}
+
+		const changes = await this.integrationChangeRepository.findByDocumentId(
+			reference.documentId,
+		);
+
+		assertResolutionsCoverConflicts(changes, payload);
+
+		const completedDocument = await this.database.transaction(
+			async (transaction) => {
+				const approvedDocument =
+					await this.documentRepository.compareAndSwapStatus(
+						{
+							errorMessage: null,
+							expectedStatus: DocumentStatus.WAITING_FOR_APPROVAL,
+							id: reference.documentId,
+							status: DocumentStatus.COMPLETED,
+						},
+						transaction,
+					);
+
+				if (!approvedDocument) {
+					throw createApplyNotAllowedError();
+				}
+
+				await this.integrationApplier.apply(
+					{
+						changes,
+						document,
+						resolutions: payload.resolutions,
+						userId: reference.context.userId,
+					},
+					transaction,
+				);
+
+				return approvedDocument;
+			},
+		);
+
+		return toDocumentStatusResponse(completedDocument);
 	}
 
 	public async findIntegrationChanges(
