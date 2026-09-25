@@ -1,11 +1,14 @@
-import { DocumentValidationRule } from "@knowledgeprism/constants";
+import {
+	DocumentContentType,
+	DocumentValidationRule,
+} from "@knowledgeprism/constants";
 import { z } from "zod";
 
 const STRING_WITHOUT_CONTROL_CHARACTERS_PATTERN = /^[^\p{Cc}]+$/u;
 
 const documentUploadIntent = z
 	.object({
-		contentType: z.literal("application/pdf"),
+		contentType: z.enum(DocumentContentType),
 		fileName: z
 			.string()
 			.trim()

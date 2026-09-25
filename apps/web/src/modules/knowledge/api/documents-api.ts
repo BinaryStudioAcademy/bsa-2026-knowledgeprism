@@ -15,7 +15,7 @@ import { ContentType } from "~/lib/enums/enums.js";
 import { type HTTP } from "~/lib/http/http.js";
 import { type Storage } from "~/lib/storage/storage.js";
 
-import { PDF_MIME_TYPE } from "../libs/constants/constants.js";
+import { getFileContentType } from "../libs/helpers/helpers.js";
 
 type Constructor = {
 	baseUrl: string;
@@ -189,7 +189,7 @@ class DocumentsApi extends BaseHTTPApi {
 	}): Promise<void> {
 		const response = await fetch(uploadUrl, {
 			body: file,
-			headers: { "Content-Type": file.type || PDF_MIME_TYPE },
+			headers: { "Content-Type": getFileContentType(file) },
 			method: "PUT",
 			...(signal && { signal }),
 		});

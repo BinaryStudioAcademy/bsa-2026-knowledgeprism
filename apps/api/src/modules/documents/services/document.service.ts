@@ -1,4 +1,5 @@
 import {
+	DocumentContentType,
 	DocumentErrorMessage,
 	DocumentSourceType,
 	DocumentStatus,
@@ -40,7 +41,6 @@ import {
 import { type DocumentJobScheduler } from "./document-job-scheduler.js";
 import { type DocumentReference } from "./document-review.service.js";
 
-const MANUAL_TEXT_MIME_TYPE = "text/plain";
 const UNTITLED_MANUAL_DOCUMENT_NAME = "Untitled";
 const NO_DOCUMENTS = 0;
 const INITIAL_PROCESSING_ATTEMPT = 0;
@@ -427,7 +427,7 @@ class DocumentService {
 					content: payload.content,
 					contentHash,
 					errorMessage: null,
-					mimeType: MANUAL_TEXT_MIME_TYPE,
+					mimeType: DocumentContentType.TXT,
 					name: title ?? UNTITLED_MANUAL_DOCUMENT_NAME,
 					projectId: numericProjectId,
 					s3Key: null,

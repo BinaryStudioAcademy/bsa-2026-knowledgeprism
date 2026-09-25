@@ -13,6 +13,7 @@ export { BedrockRequest, ClaudeModelId } from "./modules/ai/ai.js";
 export { AskPrismApiPath } from "./modules/ask-prism/ask-prism.js";
 export { AuthApiPath, AuthValidationMessage } from "./modules/auth/auth.js";
 export {
+	DocumentContentType,
 	DocumentErrorMessage,
 	DocumentsApiPath,
 	DocumentSourceType,

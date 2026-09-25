@@ -1,12 +1,19 @@
-const PDF_MIME_TYPE = "application/pdf";
-const SUPPORTED_FILE_EXTENSIONS = [".pdf"] as const;
-const SUPPORTED_FILE_MIME_TYPES = [PDF_MIME_TYPE] as const;
+import { DocumentContentType } from "@knowledgeprism/constants";
+
+const SUPPORTED_FILE_TYPES = [
+	{ contentType: DocumentContentType.PDF, extension: ".pdf" },
+	{ contentType: DocumentContentType.TXT, extension: ".txt" },
+] as const;
+const SUPPORTED_FILE_EXTENSIONS = SUPPORTED_FILE_TYPES.map(({ extension }) => {
+	return extension;
+});
 
 const DocumentValidationMessage = {
 	EMPTY_FILE: "The selected file is empty.",
 	FILE_TOO_LARGE: "File is too large. Maximum file size is 25 MB.",
 	PROCESSING_FAILED: "Processing failed",
-	UNSUPPORTED_FORMAT: "Unsupported file format. Please upload a PDF file.",
+	UNSUPPORTED_FORMAT:
+		"Unsupported file format. Please upload a PDF or TXT file.",
 } as const;
 
 const EMPTY_LENGTH = 0;
@@ -37,9 +44,8 @@ export {
 	LAST_INDEX_OFFSET,
 	MIN_INDEX,
 	NOT_FOUND_INDEX,
-	PDF_MIME_TYPE,
 	START_INDEX,
 	SUPPORTED_FILE_EXTENSIONS,
-	SUPPORTED_FILE_MIME_TYPES,
+	SUPPORTED_FILE_TYPES,
 };
 export { FileValidationRule } from "@knowledgeprism/constants";
