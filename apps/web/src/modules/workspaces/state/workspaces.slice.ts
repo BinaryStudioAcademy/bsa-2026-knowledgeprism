@@ -13,6 +13,7 @@ import { createProject, deleteProject, updateProject } from "./action.js";
 const LAST_ACTIVE_PROJECT_STORAGE_KEY = "kp:lastActiveProjectId";
 
 interface WorkspacesState {
+	creationError: null | string;
 	error: null | string;
 	isCreating: boolean;
 	isLoading: boolean;
@@ -21,6 +22,7 @@ interface WorkspacesState {
 	lastActiveProjectId: null | string;
 	projects: ProjectItem[];
 	recentDocuments: RecentDocumentItem[];
+	updateError: null | string;
 }
 
 const getStoredLastActiveProjectId = (): null | string => {
@@ -54,6 +56,7 @@ const clearLastActiveProjectIfMissing = (state: WorkspacesState): void => {
 };
 
 const initialState: WorkspacesState = {
+	creationError: null,
 	error: null,
 	isCreating: false,
 	isLoading: false,
@@ -62,6 +65,7 @@ const initialState: WorkspacesState = {
 	lastActiveProjectId: getStoredLastActiveProjectId(),
 	projects: [],
 	recentDocuments: [],
+	updateError: null,
 };
 
 const fetchProjects = createAsyncThunk(
@@ -120,13 +124,16 @@ const workspacesSlice = createSlice({
 			})
 			.addCase(createProject.pending, (state) => {
 				state.isCreating = true;
+				state.creationError = null;
 			})
 			.addCase(createProject.fulfilled, (state, action) => {
 				state.isCreating = false;
 				state.projects.unshift(action.payload);
 			})
-			.addCase(createProject.rejected, (state) => {
+			.addCase(createProject.rejected, (state, action) => {
 				state.isCreating = false;
+				state.creationError =
+					action.error.message ?? "Failed to create project";
 			})
 			.addCase(deleteProject.fulfilled, (state, action) => {
 				state.projects = state.projects.filter(
@@ -136,6 +143,7 @@ const workspacesSlice = createSlice({
 			})
 			.addCase(updateProject.pending, (state) => {
 				state.isUpdating = true;
+				state.updateError = null;
 			})
 			.addCase(updateProject.fulfilled, (state, action) => {
 				state.isUpdating = false;
@@ -152,8 +160,9 @@ const workspacesSlice = createSlice({
 					),
 				);
 			})
-			.addCase(updateProject.rejected, (state) => {
+			.addCase(updateProject.rejected, (state, action) => {
 				state.isUpdating = false;
+				state.updateError = action.error.message ?? "Failed to update project";
 			})
 			.addCase(logout.fulfilled, (state) => {
 				state.lastActiveProjectId = null;
@@ -163,6 +172,12 @@ const workspacesSlice = createSlice({
 	initialState,
 	name: "workspaces",
 	reducers: {
+		clearCreationError(state) {
+			state.creationError = null;
+		},
+		clearUpdateError(state) {
+			state.updateError = null;
+		},
 		setLastActiveProject(state, action: PayloadAction<string>) {
 			state.lastActiveProjectId = action.payload;
 			try {
