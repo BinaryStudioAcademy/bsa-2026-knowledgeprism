@@ -1,25 +1,33 @@
 import {
 	applyIntegrationChanges,
 	confirmDocumentUpload,
+	fetchExtractionItems,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
+	pollDocumentStatus,
 	processDocument,
+	retryDocumentProcessing,
 	searchKnowledge,
+	submitExtractionReview,
 	submitManualText,
 	updateKnowledgeEntry,
 } from "./actions.js";
-import { actions } from "./knowledge.slice.js";
+import { actions as sliceActions } from "./knowledge.slice.js";
 
 const allActions = {
-	...actions,
+	...sliceActions,
 	applyIntegrationChanges,
 	confirmDocumentUpload,
+	fetchExtractionItems,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
+	pollDocumentStatus,
 	processDocument,
+	retryDocumentProcessing,
 	searchKnowledge,
+	submitExtractionReview,
 	submitManualText,
 	updateKnowledgeEntry,
 };

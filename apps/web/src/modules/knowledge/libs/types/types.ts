@@ -1,6 +1,10 @@
 import { type PartialBlock } from "@blocknote/core";
-import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import {
+	type DocumentStatus,
+	KnowledgeNodeType,
+} from "@knowledgeprism/constants";
+import {
+	type ExtractionItemResponseDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeSearchItemDto,
@@ -47,7 +51,9 @@ interface KbEntry {
 
 type KnowledgeState = {
 	activeDocumentId: null | number;
+	activeDocumentStatus: "IDLE" | ValueOf<typeof DocumentStatus>;
 	errorMessage: null | string;
+	extractionItems: ExtractionItemResponseDto[];
 	integrationPreviewError: null | string;
 	integrationPreviewSections: ProposedSection[];
 	isAddingKnowledge: boolean;
