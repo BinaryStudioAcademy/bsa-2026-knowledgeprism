@@ -4,6 +4,7 @@ import {
 } from "@knowledgeprism/constants";
 import { z } from "zod";
 
+import { email } from "./email.validation-schema.js";
 import { password } from "./password.validation-schema.js";
 
 const projectAssignment = z.object({
@@ -15,20 +16,7 @@ const projectAssignment = z.object({
 
 const userCreate = z.object({
 	assignedProjects: z.array(projectAssignment).default([]),
-	email: z
-		.string()
-		.trim()
-		.min(UserValidationRule.EMAIL_MINIMUM_LENGTH, {
-			error: UserValidationMessage.EMAIL_REQUIRE,
-		})
-		.max(UserValidationRule.EMAIL_MAXIMUM_LENGTH, {
-			error: UserValidationMessage.EMAIL_WRONG,
-		})
-		.pipe(
-			z.email({
-				error: UserValidationMessage.EMAIL_WRONG,
-			}),
-		),
+	email,
 	firstName: z
 		.string()
 		.trim()
