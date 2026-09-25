@@ -509,17 +509,18 @@ class DocumentReviewService {
 			});
 		}
 
-		if (item.toObject().status !== ExtractionItemStatus.PENDING) {
+		const updated = await this.extractionItemRepository.updatePendingContent({
+			documentId: reference.documentId,
+			id,
+			payload: { text: payload.text.trim(), title: payload.title.trim() },
+		});
+
+		if (!updated) {
 			throw new HTTPError({
 				message: DocumentErrorMessage.EXTRACTION_ITEM_NOT_PENDING,
 				status: HTTPCode.CONFLICT,
 			});
 		}
-
-		const updated = await this.extractionItemRepository.updateContent(id, {
-			text: payload.text.trim(),
-			title: payload.title.trim(),
-		});
 
 		return toExtractionItemResponse(updated);
 	}
