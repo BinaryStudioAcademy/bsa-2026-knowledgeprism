@@ -1,9 +1,13 @@
 import { AuthValidationMessage } from "@knowledgeprism/constants";
 import { isRejected, type Middleware } from "@reduxjs/toolkit";
 
-import { errorService } from "~/lib/errors/error.service.js";
-import { normalizeError } from "~/lib/helpers/normalize-error.helper.js";
+import { NotificationVariant } from "~/lib/enums/enums.js";
+import {
+	getNotificationMessage,
+	normalizeError,
+} from "~/lib/helpers/helpers.js";
 import { HTTPCode } from "~/lib/http/http.js";
+import { notificationService } from "~/lib/notifications/notification.service.js";
 import { actions as authActions } from "~/modules/auth/auth.js";
 
 const IGNORED_ACTION_TYPES = new Set([
@@ -51,7 +55,10 @@ const errorMiddleware: Middleware =
 		}
 
 		if (!IGNORED_ACTION_TYPES.has(action.type)) {
-			errorService.notify(error);
+			notificationService.notify({
+				message: getNotificationMessage(normalizeError(error)),
+				variant: NotificationVariant.ERROR,
+			});
 		}
 
 		return result;

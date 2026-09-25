@@ -173,15 +173,9 @@ interface KbEntryFormProperties {
 	entry: KbEntry;
 	onCancel: () => void;
 	onSave: (payload: KnowledgeEntryUpdateRequestDto) => Promise<boolean>;
-	saveErrorMessage: null | string;
 }
 
-const KbEntryForm = ({
-	entry,
-	onCancel,
-	onSave,
-	saveErrorMessage,
-}: KbEntryFormProperties) => {
+const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isMaxTitleReached, setIsMaxTitleReached] = useState(false);
 
@@ -282,12 +276,6 @@ const KbEntryForm = ({
 			id="kb-entry-form"
 			onSubmit={handleFormSubmit}
 		>
-			{saveErrorMessage && (
-				<div className="rounded-md border border-error bg-error-bg p-3 text-sm text-error shadow-sm">
-					{saveErrorMessage}
-				</div>
-			)}
-
 			<div className="kb-body flex flex-col gap-4">
 				<div className="flex flex-col gap-1" onInput={handleTitleInput}>
 					<Input

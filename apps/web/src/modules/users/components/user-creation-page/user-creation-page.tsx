@@ -6,7 +6,6 @@ import {
 	useCallback,
 	useEffect,
 	useNavigate,
-	useState,
 } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { actions as projectsActions } from "~/modules/projects/projects.js";
@@ -38,7 +37,6 @@ const DEFAULT_USER_CREATION_PAYLOAD: UserCreationFormValues = {
 const UserCreationPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
-	const [errorMessage, setErrorMessage] = useState<string | undefined>();
 	const availableProjects = useAppSelector((state) => state.projects.projects);
 
 	useEffect(() => {
@@ -52,7 +50,6 @@ const UserCreationPage: React.FC = () => {
 
 	const handleValidSubmit = useCallback(
 		(values: UserCreationFormValues): void => {
-			setErrorMessage(undefined);
 			void dispatch(
 				userActions.createUser({
 					assignedProjects: values.assignedProjects,
@@ -66,12 +63,7 @@ const UserCreationPage: React.FC = () => {
 				.then(() => {
 					void navigate(AppRoute.USERS);
 				})
-				.catch((error: unknown) => {
-					const message =
-						(error as { message?: string }).message ??
-						"An unexpected error occurred";
-					setErrorMessage(message);
-				});
+				.catch(() => {});
 		},
 		[dispatch, navigate],
 	);
@@ -103,7 +95,6 @@ const UserCreationPage: React.FC = () => {
 				<UserForm
 					availableProjects={availableProjects}
 					control={control}
-					errorMessage={errorMessage}
 					onCancel={handleCancel}
 					onSubmit={handleFormSubmit}
 				/>

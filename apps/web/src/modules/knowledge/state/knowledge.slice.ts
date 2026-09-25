@@ -120,10 +120,6 @@ const { actions, name, reducer } = createSlice({
 				treeItem.updatedAt = action.payload.updatedAt;
 			}
 		});
-		builder.addCase(updateKnowledgeEntry.rejected, (state, action) => {
-			state.errorMessage =
-				action.error.message ?? "Failed to update knowledge entry";
-		});
 		builder.addCase(searchKnowledge.pending, (state, action) => {
 			state.searchErrorMessage = null;
 			state.searchQuery = action.meta.arg.query;
