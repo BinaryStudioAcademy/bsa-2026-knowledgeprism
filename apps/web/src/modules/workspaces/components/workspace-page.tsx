@@ -129,7 +129,6 @@ const CreateProjectModal: React.FC<CreateProjectModalProperties> = ({
 			<ProjectManagmentModalForm
 				error={error}
 				isSubmitting={isSubmitting}
-				onClose={handleClose}
 				onSubmit={handleCreate}
 				submitLabel="Create Project"
 			/>
@@ -178,7 +177,6 @@ const EditProjectModal: React.FC<EditProjectModalProperties> = ({
 					projectName: project.name,
 				}}
 				isSubmitting={isSubmitting}
-				onClose={handleClose}
 				onSubmit={handleUpdate}
 				submitLabel="Save Changes"
 			/>
