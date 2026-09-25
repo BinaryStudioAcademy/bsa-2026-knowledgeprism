@@ -212,9 +212,13 @@ const pollDocumentStatus = createAppAsyncThunk<
 		const terminalStatuses = ["WAITING_FOR_APPROVAL", "COMPLETED", "FAILED"];
 
 		if (!terminalStatuses.includes(statusResponse.status)) {
-			setTimeout(() => {
+			const timerId = setTimeout(() => {
 				void dispatch(pollDocumentStatus({ documentId, projectId }));
 			}, POLL_DOCUMENT_STATUS_INTERVAL_MS);
+
+			signal.addEventListener("abort", () => {
+				clearTimeout(timerId);
+			});
 		} else if (statusResponse.status === "WAITING_FOR_APPROVAL") {
 			void dispatch(fetchExtractionItems({ documentId, projectId }));
 		}
@@ -258,14 +262,17 @@ const submitExtractionReview = createAppAsyncThunk<
 const retryDocumentProcessing = createAppAsyncThunk<
 	unknown,
 	{ documentId: number; projectId: string }
->(`${sliceName}/retry-document-processing`, (payload, { extra, signal }) => {
-	const { documentsApi } = extra;
-	return documentsApi.retryProcessing({
-		documentId: payload.documentId,
-		projectId: payload.projectId,
-		signal,
-	});
-});
+>(
+	`${sliceName}/retry-document-processing`,
+	async (payload, { extra, signal }) => {
+		const { documentsApi } = extra;
+		await documentsApi.retryProcessing({
+			documentId: payload.documentId,
+			projectId: payload.projectId,
+			signal,
+		});
+	},
+);
 
 export {
 	confirmDocumentUpload,
