@@ -13,16 +13,16 @@ import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 import { SUPPORTED_FILE_EXTENSIONS } from "../libs/constants/constants.js";
 
-const FIRST_FILE_INDEX = 0;
+const EMPTY_FILES_COUNT = 0;
 
 type Properties = {
 	disabled?: boolean;
-	onFileSelected: (file: File) => void;
+	onFilesSelected: (files: File[]) => void;
 };
 
 const FileDropzone = ({
 	disabled = false,
-	onFileSelected,
+	onFilesSelected,
 }: Properties): JSX.Element => {
 	const [isDragActive, setIsDragActive] = useState(false);
 	const fileInputReference = useRef<HTMLInputElement>(null);
@@ -54,12 +54,12 @@ const FileDropzone = ({
 				return;
 			}
 
-			const droppedFile = event.dataTransfer.files[FIRST_FILE_INDEX];
-			if (droppedFile) {
-				onFileSelected(droppedFile);
+			const droppedFiles = [...event.dataTransfer.files];
+			if (droppedFiles.length > EMPTY_FILES_COUNT) {
+				onFilesSelected(droppedFiles);
 			}
 		},
-		[disabled, onFileSelected],
+		[disabled, onFilesSelected],
 	);
 
 	const handleBrowseClick = useCallback((): void => {
@@ -68,13 +68,14 @@ const FileDropzone = ({
 
 	const handleInputChange = useCallback(
 		(event: ChangeEvent<HTMLInputElement>): void => {
-			const selectedFile = event.target.files?.[FIRST_FILE_INDEX];
-			if (selectedFile) {
-				onFileSelected(selectedFile);
+			const selectedFiles = event.target.files ? [...event.target.files] : [];
+
+			if (selectedFiles.length > EMPTY_FILES_COUNT) {
+				onFilesSelected(selectedFiles);
 			}
 			event.target.value = "";
 		},
-		[onFileSelected],
+		[onFilesSelected],
 	);
 
 	return (
@@ -118,6 +119,7 @@ const FileDropzone = ({
 				accept={SUPPORTED_FILE_EXTENSIONS.join(",")}
 				className="hidden"
 				disabled={disabled}
+				multiple
 				onChange={handleInputChange}
 				ref={fileInputReference}
 				type="file"

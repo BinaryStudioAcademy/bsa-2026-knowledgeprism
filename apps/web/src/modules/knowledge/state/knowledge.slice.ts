@@ -35,12 +35,14 @@ const initialState: State = {
 	searchResults: [],
 	searchStatus: SearchStatus.IDLE,
 	selectedEntry: null,
-	selectedFile: null,
+	selectedFiles: [],
 	tree: [],
 };
 
 const INITIAL_PROGRESS = 15;
 const IN_PROGRESS_PERCENTAGE = 50;
+const NOT_FOUND_INDEX = -1;
+const EMPTY_FILES_COUNT = 0;
 
 const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
@@ -58,37 +60,81 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? DocumentValidationMessage.PROCESSING_FAILED;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
 		});
-		builder.addCase(processDocument.pending, (state) => {
+		builder.addCase(processDocument.pending, (state, action) => {
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 
-			if (state.selectedFile) {
-				state.selectedFile.status = DocumentProcessingStatus.PROCESSING;
-				state.selectedFile.progress = IN_PROGRESS_PERCENTAGE;
+			const targetFile = state.selectedFiles.find(
+				(file) => file.id === action.meta.arg.id,
+			);
+			if (targetFile) {
+				targetFile.status = DocumentProcessingStatus.PROCESSING;
+				targetFile.progress = IN_PROGRESS_PERCENTAGE;
 			}
 		});
 		builder.addCase(processDocument.fulfilled, (state, action) => {
-			if (!state.selectedFile || state.selectedFile.id !== action.meta.arg.id) {
-				return;
+			const targetFileIndex = state.selectedFiles.findIndex(
+				(file) => file.id === action.meta.arg.id,
+			);
+
+			if (targetFileIndex === NOT_FOUND_INDEX) {
+				state.selectedFiles.push(action.payload);
+			} else {
+				state.selectedFiles[targetFileIndex] = action.payload;
 			}
 
 			state.activeDocumentId =
 				action.payload.documentId ?? state.activeDocumentId;
 			state.errorMessage = null;
-			state.processingStatus = DocumentProcessingStatus.READY;
-			state.selectedFile = action.payload;
+
+			const hasProcessing = state.selectedFiles.some(
+				(file) => file.status === DocumentProcessingStatus.PROCESSING,
+			);
+			const hasReady = state.selectedFiles.some(
+				(file) => file.status === DocumentProcessingStatus.READY,
+			);
+
+			if (hasProcessing) {
+				state.processingStatus = DocumentProcessingStatus.PROCESSING;
+			} else if (hasReady) {
+				state.processingStatus = DocumentProcessingStatus.READY;
+			} else {
+				state.processingStatus = DocumentProcessingStatus.FAILED;
+			}
 		});
 		builder.addCase(processDocument.rejected, (state, action) => {
-			if (!state.selectedFile || state.selectedFile.id !== action.meta.arg.id) {
-				return;
+			const targetFile = state.selectedFiles.find(
+				(file) => file.id === action.meta.arg.id,
+			);
+
+			if (targetFile) {
+				targetFile.status = DocumentProcessingStatus.FAILED;
+				targetFile.documentId = action.payload?.documentId;
+				targetFile.uploadUrl = action.payload?.uploadUrl;
+				targetFile.errorMessage =
+					action.payload?.message ??
+					DocumentValidationMessage.PROCESSING_FAILED;
 			}
 
-			state.errorMessage =
-				action.payload?.message ?? DocumentValidationMessage.PROCESSING_FAILED;
-			state.processingStatus = DocumentProcessingStatus.FAILED;
-			state.selectedFile.status = DocumentProcessingStatus.FAILED;
-			state.selectedFile.documentId = action.payload?.documentId;
-			state.selectedFile.uploadUrl = action.payload?.uploadUrl;
+			const hasProcessing = state.selectedFiles.some(
+				(file) => file.status === DocumentProcessingStatus.PROCESSING,
+			);
+			const hasReady = state.selectedFiles.some(
+				(file) => file.status === DocumentProcessingStatus.READY,
+			);
+
+			if (hasProcessing) {
+				state.processingStatus = DocumentProcessingStatus.PROCESSING;
+				state.errorMessage = null;
+			} else if (hasReady) {
+				state.processingStatus = DocumentProcessingStatus.READY;
+				state.errorMessage = null;
+			} else {
+				state.processingStatus = DocumentProcessingStatus.FAILED;
+				state.errorMessage =
+					action.payload?.message ??
+					DocumentValidationMessage.PROCESSING_FAILED;
+			}
 		});
 		builder.addCase(fetchIntegrationChanges.pending, (state) => {
 			state.integrationPreviewError = null;
@@ -195,15 +241,33 @@ const { actions, name, reducer } = createSlice({
 		finishAddingKnowledge(state) {
 			state.isAddingKnowledge = false;
 		},
-		removeDocument(state) {
-			state.errorMessage = null;
-			state.processingStatus = DocumentProcessingStatus.IDLE;
-			state.selectedFile = null;
+		removeDocument(state, action: PayloadAction<{ id: string }>) {
+			state.selectedFiles = state.selectedFiles.filter(
+				(file) => file.id !== action.payload.id,
+			);
+			if (state.selectedFiles.length === EMPTY_FILES_COUNT) {
+				state.errorMessage = null;
+				state.processingStatus = DocumentProcessingStatus.IDLE;
+				return;
+			}
+			const hasProcessing = state.selectedFiles.some(
+				(file) => file.status === DocumentProcessingStatus.PROCESSING,
+			);
+			const hasFailed = state.selectedFiles.some(
+				(file) => file.status === DocumentProcessingStatus.FAILED,
+			);
+			if (hasProcessing) {
+				state.processingStatus = DocumentProcessingStatus.PROCESSING;
+			} else if (hasFailed) {
+				state.processingStatus = DocumentProcessingStatus.FAILED;
+			} else {
+				state.processingStatus = DocumentProcessingStatus.READY;
+			}
 		},
 		resetState(state) {
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
-			state.selectedFile = null;
+			state.selectedFiles = [];
 		},
 		setActiveDocumentId(state, action: PayloadAction<null | number>) {
 			state.activeDocumentId = action.payload;
@@ -211,7 +275,6 @@ const { actions, name, reducer } = createSlice({
 		setError(state, action: PayloadAction<string>) {
 			state.errorMessage = action.payload;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
-			state.selectedFile = null;
 		},
 		startAddingKnowledge(state) {
 			state.isAddingKnowledge = true;
@@ -224,7 +287,12 @@ const { actions, name, reducer } = createSlice({
 
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
-			state.selectedFile = {
+
+			const existingIndex = state.selectedFiles.findIndex(
+				(file) => file.id === id,
+			);
+
+			const processingItem = {
 				id,
 				name,
 				progress: INITIAL_PROGRESS,
@@ -232,6 +300,12 @@ const { actions, name, reducer } = createSlice({
 				sizeLabel: formatFileSize(size),
 				status: DocumentProcessingStatus.PROCESSING,
 			};
+
+			if (existingIndex === NOT_FOUND_INDEX) {
+				state.selectedFiles.push(processingItem);
+			} else {
+				state.selectedFiles[existingIndex] = processingItem;
+			}
 		},
 	},
 });

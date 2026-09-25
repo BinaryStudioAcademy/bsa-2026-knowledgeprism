@@ -53,14 +53,17 @@ const TAB_ITEMS: TabItem[] = [
 	},
 ];
 
-const TAB_ICON_SIZE = 14;
-const FORM_SESSION_KEY_INCREMENT = 1;
-const INITIAL_FORM_SESSION_KEY = 0;
+const EMPTY_COUNT = 0;
 const FIRST_TAB_INDEX = 0;
-const TAB_INDEX_STEP = 1;
+const FORM_SESSION_KEY_INCREMENT = 1;
 const INACTIVE_TAB_INDEX = -1;
+const INITIAL_FORM_SESSION_KEY = 0;
+const SINGLE_ITEM_COUNT = 1;
+const TAB_ICON_SIZE = 14;
+const TAB_INDEX_STEP = 1;
 
 const getCountLabel = (
+	readyCount: number,
 	status: undefined | ValueOf<typeof DocumentProcessingStatus>,
 ): string => {
 	switch (status) {
@@ -73,7 +76,9 @@ const getCountLabel = (
 		}
 
 		case DocumentProcessingStatus.READY: {
-			return "1 item ready";
+			return readyCount === SINGLE_ITEM_COUNT
+				? "1 item ready"
+				: `${String(readyCount)} items ready`;
 		}
 
 		default: {
@@ -118,7 +123,7 @@ const AddKnowledgeModal = ({
 		new Map<ValueOf<typeof AddKnowledgeTab>, HTMLButtonElement>(),
 	);
 
-	const { processingStatus, selectedFile } = useAppSelector(
+	const { processingStatus, selectedFiles } = useAppSelector(
 		(state) => state.knowledge,
 	);
 	const projects = useAppSelector((state) => state.workspaces.projects);
@@ -126,13 +131,21 @@ const AddKnowledgeModal = ({
 		projectName ??
 		projects.find((project) => project.id === projectId)?.name ??
 		"";
-	const selectedDocumentId = selectedFile?.documentId;
-	const isSubmissionPending = isManualTextSubmitting || isUploadSubmitting;
-	const hasSelectedFile = Boolean(selectedFile);
 
+	const isSubmissionPending = isManualTextSubmitting || isUploadSubmitting;
+	const hasSelectedFiles = selectedFiles.length > EMPTY_COUNT;
+
+	const hasProcessingFiles = selectedFiles.some(
+		(file) => file.status === DocumentProcessingStatus.PROCESSING,
+	);
+
+	const readyDocuments = selectedFiles.filter(
+		(file) =>
+			file.status === DocumentProcessingStatus.READY &&
+			Boolean(file.documentId),
+	);
 	const isReadyToAdd =
-		selectedFile?.status === DocumentProcessingStatus.READY &&
-		Boolean(selectedDocumentId);
+		readyDocuments.length > EMPTY_COUNT && !hasProcessingFiles;
 	const hasUploadConfirmationFailed =
 		processingStatus === DocumentProcessingStatus.FAILED && isReadyToAdd;
 	const isUploadConfirmationRetryable =
@@ -142,7 +155,7 @@ const AddKnowledgeModal = ({
 	const hasTerminalUploadConfirmationFailure =
 		hasUploadConfirmationFailed && !isUploadConfirmationRetryable;
 
-	const countLabel = getCountLabel(processingStatus);
+	const countLabel = getCountLabel(readyDocuments.length, processingStatus);
 	const uploadActionLabel = getUploadActionLabel(
 		hasUploadConfirmationFailed,
 		isUploadConfirmationRetryable,
@@ -150,13 +163,13 @@ const AddKnowledgeModal = ({
 
 	const handleTabChange = useCallback(
 		(tab: ValueOf<typeof AddKnowledgeTab>) => (): void => {
-			if (isSubmissionPending || hasSelectedFile) {
+			if (isSubmissionPending || hasSelectedFiles) {
 				return;
 			}
 
 			setActiveTab(tab);
 		},
-		[hasSelectedFile, isSubmissionPending],
+		[hasSelectedFiles, isSubmissionPending],
 	);
 
 	const resetAndClose = useCallback((): void => {
@@ -176,7 +189,10 @@ const AddKnowledgeModal = ({
 	}, [isSubmissionPending, resetAndClose]);
 
 	const handleUploadSubmit = useCallback(async (): Promise<void> => {
-		if (!selectedDocumentId || isUploadSubmissionPendingReference.current) {
+		if (
+			readyDocuments.length === EMPTY_COUNT ||
+			isUploadSubmissionPendingReference.current
+		) {
 			return;
 		}
 
@@ -184,16 +200,22 @@ const AddKnowledgeModal = ({
 		setIsUploadSubmitting(true);
 
 		try {
-			const result = await dispatch(
-				actions.confirmDocumentUpload({
-					documentId: selectedDocumentId,
-					projectId,
-				}),
-			);
+			for (const item of readyDocuments) {
+				if (!item.documentId) {
+					continue;
+				}
 
-			if (actions.confirmDocumentUpload.rejected.match(result)) {
-				setUploadConfirmationErrorStatus(result.error.status ?? null);
-				return;
+				const result = await dispatch(
+					actions.confirmDocumentUpload({
+						documentId: item.documentId,
+						projectId,
+					}),
+				);
+
+				if (actions.confirmDocumentUpload.rejected.match(result)) {
+					setUploadConfirmationErrorStatus(result.error.status ?? null);
+					return;
+				}
 			}
 
 			setUploadConfirmationErrorStatus(null);
@@ -202,17 +224,24 @@ const AddKnowledgeModal = ({
 			isUploadSubmissionPendingReference.current = false;
 			setIsUploadSubmitting(false);
 		}
-	}, [dispatch, projectId, resetAndClose, selectedDocumentId]);
+	}, [dispatch, projectId, readyDocuments, resetAndClose]);
 
 	const handleUploadActionClick = useCallback((): void => {
 		if (hasTerminalUploadConfirmationFailure) {
-			dispatch(actions.removeDocument());
+			for (const item of selectedFiles) {
+				dispatch(actions.removeDocument({ id: item.id }));
+			}
 			setUploadConfirmationErrorStatus(null);
 			return;
 		}
 
 		void handleUploadSubmit();
-	}, [dispatch, handleUploadSubmit, hasTerminalUploadConfirmationFailure]);
+	}, [
+		dispatch,
+		handleUploadSubmit,
+		hasTerminalUploadConfirmationFailure,
+		selectedFiles,
+	]);
 
 	const handleManualTextSubmit = useCallback(
 		async ({ content, title }: ManualTextCreateRequestDto): Promise<void> => {
@@ -241,7 +270,7 @@ const AddKnowledgeModal = ({
 
 	const handleTabKeyDown = useCallback(
 		(event: KeyboardEvent<HTMLButtonElement>): void => {
-			if (isSubmissionPending || hasSelectedFile) {
+			if (isSubmissionPending || hasSelectedFiles) {
 				return;
 			}
 
@@ -290,7 +319,7 @@ const AddKnowledgeModal = ({
 			setActiveTab(nextTab.id);
 			tabReferences.current.get(nextTab.id)?.focus();
 		},
-		[activeTab, hasSelectedFile, isSubmissionPending],
+		[activeTab, hasSelectedFiles, isSubmissionPending],
 	);
 
 	return (
@@ -329,7 +358,9 @@ const AddKnowledgeModal = ({
 										? "border-accent text-accent"
 										: "border-transparent text-text-muted hover:text-text",
 								)}
-								disabled={isSubmissionPending || (hasSelectedFile && !isActive)}
+								disabled={
+									isSubmissionPending || (hasSelectedFiles && !isActive)
+								}
 								id={`${tabIdPrefix}-tab-${id}`}
 								key={id}
 								onClick={handleTabChange(id)}
