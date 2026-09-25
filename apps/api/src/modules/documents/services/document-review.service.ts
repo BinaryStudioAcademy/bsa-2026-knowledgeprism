@@ -32,7 +32,10 @@ import {
 } from "~/modules/projects/services/project.service.js";
 
 import { type DocumentJobScheduler } from "./document-job-scheduler.js";
-import { type IntegrationApplier } from "./integration-applier.js";
+import {
+	IntegrationAnalysisOutdatedError,
+	type IntegrationApplier,
+} from "./integration-applier.js";
 
 const EMPTY_LENGTH = 0;
 
@@ -239,6 +242,42 @@ class DocumentReviewService {
 		this.projectService = projectService;
 	}
 
+	private async applyInTransaction({
+		changes,
+		document,
+		resolutions,
+		userId,
+	}: {
+		changes: IntegrationChangeEntity[];
+		document: DocumentEntity;
+		resolutions: IntegrationChangesApplyRequestDto["resolutions"];
+		userId: number;
+	}): Promise<DocumentEntity> {
+		return await this.database.transaction(async (transaction) => {
+			const approvedDocument =
+				await this.documentRepository.compareAndSwapStatus(
+					{
+						errorMessage: null,
+						expectedStatus: DocumentStatus.WAITING_FOR_APPROVAL,
+						id: document.toObject().id,
+						status: DocumentStatus.COMPLETED,
+					},
+					transaction,
+				);
+
+			if (!approvedDocument) {
+				throw createApplyNotAllowedError();
+			}
+
+			await this.integrationApplier.apply(
+				{ changes, document, resolutions, userId },
+				transaction,
+			);
+
+			return approvedDocument;
+		});
+	}
+
 	private async completeWithoutApprovals({
 		documentId,
 		rejectedIds,
@@ -288,6 +327,21 @@ class DocumentReviewService {
 		}
 
 		return document;
+	}
+
+	private async restartIntegration(documentId: number): Promise<void> {
+		const integration = await this.documentRepository.startProcessing({
+			allowedStatuses: [DocumentStatus.WAITING_FOR_APPROVAL],
+			id: documentId,
+			status: DocumentStatus.INTEGRATING,
+		});
+
+		if (integration) {
+			this.documentJobScheduler.scheduleIntegration({
+				attempt: integration.attempt,
+				documentId,
+			});
+		}
 	}
 
 	private async startIntegration({
@@ -355,38 +409,28 @@ class DocumentReviewService {
 		assertResolutionsCoverConflicts(changes, payload);
 		assertSingleWritePerEntryField(changes, payload);
 
-		const completedDocument = await this.database.transaction(
-			async (transaction) => {
-				const approvedDocument =
-					await this.documentRepository.compareAndSwapStatus(
-						{
-							errorMessage: null,
-							expectedStatus: DocumentStatus.WAITING_FOR_APPROVAL,
-							id: reference.documentId,
-							status: DocumentStatus.COMPLETED,
-						},
-						transaction,
-					);
+		try {
+			const completedDocument = await this.applyInTransaction({
+				changes,
+				document,
+				resolutions: payload.resolutions,
+				userId: reference.context.userId,
+			});
 
-				if (!approvedDocument) {
-					throw createApplyNotAllowedError();
-				}
+			return toDocumentStatusResponse(completedDocument);
+		} catch (error) {
+			if (!(error instanceof IntegrationAnalysisOutdatedError)) {
+				throw error;
+			}
 
-				await this.integrationApplier.apply(
-					{
-						changes,
-						document,
-						resolutions: payload.resolutions,
-						userId: reference.context.userId,
-					},
-					transaction,
-				);
+			await this.restartIntegration(reference.documentId);
 
-				return approvedDocument;
-			},
-		);
-
-		return toDocumentStatusResponse(completedDocument);
+			throw new HTTPError({
+				cause: error,
+				message: DocumentErrorMessage.ANALYSIS_OUTDATED,
+				status: HTTPCode.CONFLICT,
+			});
+		}
 	}
 
 	public async findIntegrationChanges(

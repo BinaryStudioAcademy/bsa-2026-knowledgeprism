@@ -1,3 +1,4 @@
+import { flattenContentToText } from "@knowledgeprism/config";
 import {
 	IntegrationChangeType,
 	KnowledgeNodeType,
@@ -34,6 +35,20 @@ const toContentJson = (text: string): KnowledgeNodeContentDto => [
 	{ content: text, type: PARAGRAPH_BLOCK_TYPE },
 ];
 
+const isNodeChangedSinceAnalysis = (
+	node: KnowledgeNodeEntity,
+	change: IntegrationChangeEntity,
+): boolean => {
+	const { contentJson, title } = node.toObject();
+	const { liveContent, liveTitle } = change.toObject();
+
+	return (
+		title !== liveTitle || flattenContentToText(contentJson) !== liveContent
+	);
+};
+
+class IntegrationAnalysisOutdatedError extends Error {}
+
 class IntegrationApplier {
 	private extractionItemRepository: ExtractionItemRepository;
 
@@ -60,31 +75,33 @@ class IntegrationApplier {
 			userId: number;
 		},
 		transaction: Transaction,
-	): Promise<void> {
+	): Promise<KnowledgeNodeEntity> {
 		const { extractionItemId, incomingContent, incomingTitle, type } =
 			change.toObject();
 		const { contentJson, id, title } = node.toObject();
 		const { content: isUseIncomingContent, title: isUseIncomingTitle } =
 			getIncomingFields(type, resolution);
-
-		if (isUseIncomingTitle || isUseIncomingContent) {
-			await this.knowledgeNodeRepository.update(
-				{
-					contentJson: isUseIncomingContent
-						? toContentJson(incomingContent)
-						: contentJson,
-					id,
-					title: isUseIncomingTitle ? incomingTitle : title,
-					updatedBy: userId,
-				},
-				transaction,
-			);
-		}
+		const appliedNode =
+			isUseIncomingTitle || isUseIncomingContent
+				? await this.knowledgeNodeRepository.update(
+						{
+							contentJson: isUseIncomingContent
+								? toContentJson(incomingContent)
+								: contentJson,
+							id,
+							title: isUseIncomingTitle ? incomingTitle : title,
+							updatedBy: userId,
+						},
+						transaction,
+					)
+				: node;
 
 		await this.extractionItemRepository.linkKnowledgeNode(
 			{ id: extractionItemId, knowledgeNodeId: id },
 			transaction,
 		);
+
+		return appliedNode;
 	}
 
 	private async createEntries(
@@ -145,6 +162,43 @@ class IntegrationApplier {
 		}
 	}
 
+	private async lockUnchangedMatchedNodes(
+		{
+			changes,
+			projectId,
+		}: { changes: IntegrationChangeEntity[]; projectId: number },
+		transaction: Transaction,
+	): Promise<Map<number, KnowledgeNodeEntity>> {
+		const nodes = new Map<number, KnowledgeNodeEntity>();
+
+		for (const change of changes) {
+			const { matchedNodeId, type } = change.toObject();
+
+			if (type === IntegrationChangeType.NEW) {
+				continue;
+			}
+
+			if (matchedNodeId === null) {
+				throw new IntegrationAnalysisOutdatedError();
+			}
+
+			const node =
+				nodes.get(matchedNodeId) ??
+				(await this.knowledgeNodeRepository.lockByIdAndProjectId(
+					{ id: matchedNodeId, projectId },
+					transaction,
+				));
+
+			if (!node || isNodeChangedSinceAnalysis(node, change)) {
+				throw new IntegrationAnalysisOutdatedError();
+			}
+
+			nodes.set(matchedNodeId, node);
+		}
+
+		return nodes;
+	}
+
 	public async apply(
 		{ changes, document, resolutions, userId }: ApplyParameters,
 		transaction: Transaction,
@@ -153,21 +207,19 @@ class IntegrationApplier {
 		const resolutionByChangeId = new Map(
 			resolutions.map((resolution) => [resolution.changeId, resolution]),
 		);
+		const nodes = await this.lockUnchangedMatchedNodes(
+			{ changes, projectId },
+			transaction,
+		);
 		const newChanges: IntegrationChangeEntity[] = [];
 
 		for (const change of changes) {
-			const { id, matchedNodeId, type } = change.toObject();
+			const { id, matchedNodeId } = change.toObject();
 			const matchedNode =
-				matchedNodeId === null || type === IntegrationChangeType.NEW
-					? null
-					: await this.knowledgeNodeRepository.findByIdAndProjectId(
-							matchedNodeId,
-							projectId,
-							transaction,
-						);
+				matchedNodeId === null ? undefined : nodes.get(matchedNodeId);
 
-			if (matchedNode) {
-				await this.applyToMatchedNode(
+			if (matchedNode && matchedNodeId !== null) {
+				const appliedNode = await this.applyToMatchedNode(
 					{
 						change,
 						node: matchedNode,
@@ -176,6 +228,8 @@ class IntegrationApplier {
 					},
 					transaction,
 				);
+
+				nodes.set(matchedNodeId, appliedNode);
 			} else {
 				newChanges.push(change);
 			}
@@ -188,4 +242,4 @@ class IntegrationApplier {
 	}
 }
 
-export { IntegrationApplier };
+export { IntegrationAnalysisOutdatedError, IntegrationApplier };

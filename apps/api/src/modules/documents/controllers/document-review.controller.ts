@@ -178,7 +178,7 @@ class DocumentReviewController extends BaseController {
 	 *        404:
 	 *          description: Document not found
 	 *        409:
-	 *          description: Document is not waiting for approval
+	 *          description: Document is not waiting for approval, or the knowledge base changed after the analysis (the analysis is restarted)
 	 */
 	private async applyIntegrationChanges(
 		options: APIHandlerOptions<{

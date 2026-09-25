@@ -93,10 +93,9 @@ class KnowledgeNodeRepository {
 	public async findByIdAndProjectId(
 		id: number,
 		projectId: number,
-		transaction?: Transaction,
 	): Promise<KnowledgeNodeEntity | null> {
 		const node = await this.knowledgeNodeModel
-			.query(transaction)
+			.query()
 			.findOne({ id, projectId })
 			.execute();
 
@@ -164,6 +163,33 @@ class KnowledgeNodeRepository {
 			.orderBy("id", "asc")
 			.castTo<TreeKnowledgeDatabaseRow[]>()
 			.execute();
+	}
+
+	public async lockByIdAndProjectId(
+		{ id, projectId }: { id: number; projectId: number },
+		transaction: Transaction,
+	): Promise<KnowledgeNodeEntity | null> {
+		const node = await this.knowledgeNodeModel
+			.query(transaction)
+			.findOne({ id, projectId })
+			.forUpdate()
+			.execute();
+
+		if (!node) {
+			return null;
+		}
+
+		return KnowledgeNodeEntity.initialize({
+			contentJson: node.contentJson,
+			createdAt: node.createdAt,
+			id: node.id,
+			parentId: node.parentId,
+			position: node.position,
+			projectId: node.projectId,
+			title: node.title,
+			type: node.type,
+			updatedAt: node.updatedAt,
+		});
 	}
 
 	public async searchByTitleOrKeyword({
