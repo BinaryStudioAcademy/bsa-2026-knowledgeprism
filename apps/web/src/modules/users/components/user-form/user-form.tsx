@@ -202,7 +202,7 @@ const UserForm = <T extends FieldValues>({
 					label={isEditMode ? "Password (Optional)" : "Password"}
 					maxLength={32}
 					name={"password" as Path<T>}
-					placeholder="At least 8 characters"
+					placeholder="Enter password"
 					type="password"
 				/>
 
