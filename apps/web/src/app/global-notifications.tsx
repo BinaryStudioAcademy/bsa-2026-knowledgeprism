@@ -19,9 +19,14 @@ type NotificationItem = AppNotification & {
 	isLeaving: boolean;
 };
 
-const AUTO_DISMISS_DELAY_MS = 5000;
 const CLOSE_ICON_SIZE = 10;
 const EXIT_ANIMATION_NAME = "fade-out";
+
+const AutoDismissDelay = {
+	error: 7000,
+	success: 5000,
+	warning: 5000,
+} as const;
 
 const ProgressBarColor = {
 	error: "bg-error",
@@ -60,10 +65,10 @@ const GlobalNotifications = (): React.JSX.Element => {
 	}, []);
 
 	const scheduleAutoDismiss = useCallback(
-		(id: string): void => {
+		(id: string, variant: AppNotification["variant"]): void => {
 			const timeoutId = setTimeout(() => {
 				startDismiss(id);
-			}, AUTO_DISMISS_DELAY_MS);
+			}, AutoDismissDelay[variant]);
 
 			dismissTimeoutsReference.current.set(id, timeoutId);
 		},
@@ -79,7 +84,7 @@ const GlobalNotifications = (): React.JSX.Element => {
 			};
 
 			setNotifications((current) => [...current, notificationItem]);
-			scheduleAutoDismiss(notificationItem.id);
+			scheduleAutoDismiss(notificationItem.id, notificationItem.variant);
 		});
 
 		const dismissTimeouts = dismissTimeoutsReference.current;
@@ -165,7 +170,7 @@ const GlobalNotifications = (): React.JSX.Element => {
 											ProgressBarColor[variant],
 										)}
 										style={{
-											animationDuration: `${AUTO_DISMISS_DELAY_MS.toString()}ms`,
+											animationDuration: `${AutoDismissDelay[variant].toString()}ms`,
 										}}
 									/>
 								</div>
