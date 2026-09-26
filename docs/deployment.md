@@ -91,8 +91,9 @@ infrastructure that already exists. You need:
      - **Noncurrent version expiration**: 30 days (if bucket versioning is
        enabled, permanently removes noncurrent object versions).
      - Application-level cleanup handles project deletion (`ProjectStorageCleanupService`
-       sweeps `projects/{projectId}/` immediately and runs a delayed sweep after
-       15 minutes to catch in-flight presigned URL uploads).
+       creates durable cleanup records in `project_storage_cleanups` within the project
+       deletion transaction; executes immediate cleanup and a durable delayed sweep after
+       15 minutes to catch in-flight presigned URL uploads, surviving API container restarts).
 8. **IAM permissions for API task role**:
    - Needs `s3:GetObject`, `s3:PutObject`, `s3:DeleteObject`, and
      `s3:ListBucket` scoped to the document storage bucket to support uploads,
