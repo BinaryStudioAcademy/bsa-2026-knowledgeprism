@@ -87,6 +87,8 @@ const UserEditPage: React.FC = () => {
 		}
 	}, [selectedUser, reset]);
 
+	const isAdminEditingSelf = currentUser?.user.id === userId;
+
 	const handleValidSubmit = useCallback(
 		(values: UserEditFormValues): void => {
 			setErrorMessage(undefined);
@@ -95,7 +97,9 @@ const UserEditPage: React.FC = () => {
 				userActions.updateUser({
 					id: userId,
 					payload: {
-						assignedProjects: values.assignedProjects,
+						...(!isAdminEditingSelf && {
+							assignedProjects: values.assignedProjects,
+						}),
 						email: values.email,
 						firstName: values.firstName,
 						lastName: values.lastName,
@@ -118,7 +122,7 @@ const UserEditPage: React.FC = () => {
 					setErrorMessage(message);
 				});
 		},
-		[dispatch, navigate, userId, selectedUser],
+		[dispatch, navigate, userId, selectedUser, isAdminEditingSelf],
 	);
 
 	const handleFormSubmit = useCallback(
@@ -131,8 +135,6 @@ const UserEditPage: React.FC = () => {
 	const handleCancel = useCallback((): void => {
 		void navigate(AppRoute.USERS);
 	}, [navigate]);
-
-	const isAdminEditingSelf = currentUser?.user.id === userId;
 
 	return (
 		<div className="relative flex flex-1 justify-center overflow-auto p-4 tablet:p-7 desktop:px-11 desktop:py-10">

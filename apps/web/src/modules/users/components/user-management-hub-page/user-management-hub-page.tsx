@@ -14,17 +14,23 @@ import {
 	useNavigate,
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
+import { actions as projectsActions } from "~/modules/projects/projects.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 const UserManagementHubPage: React.FC = () => {
+	const SINGLE_PROJECT_COUNT = 1;
+
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 
+	const currentUser = useAppSelector(({ auth }) => auth.user);
 	const dataStatus = useAppSelector(({ users }) => users.dataStatus);
 	const users = useAppSelector(({ users }) => users.users);
+	const projects = useAppSelector(({ projects }) => projects.projects);
 
 	useEffect(() => {
 		void dispatch(userActions.loadAll());
+		void dispatch(projectsActions.loadAllProjects());
 	}, [dispatch]);
 
 	const handleAddUserClick = useCallback((): void => {
@@ -72,6 +78,12 @@ const UserManagementHubPage: React.FC = () => {
 							</thead>
 							<tbody className="divide-y divide-border">
 								{users.map((user) => {
+									const isUserAdmin =
+										user.id === currentUser?.user.id ||
+										Boolean((user as { isAdmin?: boolean }).isAdmin);
+									const projectsCount = isUserAdmin
+										? projects.length
+										: user.assignedProjects.length;
 									return (
 										<tr
 											className="cursor-pointer transition-colors hover:bg-bg-subtle"
@@ -111,7 +123,10 @@ const UserManagementHubPage: React.FC = () => {
 												)}
 											</td>
 											<td className="px-4 py-3 text-text-muted">
-												{user.assignedProjects.length} Projects
+												{projectsCount}{" "}
+												{projectsCount === SINGLE_PROJECT_COUNT
+													? "Project"
+													: "Projects"}
 											</td>
 										</tr>
 									);
