@@ -4,6 +4,7 @@ import {
 } from "@knowledgeprism/types";
 import React, { useCallback, useMemo, useState } from "react";
 
+import { useAppSidebarOverlay } from "~/app/layouts/app-sidebar-overlay-context.js";
 import { Loader } from "~/components/components.js";
 import {
 	useAppDispatch,
@@ -58,6 +59,16 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 
 	const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
 	const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+	const { closeOverlay, isOverlayOpen } = useAppSidebarOverlay();
+	const [wasOverlayOpen, setWasOverlayOpen] = useState(isOverlayOpen);
+
+	if (wasOverlayOpen !== isOverlayOpen) {
+		setWasOverlayOpen(isOverlayOpen);
+
+		if (isOverlayOpen) {
+			setIsSidebarOpen(false);
+		}
+	}
 
 	const isKbEmpty = items.length === EMPTY_LENGTH;
 
@@ -90,8 +101,9 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	}, []);
 
 	const handleOpenSidebar = useCallback((): void => {
+		closeOverlay();
 		setIsSidebarOpen(true);
-	}, []);
+	}, [closeOverlay]);
 
 	const breadcrumbs = useMemo(() => {
 		if (!selectedPageId) {

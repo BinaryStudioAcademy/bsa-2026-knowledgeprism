@@ -166,7 +166,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 							<>
 								<Button
 									aria-label="Add Knowledge"
-									className="tablet:hidden ml-2 mr-2 shrink-0 flex items-center gap-1 px-2 py-1 text-2xs font-semibold whitespace-nowrap"
+									className="hidden ml-2 mr-2 shrink-0 items-center gap-1 px-2 py-1 text-2xs font-semibold whitespace-nowrap"
 									disabled={isAddingKnowledge}
 									onClick={showModal}
 									variant="accent"
