@@ -76,14 +76,18 @@ const checkboxStyles = tv({
 });
 
 type Properties<T extends FieldValues = FieldValues> = {
+	"aria-label"?: string | undefined;
+	"aria-labelledby"?: string | undefined;
 	control: Control<T>;
 	disabled?: boolean;
 	id?: string;
-	label: React.ReactNode;
+	label?: React.ReactNode;
 	name: FieldPath<T>;
 };
 
 const Checkbox = <T extends FieldValues = FieldValues>({
+	"aria-label": ariaLabel,
+	"aria-labelledby": ariaLabelledBy,
 	control,
 	disabled = false,
 	id,
@@ -127,6 +131,8 @@ const Checkbox = <T extends FieldValues = FieldValues>({
 				<input
 					aria-describedby={errorId}
 					aria-invalid={hasError}
+					aria-label={ariaLabel}
+					aria-labelledby={ariaLabelledBy}
 					checked={isChecked}
 					className={input()}
 					disabled={disabled}

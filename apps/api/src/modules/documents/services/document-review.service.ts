@@ -15,6 +15,7 @@ import {
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
 } from "@knowledgeprism/types";
+import { type Transaction } from "objection";
 
 import { type Database } from "~/infrastructure/database/database.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
@@ -278,46 +279,76 @@ class DocumentReviewService {
 		});
 	}
 
-	private async completeWithoutApprovals({
-		documentId,
-		rejectedIds,
-	}: {
-		documentId: number;
-		rejectedIds: number[];
-	}): Promise<DocumentEntity> {
-		return await this.database.transaction(async (transaction) => {
-			const completedDocument =
-				await this.documentRepository.compareAndSwapStatus(
-					{
-						errorMessage: null,
-						expectedStatus: DocumentStatus.WAITING_FOR_VALIDATION,
-						id: documentId,
-						status: DocumentStatus.COMPLETED,
-					},
-					transaction,
-				);
-
-			if (!completedDocument) {
-				throw createReviewNotAllowedError();
-			}
-
-			await this.extractionItemRepository.markRejected(
-				rejectedIds,
+	private async executeCompletionWithoutApprovals(
+		{
+			documentId,
+			rejectedIds,
+		}: {
+			documentId: number;
+			rejectedIds: number[];
+		},
+		transaction: Transaction,
+	): Promise<DocumentEntity> {
+		const completedDocument =
+			await this.documentRepository.compareAndSwapStatus(
+				{
+					errorMessage: null,
+					expectedStatus: DocumentStatus.WAITING_FOR_VALIDATION,
+					id: documentId,
+					status: DocumentStatus.COMPLETED,
+				},
 				transaction,
 			);
 
-			return completedDocument;
-		});
+		if (!completedDocument) {
+			throw createReviewNotAllowedError();
+		}
+
+		await this.extractionItemRepository.markRejected(rejectedIds, transaction);
+
+		return completedDocument;
 	}
 
-	private async findProjectDocument({
-		documentId,
-		projectId,
-	}: DocumentReference): Promise<DocumentEntity> {
-		const document = await this.documentRepository.findByIdAndProjectId({
-			id: documentId,
-			projectId,
-		});
+	private async executeIntegrationStart(
+		{
+			approvedIds,
+			documentId,
+			rejectedIds,
+		}: ExtractionItemsReviewRequestDto & {
+			documentId: number;
+		},
+		transaction: Transaction,
+	): Promise<{ attempt: number; document: DocumentEntity }> {
+		const integration = await this.documentRepository.startProcessing(
+			{
+				allowedStatuses: [DocumentStatus.WAITING_FOR_VALIDATION],
+				id: documentId,
+				status: DocumentStatus.INTEGRATING,
+			},
+			transaction,
+		);
+
+		if (!integration) {
+			throw createReviewNotAllowedError();
+		}
+
+		await this.extractionItemRepository.markApproved(approvedIds, transaction);
+		await this.extractionItemRepository.markRejected(rejectedIds, transaction);
+
+		return integration;
+	}
+
+	private async findProjectDocument(
+		{ documentId, projectId }: DocumentReference,
+		options?: { forUpdate?: boolean; transaction?: Transaction },
+	): Promise<DocumentEntity> {
+		const document = await this.documentRepository.findByIdAndProjectId(
+			{
+				id: documentId,
+				projectId,
+			},
+			options,
+		);
 
 		if (!document) {
 			throw new HTTPError({
@@ -342,47 +373,6 @@ class DocumentReviewService {
 				documentId,
 			});
 		}
-	}
-
-	private async startIntegration({
-		approvedIds,
-		documentId,
-		rejectedIds,
-	}: ExtractionItemsReviewRequestDto & {
-		documentId: number;
-	}): Promise<DocumentEntity> {
-		const integration = await this.database.transaction(async (transaction) => {
-			const startedIntegration = await this.documentRepository.startProcessing(
-				{
-					allowedStatuses: [DocumentStatus.WAITING_FOR_VALIDATION],
-					id: documentId,
-					status: DocumentStatus.INTEGRATING,
-				},
-				transaction,
-			);
-
-			if (!startedIntegration) {
-				throw createReviewNotAllowedError();
-			}
-
-			await this.extractionItemRepository.markApproved(
-				approvedIds,
-				transaction,
-			);
-			await this.extractionItemRepository.markRejected(
-				rejectedIds,
-				transaction,
-			);
-
-			return startedIntegration;
-		});
-
-		this.documentJobScheduler.scheduleIntegration({
-			attempt: integration.attempt,
-			documentId,
-		});
-
-		return integration.document;
 	}
 
 	public async applyIntegrationChanges({
@@ -432,7 +422,6 @@ class DocumentReviewService {
 			});
 		}
 	}
-
 	public async findIntegrationChanges(
 		reference: DocumentReference,
 	): Promise<IntegrationChangesResponseDto> {
@@ -493,35 +482,75 @@ class DocumentReviewService {
 			reference.context,
 		);
 
-		const document = await this.findProjectDocument(reference);
+		const { attempt, documentId, shouldSchedule, status } =
+			await this.database.transaction(async (transaction) => {
+				const document = await this.findProjectDocument(reference, {
+					forUpdate: true,
+					transaction,
+				});
 
-		if (document.toObject().status !== DocumentStatus.WAITING_FOR_VALIDATION) {
-			throw createReviewNotAllowedError();
-		}
+				if (
+					document.toObject().status !== DocumentStatus.WAITING_FOR_VALIDATION
+				) {
+					throw createReviewNotAllowedError();
+				}
 
-		const items = await this.extractionItemRepository.findByDocumentId(
-			reference.documentId,
-		);
-		const pendingItems = items.filter(
-			(item) => item.toObject().status === ExtractionItemStatus.PENDING,
-		);
+				const items = await this.extractionItemRepository.findByDocumentId(
+					reference.documentId,
+					transaction,
+				);
+				const pendingItems = items.filter(
+					(item) => item.toObject().status === ExtractionItemStatus.PENDING,
+				);
 
-		assertReviewCoversPendingItems(pendingItems, payload);
+				assertReviewCoversPendingItems(pendingItems, payload);
 
-		const reviewedDocument =
-			payload.approvedIds.length === EMPTY_LENGTH
-				? await this.completeWithoutApprovals({
+				const hasApprovedItems = payload.approvedIds.length > EMPTY_LENGTH;
+
+				if (!hasApprovedItems) {
+					const completedDocument =
+						await this.executeCompletionWithoutApprovals(
+							{
+								documentId: reference.documentId,
+								rejectedIds: payload.rejectedIds,
+							},
+							transaction,
+						);
+
+					return {
+						attempt: null,
 						documentId: reference.documentId,
-						rejectedIds: payload.rejectedIds,
-					})
-				: await this.startIntegration({
+						shouldSchedule: false,
+						status: completedDocument.toObject().status,
+					};
+				}
+
+				const integration = await this.executeIntegrationStart(
+					{
 						...payload,
 						documentId: reference.documentId,
-					});
+					},
+					transaction,
+				);
+
+				return {
+					attempt: integration.attempt,
+					documentId: reference.documentId,
+					shouldSchedule: true,
+					status: integration.document.toObject().status,
+				};
+			});
+
+		if (shouldSchedule && attempt !== null) {
+			this.documentJobScheduler.scheduleIntegration({
+				attempt,
+				documentId,
+			});
+		}
 
 		return {
-			documentId: reference.documentId,
-			status: reviewedDocument.toObject().status,
+			documentId,
+			status,
 		};
 	}
 
@@ -538,35 +567,51 @@ class DocumentReviewService {
 			reference.context,
 		);
 
-		const document = await this.findProjectDocument(reference);
-
-		if (document.toObject().status !== DocumentStatus.WAITING_FOR_VALIDATION) {
-			throw createReviewNotAllowedError();
-		}
-
-		const item = await this.extractionItemRepository.findById(id);
-
-		if (!item || item.toObject().documentId !== reference.documentId) {
-			throw new HTTPError({
-				message: DocumentErrorMessage.EXTRACTION_ITEM_NOT_FOUND,
-				status: HTTPCode.NOT_FOUND,
+		return await this.database.transaction(async (transaction) => {
+			const document = await this.findProjectDocument(reference, {
+				forUpdate: true,
+				transaction,
 			});
-		}
 
-		const updated = await this.extractionItemRepository.updatePendingContent({
-			documentId: reference.documentId,
-			id,
-			payload: { text: payload.text.trim(), title: payload.title.trim() },
+			if (
+				document.toObject().status !== DocumentStatus.WAITING_FOR_VALIDATION
+			) {
+				throw createReviewNotAllowedError();
+			}
+
+			const item = await this.extractionItemRepository.findById(
+				id,
+				transaction,
+			);
+
+			if (!item || item.toObject().documentId !== reference.documentId) {
+				throw new HTTPError({
+					message: DocumentErrorMessage.EXTRACTION_ITEM_NOT_FOUND,
+					status: HTTPCode.NOT_FOUND,
+				});
+			}
+
+			const updated = await this.extractionItemRepository.updatePendingContent(
+				{
+					documentId: reference.documentId,
+					id,
+					payload: {
+						text: payload.text.trim(),
+						title: payload.title.trim(),
+					},
+				},
+				transaction,
+			);
+
+			if (!updated) {
+				throw new HTTPError({
+					message: DocumentErrorMessage.EXTRACTION_ITEM_NOT_PENDING,
+					status: HTTPCode.CONFLICT,
+				});
+			}
+
+			return toExtractionItemResponse(updated);
 		});
-
-		if (!updated) {
-			throw new HTTPError({
-				message: DocumentErrorMessage.EXTRACTION_ITEM_NOT_PENDING,
-				status: HTTPCode.CONFLICT,
-			});
-		}
-
-		return toExtractionItemResponse(updated);
 	}
 }
 
