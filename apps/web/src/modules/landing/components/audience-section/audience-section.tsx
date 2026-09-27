@@ -1,5 +1,6 @@
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import { LANDING_SECTION_CONTAINER_CLASS } from "~/modules/landing/libs/constants.js";
+import { LANDING_BALANCED_SECTION_CLASS } from "~/modules/landing/libs/constants.js";
+import { useLandingReveal } from "~/modules/landing/libs/use-landing-reveal.hook.js";
 
 import { SectionEyebrow } from "../section-eyebrow/section-eyebrow.js";
 import { AUDIENCE_SECTION_COPY, AUDIENCES } from "./libs/constants.js";
@@ -13,22 +14,34 @@ const AudienceCard: React.FC<Audience> = ({ body, title }: Audience) => (
 	</div>
 );
 
-const AudienceSection: React.FC = () => (
-	<section
-		className={getValidClassNames(
-			LANDING_SECTION_CONTAINER_CLASS,
-			"pb-[clamp(64px,9vw,120px)] pt-0",
-		)}
-	>
-		<div className="rounded-2xl border border-border bg-surface p-[clamp(28px,4vw,48px)]">
-			<SectionEyebrow>{AUDIENCE_SECTION_COPY.eyebrow}</SectionEyebrow>
-			<div className="mt-5 flex flex-wrap gap-10">
-				{AUDIENCES.map((audience) => (
-					<AudienceCard key={audience.title} {...audience} />
-				))}
+const AudienceSection: React.FC = () => {
+	const [sectionReference, revealClassName] = useLandingReveal();
+
+	return (
+		<section
+			className={getValidClassNames(
+				"border-y border-border bg-secondary",
+				revealClassName,
+			)}
+			ref={sectionReference}
+		>
+			<div
+				className={getValidClassNames(
+					LANDING_BALANCED_SECTION_CLASS,
+					"py-[clamp(64px,9vw,120px)]",
+				)}
+			>
+				<div className="rounded-2xl border border-border bg-surface p-[clamp(28px,4vw,48px)]">
+					<SectionEyebrow>{AUDIENCE_SECTION_COPY.eyebrow}</SectionEyebrow>
+					<div className="mt-5 flex flex-wrap gap-10">
+						{AUDIENCES.map((audience) => (
+							<AudienceCard key={audience.title} {...audience} />
+						))}
+					</div>
+				</div>
 			</div>
-		</div>
-	</section>
-);
+		</section>
+	);
+};
 
 export { AudienceSection };

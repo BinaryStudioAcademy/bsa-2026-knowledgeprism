@@ -1,26 +1,34 @@
 import { useState } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
-import { LANDING_SECTION_CONTAINER_CLASS } from "~/modules/landing/libs/constants.js";
+import { LANDING_BALANCED_SECTION_CLASS } from "~/modules/landing/libs/constants.js";
+import { useLandingReveal } from "~/modules/landing/libs/use-landing-reveal.hook.js";
 
 import { SectionEyebrow } from "../section-eyebrow/section-eyebrow.js";
 import { FeaturePreview } from "./feature-preview.js";
 import { FeatureTab } from "./feature-tab.js";
-import { FEATURES_LIST, FEATURES_SECTION_COPY } from "./libs/constants.js";
+import {
+	FEATURES_LIST,
+	FEATURES_SECTION_COPY,
+	LAST_INDEX_OFFSET,
+} from "./libs/constants.js";
 import { FeatureId } from "./libs/enums/feature-id.enum.js";
 
 const FeaturesSection: React.FC = () => {
+	const [sectionReference, revealClassName] = useLandingReveal();
 	const [activeFeature, setActiveFeature] = useState<ValueOf<typeof FeatureId>>(
-		FeatureId.SEARCH,
+		FeatureId.KNOWLEDGE_BASE,
 	);
 
 	return (
 		<section
 			className={getValidClassNames(
-				LANDING_SECTION_CONTAINER_CLASS,
+				LANDING_BALANCED_SECTION_CLASS,
+				revealClassName,
 				"py-[clamp(64px,9vw,120px)]",
 			)}
 			id="features"
+			ref={sectionReference}
 		>
 			<div className="mx-auto mb-8 max-w-[600px] text-center tablet:mb-14">
 				<SectionEyebrow>{FEATURES_SECTION_COPY.eyebrow}</SectionEyebrow>
@@ -30,9 +38,9 @@ const FeaturesSection: React.FC = () => {
 			</div>
 			<div className="flex w-full flex-col overflow-hidden rounded-2xl border border-border bg-surface tablet:flex-row">
 				<div className="flex w-full min-w-0 flex-1 flex-col tablet:min-w-[280px]">
-					{FEATURES_LIST.map((feature) => {
+					{FEATURES_LIST.map((feature, index) => {
 						const isActive = feature.id === activeFeature;
-						const isLast = feature.id === FeatureId.SECURITY;
+						const isLast = index === FEATURES_LIST.length - LAST_INDEX_OFFSET;
 
 						return (
 							<div key={feature.id}>
@@ -56,7 +64,7 @@ const FeaturesSection: React.FC = () => {
 						);
 					})}
 				</div>
-				<div className="hidden min-w-0 tablet:flex tablet:flex-[1.3]">
+				<div className="hidden min-w-0 flex-1 tablet:flex">
 					<FeaturePreview activeFeature={activeFeature} />
 				</div>
 			</div>
