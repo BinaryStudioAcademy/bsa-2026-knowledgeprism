@@ -16,14 +16,14 @@ type NavItem = {
 	to?: string | undefined;
 };
 
+type NavRowProperties = NavItem & {
+	isExpanded: boolean;
+};
+
 type NavTooltipProperties = {
 	children: ReactNode;
 	isEnabled: boolean;
 	label: string;
-};
-
-type NavRowProperties = NavItem & {
-	isExpanded: boolean;
 };
 
 const TOOLTIP_CLASS_NAME =
