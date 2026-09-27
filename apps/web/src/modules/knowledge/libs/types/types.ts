@@ -76,6 +76,7 @@ type KnowledgeState = {
 	selectedFiles: UploadedDocumentItem[];
 	trackedDocuments: TrackedDocument[];
 	tree: KnowledgeTreeItemResponseDto[];
+	uploadProjectId: null | string;
 };
 
 type ProposedPage = {

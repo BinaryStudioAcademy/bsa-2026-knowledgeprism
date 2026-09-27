@@ -65,6 +65,7 @@ const initialState: State = {
 	selectedFiles: [],
 	trackedDocuments: [],
 	tree: [],
+	uploadProjectId: null,
 };
 
 const ACTIVE_DOCUMENT_PRIORITY: TrackedDocument["status"][] = [
@@ -84,6 +85,10 @@ const IN_FLIGHT_DOCUMENT_STATUSES = new Set<TrackedDocument["status"]>([
 
 const isCurrentPipelineProject = (state: State, projectId: string): boolean => {
 	return state.pipelineProjectId === projectId;
+};
+
+const isCurrentUploadProject = (state: State, projectId: string): boolean => {
+	return state.uploadProjectId === projectId;
 };
 
 const findTrackedDocument = (
@@ -187,21 +192,37 @@ const applyTrackedDocumentStatus = ({
 
 const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
-		builder.addCase(confirmDocumentUpload.pending, (state) => {
+		builder.addCase(confirmDocumentUpload.pending, (state, action) => {
+			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 		});
-		builder.addCase(confirmDocumentUpload.fulfilled, (state) => {
+		builder.addCase(confirmDocumentUpload.fulfilled, (state, action) => {
+			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.READY;
 			reconcileActiveDocument(state);
 		});
 		builder.addCase(confirmDocumentUpload.rejected, (state, action) => {
+			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			state.errorMessage =
 				action.error.message ?? DocumentValidationMessage.PROCESSING_FAILED;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
 		});
 		builder.addCase(processDocument.pending, (state, action) => {
+			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 
@@ -214,6 +235,10 @@ const { actions, name, reducer } = createSlice({
 			}
 		});
 		builder.addCase(processDocument.fulfilled, (state, action) => {
+			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			const targetFileIndex = state.selectedFiles.findIndex(
 				(file) => file.id === action.meta.arg.id,
 			);
@@ -242,6 +267,10 @@ const { actions, name, reducer } = createSlice({
 			}
 		});
 		builder.addCase(processDocument.rejected, (state, action) => {
+			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			const targetFile = state.selectedFiles.find(
 				(file) => file.id === action.meta.arg.id,
 			);
@@ -373,11 +402,19 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? "Failed to search knowledge base";
 			state.searchStatus = SearchStatus.FAILED;
 		});
-		builder.addCase(submitManualText.fulfilled, (state) => {
+		builder.addCase(submitManualText.fulfilled, (state, action) => {
+			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			state.errorMessage = null;
 			reconcileActiveDocument(state);
 		});
 		builder.addCase(submitManualText.rejected, (state, action) => {
+			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			state.errorMessage = action.error.message ?? "Failed to submit text";
 		});
 		builder.addCase(pollDocumentStatus.pending, (state, action) => {
@@ -618,6 +655,15 @@ const { actions, name, reducer } = createSlice({
 		setError(state, action: PayloadAction<string>) {
 			state.errorMessage = action.payload;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
+		},
+		setUploadProject(state, action: PayloadAction<string>) {
+			if (state.uploadProjectId === action.payload) {
+				return;
+			}
+
+			state.uploadProjectId = action.payload;
+			state.processingStatus = DocumentProcessingStatus.IDLE;
+			state.selectedFiles = [];
 		},
 		startAddingKnowledge(state) {
 			state.isAddingKnowledge = true;

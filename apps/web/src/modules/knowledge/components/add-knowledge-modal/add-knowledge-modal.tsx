@@ -4,6 +4,7 @@ import {
 	type JSX,
 	type KeyboardEvent,
 	useCallback,
+	useEffect,
 	useId,
 	useRef,
 	useState,
@@ -116,6 +117,10 @@ const AddKnowledgeModal = ({
 	const [isUploadSubmitting, setIsUploadSubmitting] = useState(false);
 	const [uploadConfirmationErrorStatus, setUploadConfirmationErrorStatus] =
 		useState<null | number>(null);
+
+	useEffect(() => {
+		dispatch(actions.setUploadProject(projectId));
+	}, [dispatch, projectId]);
 
 	const isUploadSubmissionPendingReference = useRef(false);
 	const tabIdPrefix = useId();
