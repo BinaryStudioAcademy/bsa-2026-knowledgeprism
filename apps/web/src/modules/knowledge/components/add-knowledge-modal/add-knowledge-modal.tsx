@@ -219,6 +219,7 @@ const AddKnowledgeModal = ({
 				const result = await dispatch(
 					actions.confirmDocumentUpload({
 						documentId: item.documentId,
+						label: item.name,
 						projectId,
 					}),
 				);

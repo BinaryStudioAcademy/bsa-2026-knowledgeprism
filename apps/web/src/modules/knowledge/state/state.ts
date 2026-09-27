@@ -5,12 +5,15 @@ import {
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
+	initializeProjectKnowledgePipeline,
 	pollDocumentStatus,
 	processDocument,
 	retryDocumentProcessing,
 	searchKnowledge,
 	submitExtractionReview,
 	submitManualText,
+	switchActiveDocument,
+	updateExtractionItem,
 	updateKnowledgeEntry,
 } from "./actions.js";
 import { actions as sliceActions } from "./knowledge.slice.js";
@@ -23,12 +26,15 @@ const allActions = {
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
+	initializeProjectKnowledgePipeline,
 	pollDocumentStatus,
 	processDocument,
 	retryDocumentProcessing,
 	searchKnowledge,
 	submitExtractionReview,
 	submitManualText,
+	switchActiveDocument,
+	updateExtractionItem,
 	updateKnowledgeEntry,
 };
 

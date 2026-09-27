@@ -3,7 +3,13 @@ import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
 } from "@knowledgeprism/types";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, {
+	type MouseEvent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 
 import { Loader } from "~/components/components.js";
 import {
@@ -12,9 +18,15 @@ import {
 	useCurrentProjectId,
 	useModal,
 } from "~/hooks/hooks.js";
+import { type ValueOf } from "~/lib/types/types.js";
 
 import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
+import {
+	collectExtractionItemPatches,
+	deriveExtractionReviewIds,
+} from "../../libs/helpers/helpers.js";
+import { writeTrackedDocumentIds } from "../../libs/helpers/tracked-documents-session.helper.js";
 import {
 	type ProposedPage,
 	type ProposedSection,
@@ -37,7 +49,9 @@ type PreviewLayerProperties = {
 	onApproveIntegration: () => void;
 	onCloseAddModal: () => void;
 	onClosePreview: () => void;
-	onExtractionValidationApprove: () => Promise<boolean>;
+	onExtractionValidationApprove: (pages: ProposedSection[]) => Promise<boolean>;
+	onSwitchDocument: (documentId: number) => void;
+	pendingReviewDocuments: { documentId: number; label: string }[];
 	projectId: null | string;
 };
 
@@ -50,6 +64,8 @@ type Properties = {
 	selectedPageId?: number | undefined;
 };
 
+const SINGLE_TRACKED_DOCUMENT = 1;
+
 const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	activeDocumentId,
 	extractionStructure,
@@ -60,16 +76,49 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	onCloseAddModal,
 	onClosePreview,
 	onExtractionValidationApprove,
+	onSwitchDocument,
+	pendingReviewDocuments,
 	projectId,
 }: PreviewLayerProperties) => {
+	const handlePendingReviewClick = useCallback(
+		(event: MouseEvent<HTMLButtonElement>): void => {
+			const documentId = Number(event.currentTarget.dataset["documentId"]);
+
+			if (Number.isFinite(documentId)) {
+				onSwitchDocument(documentId);
+			}
+		},
+		[onSwitchDocument],
+	);
+
 	const previewContent = isExtractionValidationPreview ? (
-		<div className="h-full w-full bg-bg">
-			<IntegrationPreview
-				onAddMore={onAddMore}
-				onApprove={onExtractionValidationApprove}
-				onClose={onClosePreview}
-				proposedStructure={extractionStructure}
-			/>
+		<div className="flex h-full w-full flex-col bg-bg">
+			{pendingReviewDocuments.length > EMPTY_LENGTH && (
+				<div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2 text-sm">
+					<span className="text-text-muted">Also waiting for review:</span>
+					{pendingReviewDocuments.map((document) => (
+						<button
+							className="rounded-md border border-border px-2 py-1 text-text hover:bg-secondary"
+							data-document-id={document.documentId}
+							key={document.documentId}
+							onClick={handlePendingReviewClick}
+							type="button"
+						>
+							{document.label}
+						</button>
+					))}
+				</div>
+			)}
+			<div className="min-h-0 flex-1">
+				<IntegrationPreview
+					key={`extraction-${String(activeDocumentId)}-${String(extractionStructure.length)}`}
+					onAddMore={onAddMore}
+					onApproveExtraction={onExtractionValidationApprove}
+					onClose={onClosePreview}
+					proposedStructure={extractionStructure}
+					variant="extraction-validation"
+				/>
+			</div>
 		</div>
 	) : (
 		<IntegrationPreviewPanel
@@ -107,6 +156,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		isAddingKnowledge,
 		isEntryLoading,
 		isTreeLoading,
+		trackedDocuments,
 	} = useAppSelector((state) => state.knowledge);
 	const [isEditing, setIsEditing] = useState<boolean>(false);
 
@@ -124,8 +174,63 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION;
 
 	useEffect(() => {
+		if (!projectId) {
+			return;
+		}
+
 		dispatch(actions.resetState());
+		void dispatch(actions.initializeProjectKnowledgePipeline({ projectId }));
+
+		return () => {
+			dispatch(actions.cancelDocumentPolling());
+		};
 	}, [dispatch, projectId]);
+
+	const pipelineDocumentStatuses = useMemo((): ValueOf<
+		typeof DocumentStatus
+	>[] => {
+		return [
+			DocumentStatus.UPLOADED,
+			DocumentStatus.PROCESSING,
+			DocumentStatus.PARSED,
+			DocumentStatus.EXTRACTING,
+			DocumentStatus.EXTRACTED,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+			DocumentStatus.INTEGRATING,
+			DocumentStatus.WAITING_FOR_APPROVAL,
+			DocumentStatus.FAILED,
+		];
+	}, []);
+
+	const hasActiveDocumentPipeline = useMemo(() => {
+		return trackedDocuments.some((document) =>
+			pipelineDocumentStatuses.includes(
+				document.status as ValueOf<typeof DocumentStatus>,
+			),
+		);
+	}, [pipelineDocumentStatuses, trackedDocuments]);
+
+	const isShowDocumentPipelineUi =
+		isAddingKnowledge || hasActiveDocumentPipeline;
+
+	const pendingReviewDocuments = useMemo(() => {
+		return trackedDocuments.filter(
+			(document) =>
+				document.documentId !== activeDocumentId &&
+				document.status === DocumentStatus.WAITING_FOR_VALIDATION,
+		);
+	}, [activeDocumentId, trackedDocuments]);
+
+	const canResumePreview = useMemo(() => {
+		if (!activeDocumentId) {
+			return false;
+		}
+
+		return (
+			activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION ||
+			activeDocumentStatus === DocumentStatus.WAITING_FOR_APPROVAL
+		);
+	}, [activeDocumentId, activeDocumentStatus]);
 
 	const handleAddMore = useCallback((): void => {
 		setIsPreviewOpen(false);
@@ -153,17 +258,50 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	}, [dispatch]);
 
 	const handleOpenPreview = useCallback((): void => {
+		if (
+			projectId &&
+			activeDocumentId &&
+			activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION
+		) {
+			void dispatch(
+				actions.fetchExtractionItems({
+					documentId: activeDocumentId,
+					projectId,
+				}),
+			);
+		}
+
 		setIsPreviewOpen(true);
-	}, []);
+	}, [activeDocumentId, activeDocumentStatus, dispatch, projectId]);
 
 	const handleOpenSidebar = useCallback((): void => {
 		setIsSidebarOpen(true);
 	}, []);
 
 	const handleResetState = useCallback((): void => {
+		if (projectId) {
+			writeTrackedDocumentIds(projectId, []);
+		}
+
 		dispatch(actions.resetState());
 		dispatch(actions.finishAddingKnowledge());
-	}, [dispatch]);
+	}, [dispatch, projectId]);
+
+	const handleSwitchDocument = useCallback(
+		(documentId: number): void => {
+			if (!projectId) {
+				return;
+			}
+
+			void (async () => {
+				await dispatch(
+					actions.switchActiveDocument({ documentId, projectId }),
+				).unwrap();
+				setIsPreviewOpen(true);
+			})();
+		},
+		[dispatch, projectId],
+	);
 
 	const handleRetry = useCallback((): void => {
 		if (!projectId || !activeDocumentId) {
@@ -241,47 +379,84 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			}));
 	}, [extractionItems]);
 
-	const submitExtractionValidation = useCallback(async (): Promise<boolean> => {
-		if (!activeDocumentId || !projectId) {
-			return false;
-		}
-
-		const approvedIds = extractionItems.map((item) => item.id);
-
-		try {
-			const response = await dispatch(
-				actions.submitExtractionReview({
-					documentId: activeDocumentId,
-					payload: { approvedIds, rejectedIds: [] },
-					projectId,
-				}),
-			).unwrap();
-
-			if (response.status === DocumentStatus.INTEGRATING) {
-				setIsPreviewOpen(false);
-				dispatch(actions.startAddingKnowledge());
-				void dispatch(
-					actions.pollDocumentStatus({
-						documentId: activeDocumentId,
-						projectId,
-					}),
-				);
-			} else if (response.status === DocumentStatus.COMPLETED) {
-				setIsPreviewOpen(false);
-				dispatch(actions.finishAddingKnowledge());
-				void dispatch(actions.fetchKnowledgeTree({ projectId }));
+	const submitExtractionValidation = useCallback(
+		async (pages: ProposedSection[]): Promise<boolean> => {
+			if (!activeDocumentId || !projectId) {
+				return false;
 			}
 
-			return true;
-		} catch {
-			return false;
-		}
-	}, [activeDocumentId, dispatch, extractionItems, projectId]);
+			const patches = collectExtractionItemPatches(pages, extractionItems);
+			const { approvedIds, rejectedIds } = deriveExtractionReviewIds(
+				pages,
+				extractionItems,
+			);
 
-	const handleExtractionValidationApprove =
-		useCallback(async (): Promise<boolean> => {
-			return await submitExtractionValidation();
-		}, [submitExtractionValidation]);
+			if (
+				approvedIds.length === EMPTY_LENGTH &&
+				rejectedIds.length === EMPTY_LENGTH
+			) {
+				return false;
+			}
+
+			try {
+				for (const patch of patches) {
+					await dispatch(
+						actions.updateExtractionItem({
+							documentId: activeDocumentId,
+							extractionItemId: patch.id,
+							payload: { text: patch.text, title: patch.title },
+							projectId,
+						}),
+					).unwrap();
+				}
+
+				const response = await dispatch(
+					actions.submitExtractionReview({
+						documentId: activeDocumentId,
+						payload: { approvedIds, rejectedIds },
+						projectId,
+					}),
+				).unwrap();
+
+				if (response.status === DocumentStatus.INTEGRATING) {
+					setIsPreviewOpen(false);
+					dispatch(actions.startAddingKnowledge());
+					void dispatch(
+						actions.pollDocumentStatus({
+							documentId: activeDocumentId,
+							projectId,
+						}),
+					);
+				} else if (response.status === DocumentStatus.COMPLETED) {
+					setIsPreviewOpen(false);
+
+					if (trackedDocuments.length <= SINGLE_TRACKED_DOCUMENT) {
+						dispatch(actions.finishAddingKnowledge());
+					}
+
+					void dispatch(actions.fetchKnowledgeTree({ projectId }));
+				}
+
+				return true;
+			} catch {
+				return false;
+			}
+		},
+		[
+			activeDocumentId,
+			dispatch,
+			extractionItems,
+			projectId,
+			trackedDocuments.length,
+		],
+	);
+
+	const handleExtractionValidationApprove = useCallback(
+		async (pages: ProposedSection[]): Promise<boolean> => {
+			return await submitExtractionValidation(pages);
+		},
+		[submitExtractionValidation],
+	);
 
 	const breadcrumbs = useMemo(() => {
 		if (!selectedPageId) {
@@ -331,6 +506,8 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				onCloseAddModal={handleCloseAddModal}
 				onClosePreview={handleClosePreview}
 				onExtractionValidationApprove={handleExtractionValidationApprove}
+				onSwitchDocument={handleSwitchDocument}
+				pendingReviewDocuments={pendingReviewDocuments}
 				projectId={projectId}
 			/>
 		);
@@ -347,7 +524,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	if (isKbEmpty) {
 		let emptyStateContent = <KnowledgeTreeEmptyState />;
 
-		if (isAddingKnowledge) {
+		if (isShowDocumentPipelineUi) {
 			emptyStateContent =
 				activeDocumentStatus === DocumentStatus.FAILED ? (
 					<LoadingState
@@ -429,9 +606,9 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					onPreview={handleOpenPreview}
 					onResetState={handleResetState}
 					onRetry={handleRetry}
-					showCompactLoading={isAddingKnowledge}
+					showCompactLoading={isShowDocumentPipelineUi || canResumePreview}
 				/>
-				{isAddingKnowledge && (
+				{(isShowDocumentPipelineUi || canResumePreview) && (
 					<div className="border-b border-border bg-surface px-4 py-4 @5xl:hidden">
 						{!!errorMessage ||
 						activeDocumentStatus === DocumentStatus.FAILED ? (

@@ -1,12 +1,19 @@
+import { DocumentStatus } from "@knowledgeprism/constants";
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
+
+import { type ValueOf } from "~/lib/types/types.js";
 
 import { DocumentValidationMessage } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus, SearchStatus } from "../libs/enums/enums.js";
 import {
 	formatFileSize,
 	mapIntegrationChangesToProposedStructure,
+	removeTrackedDocumentId,
 } from "../libs/helpers/helpers.js";
-import { type KnowledgeState } from "../libs/types/types.js";
+import {
+	type KnowledgeState,
+	type TrackedDocument,
+} from "../libs/types/types.js";
 import {
 	confirmDocumentUpload,
 	fetchExtractionItems,
@@ -19,14 +26,19 @@ import {
 	searchKnowledge,
 	submitExtractionReview,
 	submitManualText,
+	updateExtractionItem,
 	updateKnowledgeEntry,
 } from "./actions.js";
+import { clearAllPollTimers } from "./document-poll-timers.js";
 
 type State = KnowledgeState;
 
+const IDLE_DOCUMENT_STATUS = "IDLE" as const;
+const NOT_FOUND_INDEX = -1;
+
 const initialState: State = {
 	activeDocumentId: null,
-	activeDocumentStatus: "IDLE",
+	activeDocumentStatus: IDLE_DOCUMENT_STATUS,
 	errorMessage: null,
 	extractionItems: [],
 	integrationPreviewError: null,
@@ -42,13 +54,46 @@ const initialState: State = {
 	searchStatus: SearchStatus.IDLE,
 	selectedEntry: null,
 	selectedFiles: [],
+	trackedDocuments: [],
 	tree: [],
+};
+
+const syncActiveDocumentFromTracked = (state: State): void => {
+	if (state.activeDocumentId === null) {
+		state.activeDocumentStatus = IDLE_DOCUMENT_STATUS;
+
+		return;
+	}
+
+	const tracked = state.trackedDocuments.find(
+		(document) => document.documentId === state.activeDocumentId,
+	);
+
+	state.activeDocumentStatus = tracked?.status ?? IDLE_DOCUMENT_STATUS;
+};
+
+const upsertTrackedDocument = (
+	state: State,
+	document: TrackedDocument,
+): void => {
+	const existingIndex = state.trackedDocuments.findIndex(
+		(entry) => entry.documentId === document.documentId,
+	);
+
+	if (existingIndex === NOT_FOUND_INDEX) {
+		state.trackedDocuments.push(document);
+	} else {
+		state.trackedDocuments[existingIndex] = {
+			...state.trackedDocuments[existingIndex],
+			...document,
+		};
+	}
 };
 
 const INITIAL_PROGRESS = 15;
 const IN_PROGRESS_PERCENTAGE = 50;
-const NOT_FOUND_INDEX = -1;
 const EMPTY_FILES_COUNT = 0;
+const FIRST_TRACKED_DOCUMENT_INDEX = 0;
 
 const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
@@ -59,8 +104,12 @@ const { actions, name, reducer } = createSlice({
 		builder.addCase(confirmDocumentUpload.fulfilled, (state, action) => {
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.READY;
-			state.activeDocumentId = action.payload.documentId;
-			state.activeDocumentStatus = "UPLOADED";
+
+			if (state.activeDocumentId === null) {
+				state.activeDocumentId = action.payload.documentId;
+			}
+
+			syncActiveDocumentFromTracked(state);
 		});
 		builder.addCase(confirmDocumentUpload.rejected, (state, action) => {
 			state.errorMessage =
@@ -232,8 +281,12 @@ const { actions, name, reducer } = createSlice({
 		});
 		builder.addCase(submitManualText.fulfilled, (state, action) => {
 			state.errorMessage = null;
-			state.activeDocumentId = action.payload.id;
-			state.activeDocumentStatus = "UPLOADED";
+
+			if (state.activeDocumentId === null) {
+				state.activeDocumentId = action.payload.id;
+			}
+
+			syncActiveDocumentFromTracked(state);
 		});
 		builder.addCase(submitManualText.rejected, (state, action) => {
 			state.errorMessage = action.error.message ?? "Failed to submit text";
@@ -242,17 +295,43 @@ const { actions, name, reducer } = createSlice({
 			state.errorMessage = null;
 		});
 		builder.addCase(pollDocumentStatus.fulfilled, (state, action) => {
-			if (state.activeDocumentId !== action.meta.arg.documentId) {
-				return;
-			}
-			state.activeDocumentStatus = action.payload.status;
-			state.errorMessage = null;
+			const { documentId } = action.meta.arg;
+			const status = action.payload.status;
 
-			if (action.payload.status === "COMPLETED") {
-				state.isAddingKnowledge = false;
-				state.activeDocumentId = null;
-				state.activeDocumentStatus = "IDLE";
-				state.extractionItems = [];
+			upsertTrackedDocument(state, {
+				documentId,
+				label:
+					state.trackedDocuments.find(
+						(document) => document.documentId === documentId,
+					)?.label ?? `Document ${String(documentId)}`,
+				status,
+			});
+
+			if (state.activeDocumentId === documentId) {
+				state.activeDocumentStatus = status;
+				state.errorMessage = null;
+			}
+
+			if (status === DocumentStatus.COMPLETED) {
+				state.trackedDocuments = state.trackedDocuments.filter(
+					(document) => document.documentId !== documentId,
+				);
+
+				if (state.activeDocumentId === documentId) {
+					const nextReview = state.trackedDocuments.find(
+						(document) =>
+							document.status === DocumentStatus.WAITING_FOR_VALIDATION ||
+							document.status === DocumentStatus.WAITING_FOR_APPROVAL,
+					);
+
+					state.activeDocumentId = nextReview?.documentId ?? null;
+					state.extractionItems = [];
+					syncActiveDocumentFromTracked(state);
+
+					if (state.trackedDocuments.length === EMPTY_FILES_COUNT) {
+						state.isAddingKnowledge = false;
+					}
+				}
 			}
 		});
 		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
@@ -280,13 +359,46 @@ const { actions, name, reducer } = createSlice({
 			state.errorMessage =
 				action.error.message ?? "Failed to fetch extraction items";
 		});
+		builder.addCase(updateExtractionItem.fulfilled, (state, action) => {
+			const updatedItem = action.payload;
+			state.extractionItems = state.extractionItems.map((item) =>
+				item.id === updatedItem.id ? updatedItem : item,
+			);
+		});
 		builder.addCase(submitExtractionReview.fulfilled, (state, action) => {
-			if (action.payload.status === "COMPLETED") {
-				state.activeDocumentId = null;
-				state.activeDocumentStatus = "IDLE";
+			const { documentId } = action.meta.arg;
+			const status = action.payload.status;
+
+			upsertTrackedDocument(state, {
+				documentId,
+				label:
+					state.trackedDocuments.find(
+						(document) => document.documentId === documentId,
+					)?.label ?? `Document ${String(documentId)}`,
+				status,
+			});
+
+			if (status === DocumentStatus.COMPLETED) {
+				removeTrackedDocumentId(action.meta.arg.projectId, documentId);
+				state.trackedDocuments = state.trackedDocuments.filter(
+					(document) => document.documentId !== documentId,
+				);
 				state.extractionItems = [];
-			} else {
-				state.activeDocumentStatus = action.payload.status;
+
+				const nextReview = state.trackedDocuments.find(
+					(document) =>
+						document.status === DocumentStatus.WAITING_FOR_VALIDATION ||
+						document.status === DocumentStatus.WAITING_FOR_APPROVAL,
+				);
+
+				state.activeDocumentId = nextReview?.documentId ?? null;
+				syncActiveDocumentFromTracked(state);
+
+				if (state.trackedDocuments.length === EMPTY_FILES_COUNT) {
+					state.isAddingKnowledge = false;
+				}
+			} else if (state.activeDocumentId === documentId) {
+				state.activeDocumentStatus = status;
 			}
 		});
 		builder.addCase(submitExtractionReview.rejected, (state, action) => {
@@ -295,7 +407,7 @@ const { actions, name, reducer } = createSlice({
 		});
 		builder.addCase(retryDocumentProcessing.pending, (state) => {
 			state.errorMessage = null;
-			state.activeDocumentStatus = "PROCESSING";
+			state.activeDocumentStatus = DocumentStatus.PROCESSING;
 		});
 		builder.addCase(retryDocumentProcessing.fulfilled, (state, action) => {
 			state.errorMessage = null;
@@ -303,12 +415,15 @@ const { actions, name, reducer } = createSlice({
 		});
 		builder.addCase(retryDocumentProcessing.rejected, (state, action) => {
 			state.errorMessage = action.error.message ?? "Failed to retry processing";
-			state.activeDocumentStatus = "FAILED";
+			state.activeDocumentStatus = DocumentStatus.FAILED;
 		});
 	},
 	initialState,
 	name: "knowledge",
 	reducers: {
+		cancelDocumentPolling() {
+			clearAllPollTimers();
+		},
 		clearError(state) {
 			state.errorMessage = null;
 		},
@@ -344,8 +459,9 @@ const { actions, name, reducer } = createSlice({
 			}
 		},
 		resetState(state) {
+			clearAllPollTimers();
 			state.activeDocumentId = null;
-			state.activeDocumentStatus = "IDLE";
+			state.activeDocumentStatus = IDLE_DOCUMENT_STATUS;
 			state.errorMessage = null;
 			state.extractionItems = [];
 			state.integrationPreviewError = null;
@@ -354,6 +470,7 @@ const { actions, name, reducer } = createSlice({
 			state.isIntegrationPreviewLoading = false;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
+			state.trackedDocuments = [];
 		},
 		setActiveDocumentId(state, action: PayloadAction<null | number>) {
 			state.activeDocumentId = action.payload;
@@ -364,6 +481,28 @@ const { actions, name, reducer } = createSlice({
 		},
 		startAddingKnowledge(state) {
 			state.isAddingKnowledge = true;
+		},
+		startAddingKnowledgeFromHydration(state) {
+			if (state.trackedDocuments.length === EMPTY_FILES_COUNT) {
+				return;
+			}
+
+			state.isAddingKnowledge = true;
+
+			const preferredDocument =
+				state.trackedDocuments.find(
+					(document) =>
+						document.status === DocumentStatus.WAITING_FOR_VALIDATION,
+				) ??
+				state.trackedDocuments.find(
+					(document) => document.status === DocumentStatus.WAITING_FOR_APPROVAL,
+				) ??
+				state.trackedDocuments[FIRST_TRACKED_DOCUMENT_INDEX];
+
+			if (preferredDocument && state.activeDocumentId === null) {
+				state.activeDocumentId = preferredDocument.documentId;
+				syncActiveDocumentFromTracked(state);
+			}
 		},
 		startProcessing(
 			state,
@@ -391,6 +530,45 @@ const { actions, name, reducer } = createSlice({
 				state.selectedFiles.push(processingItem);
 			} else {
 				state.selectedFiles[existingIndex] = processingItem;
+			}
+		},
+		syncTrackedDocumentStatus(
+			state,
+			action: PayloadAction<{
+				documentId: number;
+				status: ValueOf<typeof DocumentStatus>;
+			}>,
+		) {
+			const { documentId, status } = action.payload;
+
+			upsertTrackedDocument(state, {
+				documentId,
+				label:
+					state.trackedDocuments.find(
+						(document) => document.documentId === documentId,
+					)?.label ?? `Document ${String(documentId)}`,
+				status,
+			});
+
+			if (state.activeDocumentId === documentId) {
+				state.activeDocumentStatus = status;
+			}
+		},
+		trackDocument(
+			state,
+			action: PayloadAction<{ documentId: number; label: string }>,
+		) {
+			const { documentId, label } = action.payload;
+
+			upsertTrackedDocument(state, {
+				documentId,
+				label,
+				status: DocumentStatus.UPLOADED,
+			});
+
+			if (state.activeDocumentId === null) {
+				state.activeDocumentId = documentId;
+				state.activeDocumentStatus = DocumentStatus.UPLOADED;
 			}
 		},
 	},

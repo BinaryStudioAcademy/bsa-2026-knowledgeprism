@@ -4,9 +4,11 @@ import {
 	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
+	type ExtractionItemResponseDto,
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
+	type ExtractionItemUpdateRequestDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
 	type ManualTextCreateRequestDto,
@@ -224,6 +226,7 @@ class DocumentsApi extends BaseHTTPApi {
 				contentType: ContentType.JSON,
 				hasAuth: true,
 				method: "POST",
+				payload: JSON.stringify({}),
 				signal,
 			},
 		);
@@ -257,6 +260,37 @@ class DocumentsApi extends BaseHTTPApi {
 		);
 
 		return await response.json<ExtractionItemsReviewResponseDto>();
+	}
+
+	public async updateExtractionItem({
+		documentId,
+		extractionItemId,
+		payload,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		extractionItemId: number;
+		payload: ExtractionItemUpdateRequestDto;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<ExtractionItemResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.EXTRACTION_ITEMS_$ID, {
+				documentId: String(documentId),
+				id: String(extractionItemId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "PATCH",
+				payload: JSON.stringify(payload),
+				signal,
+			},
+		);
+
+		return await response.json<ExtractionItemResponseDto>();
 	}
 
 	public async uploadFileToStorage({

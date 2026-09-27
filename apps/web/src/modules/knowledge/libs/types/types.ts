@@ -34,12 +34,16 @@ type FieldConflict = {
 
 type IntegrationPreviewProperties = {
 	onAddMore: () => void;
-	onApprove: (
+	onApprove?: (
 		resolutions: IntegrationConflictResolutionDto[],
 	) => Promise<boolean>;
+	onApproveExtraction?: (pages: ProposedSection[]) => Promise<boolean>;
 	onClose: () => void;
 	proposedStructure: ProposedSection[];
+	variant?: IntegrationPreviewVariant;
 };
+
+type IntegrationPreviewVariant = "extraction-validation" | "integration";
 
 interface KbEntry {
 	contentJson: PartialBlock[] | Record<string, unknown>[];
@@ -67,6 +71,7 @@ type KnowledgeState = {
 	searchStatus: ValueOf<typeof SearchStatus>;
 	selectedEntry: KnowledgeEntryResponseDto | null;
 	selectedFiles: UploadedDocumentItem[];
+	trackedDocuments: TrackedDocument[];
 	tree: KnowledgeTreeItemResponseDto[];
 };
 
@@ -93,6 +98,12 @@ type ProposedSection = {
 	type: typeof KnowledgeNodeType.SECTION;
 };
 
+type TrackedDocument = {
+	documentId: number;
+	label: string;
+	status: "IDLE" | ValueOf<typeof DocumentStatus>;
+};
+
 type UploadedDocumentItem = {
 	documentId?: number | undefined;
 	errorMessage?: string | undefined;
@@ -115,5 +126,6 @@ export {
 	type KnowledgeState,
 	type ProposedPage,
 	type ProposedSection,
+	type TrackedDocument,
 	type UploadedDocumentItem,
 };

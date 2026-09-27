@@ -2,6 +2,7 @@ import { DocumentStatus } from "@knowledgeprism/constants";
 import {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentStatusResponseDto,
+	type ExtractionItemResponseDto,
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
@@ -25,9 +26,18 @@ import {
 	POLL_DOCUMENT_STATUS_INTERVAL_MS,
 } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
-import { formatFileSize } from "../libs/helpers/helpers.js";
+import {
+	addTrackedDocumentId,
+	formatFileSize,
+	readTrackedDocumentIds,
+	removeTrackedDocumentId,
+} from "../libs/helpers/helpers.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
-import { name as sliceName } from "./knowledge.slice.js";
+import { clearPollTimer, schedulePollTimer } from "./document-poll-timers.js";
+import {
+	name as sliceName,
+	actions as sliceSyncActions,
+} from "./knowledge.slice.js";
 
 type ApplyIntegrationChangesPayload = {
 	documentId: number;
@@ -37,6 +47,7 @@ type ApplyIntegrationChangesPayload = {
 
 type ConfirmDocumentUploadPayload = {
 	documentId: number;
+	label?: string | undefined;
 	projectId: string;
 };
 
@@ -64,17 +75,32 @@ type SubmitManualTextPayload = {
 	projectId: string;
 };
 
+type UpdateExtractionItemPayload = {
+	documentId: number;
+	extractionItemId: number;
+	payload: { text: string; title: string };
+	projectId: string;
+};
+
 const confirmDocumentUpload = createAppAsyncThunk<
 	DocumentConfirmUploadResponseDto,
 	ConfirmDocumentUploadPayload
 >(
 	`${sliceName}/confirm-document-upload`,
-	async ({ documentId, projectId }, { dispatch, extra, signal }) => {
+	async ({ documentId, label, projectId }, { dispatch, extra, signal }) => {
 		const response = await extra.documentsApi.confirmUpload({
 			documentId,
 			projectId,
 			signal,
 		});
+
+		addTrackedDocumentId(projectId, documentId);
+		dispatch(
+			sliceSyncActions.trackDocument({
+				documentId,
+				label: label ?? `Document ${String(documentId)}`,
+			}),
+		);
 
 		void dispatch(pollDocumentStatus({ documentId, projectId }));
 
@@ -256,11 +282,45 @@ const submitManualText = createAsyncThunk<
 			signal,
 		});
 
+		const label = payload.title?.trim() || "Manual text";
+
+		addTrackedDocumentId(projectId, response.id);
+		dispatch(
+			sliceSyncActions.trackDocument({
+				documentId: response.id,
+				label,
+			}),
+		);
+
 		void dispatch(pollDocumentStatus({ documentId: response.id, projectId }));
 
 		return response;
 	},
 );
+
+type ScheduleNextPollParameters = {
+	dispatch: (action: ReturnType<typeof pollDocumentStatus>) => void;
+	documentId: number;
+	projectId: string;
+	signal: AbortSignal;
+};
+
+const scheduleNextPoll = ({
+	dispatch,
+	documentId,
+	projectId,
+	signal,
+}: ScheduleNextPollParameters): void => {
+	const timerId = setTimeout(() => {
+		dispatch(pollDocumentStatus({ documentId, projectId }));
+	}, POLL_DOCUMENT_STATUS_INTERVAL_MS);
+
+	schedulePollTimer(documentId, timerId);
+
+	signal.addEventListener("abort", () => {
+		clearPollTimer(documentId);
+	});
+};
 
 const pollDocumentStatus = createAppAsyncThunk<
 	DocumentStatusResponseDto,
@@ -268,34 +328,63 @@ const pollDocumentStatus = createAppAsyncThunk<
 >(
 	`${sliceName}/poll-document-status`,
 	async ({ documentId, projectId }, { dispatch, extra, signal }) => {
-		const statusResponse = await extra.documentsApi.getDocumentStatus({
-			documentId,
-			projectId,
-			signal,
-		});
-
-		const terminalStatuses: ValueOf<typeof DocumentStatus>[] = [
-			DocumentStatus.WAITING_FOR_VALIDATION,
-			DocumentStatus.WAITING_FOR_APPROVAL,
-			DocumentStatus.COMPLETED,
-			DocumentStatus.FAILED,
-		];
-
-		if (!terminalStatuses.includes(statusResponse.status)) {
-			const timerId = setTimeout(() => {
-				void dispatch(pollDocumentStatus({ documentId, projectId }));
-			}, POLL_DOCUMENT_STATUS_INTERVAL_MS);
-
-			signal.addEventListener("abort", () => {
-				clearTimeout(timerId);
+		try {
+			const statusResponse = await extra.documentsApi.getDocumentStatus({
+				documentId,
+				projectId,
+				signal,
 			});
-		} else if (
-			statusResponse.status === DocumentStatus.WAITING_FOR_VALIDATION
-		) {
-			await dispatch(fetchExtractionItems({ documentId, projectId })).unwrap();
-		}
 
-		return statusResponse;
+			const terminalStatuses: ValueOf<typeof DocumentStatus>[] = [
+				DocumentStatus.WAITING_FOR_VALIDATION,
+				DocumentStatus.WAITING_FOR_APPROVAL,
+				DocumentStatus.COMPLETED,
+				DocumentStatus.FAILED,
+			];
+
+			if (terminalStatuses.includes(statusResponse.status)) {
+				switch (statusResponse.status) {
+					case DocumentStatus.COMPLETED: {
+						clearPollTimer(documentId);
+						removeTrackedDocumentId(projectId, documentId);
+						break;
+					}
+
+					case DocumentStatus.FAILED: {
+						clearPollTimer(documentId);
+						break;
+					}
+
+					case DocumentStatus.WAITING_FOR_APPROVAL: {
+						clearPollTimer(documentId);
+						break;
+					}
+
+					case DocumentStatus.WAITING_FOR_VALIDATION: {
+						await dispatch(
+							fetchExtractionItems({ documentId, projectId }),
+						).unwrap();
+						break;
+					}
+
+					default: {
+						break;
+					}
+				}
+			} else {
+				scheduleNextPoll({ dispatch, documentId, projectId, signal });
+			}
+
+			return statusResponse;
+		} catch (error) {
+			if (signal.aborted) {
+				throw error;
+			}
+
+			scheduleNextPoll({ dispatch, documentId, projectId, signal });
+
+			throw error;
+		}
 	},
 );
 
@@ -310,6 +399,84 @@ const fetchExtractionItems = createAppAsyncThunk<
 		signal,
 	});
 });
+
+const updateExtractionItem = createAppAsyncThunk<
+	ExtractionItemResponseDto,
+	UpdateExtractionItemPayload
+>(`${sliceName}/update-extraction-item`, async (payload, { extra, signal }) => {
+	const { documentsApi } = extra;
+	return await documentsApi.updateExtractionItem({
+		documentId: payload.documentId,
+		extractionItemId: payload.extractionItemId,
+		payload: payload.payload,
+		projectId: payload.projectId,
+		signal,
+	});
+});
+
+const initializeProjectKnowledgePipeline = createAppAsyncThunk<
+	boolean,
+	{ projectId: string }
+>(
+	`${sliceName}/initialize-project-knowledge-pipeline`,
+	async ({ projectId }, { dispatch }) => {
+		const documentIds = readTrackedDocumentIds(projectId);
+
+		const EMPTY_DOCUMENT_COUNT = 0;
+
+		if (documentIds.length === EMPTY_DOCUMENT_COUNT) {
+			return false;
+		}
+
+		for (const documentId of documentIds) {
+			dispatch(
+				sliceSyncActions.trackDocument({
+					documentId,
+					label: `Document ${String(documentId)}`,
+				}),
+			);
+		}
+
+		await Promise.all(
+			documentIds.map((documentId) =>
+				dispatch(pollDocumentStatus({ documentId, projectId })),
+			),
+		);
+
+		dispatch(sliceSyncActions.startAddingKnowledgeFromHydration());
+
+		return true;
+	},
+);
+
+const switchActiveDocument = createAppAsyncThunk<
+	null,
+	{ documentId: number; projectId: string }
+>(
+	`${sliceName}/switch-active-document`,
+	async ({ documentId, projectId }, { dispatch, extra, signal }) => {
+		dispatch(sliceSyncActions.setActiveDocumentId(documentId));
+
+		const statusResponse = await extra.documentsApi.getDocumentStatus({
+			documentId,
+			projectId,
+			signal,
+		});
+
+		dispatch(
+			sliceSyncActions.syncTrackedDocumentStatus({
+				documentId,
+				status: statusResponse.status,
+			}),
+		);
+
+		if (statusResponse.status === DocumentStatus.WAITING_FOR_VALIDATION) {
+			await dispatch(fetchExtractionItems({ documentId, projectId })).unwrap();
+		}
+
+		return null;
+	},
+);
 
 const submitExtractionReview = createAppAsyncThunk<
 	ExtractionItemsReviewResponseDto,
@@ -353,11 +520,14 @@ export {
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
+	initializeProjectKnowledgePipeline,
 	pollDocumentStatus,
 	processDocument,
 	retryDocumentProcessing,
 	searchKnowledge,
 	submitExtractionReview,
 	submitManualText,
+	switchActiveDocument,
+	updateExtractionItem,
 	updateKnowledgeEntry,
 };

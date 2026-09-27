@@ -73,7 +73,9 @@ type SectionDetailsProperties = {
 	isTitleEmpty: boolean;
 	onContentChange: (content: string) => void;
 	onPageTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
+	onRejectItem?: (() => void) | undefined;
 	onTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
+	showRejectItem?: boolean | undefined;
 };
 
 type StructureAsideProperties = {
@@ -294,6 +296,31 @@ const updateSectionInPages = ({
 	return updatedPages;
 };
 
+const removeSectionFromPages = ({
+	activePageIndex,
+	activeSectionIndex,
+	pages,
+}: {
+	activePageIndex: number;
+	activeSectionIndex: number;
+	pages: ProposedSection[];
+}): ProposedSection[] => {
+	return pages
+		.map((section, pageIndex) => {
+			if (pageIndex !== activePageIndex) {
+				return section;
+			}
+
+			return {
+				...section,
+				pages: section.pages.filter(
+					(_page, sectionIndex) => sectionIndex !== activeSectionIndex,
+				),
+			};
+		})
+		.filter((section) => section.pages.length > EMPTY_LENGTH);
+};
+
 const updatePageInPages = ({
 	pageIndex,
 	pages,
@@ -451,7 +478,9 @@ const SectionDetails = ({
 	isTitleEmpty,
 	onContentChange,
 	onPageTitleChange,
+	onRejectItem,
 	onTitleChange,
+	showRejectItem = false,
 }: SectionDetailsProperties): JSX.Element => {
 	const isParentSelected = activeNodeType === "parent";
 	const selectedNode = isParentSelected ? activePage : activeSection;
@@ -487,6 +516,12 @@ const SectionDetails = ({
 					<span className="font-mono text-2xs uppercase tracking-wide text-text-muted truncate block min-w-0 flex-1">
 						{breadcrumbLabel}
 					</span>
+
+					{showRejectItem && !isParentSelected && onRejectItem && (
+						<Button onClick={onRejectItem} variant="secondary">
+							Reject item
+						</Button>
+					)}
 
 					<span
 						className={getValidClassNames(
@@ -655,10 +690,13 @@ const PreviewFooter = ({
 const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	onAddMore,
 	onApprove,
+	onApproveExtraction,
 	onClose,
 	proposedStructure,
+	variant = "integration",
 }: IntegrationPreviewProperties): JSX.Element => {
 	const initialStructure = proposedStructure;
+	const isExtractionValidation = variant === "extraction-validation";
 
 	const [pages, setPages] = useState<ProposedSection[]>(initialStructure);
 	const [backupPages, setBackupPages] =
@@ -701,6 +739,12 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 			setIsApplying(true);
 
+			if (!onApprove) {
+				setIsApplying(false);
+
+				return;
+			}
+
 			const isApplied = await onApprove(
 				toConflictResolutions({ conflicts, sections: proposedStructure }),
 			);
@@ -715,7 +759,29 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		[isApplying, onApprove, proposedStructure],
 	);
 
+	const handleApproveExtraction = useCallback(async (): Promise<void> => {
+		if (!onApproveExtraction || isApplying) {
+			return;
+		}
+
+		setIsApplying(true);
+
+		const isApplied = await onApproveExtraction(pages);
+
+		setIsApplying(false);
+
+		if (isApplied) {
+			setIsSuccessModalOpen(true);
+		}
+	}, [isApplying, onApproveExtraction, pages]);
+
 	const handleApprove = useCallback((): void => {
+		if (isExtractionValidation) {
+			void handleApproveExtraction();
+
+			return;
+		}
+
 		const integrationConflicts = getAllIntegrationConflicts(pages);
 
 		if (integrationConflicts.length === EMPTY_LENGTH) {
@@ -726,7 +792,20 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 		setActiveConflicts(integrationConflicts);
 		setIsMergeScreenOpen(true);
-	}, [applyChanges, pages]);
+	}, [applyChanges, handleApproveExtraction, isExtractionValidation, pages]);
+
+	const handleRejectItem = useCallback((): void => {
+		setPages((previousPages) =>
+			removeSectionFromPages({
+				activePageIndex,
+				activeSectionIndex,
+				pages: previousPages,
+			}),
+		);
+
+		setActiveSectionIndex(DEFAULT_SECTION_INDEX);
+		setActiveNodeType("child");
+	}, [activePageIndex, activeSectionIndex]);
 
 	const handleCancelEdit = useCallback((): void => {
 		setPages(backupPages);
@@ -879,7 +958,9 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					isTitleEmpty={isTitleEmpty}
 					onContentChange={handleSectionContentChange}
 					onPageTitleChange={handlePageTitleChange}
+					onRejectItem={handleRejectItem}
 					onTitleChange={handleSectionTitleChange}
+					showRejectItem={isExtractionValidation}
 				/>
 			</div>
 
