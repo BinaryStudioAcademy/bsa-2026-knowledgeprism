@@ -113,6 +113,7 @@ const GlobalNotifications = (): React.JSX.Element => {
 
 		observer.observe(document.body, {
 			attributeFilter: ["open"],
+			childList: true,
 			subtree: true,
 		});
 
