@@ -6,6 +6,7 @@ import { Button } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
 import {
 	useAppSelector,
+	useCanWriteKnowledge,
 	useLocation,
 	useModal,
 	useOptionalCurrentProjectId,
@@ -13,7 +14,6 @@ import {
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
-import { hasKnowledgeWriteAccess } from "~/modules/knowledge/libs/helpers/helpers.js";
 
 const MOBILE_NAV_ICON_SIZE = 16;
 const PROJECT_ICON_SIZE = 18;
@@ -148,7 +148,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 
 	const primaryNavItems = buildPrimaryNavItems(projectId);
 	const utilityNavItems = buildUtilityNavItems(role);
-	const canAddKnowledge = Boolean(projectId) && hasKnowledgeWriteAccess(role);
+	const canAddKnowledge = useCanWriteKnowledge();
 
 	const handleAddClick = useCallback((): void => {
 		if (onAddKnowledge) {

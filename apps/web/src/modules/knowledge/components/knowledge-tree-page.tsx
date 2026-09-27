@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import {
 	useAppDispatch,
 	useAppSelector,
+	useCanWriteKnowledge,
 	useCurrentProjectId,
 } from "~/hooks/hooks.js";
 
@@ -12,18 +14,33 @@ import { KnowledgeTreeLayout } from "./knowledge-tree/knowledge-tree-layout.js";
 const KnowledgeTreePage: React.FC = () => {
 	const projectId = useCurrentProjectId();
 	const dispatch = useAppDispatch();
+	const [searchParameters] = useSearchParams();
+	const canWriteKnowledge = useCanWriteKnowledge();
 	const { selectedEntry, tree } = useAppSelector((state) => state.knowledge);
 
 	const [manualSelectedPageId, setManualSelectedPageId] = useState<
 		number | undefined
 	>();
 	const [lastProjectId, setLastProjectId] = useState<null | string>(null);
+	const [lastQueryNodeId, setLastQueryNodeId] = useState<null | string>(null);
 	const [fetchedProjectId, setFetchedProjectId] = useState<null | string>(null);
+
+	const queryNodeId = searchParameters.get("nodeId");
+	const parsedNodeId = queryNodeId ? Number(queryNodeId) : undefined;
+	const validTargetNodeId =
+		parsedNodeId !== undefined && !Number.isNaN(parsedNodeId)
+			? parsedNodeId
+			: undefined;
 
 	if (projectId !== lastProjectId) {
 		setLastProjectId(projectId);
 		setManualSelectedPageId(undefined);
 		setFetchedProjectId(null);
+	}
+
+	if (queryNodeId !== lastQueryNodeId) {
+		setLastQueryNodeId(queryNodeId);
+		setManualSelectedPageId(undefined);
 	}
 
 	useEffect(() => {
@@ -47,7 +64,14 @@ const KnowledgeTreePage: React.FC = () => {
 					!parentIds.has(item.id),
 			)
 		: undefined;
-	const activePageId = manualSelectedPageId ?? firstAvailablePage?.id;
+
+	const targetPage =
+		isTreeReady && validTargetNodeId !== undefined
+			? tree.find((item) => item.id === validTargetNodeId)
+			: undefined;
+
+	const activePageId =
+		manualSelectedPageId ?? targetPage?.id ?? firstAvailablePage?.id;
 
 	useEffect(() => {
 		if (activePageId === undefined || !projectId) {
@@ -72,7 +96,7 @@ const KnowledgeTreePage: React.FC = () => {
 
 	return (
 		<KnowledgeTreeLayout
-			canEdit={true}
+			canEdit={canWriteKnowledge}
 			entries={entries}
 			isTreeReady={isTreeReady}
 			items={tree}

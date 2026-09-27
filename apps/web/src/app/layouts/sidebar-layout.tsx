@@ -5,9 +5,9 @@ import { MobileNav, RouterOutlet, Sidebar } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
+	useCanWriteKnowledge,
 	useOptionalCurrentProjectId,
 } from "~/hooks/hooks.js";
-import { hasKnowledgeWriteAccess } from "~/modules/knowledge/libs/helpers/helpers.js";
 import { useProjectKnowledgePipeline } from "~/modules/knowledge/libs/hooks/use-project-knowledge-pipeline.hook.js";
 import {
 	fetchProjects,
@@ -39,8 +39,10 @@ const SidebarLayout: React.FC = () => {
 		(project) => project.id === effectiveProjectId,
 	);
 
+	const canWriteKnowledge = useCanWriteKnowledge();
+
 	useProjectKnowledgePipeline({
-		canEdit: hasKnowledgeWriteAccess(currentProject?.role),
+		canEdit: canWriteKnowledge,
 		projectId: effectiveProjectId,
 	});
 

@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Avatar, Button, Header, Icon, Logo } from "~/components/components.js";
 import {
 	useAppSelector,
+	useCanWriteKnowledge,
 	useLocation,
 	useModal,
 	useNavigate,
@@ -11,7 +12,6 @@ import {
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
-import { hasKnowledgeWriteAccess } from "~/modules/knowledge/libs/helpers/helpers.js";
 
 interface WorkspaceHeaderProperties {
 	avatarUrl?: null | string;
@@ -56,6 +56,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	const { hideModal, isOpen, showModal } = useModal();
 	const { pathname } = useLocation();
 	const projectId = useOptionalCurrentProjectId();
+	const canWriteKnowledge = useCanWriteKnowledge();
 	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 	const { projects } = useAppSelector(({ workspaces }) => workspaces);
 	const currentProject = projects.find((project) => project.id === projectId);
@@ -69,10 +70,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 
 	const isWorkspaceListPage = WORKSPACE_LIST_PATHS.includes(pathname);
 
-	const canShowAddKnowledge =
-		Boolean(projectId) &&
-		!isWorkspaceListPage &&
-		hasKnowledgeWriteAccess(currentProject?.role);
+	const canShowAddKnowledge = canWriteKnowledge && !isWorkspaceListPage;
 
 	const dropdownReference = useRef<HTMLDivElement>(null);
 	const navigate = useNavigate();

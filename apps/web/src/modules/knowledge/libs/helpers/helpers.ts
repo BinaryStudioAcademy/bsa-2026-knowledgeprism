@@ -4,7 +4,6 @@ export {
 } from "./extraction-review.helper.js";
 export { filterKnowledgeTree } from "./filter-knowledge-tree.helper.js";
 export { formatFileSize } from "./format-file-size.helper.js";
-export { hasKnowledgeWriteAccess } from "./has-knowledge-write-access.helper.js";
 export { mapIntegrationChangesToProposedStructure } from "./map-integration-changes-to-proposed-structure.helper.js";
 export { isMatchingPipelineSession } from "./pipeline-session.helper.js";
 export { toConflictResolutions } from "./to-conflict-resolutions.helper.js";
