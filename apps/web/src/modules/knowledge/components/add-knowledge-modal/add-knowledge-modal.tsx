@@ -19,11 +19,11 @@ import {
 	useCurrentProjectId,
 } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import { store } from "~/lib/store/store.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { actions } from "../../knowledge.js";
 import { DocumentProcessingStatus } from "../../libs/enums/enums.js";
+import { isUploadSessionCurrent } from "../../state/session-guards.js";
 import { DocumentUpload } from "../document-upload.js";
 import { KnowledgeInputFooter } from "../knowledge-input-footer.js";
 import { ManualTextInput } from "../manual-text-input/manual-text-input.js";
@@ -64,10 +64,6 @@ const INITIAL_FORM_SESSION_KEY = 0;
 const SINGLE_ITEM_COUNT = 1;
 const TAB_ICON_SIZE = 14;
 const TAB_INDEX_STEP = 1;
-
-const isUploadProjectCurrent = (projectId: string): boolean => {
-	return store.instance.getState().knowledge.uploadProjectId === projectId;
-};
 
 const getCountLabel = (
 	readyCount: number,
@@ -125,7 +121,11 @@ const AddKnowledgeModal = ({
 		useState<null | number>(null);
 
 	useEffect(() => {
-		dispatch(actions.setUploadProject(projectId));
+		dispatch(actions.acquireUploadSession(projectId));
+
+		return () => {
+			dispatch(actions.releaseUploadSession(projectId));
+		};
 	}, [dispatch, projectId]);
 
 	const isUploadSubmissionPendingReference = useRef(false);
@@ -134,9 +134,10 @@ const AddKnowledgeModal = ({
 		new Map<ValueOf<typeof AddKnowledgeTab>, HTMLButtonElement>(),
 	);
 
-	const { processingStatus, selectedFiles } = useAppSelector(
+	const { processingStatus, selectedFiles, uploadSession } = useAppSelector(
 		(state) => state.knowledge,
 	);
+	const uploadSessionId = uploadSession?.id;
 	const projects = useAppSelector((state) => state.workspaces.projects);
 	const currentProjectName =
 		projectName ??
@@ -211,6 +212,7 @@ const AddKnowledgeModal = ({
 
 	const handleUploadSubmit = useCallback(async (): Promise<void> => {
 		if (
+			uploadSessionId === undefined ||
 			readyDocuments.length === EMPTY_COUNT ||
 			isUploadSubmissionPendingReference.current
 		) {
@@ -231,10 +233,11 @@ const AddKnowledgeModal = ({
 						documentId: item.documentId,
 						label: item.name,
 						projectId,
+						uploadSessionId,
 					}),
 				);
 
-				if (!isUploadProjectCurrent(projectId)) {
+				if (!isUploadSessionCurrent(uploadSessionId)) {
 					return;
 				}
 
@@ -250,7 +253,7 @@ const AddKnowledgeModal = ({
 			isUploadSubmissionPendingReference.current = false;
 			setIsUploadSubmitting(false);
 		}
-	}, [dispatch, projectId, readyDocuments, submitAndClose]);
+	}, [dispatch, projectId, readyDocuments, submitAndClose, uploadSessionId]);
 
 	const handleUploadActionClick = useCallback((): void => {
 		if (hasTerminalUploadConfirmationFailure) {
@@ -271,6 +274,10 @@ const AddKnowledgeModal = ({
 
 	const handleManualTextSubmit = useCallback(
 		async ({ content, title }: ManualTextCreateRequestDto): Promise<void> => {
+			if (uploadSessionId === undefined) {
+				return;
+			}
+
 			setIsManualTextSubmitting(true);
 
 			try {
@@ -283,10 +290,11 @@ const AddKnowledgeModal = ({
 							...(trimmedTitle && { title: trimmedTitle }),
 						},
 						projectId,
+						uploadSessionId,
 					}),
 				);
 
-				if (!isUploadProjectCurrent(projectId)) {
+				if (!isUploadSessionCurrent(uploadSessionId)) {
 					return;
 				}
 
@@ -296,7 +304,7 @@ const AddKnowledgeModal = ({
 				setIsManualTextSubmitting(false);
 			}
 		},
-		[dispatch, projectId, submitAndClose],
+		[dispatch, projectId, submitAndClose, uploadSessionId],
 	);
 
 	const handleTabKeyDown = useCallback(

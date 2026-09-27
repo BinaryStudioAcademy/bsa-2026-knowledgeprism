@@ -49,6 +49,7 @@ type ConfirmDocumentUploadPayload = {
 	documentId: number;
 	label?: string | undefined;
 	projectId: string;
+	uploadSessionId: number;
 };
 
 type FetchIntegrationChangesPayload = {
@@ -61,6 +62,7 @@ type ProcessDocumentPayload = {
 	file: File;
 	id: string;
 	projectId: string;
+	uploadSessionId: number;
 	uploadUrl?: string | undefined;
 };
 
@@ -73,6 +75,7 @@ type ProcessDocumentRejection = {
 type SubmitManualTextPayload = {
 	payload: ManualTextCreateRequestDto;
 	projectId: string;
+	uploadSessionId: number;
 };
 
 type UpdateExtractionItemPayload = {
@@ -339,6 +342,7 @@ const pollDocumentStatus = createAppAsyncThunk<
 			const terminalStatuses: ValueOf<typeof DocumentStatus>[] = [
 				DocumentStatus.WAITING_FOR_VALIDATION,
 				DocumentStatus.WAITING_FOR_APPROVAL,
+				DocumentStatus.CANCELLED,
 				DocumentStatus.COMPLETED,
 				DocumentStatus.FAILED,
 			];

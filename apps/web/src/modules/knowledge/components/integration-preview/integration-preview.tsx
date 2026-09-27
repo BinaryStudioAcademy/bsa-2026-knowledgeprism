@@ -127,6 +127,28 @@ const isTextContentItem = (item: unknown): item is TextContentItem => {
 	return typeof item === "object" && item !== null && "text" in item;
 };
 
+const isNestedContentItem = (item: unknown): item is { content: unknown } => {
+	return typeof item === "object" && item !== null && "content" in item;
+};
+
+const isTableContent = (content: unknown): content is { rows: unknown[] } => {
+	return (
+		typeof content === "object" &&
+		content !== null &&
+		"rows" in content &&
+		Array.isArray(content.rows)
+	);
+};
+
+const isTableRow = (row: unknown): row is { cells: unknown[] } => {
+	return (
+		typeof row === "object" &&
+		row !== null &&
+		"cells" in row &&
+		Array.isArray(row.cells)
+	);
+};
+
 const parseDatasetIndex = (value: string | undefined): null | number => {
 	if (value === undefined) {
 		return null;
@@ -144,14 +166,25 @@ const getInlineText = (content: unknown): string => {
 		return content;
 	}
 
+	if (isTableContent(content)) {
+		return content.rows
+			.flatMap((row) => (isTableRow(row) ? row.cells : []))
+			.map((cell) => getInlineText([cell]))
+			.join(" ");
+	}
+
 	if (!Array.isArray(content)) {
 		return "";
 	}
 
 	return content
-		.map((item) => {
+		.map((item: unknown): string => {
 			if (typeof item === "string") {
 				return item;
+			}
+
+			if (Array.isArray(item)) {
+				return getInlineText(item);
 			}
 
 			if (isTextContentItem(item)) {
@@ -160,14 +193,24 @@ const getInlineText = (content: unknown): string => {
 				return typeof text === "string" ? text : "";
 			}
 
+			if (isNestedContentItem(item)) {
+				return getInlineText(item.content);
+			}
+
 			return "";
 		})
 		.join("");
 };
 
+const collectBlockTexts = (blocks: readonly EditorBlock[]): string[] => {
+	return blocks.flatMap((block) => [
+		getInlineText(block.content),
+		...collectBlockTexts(block.children),
+	]);
+};
+
 const blocksToText = (blocks: readonly EditorBlock[]): string => {
-	return blocks
-		.map((block) => getInlineText(block.content))
+	return collectBlockTexts(blocks)
 		.filter((text) => text.trim().length > EMPTY_LENGTH)
 		.join("\n\n");
 };
@@ -986,23 +1029,15 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 	const hasContent = pages.length > EMPTY_LENGTH && Boolean(activeSection);
 
-	const totalExtractionItemCount = initialStructure.reduce(
-		(count, section) => count + section.pages.length,
-		EMPTY_LENGTH,
-	);
 	const remainingExtractionItemCount = pages.reduce(
 		(count, section) => count + section.pages.length,
 		EMPTY_LENGTH,
 	);
-	const canSubmitExtractionReview =
-		isExtractionValidation && totalExtractionItemCount > EMPTY_LENGTH;
 	const approveLabel =
 		isExtractionValidation && remainingExtractionItemCount === EMPTY_LENGTH
 			? "Finish without publishing"
 			: "Approve & save";
-	const canSubmitReview = isExtractionValidation
-		? canSubmitExtractionReview
-		: hasContent;
+	const canSubmitReview = isExtractionValidation || hasContent;
 
 	return (
 		<div className="mx-auto flex h-full w-full max-w-7xl flex-col justify-between gap-3 p-3 tablet:p-4 pb-2 tablet:pb-4 font-sans text-text">

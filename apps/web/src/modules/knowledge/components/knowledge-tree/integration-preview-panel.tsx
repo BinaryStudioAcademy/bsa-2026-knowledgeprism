@@ -11,6 +11,10 @@ import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 
 import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
+import {
+	getPipelineSessionId,
+	isPipelineSessionCurrent,
+} from "../../state/session-guards.js";
 import { IntegrationPreview } from "../integration-preview/integration-preview.js";
 
 const EMPTY_INTEGRATION_CHANGES_MESSAGE =
@@ -57,6 +61,8 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 				return false;
 			}
 
+			const pipelineSessionId = getPipelineSessionId();
+
 			try {
 				await dispatch(
 					actions.applyIntegrationChanges({
@@ -69,6 +75,10 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 				return false;
 			}
 
+			if (!isPipelineSessionCurrent(pipelineSessionId)) {
+				return false;
+			}
+
 			onApprove();
 
 			return true;
@@ -76,7 +86,10 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 		[dispatch, documentId, onApprove, projectId],
 	);
 
-	if (documentId === undefined) {
+	const displayedDocumentId =
+		documentId ?? integrationPreviewDocumentId ?? undefined;
+
+	if (displayedDocumentId === undefined) {
 		return (
 			<div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-bg p-4">
 				<Paragraph size={ParagraphSize.BODY_SMALL}>
@@ -91,7 +104,7 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 
 	if (
 		isIntegrationPreviewLoading ||
-		integrationPreviewDocumentId !== documentId
+		integrationPreviewDocumentId !== displayedDocumentId
 	) {
 		return (
 			<div className="flex h-full w-full items-center justify-center bg-bg">
@@ -126,7 +139,7 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 		);
 	}
 
-	const previewKey = `${String(documentId)}-${String(integrationPreviewSections.length)}`;
+	const previewKey = `${String(displayedDocumentId)}-${String(integrationPreviewSections.length)}`;
 
 	return (
 		<div className="h-full w-full bg-bg">

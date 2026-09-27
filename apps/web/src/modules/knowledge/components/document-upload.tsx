@@ -25,9 +25,10 @@ const DocumentUpload = ({
 }: Properties): JSX.Element => {
 	const dispatch = useAppDispatch();
 	const projectId = useCurrentProjectId();
-	const { errorMessage, selectedFiles } = useAppSelector(
+	const { errorMessage, selectedFiles, uploadSession } = useAppSelector(
 		(state) => state.knowledge,
 	);
+	const uploadSessionId = uploadSession?.id;
 	const filesMapReference = useRef<Map<string, File>>(new Map());
 	const uploadTasksReference = useRef<Map<string, { abort: () => void }>>(
 		new Map(),
@@ -48,6 +49,10 @@ const DocumentUpload = ({
 
 	const handleFilesSelect = useCallback(
 		(files: File[]): void => {
+			if (uploadSessionId === undefined) {
+				return;
+			}
+
 			for (const file of files) {
 				const validationResult = validateFile(file);
 
@@ -65,12 +70,12 @@ const DocumentUpload = ({
 				);
 
 				const uploadTask = dispatch(
-					actions.processDocument({ file, id, projectId }),
+					actions.processDocument({ file, id, projectId, uploadSessionId }),
 				);
 				uploadTasksReference.current.set(id, uploadTask);
 			}
 		},
-		[dispatch, projectId],
+		[dispatch, projectId, uploadSessionId],
 	);
 
 	const handleRetry = useCallback(
@@ -78,7 +83,12 @@ const DocumentUpload = ({
 			const targetItem = selectedFiles.find((file) => file.id === id);
 			const targetFile = filesMapReference.current.get(id);
 
-			if (isInteractionDisabled || !targetItem || !targetFile) {
+			if (
+				isInteractionDisabled ||
+				!targetItem ||
+				!targetFile ||
+				uploadSessionId === undefined
+			) {
 				return;
 			}
 
@@ -96,12 +106,19 @@ const DocumentUpload = ({
 					file: targetFile,
 					id: targetItem.id,
 					projectId,
+					uploadSessionId,
 					uploadUrl: targetItem.uploadUrl,
 				}),
 			);
 			uploadTasksReference.current.set(id, uploadTask);
 		},
-		[dispatch, isInteractionDisabled, projectId, selectedFiles],
+		[
+			dispatch,
+			isInteractionDisabled,
+			projectId,
+			selectedFiles,
+			uploadSessionId,
+		],
 	);
 
 	const handleRemove = useCallback(

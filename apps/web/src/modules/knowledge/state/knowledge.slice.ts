@@ -41,6 +41,7 @@ const INITIAL_PROGRESS = 15;
 const IN_PROGRESS_PERCENTAGE = 50;
 const EMPTY_FILES_COUNT = 0;
 const FIRST_TRACKED_DOCUMENT_INDEX = 0;
+const SESSION_COUNTER_STEP = 1;
 
 const initialState: State = {
 	activeDocumentId: null,
@@ -56,6 +57,7 @@ const initialState: State = {
 	isIntegrationPreviewLoading: false,
 	isTreeLoading: false,
 	pipelineProjectId: null,
+	pipelineSessionId: 0,
 	processingStatus: DocumentProcessingStatus.IDLE,
 	searchErrorMessage: null,
 	searchQuery: "",
@@ -65,7 +67,8 @@ const initialState: State = {
 	selectedFiles: [],
 	trackedDocuments: [],
 	tree: [],
-	uploadProjectId: null,
+	uploadSession: null,
+	uploadSessionSequence: 0,
 };
 
 const ACTIVE_DOCUMENT_PRIORITY: TrackedDocument["status"][] = [
@@ -73,6 +76,11 @@ const ACTIVE_DOCUMENT_PRIORITY: TrackedDocument["status"][] = [
 	DocumentStatus.WAITING_FOR_APPROVAL,
 	DocumentStatus.FAILED,
 ];
+
+const FINISHED_DOCUMENT_STATUSES = new Set<TrackedDocument["status"]>([
+	DocumentStatus.CANCELLED,
+	DocumentStatus.COMPLETED,
+]);
 
 const IN_FLIGHT_DOCUMENT_STATUSES = new Set<TrackedDocument["status"]>([
 	DocumentStatus.EXTRACTED,
@@ -87,8 +95,11 @@ const isCurrentPipelineProject = (state: State, projectId: string): boolean => {
 	return state.pipelineProjectId === projectId;
 };
 
-const isCurrentUploadProject = (state: State, projectId: string): boolean => {
-	return state.uploadProjectId === projectId;
+const isCurrentUploadSession = (
+	state: State,
+	uploadSessionId: number,
+): boolean => {
+	return state.uploadSession?.id === uploadSessionId;
 };
 
 const findTrackedDocument = (
@@ -181,7 +192,7 @@ const applyTrackedDocumentStatus = ({
 		return;
 	}
 
-	if (status === DocumentStatus.COMPLETED) {
+	if (FINISHED_DOCUMENT_STATUSES.has(status)) {
 		removeTrackedDocument(state, projectId, documentId);
 	} else {
 		upsertTrackedDocumentStatus(state, documentId, status);
@@ -193,7 +204,7 @@ const applyTrackedDocumentStatus = ({
 const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
 		builder.addCase(confirmDocumentUpload.pending, (state, action) => {
-			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
 				return;
 			}
 
@@ -201,7 +212,7 @@ const { actions, name, reducer } = createSlice({
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 		});
 		builder.addCase(confirmDocumentUpload.fulfilled, (state, action) => {
-			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
 				return;
 			}
 
@@ -210,7 +221,7 @@ const { actions, name, reducer } = createSlice({
 			reconcileActiveDocument(state);
 		});
 		builder.addCase(confirmDocumentUpload.rejected, (state, action) => {
-			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
 				return;
 			}
 
@@ -219,7 +230,7 @@ const { actions, name, reducer } = createSlice({
 			state.processingStatus = DocumentProcessingStatus.FAILED;
 		});
 		builder.addCase(processDocument.pending, (state, action) => {
-			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
 				return;
 			}
 
@@ -235,7 +246,7 @@ const { actions, name, reducer } = createSlice({
 			}
 		});
 		builder.addCase(processDocument.fulfilled, (state, action) => {
-			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
 				return;
 			}
 
@@ -267,7 +278,7 @@ const { actions, name, reducer } = createSlice({
 			}
 		});
 		builder.addCase(processDocument.rejected, (state, action) => {
-			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
 				return;
 			}
 
@@ -403,7 +414,7 @@ const { actions, name, reducer } = createSlice({
 			state.searchStatus = SearchStatus.FAILED;
 		});
 		builder.addCase(submitManualText.fulfilled, (state, action) => {
-			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
 				return;
 			}
 
@@ -411,7 +422,7 @@ const { actions, name, reducer } = createSlice({
 			reconcileActiveDocument(state);
 		});
 		builder.addCase(submitManualText.rejected, (state, action) => {
-			if (!isCurrentUploadProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
 				return;
 			}
 
@@ -582,6 +593,22 @@ const { actions, name, reducer } = createSlice({
 	initialState,
 	name: "knowledge",
 	reducers: {
+		acquireUploadSession(state, action: PayloadAction<string>) {
+			if (state.uploadSession?.projectId === action.payload) {
+				state.uploadSession.subscriberCount += SESSION_COUNTER_STEP;
+
+				return;
+			}
+
+			state.uploadSessionSequence += SESSION_COUNTER_STEP;
+			state.uploadSession = {
+				id: state.uploadSessionSequence,
+				projectId: action.payload,
+				subscriberCount: SESSION_COUNTER_STEP,
+			};
+			state.processingStatus = DocumentProcessingStatus.IDLE;
+			state.selectedFiles = [];
+		},
 		clearError(state) {
 			state.errorMessage = null;
 		},
@@ -603,6 +630,22 @@ const { actions, name, reducer } = createSlice({
 		releasePipeline(state) {
 			clearAllPollTimers();
 			state.pipelineProjectId = null;
+			state.pipelineSessionId += SESSION_COUNTER_STEP;
+		},
+		releaseUploadSession(state, action: PayloadAction<string>) {
+			if (state.uploadSession?.projectId !== action.payload) {
+				return;
+			}
+
+			state.uploadSession.subscriberCount -= SESSION_COUNTER_STEP;
+
+			if (state.uploadSession.subscriberCount > EMPTY_FILES_COUNT) {
+				return;
+			}
+
+			state.uploadSession = null;
+			state.processingStatus = DocumentProcessingStatus.IDLE;
+			state.selectedFiles = [];
 		},
 		removeDocument(state, action: PayloadAction<{ id: string }>) {
 			state.selectedFiles = state.selectedFiles.filter(
@@ -640,6 +683,7 @@ const { actions, name, reducer } = createSlice({
 			state.isAddingKnowledge = false;
 			state.isIntegrationPreviewLoading = false;
 			state.pipelineProjectId = action.payload;
+			state.pipelineSessionId += SESSION_COUNTER_STEP;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
 			state.trackedDocuments = [];
@@ -655,15 +699,6 @@ const { actions, name, reducer } = createSlice({
 		setError(state, action: PayloadAction<string>) {
 			state.errorMessage = action.payload;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
-		},
-		setUploadProject(state, action: PayloadAction<string>) {
-			if (state.uploadProjectId === action.payload) {
-				return;
-			}
-
-			state.uploadProjectId = action.payload;
-			state.processingStatus = DocumentProcessingStatus.IDLE;
-			state.selectedFiles = [];
 		},
 		startProcessing(
 			state,

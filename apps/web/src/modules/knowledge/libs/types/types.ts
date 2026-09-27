@@ -67,6 +67,7 @@ type KnowledgeState = {
 	isIntegrationPreviewLoading: boolean;
 	isTreeLoading: boolean;
 	pipelineProjectId: null | string;
+	pipelineSessionId: number;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
 	searchErrorMessage: null | string;
 	searchQuery: string;
@@ -76,7 +77,8 @@ type KnowledgeState = {
 	selectedFiles: UploadedDocumentItem[];
 	trackedDocuments: TrackedDocument[];
 	tree: KnowledgeTreeItemResponseDto[];
-	uploadProjectId: null | string;
+	uploadSession: null | UploadSession;
+	uploadSessionSequence: number;
 };
 
 type ProposedPage = {
@@ -118,6 +120,12 @@ type UploadedDocumentItem = {
 	sizeLabel: string;
 	status: ValueOf<typeof DocumentProcessingStatus>;
 	uploadUrl?: string | undefined;
+};
+
+type UploadSession = {
+	id: number;
+	projectId: string;
+	subscriberCount: number;
 };
 
 export { type KnowledgeEntryUpdateRequestDto } from "@knowledgeprism/types";

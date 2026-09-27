@@ -30,6 +30,10 @@ import {
 	type ProposedPage,
 	type ProposedSection,
 } from "../../libs/types/types.js";
+import {
+	getPipelineSessionId,
+	isPipelineSessionCurrent,
+} from "../../state/session-guards.js";
 import { AddKnowledgeModal } from "../add-knowledge-modal/add-knowledge-modal.js";
 import { IntegrationPreview } from "../integration-preview/integration-preview.js";
 import { LoadingState } from "../loading-state/loading-state.js";
@@ -41,6 +45,7 @@ import { KnowledgeTreeSidebar } from "./knowledge-tree-sidebar.js";
 
 type PreviewLayerProperties = {
 	activeDocumentId: null | number;
+	activeDocumentStatus: KnowledgeState["activeDocumentStatus"];
 	extractionStructure: ProposedSection[];
 	isAddModalOpen: boolean;
 	isExtractionValidationPreview: boolean;
@@ -167,8 +172,71 @@ const useActiveExtractionItems = ({
 	]);
 };
 
+type EmptyPipelineProperties = {
+	activeDocumentStatus: KnowledgeState["activeDocumentStatus"];
+	errorMessage: null | string;
+	isPreviewDismissed: boolean;
+	isShowDocumentPipelineUi: boolean;
+	onCancel: () => void;
+	onFinish: () => void;
+	onPreview: () => void;
+	onRetry: () => void;
+};
+
+const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
+	activeDocumentStatus,
+	errorMessage,
+	isPreviewDismissed,
+	isShowDocumentPipelineUi,
+	onCancel,
+	onFinish,
+	onPreview,
+	onRetry,
+}: EmptyPipelineProperties) => {
+	if (!isShowDocumentPipelineUi) {
+		return errorMessage ? (
+			<div className="flex flex-col items-center gap-4 text-text-muted">
+				<p>{errorMessage}</p>
+			</div>
+		) : (
+			<KnowledgeTreeEmptyState />
+		);
+	}
+
+	if (activeDocumentStatus === DocumentStatus.FAILED) {
+		return (
+			<LoadingState
+				currentStatus={activeDocumentStatus}
+				hasError={true}
+				onCancel={onCancel}
+				onRetry={onRetry}
+				variant="full"
+			/>
+		);
+	}
+
+	if (isPreviewDismissed) {
+		return (
+			<LoadingState
+				currentStatus={activeDocumentStatus}
+				onPreview={onPreview}
+				variant="compact"
+			/>
+		);
+	}
+
+	return (
+		<LoadingState
+			currentStatus={activeDocumentStatus}
+			onFinish={onFinish}
+			variant="full"
+		/>
+	);
+};
+
 const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	activeDocumentId,
+	activeDocumentStatus,
 	extractionStructure,
 	isAddModalOpen,
 	isExtractionValidationPreview,
@@ -203,7 +271,11 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 		/>
 	) : (
 		<IntegrationPreviewPanel
-			documentId={activeDocumentId ?? undefined}
+			documentId={
+				activeDocumentStatus === DocumentStatus.WAITING_FOR_APPROVAL
+					? (activeDocumentId ?? undefined)
+					: undefined
+			}
 			onAddMore={onAddMore}
 			onApprove={onApproveIntegration}
 			onClose={onClosePreview}
@@ -267,11 +339,20 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	} = useModal();
 
 	const [previewProjectId, setPreviewProjectId] = useState<null | string>(null);
+	const [dismissedPreviewDocumentId, setDismissedPreviewDocumentId] = useState<
+		null | number
+	>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
 	const setIsPreviewOpen = useCallback(
 		(isOpen: boolean): void => {
-			setPreviewProjectId(isOpen ? projectId : null);
+			setPreviewProjectId((currentProjectId) => {
+				if (isOpen) {
+					return projectId;
+				}
+
+				return currentProjectId === projectId ? null : currentProjectId;
+			});
 		},
 		[projectId],
 	);
@@ -320,27 +401,39 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		handleOpenAddModal();
 	}, [dispatch, handleOpenAddModal, setIsPreviewOpen]);
 
-	const openNextPendingReview = useCallback(async (): Promise<void> => {
-		if (!projectId) {
-			return;
-		}
+	const openNextPendingReview = useCallback(
+		async ({
+			isClosingWhenNoneLeft,
+		}: {
+			isClosingWhenNoneLeft: boolean;
+		}): Promise<void> => {
+			const pipelineSessionId = getPipelineSessionId();
 
-		const { openPreview } = await dispatch(
-			actions.resumeNextPendingReview({ projectId }),
-		).unwrap();
+			const { openPreview } = await dispatch(
+				actions.resumeNextPendingReview({ projectId }),
+			).unwrap();
 
-		setIsPreviewOpen(openPreview);
-	}, [dispatch, projectId, setIsPreviewOpen]);
+			if (!isPipelineSessionCurrent(pipelineSessionId)) {
+				return;
+			}
+
+			if (openPreview || isClosingWhenNoneLeft) {
+				setIsPreviewOpen(openPreview);
+			}
+		},
+		[dispatch, projectId, setIsPreviewOpen],
+	);
 
 	const handleApproveIntegration = useCallback((): void => {
-		void openNextPendingReview();
+		void openNextPendingReview({ isClosingWhenNoneLeft: false });
 		void dispatch(actions.fetchKnowledgeTree({ projectId }));
 	}, [dispatch, openNextPendingReview, projectId]);
 
 	const handleClosePreview = useCallback((): void => {
+		setDismissedPreviewDocumentId(activeDocumentId);
 		setIsPreviewOpen(false);
 		dispatch(actions.clearIntegrationPreview());
-	}, [dispatch, setIsPreviewOpen]);
+	}, [activeDocumentId, dispatch, setIsPreviewOpen]);
 
 	const handleCloseSidebar = useCallback((): void => {
 		setIsSidebarOpen(false);
@@ -352,7 +445,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	}, [dispatch, setIsPreviewOpen]);
 
 	const handleOpenPreview = useCallback((): void => {
-		void openNextPendingReview();
+		void openNextPendingReview({ isClosingWhenNoneLeft: true });
 	}, [openNextPendingReview]);
 
 	const handleOpenSidebar = useCallback((): void => {
@@ -473,12 +566,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				extractionItems,
 			);
 
-			if (
-				approvedIds.length === EMPTY_LENGTH &&
-				rejectedIds.length === EMPTY_LENGTH
-			) {
-				return false;
-			}
+			const pipelineSessionId = getPipelineSessionId();
 
 			try {
 				for (const patch of patches) {
@@ -490,6 +578,10 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 							projectId,
 						}),
 					).unwrap();
+
+					if (!isPipelineSessionCurrent(pipelineSessionId)) {
+						return false;
+					}
 				}
 
 				const response = await dispatch(
@@ -499,6 +591,10 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 						projectId,
 					}),
 				).unwrap();
+
+				if (!isPipelineSessionCurrent(pipelineSessionId)) {
+					return false;
+				}
 
 				if (response.status === DocumentStatus.INTEGRATING) {
 					void dispatch(
@@ -511,7 +607,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					void dispatch(actions.fetchKnowledgeTree({ projectId }));
 				}
 
-				await openNextPendingReview();
+				await openNextPendingReview({ isClosingWhenNoneLeft: true });
 
 				return true;
 			} catch {
@@ -574,6 +670,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		return (
 			<KnowledgeTreePreviewLayer
 				activeDocumentId={activeDocumentId}
+				activeDocumentStatus={activeDocumentStatus}
 				extractionStructure={mappedExtractionStructure}
 				isAddModalOpen={isAddModalOpen}
 				isExtractionValidationPreview={isExtractionValidationPreview}
@@ -598,36 +695,20 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	}
 
 	if (isKbEmpty) {
-		let emptyStateContent = <KnowledgeTreeEmptyState />;
-
-		if (isShowDocumentPipelineUi) {
-			emptyStateContent =
-				activeDocumentStatus === DocumentStatus.FAILED ? (
-					<LoadingState
-						currentStatus={activeDocumentStatus}
-						hasError={true}
-						onCancel={handleResetState}
-						onRetry={handleRetry}
-						variant="full"
-					/>
-				) : (
-					<LoadingState
-						currentStatus={activeDocumentStatus}
-						onFinish={handleFinishLoading}
-						variant="full"
-					/>
-				);
-		} else if (errorMessage) {
-			emptyStateContent = (
-				<div className="flex flex-col items-center gap-4 text-text-muted">
-					<p>{errorMessage}</p>
-				</div>
-			);
-		}
-
 		return (
 			<div className="flex h-full w-full items-center justify-center bg-bg">
-				{emptyStateContent}
+				<KnowledgeTreeEmptyPipeline
+					activeDocumentStatus={activeDocumentStatus}
+					errorMessage={errorMessage}
+					isPreviewDismissed={
+						canResumePreview && dismissedPreviewDocumentId === activeDocumentId
+					}
+					isShowDocumentPipelineUi={isShowDocumentPipelineUi}
+					onCancel={handleResetState}
+					onFinish={handleFinishLoading}
+					onPreview={handleOpenPreview}
+					onRetry={handleRetry}
+				/>
 				<AddKnowledgeModal
 					isOpen={isAddModalOpen}
 					onClose={handleCloseAddModal}
