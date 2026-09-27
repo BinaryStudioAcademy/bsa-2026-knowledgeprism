@@ -6,6 +6,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { createPortal } from "react-dom";
 
 import { Alert } from "~/components/alert/alert.js";
 import { Button } from "~/components/button/button.js";
@@ -36,6 +37,9 @@ const ProgressBarColor = {
 
 const GlobalNotifications = (): React.JSX.Element => {
 	const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+	const [modalDialog, setModalDialog] = useState<HTMLDialogElement | null>(
+		null,
+	);
 
 	const dismissTimeoutsReference = useRef<
 		Map<string, ReturnType<typeof setTimeout>>
@@ -100,6 +104,25 @@ const GlobalNotifications = (): React.JSX.Element => {
 		};
 	}, [scheduleAutoDismiss]);
 
+	useEffect(() => {
+		const updateModalDialog = (): void => {
+			setModalDialog(document.querySelector<HTMLDialogElement>("dialog:modal"));
+		};
+
+		const observer = new MutationObserver(updateModalDialog);
+
+		observer.observe(document.body, {
+			attributeFilter: ["open"],
+			subtree: true,
+		});
+
+		updateModalDialog();
+
+		return (): void => {
+			observer.disconnect();
+		};
+	}, []);
+
 	const handleAnimationEnd = useCallback(
 		(event: AnimationEvent<HTMLDivElement>): void => {
 			if (event.target !== event.currentTarget) {
@@ -134,7 +157,7 @@ const GlobalNotifications = (): React.JSX.Element => {
 		[startDismiss],
 	);
 
-	return (
+	return createPortal(
 		<section
 			aria-label="Notifications"
 			className="pointer-events-none fixed inset-x-4 top-4 z-50 ml-auto flex max-h-[calc(100dvh-2rem)] max-w-96 flex-col overflow-y-auto"
@@ -190,7 +213,8 @@ const GlobalNotifications = (): React.JSX.Element => {
 					</div>
 				</div>
 			))}
-		</section>
+		</section>,
+		modalDialog ?? document.body,
 	);
 };
 
