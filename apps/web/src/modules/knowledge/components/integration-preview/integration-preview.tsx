@@ -46,6 +46,8 @@ type ActiveNodeType = "child" | "parent";
 type EditorBlock = Block<BlockSchemaFromSpecs<BlockSpecs>>;
 
 type PreviewFooterProperties = {
+	approveLabel: string;
+	canSubmitReview: boolean;
 	hasContent: boolean;
 	isEditInvalid: boolean;
 	isEditMode: boolean;
@@ -635,6 +637,8 @@ const SectionDetails = ({
 };
 
 const PreviewFooter = ({
+	approveLabel,
+	canSubmitReview,
 	hasContent,
 	isEditInvalid,
 	isEditMode,
@@ -677,9 +681,13 @@ const PreviewFooter = ({
 					<Button onClick={onClose} variant="secondary">
 						Back
 					</Button>
-					<Button disabled={!hasContent} onClick={onApprove} variant="primary">
+					<Button
+						disabled={!canSubmitReview}
+						onClick={onApprove}
+						variant="primary"
+					>
 						<Icon name="checkbox-tick" size={ICON_SIZE_MEDIUM} />
-						<span>Approve & save</span>
+						<span>{approveLabel}</span>
 					</Button>
 				</div>
 			</>
@@ -937,6 +945,24 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 	const hasContent = pages.length > EMPTY_LENGTH && Boolean(activeSection);
 
+	const totalExtractionItemCount = initialStructure.reduce(
+		(count, section) => count + section.pages.length,
+		EMPTY_LENGTH,
+	);
+	const remainingExtractionItemCount = pages.reduce(
+		(count, section) => count + section.pages.length,
+		EMPTY_LENGTH,
+	);
+	const canSubmitExtractionReview =
+		isExtractionValidation && totalExtractionItemCount > EMPTY_LENGTH;
+	const approveLabel =
+		isExtractionValidation && remainingExtractionItemCount === EMPTY_LENGTH
+			? "Finish without publishing"
+			: "Approve & save";
+	const canSubmitReview = isExtractionValidation
+		? canSubmitExtractionReview
+		: hasContent;
+
 	return (
 		<div className="mx-auto flex h-full w-full max-w-7xl flex-col justify-between gap-3 p-3 tablet:p-4 pb-2 tablet:pb-4 font-sans text-text">
 			<div className="flex flex-1 min-h-0 flex-col tablet:flex-row overflow-y-auto tablet:overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
@@ -965,6 +991,8 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			</div>
 
 			<PreviewFooter
+				approveLabel={approveLabel}
+				canSubmitReview={canSubmitReview}
 				hasContent={hasContent}
 				isEditInvalid={isEditInvalid}
 				isEditMode={isEditMode}

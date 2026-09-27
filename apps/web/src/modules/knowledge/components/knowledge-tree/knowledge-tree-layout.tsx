@@ -26,7 +26,6 @@ import {
 	collectExtractionItemPatches,
 	deriveExtractionReviewIds,
 } from "../../libs/helpers/helpers.js";
-import { writeTrackedDocumentIds } from "../../libs/helpers/tracked-documents-session.helper.js";
 import {
 	type ProposedPage,
 	type ProposedSection,
@@ -64,8 +63,6 @@ type Properties = {
 	selectedPageId?: number | undefined;
 };
 
-const SINGLE_TRACKED_DOCUMENT = 1;
-
 const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	activeDocumentId,
 	extractionStructure,
@@ -92,34 +89,14 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	);
 
 	const previewContent = isExtractionValidationPreview ? (
-		<div className="flex h-full w-full flex-col bg-bg">
-			{pendingReviewDocuments.length > EMPTY_LENGTH && (
-				<div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2 text-sm">
-					<span className="text-text-muted">Also waiting for review:</span>
-					{pendingReviewDocuments.map((document) => (
-						<button
-							className="rounded-md border border-border px-2 py-1 text-text hover:bg-secondary"
-							data-document-id={document.documentId}
-							key={document.documentId}
-							onClick={handlePendingReviewClick}
-							type="button"
-						>
-							{document.label}
-						</button>
-					))}
-				</div>
-			)}
-			<div className="min-h-0 flex-1">
-				<IntegrationPreview
-					key={`extraction-${String(activeDocumentId)}-${String(extractionStructure.length)}`}
-					onAddMore={onAddMore}
-					onApproveExtraction={onExtractionValidationApprove}
-					onClose={onClosePreview}
-					proposedStructure={extractionStructure}
-					variant="extraction-validation"
-				/>
-			</div>
-		</div>
+		<IntegrationPreview
+			key={`extraction-${String(activeDocumentId)}-${String(extractionStructure.length)}`}
+			onAddMore={onAddMore}
+			onApproveExtraction={onExtractionValidationApprove}
+			onClose={onClosePreview}
+			proposedStructure={extractionStructure}
+			variant="extraction-validation"
+		/>
 	) : (
 		<IntegrationPreviewPanel
 			documentId={activeDocumentId ?? undefined}
@@ -132,7 +109,25 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 
 	return (
 		<>
-			{previewContent}
+			<div className="flex h-full w-full flex-col bg-bg">
+				{pendingReviewDocuments.length > EMPTY_LENGTH && (
+					<div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2 text-sm">
+						<span className="text-text-muted">Also waiting for review:</span>
+						{pendingReviewDocuments.map((document) => (
+							<button
+								className="rounded-md border border-border px-2 py-1 text-text hover:bg-secondary"
+								data-document-id={document.documentId}
+								key={document.documentId}
+								onClick={handlePendingReviewClick}
+								type="button"
+							>
+								{document.label}
+							</button>
+						))}
+					</div>
+				)}
+				<div className="min-h-0 flex-1">{previewContent}</div>
+			</div>
 			<AddKnowledgeModal isOpen={isAddModalOpen} onClose={onCloseAddModal} />
 		</>
 	);
@@ -170,6 +165,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
 	const isKbEmpty = items.length === EMPTY_LENGTH;
+
 	const isExtractionValidationPreview =
 		activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION;
 
@@ -217,20 +213,31 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		return trackedDocuments.filter(
 			(document) =>
 				document.documentId !== activeDocumentId &&
-				document.status === DocumentStatus.WAITING_FOR_VALIDATION,
+				(document.status === DocumentStatus.WAITING_FOR_VALIDATION ||
+					document.status === DocumentStatus.WAITING_FOR_APPROVAL),
 		);
 	}, [activeDocumentId, trackedDocuments]);
 
-	const canResumePreview = useMemo(() => {
-		if (!activeDocumentId) {
-			return false;
+	useEffect(() => {
+		if (
+			!projectId ||
+			!activeDocumentId ||
+			activeDocumentStatus !== DocumentStatus.WAITING_FOR_VALIDATION
+		) {
+			return;
 		}
 
-		return (
-			activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION ||
-			activeDocumentStatus === DocumentStatus.WAITING_FOR_APPROVAL
+		void dispatch(
+			actions.fetchExtractionItems({
+				documentId: activeDocumentId,
+				projectId,
+			}),
 		);
-	}, [activeDocumentId, activeDocumentStatus]);
+	}, [activeDocumentId, activeDocumentStatus, dispatch, projectId]);
+
+	const canResumePreview =
+		activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION ||
+		activeDocumentStatus === DocumentStatus.WAITING_FOR_APPROVAL;
 
 	const handleAddMore = useCallback((): void => {
 		setIsPreviewOpen(false);
@@ -238,10 +245,22 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		handleOpenAddModal();
 	}, [dispatch, handleOpenAddModal]);
 
-	const handleApproveIntegration = useCallback((): void => {
-		dispatch(actions.finishAddingKnowledge());
-		void dispatch(actions.fetchKnowledgeTree({ projectId }));
+	const openNextPendingReview = useCallback(async (): Promise<void> => {
+		if (!projectId) {
+			return;
+		}
+
+		const { openPreview } = await dispatch(
+			actions.resumeNextPendingReview({ projectId }),
+		).unwrap();
+
+		setIsPreviewOpen(openPreview);
 	}, [dispatch, projectId]);
+
+	const handleApproveIntegration = useCallback((): void => {
+		void openNextPendingReview();
+		void dispatch(actions.fetchKnowledgeTree({ projectId }));
+	}, [dispatch, openNextPendingReview, projectId]);
 
 	const handleClosePreview = useCallback((): void => {
 		setIsPreviewOpen(false);
@@ -258,34 +277,22 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	}, [dispatch]);
 
 	const handleOpenPreview = useCallback((): void => {
-		if (
-			projectId &&
-			activeDocumentId &&
-			activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION
-		) {
-			void dispatch(
-				actions.fetchExtractionItems({
-					documentId: activeDocumentId,
-					projectId,
-				}),
-			);
-		}
-
-		setIsPreviewOpen(true);
-	}, [activeDocumentId, activeDocumentStatus, dispatch, projectId]);
+		void openNextPendingReview();
+	}, [openNextPendingReview]);
 
 	const handleOpenSidebar = useCallback((): void => {
 		setIsSidebarOpen(true);
 	}, []);
 
 	const handleResetState = useCallback((): void => {
-		if (projectId) {
-			writeTrackedDocumentIds(projectId, []);
-		}
+		dispatch(actions.clearError());
 
-		dispatch(actions.resetState());
-		dispatch(actions.finishAddingKnowledge());
-	}, [dispatch, projectId]);
+		if (projectId && activeDocumentId) {
+			dispatch(
+				actions.untrackDocument({ documentId: activeDocumentId, projectId }),
+			);
+		}
+	}, [activeDocumentId, dispatch, projectId]);
 
 	const handleSwitchDocument = useCallback(
 		(documentId: number): void => {
@@ -419,8 +426,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				).unwrap();
 
 				if (response.status === DocumentStatus.INTEGRATING) {
-					setIsPreviewOpen(false);
-					dispatch(actions.startAddingKnowledge());
 					void dispatch(
 						actions.pollDocumentStatus({
 							documentId: activeDocumentId,
@@ -428,14 +433,10 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 						}),
 					);
 				} else if (response.status === DocumentStatus.COMPLETED) {
-					setIsPreviewOpen(false);
-
-					if (trackedDocuments.length <= SINGLE_TRACKED_DOCUMENT) {
-						dispatch(actions.finishAddingKnowledge());
-					}
-
 					void dispatch(actions.fetchKnowledgeTree({ projectId }));
 				}
+
+				await openNextPendingReview();
 
 				return true;
 			} catch {
@@ -446,8 +447,8 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			activeDocumentId,
 			dispatch,
 			extractionItems,
+			openNextPendingReview,
 			projectId,
-			trackedDocuments.length,
 		],
 	);
 

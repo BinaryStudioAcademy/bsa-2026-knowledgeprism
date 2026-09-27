@@ -59,5 +59,4 @@ export {
 	addTrackedDocumentId,
 	readTrackedDocumentIds,
 	removeTrackedDocumentId,
-	writeTrackedDocumentIds,
 };

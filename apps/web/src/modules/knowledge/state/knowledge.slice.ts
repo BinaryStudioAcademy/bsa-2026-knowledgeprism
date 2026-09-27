@@ -15,11 +15,13 @@ import {
 	type TrackedDocument,
 } from "../libs/types/types.js";
 import {
+	applyIntegrationChanges,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
+	fetchPendingReviewDocuments,
 	pollDocumentStatus,
 	processDocument,
 	retryDocumentProcessing,
@@ -35,6 +37,10 @@ type State = KnowledgeState;
 
 const IDLE_DOCUMENT_STATUS = "IDLE" as const;
 const NOT_FOUND_INDEX = -1;
+const INITIAL_PROGRESS = 15;
+const IN_PROGRESS_PERCENTAGE = 50;
+const EMPTY_FILES_COUNT = 0;
+const FIRST_TRACKED_DOCUMENT_INDEX = 0;
 
 const initialState: State = {
 	activeDocumentId: null,
@@ -58,42 +64,115 @@ const initialState: State = {
 	tree: [],
 };
 
-const syncActiveDocumentFromTracked = (state: State): void => {
-	if (state.activeDocumentId === null) {
-		state.activeDocumentStatus = IDLE_DOCUMENT_STATUS;
+const ACTIVE_DOCUMENT_PRIORITY: TrackedDocument["status"][] = [
+	DocumentStatus.WAITING_FOR_VALIDATION,
+	DocumentStatus.WAITING_FOR_APPROVAL,
+	DocumentStatus.FAILED,
+];
+
+const IN_FLIGHT_DOCUMENT_STATUSES = new Set<TrackedDocument["status"]>([
+	DocumentStatus.EXTRACTED,
+	DocumentStatus.EXTRACTING,
+	DocumentStatus.INTEGRATING,
+	DocumentStatus.PARSED,
+	DocumentStatus.PROCESSING,
+	DocumentStatus.UPLOADED,
+]);
+
+const findTrackedDocument = (
+	state: State,
+	documentId: null | number,
+): TrackedDocument | undefined => {
+	return state.trackedDocuments.find(
+		(document) => document.documentId === documentId,
+	);
+};
+
+const pickActiveDocument = (state: State): TrackedDocument | undefined => {
+	const current = findTrackedDocument(state, state.activeDocumentId);
+
+	if (current && ACTIVE_DOCUMENT_PRIORITY.includes(current.status)) {
+		return current;
+	}
+
+	for (const status of ACTIVE_DOCUMENT_PRIORITY) {
+		const candidate = state.trackedDocuments.find(
+			(document) => document.status === status,
+		);
+
+		if (candidate) {
+			return candidate;
+		}
+	}
+
+	return current ?? state.trackedDocuments.at(FIRST_TRACKED_DOCUMENT_INDEX);
+};
+
+const reconcileActiveDocument = (state: State): void => {
+	const nextActive = pickActiveDocument(state);
+	const nextActiveId = nextActive?.documentId ?? null;
+
+	if (nextActiveId !== state.activeDocumentId) {
+		state.activeDocumentId = nextActiveId;
+		state.extractionItems = [];
+	}
+
+	state.activeDocumentStatus = nextActive?.status ?? IDLE_DOCUMENT_STATUS;
+	state.isAddingKnowledge = state.trackedDocuments.some((document) =>
+		IN_FLIGHT_DOCUMENT_STATUSES.has(document.status),
+	);
+};
+
+const upsertTrackedDocumentStatus = (
+	state: State,
+	documentId: number,
+	status: TrackedDocument["status"],
+): void => {
+	const existing = findTrackedDocument(state, documentId);
+
+	if (existing) {
+		existing.status = status;
 
 		return;
 	}
 
-	const tracked = state.trackedDocuments.find(
-		(document) => document.documentId === state.activeDocumentId,
-	);
-
-	state.activeDocumentStatus = tracked?.status ?? IDLE_DOCUMENT_STATUS;
+	state.trackedDocuments.push({
+		documentId,
+		label: `Document ${String(documentId)}`,
+		status,
+	});
 };
 
-const upsertTrackedDocument = (
+const removeTrackedDocument = (
 	state: State,
-	document: TrackedDocument,
+	projectId: string,
+	documentId: number,
 ): void => {
-	const existingIndex = state.trackedDocuments.findIndex(
-		(entry) => entry.documentId === document.documentId,
+	removeTrackedDocumentId(projectId, documentId);
+	state.trackedDocuments = state.trackedDocuments.filter(
+		(document) => document.documentId !== documentId,
 	);
-
-	if (existingIndex === NOT_FOUND_INDEX) {
-		state.trackedDocuments.push(document);
-	} else {
-		state.trackedDocuments[existingIndex] = {
-			...state.trackedDocuments[existingIndex],
-			...document,
-		};
-	}
 };
 
-const INITIAL_PROGRESS = 15;
-const IN_PROGRESS_PERCENTAGE = 50;
-const EMPTY_FILES_COUNT = 0;
-const FIRST_TRACKED_DOCUMENT_INDEX = 0;
+const applyTrackedDocumentStatus = ({
+	documentId,
+	projectId,
+	state,
+	status,
+}: {
+	documentId: number;
+	projectId: string;
+	state: State;
+	status: TrackedDocument["status"];
+}): void => {
+	if (status === DocumentStatus.COMPLETED) {
+		removeTrackedDocument(state, projectId, documentId);
+	} else {
+		upsertTrackedDocumentStatus(state, documentId, status);
+	}
+
+	reconcileActiveDocument(state);
+};
 
 const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
@@ -101,15 +180,10 @@ const { actions, name, reducer } = createSlice({
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 		});
-		builder.addCase(confirmDocumentUpload.fulfilled, (state, action) => {
+		builder.addCase(confirmDocumentUpload.fulfilled, (state) => {
 			state.errorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.READY;
-
-			if (state.activeDocumentId === null) {
-				state.activeDocumentId = action.payload.documentId;
-			}
-
-			syncActiveDocumentFromTracked(state);
+			reconcileActiveDocument(state);
 		});
 		builder.addCase(confirmDocumentUpload.rejected, (state, action) => {
 			state.errorMessage =
@@ -139,8 +213,6 @@ const { actions, name, reducer } = createSlice({
 				state.selectedFiles[targetFileIndex] = action.payload;
 			}
 
-			state.activeDocumentId =
-				action.payload.documentId ?? state.activeDocumentId;
 			state.errorMessage = null;
 
 			const hasProcessing = state.selectedFiles.some(
@@ -279,14 +351,9 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? "Failed to search knowledge base";
 			state.searchStatus = SearchStatus.FAILED;
 		});
-		builder.addCase(submitManualText.fulfilled, (state, action) => {
+		builder.addCase(submitManualText.fulfilled, (state) => {
 			state.errorMessage = null;
-
-			if (state.activeDocumentId === null) {
-				state.activeDocumentId = action.payload.id;
-			}
-
-			syncActiveDocumentFromTracked(state);
+			reconcileActiveDocument(state);
 		});
 		builder.addCase(submitManualText.rejected, (state, action) => {
 			state.errorMessage = action.error.message ?? "Failed to submit text";
@@ -295,44 +362,18 @@ const { actions, name, reducer } = createSlice({
 			state.errorMessage = null;
 		});
 		builder.addCase(pollDocumentStatus.fulfilled, (state, action) => {
-			const { documentId } = action.meta.arg;
-			const status = action.payload.status;
-
-			upsertTrackedDocument(state, {
-				documentId,
-				label:
-					state.trackedDocuments.find(
-						(document) => document.documentId === documentId,
-					)?.label ?? `Document ${String(documentId)}`,
-				status,
-			});
+			const { documentId, projectId } = action.meta.arg;
 
 			if (state.activeDocumentId === documentId) {
-				state.activeDocumentStatus = status;
 				state.errorMessage = null;
 			}
 
-			if (status === DocumentStatus.COMPLETED) {
-				state.trackedDocuments = state.trackedDocuments.filter(
-					(document) => document.documentId !== documentId,
-				);
-
-				if (state.activeDocumentId === documentId) {
-					const nextReview = state.trackedDocuments.find(
-						(document) =>
-							document.status === DocumentStatus.WAITING_FOR_VALIDATION ||
-							document.status === DocumentStatus.WAITING_FOR_APPROVAL,
-					);
-
-					state.activeDocumentId = nextReview?.documentId ?? null;
-					state.extractionItems = [];
-					syncActiveDocumentFromTracked(state);
-
-					if (state.trackedDocuments.length === EMPTY_FILES_COUNT) {
-						state.isAddingKnowledge = false;
-					}
-				}
-			}
+			applyTrackedDocumentStatus({
+				documentId,
+				projectId,
+				state,
+				status: action.payload.status,
+			});
 		});
 		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
 			if (state.activeDocumentId !== action.meta.arg.documentId) {
@@ -366,56 +407,88 @@ const { actions, name, reducer } = createSlice({
 			);
 		});
 		builder.addCase(submitExtractionReview.fulfilled, (state, action) => {
-			const { documentId } = action.meta.arg;
-			const status = action.payload.status;
+			const { documentId, projectId } = action.meta.arg;
 
-			upsertTrackedDocument(state, {
+			applyTrackedDocumentStatus({
 				documentId,
-				label:
-					state.trackedDocuments.find(
-						(document) => document.documentId === documentId,
-					)?.label ?? `Document ${String(documentId)}`,
-				status,
+				projectId,
+				state,
+				status: action.payload.status,
 			});
+		});
+		builder.addCase(applyIntegrationChanges.fulfilled, (state, action) => {
+			const { documentId, projectId } = action.meta.arg;
 
-			if (status === DocumentStatus.COMPLETED) {
-				removeTrackedDocumentId(action.meta.arg.projectId, documentId);
-				state.trackedDocuments = state.trackedDocuments.filter(
-					(document) => document.documentId !== documentId,
-				);
-				state.extractionItems = [];
+			applyTrackedDocumentStatus({
+				documentId,
+				projectId,
+				state,
+				status: action.payload.status,
+			});
+		});
+		builder.addCase(fetchPendingReviewDocuments.fulfilled, (state, action) => {
+			const { projectId } = action.meta.arg;
+			const pendingIds = new Set(
+				action.payload.items.map((document) => document.id),
+			);
+			const staleDocuments = state.trackedDocuments.filter(
+				(document) =>
+					(document.status === DocumentStatus.WAITING_FOR_VALIDATION ||
+						document.status === DocumentStatus.WAITING_FOR_APPROVAL) &&
+					!pendingIds.has(document.documentId),
+			);
 
-				const nextReview = state.trackedDocuments.find(
-					(document) =>
-						document.status === DocumentStatus.WAITING_FOR_VALIDATION ||
-						document.status === DocumentStatus.WAITING_FOR_APPROVAL,
-				);
-
-				state.activeDocumentId = nextReview?.documentId ?? null;
-				syncActiveDocumentFromTracked(state);
-
-				if (state.trackedDocuments.length === EMPTY_FILES_COUNT) {
-					state.isAddingKnowledge = false;
-				}
-			} else if (state.activeDocumentId === documentId) {
-				state.activeDocumentStatus = status;
+			for (const document of staleDocuments) {
+				removeTrackedDocument(state, projectId, document.documentId);
 			}
+
+			for (const document of action.payload.items) {
+				const existing = findTrackedDocument(state, document.id);
+
+				if (existing) {
+					existing.label = document.name;
+					existing.status = document.status;
+				} else {
+					state.trackedDocuments.push({
+						documentId: document.id,
+						label: document.name,
+						status: document.status,
+					});
+				}
+			}
+
+			reconcileActiveDocument(state);
 		});
 		builder.addCase(submitExtractionReview.rejected, (state, action) => {
 			state.errorMessage =
 				action.error.message ?? "Failed to submit extraction review";
 		});
-		builder.addCase(retryDocumentProcessing.pending, (state) => {
+		builder.addCase(retryDocumentProcessing.pending, (state, action) => {
 			state.errorMessage = null;
-			state.activeDocumentStatus = DocumentStatus.PROCESSING;
+			upsertTrackedDocumentStatus(
+				state,
+				action.meta.arg.documentId,
+				DocumentStatus.PROCESSING,
+			);
+			reconcileActiveDocument(state);
 		});
 		builder.addCase(retryDocumentProcessing.fulfilled, (state, action) => {
 			state.errorMessage = null;
-			state.activeDocumentStatus = action.payload.status;
+			upsertTrackedDocumentStatus(
+				state,
+				action.meta.arg.documentId,
+				action.payload.status,
+			);
+			reconcileActiveDocument(state);
 		});
 		builder.addCase(retryDocumentProcessing.rejected, (state, action) => {
 			state.errorMessage = action.error.message ?? "Failed to retry processing";
-			state.activeDocumentStatus = DocumentStatus.FAILED;
+			upsertTrackedDocumentStatus(
+				state,
+				action.meta.arg.documentId,
+				DocumentStatus.FAILED,
+			);
+			reconcileActiveDocument(state);
 		});
 	},
 	initialState,
@@ -431,6 +504,11 @@ const { actions, name, reducer } = createSlice({
 			state.integrationPreviewError = null;
 			state.integrationPreviewSections = [];
 			state.isIntegrationPreviewLoading = false;
+		},
+		clearSelectedFiles(state) {
+			state.errorMessage = null;
+			state.processingStatus = DocumentProcessingStatus.IDLE;
+			state.selectedFiles = [];
 		},
 		finishAddingKnowledge(state) {
 			state.isAddingKnowledge = false;
@@ -472,8 +550,13 @@ const { actions, name, reducer } = createSlice({
 			state.selectedFiles = [];
 			state.trackedDocuments = [];
 		},
-		setActiveDocumentId(state, action: PayloadAction<null | number>) {
-			state.activeDocumentId = action.payload;
+		setActiveDocumentId(state, action: PayloadAction<number>) {
+			if (state.activeDocumentId !== action.payload) {
+				state.activeDocumentId = action.payload;
+				state.extractionItems = [];
+			}
+
+			reconcileActiveDocument(state);
 		},
 		setError(state, action: PayloadAction<string>) {
 			state.errorMessage = action.payload;
@@ -481,28 +564,6 @@ const { actions, name, reducer } = createSlice({
 		},
 		startAddingKnowledge(state) {
 			state.isAddingKnowledge = true;
-		},
-		startAddingKnowledgeFromHydration(state) {
-			if (state.trackedDocuments.length === EMPTY_FILES_COUNT) {
-				return;
-			}
-
-			state.isAddingKnowledge = true;
-
-			const preferredDocument =
-				state.trackedDocuments.find(
-					(document) =>
-						document.status === DocumentStatus.WAITING_FOR_VALIDATION,
-				) ??
-				state.trackedDocuments.find(
-					(document) => document.status === DocumentStatus.WAITING_FOR_APPROVAL,
-				) ??
-				state.trackedDocuments[FIRST_TRACKED_DOCUMENT_INDEX];
-
-			if (preferredDocument && state.activeDocumentId === null) {
-				state.activeDocumentId = preferredDocument.documentId;
-				syncActiveDocumentFromTracked(state);
-			}
 		},
 		startProcessing(
 			state,
@@ -536,23 +597,11 @@ const { actions, name, reducer } = createSlice({
 			state,
 			action: PayloadAction<{
 				documentId: number;
+				projectId: string;
 				status: ValueOf<typeof DocumentStatus>;
 			}>,
 		) {
-			const { documentId, status } = action.payload;
-
-			upsertTrackedDocument(state, {
-				documentId,
-				label:
-					state.trackedDocuments.find(
-						(document) => document.documentId === documentId,
-					)?.label ?? `Document ${String(documentId)}`,
-				status,
-			});
-
-			if (state.activeDocumentId === documentId) {
-				state.activeDocumentStatus = status;
-			}
+			applyTrackedDocumentStatus({ ...action.payload, state });
 		},
 		trackDocument(
 			state,
@@ -560,16 +609,24 @@ const { actions, name, reducer } = createSlice({
 		) {
 			const { documentId, label } = action.payload;
 
-			upsertTrackedDocument(state, {
-				documentId,
-				label,
-				status: DocumentStatus.UPLOADED,
-			});
-
-			if (state.activeDocumentId === null) {
-				state.activeDocumentId = documentId;
-				state.activeDocumentStatus = DocumentStatus.UPLOADED;
+			if (!findTrackedDocument(state, documentId)) {
+				state.trackedDocuments.push({
+					documentId,
+					label,
+					status: DocumentStatus.UPLOADED,
+				});
 			}
+
+			reconcileActiveDocument(state);
+		},
+		untrackDocument(
+			state,
+			action: PayloadAction<{ documentId: number; projectId: string }>,
+		) {
+			const { documentId, projectId } = action.payload;
+
+			removeTrackedDocument(state, projectId, documentId);
+			reconcileActiveDocument(state);
 		},
 	},
 });

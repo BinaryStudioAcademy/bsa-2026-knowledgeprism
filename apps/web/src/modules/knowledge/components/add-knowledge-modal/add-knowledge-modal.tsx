@@ -173,7 +173,7 @@ const AddKnowledgeModal = ({
 	);
 
 	const resetAndClose = useCallback((): void => {
-		dispatch(actions.resetState());
+		dispatch(actions.clearSelectedFiles());
 		setActiveTab(AddKnowledgeTab.UPLOAD);
 		setFormSessionKey((currentKey) => currentKey + FORM_SESSION_KEY_INCREMENT);
 		setUploadConfirmationErrorStatus(null);

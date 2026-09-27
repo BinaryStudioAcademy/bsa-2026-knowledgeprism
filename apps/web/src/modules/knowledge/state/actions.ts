@@ -14,6 +14,7 @@ import {
 	type KnowledgeTreeResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
+	type PendingReviewDocumentsResponseDto,
 } from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
@@ -30,7 +31,6 @@ import {
 	addTrackedDocumentId,
 	formatFileSize,
 	readTrackedDocumentIds,
-	removeTrackedDocumentId,
 } from "../libs/helpers/helpers.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
 import { clearPollTimer, schedulePollTimer } from "./document-poll-timers.js";
@@ -226,17 +226,13 @@ const applyIntegrationChanges = createAppAsyncThunk<
 	ApplyIntegrationChangesPayload
 >(
 	`${sliceName}/apply-integration-changes`,
-	async ({ documentId, payload, projectId }, { dispatch, extra, signal }) => {
-		const document = await extra.documentsApi.applyIntegrationChanges({
+	async ({ documentId, payload, projectId }, { extra, signal }) => {
+		return await extra.documentsApi.applyIntegrationChanges({
 			documentId,
 			payload,
 			projectId,
 			signal,
 		});
-
-		void dispatch(fetchKnowledgeTree({ projectId }));
-
-		return document;
 	},
 );
 
@@ -343,34 +339,7 @@ const pollDocumentStatus = createAppAsyncThunk<
 			];
 
 			if (terminalStatuses.includes(statusResponse.status)) {
-				switch (statusResponse.status) {
-					case DocumentStatus.COMPLETED: {
-						clearPollTimer(documentId);
-						removeTrackedDocumentId(projectId, documentId);
-						break;
-					}
-
-					case DocumentStatus.FAILED: {
-						clearPollTimer(documentId);
-						break;
-					}
-
-					case DocumentStatus.WAITING_FOR_APPROVAL: {
-						clearPollTimer(documentId);
-						break;
-					}
-
-					case DocumentStatus.WAITING_FOR_VALIDATION: {
-						await dispatch(
-							fetchExtractionItems({ documentId, projectId }),
-						).unwrap();
-						break;
-					}
-
-					default: {
-						break;
-					}
-				}
+				clearPollTimer(documentId);
 			} else {
 				scheduleNextPoll({ dispatch, documentId, projectId, signal });
 			}
@@ -385,6 +354,19 @@ const pollDocumentStatus = createAppAsyncThunk<
 
 			throw error;
 		}
+	},
+);
+
+const fetchPendingReviewDocuments = createAppAsyncThunk<
+	PendingReviewDocumentsResponseDto,
+	{ projectId: string }
+>(
+	`${sliceName}/fetch-pending-review-documents`,
+	async ({ projectId }, { extra, signal }) => {
+		return await extra.documentsApi.getPendingReviewDocuments({
+			projectId,
+			signal,
+		});
 	},
 );
 
@@ -415,18 +397,14 @@ const updateExtractionItem = createAppAsyncThunk<
 });
 
 const initializeProjectKnowledgePipeline = createAppAsyncThunk<
-	boolean,
+	null,
 	{ projectId: string }
 >(
 	`${sliceName}/initialize-project-knowledge-pipeline`,
 	async ({ projectId }, { dispatch }) => {
+		await dispatch(fetchPendingReviewDocuments({ projectId }));
+
 		const documentIds = readTrackedDocumentIds(projectId);
-
-		const EMPTY_DOCUMENT_COUNT = 0;
-
-		if (documentIds.length === EMPTY_DOCUMENT_COUNT) {
-			return false;
-		}
 
 		for (const documentId of documentIds) {
 			dispatch(
@@ -443,9 +421,46 @@ const initializeProjectKnowledgePipeline = createAppAsyncThunk<
 			),
 		);
 
-		dispatch(sliceSyncActions.startAddingKnowledgeFromHydration());
+		return null;
+	},
+);
 
-		return true;
+const resumeNextPendingReview = createAppAsyncThunk<
+	{ openPreview: boolean },
+	{ projectId: string }
+>(
+	`${sliceName}/resume-next-pending-review`,
+	async ({ projectId }, { dispatch, getState }) => {
+		try {
+			await dispatch(fetchPendingReviewDocuments({ projectId })).unwrap();
+		} catch {
+			// Fall back to the locally tracked documents.
+		}
+
+		const { activeDocumentId: documentId, activeDocumentStatus: status } =
+			getState().knowledge;
+
+		if (documentId === null) {
+			return { openPreview: false };
+		}
+
+		if (status === DocumentStatus.WAITING_FOR_VALIDATION) {
+			try {
+				await dispatch(
+					fetchExtractionItems({ documentId, projectId }),
+				).unwrap();
+			} catch {
+				return { openPreview: false };
+			}
+
+			return { openPreview: true };
+		}
+
+		if (status === DocumentStatus.WAITING_FOR_APPROVAL) {
+			return { openPreview: true };
+		}
+
+		return { openPreview: false };
 	},
 );
 
@@ -466,6 +481,7 @@ const switchActiveDocument = createAppAsyncThunk<
 		dispatch(
 			sliceSyncActions.syncTrackedDocumentStatus({
 				documentId,
+				projectId,
 				status: statusResponse.status,
 			}),
 		);
@@ -520,9 +536,11 @@ export {
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
+	fetchPendingReviewDocuments,
 	initializeProjectKnowledgePipeline,
 	pollDocumentStatus,
 	processDocument,
+	resumeNextPendingReview,
 	retryDocumentProcessing,
 	searchKnowledge,
 	submitExtractionReview,

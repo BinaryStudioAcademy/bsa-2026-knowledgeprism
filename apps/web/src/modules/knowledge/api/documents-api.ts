@@ -13,6 +13,7 @@ import {
 	type IntegrationChangesResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
+	type PendingReviewDocumentsResponseDto,
 } from "@knowledgeprism/types";
 
 import { BaseHTTPApi } from "~/api/api.js";
@@ -206,6 +207,26 @@ class DocumentsApi extends BaseHTTPApi {
 		);
 
 		return await response.json<IntegrationChangesResponseDto>();
+	}
+
+	public async getPendingReviewDocuments({
+		projectId,
+		signal,
+	}: {
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<PendingReviewDocumentsResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.PENDING_REVIEWS, { projectId }),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "GET",
+				signal,
+			},
+		);
+
+		return await response.json<PendingReviewDocumentsResponseDto>();
 	}
 
 	public async retryProcessing({

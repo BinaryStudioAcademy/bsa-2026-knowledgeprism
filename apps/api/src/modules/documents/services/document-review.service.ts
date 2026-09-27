@@ -14,6 +14,7 @@ import {
 	type IntegrationChangeResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
+	type PendingReviewDocumentsResponseDto,
 } from "@knowledgeprism/types";
 
 import { type Database } from "~/infrastructure/database/database.js";
@@ -466,6 +467,28 @@ class DocumentReviewService {
 
 		return {
 			items: items.map((item) => toExtractionItemResponse(item)),
+		};
+	}
+
+	public async findPendingReviews({
+		context,
+		projectId,
+	}: {
+		context: ProjectAccessContext;
+		projectId: number;
+	}): Promise<PendingReviewDocumentsResponseDto> {
+		await this.projectService.assertProjectAccess(projectId, context);
+
+		const documents = await this.documentRepository.findByProjectIdAndStatuses({
+			projectId,
+			statuses: [
+				DocumentStatus.WAITING_FOR_VALIDATION,
+				DocumentStatus.WAITING_FOR_APPROVAL,
+			],
+		});
+
+		return {
+			items: documents.map((document) => toDocumentStatusResponse(document)),
 		};
 	}
 
