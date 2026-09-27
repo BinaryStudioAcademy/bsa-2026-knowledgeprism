@@ -164,7 +164,7 @@ const UserForm = <T extends FieldValues>({
 	};
 
 	return (
-		<form className="flex w-full flex-col gap-6" onSubmit={onSubmit}>
+		<form className="flex w-full flex-col gap-6 pb-8" onSubmit={onSubmit}>
 			<div className="flex flex-col gap-4">
 				<div className="flex flex-col gap-4 tablet:flex-row">
 					<Input
@@ -257,7 +257,7 @@ const UserForm = <T extends FieldValues>({
 				<div className="text-sm font-medium text-error">{errorMessage}</div>
 			)}
 
-			<div className="flex justify-end gap-3 border-t border-border pt-6">
+			<div className="flex justify-end gap-3 border-t border-border pt-6 pb-2">
 				<Button
 					disabled={isLoading}
 					onClick={onCancel}
