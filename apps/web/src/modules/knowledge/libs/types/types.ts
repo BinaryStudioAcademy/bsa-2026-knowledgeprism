@@ -3,16 +3,12 @@ import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import {
 	type IntegrationConflictResolutionDto,
 	type KnowledgeEntryResponseDto,
-	type KnowledgeSearchItemDto,
 	type KnowledgeTreeItemResponseDto,
 } from "@knowledgeprism/types";
 
 import { type ValueOf } from "~/lib/types/types.js";
 
-import {
-	type DocumentProcessingStatus,
-	type SearchStatus,
-} from "../enums/enums.js";
+import { type DocumentProcessingStatus } from "../enums/enums.js";
 
 type ChangeStatus = "conflict" | "created" | "duplicate" | "modified";
 
@@ -55,10 +51,6 @@ type KnowledgeState = {
 	isIntegrationPreviewLoading: boolean;
 	isTreeLoading: boolean;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
-	searchErrorMessage: null | string;
-	searchQuery: string;
-	searchResults: KnowledgeSearchItemDto[];
-	searchStatus: ValueOf<typeof SearchStatus>;
 	selectedEntry: KnowledgeEntryResponseDto | null;
 	selectedFiles: UploadedDocumentItem[];
 	tree: KnowledgeTreeItemResponseDto[];

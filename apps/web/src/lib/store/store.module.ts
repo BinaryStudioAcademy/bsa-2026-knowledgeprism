@@ -22,6 +22,10 @@ import {
 } from "~/modules/ask-prism/ask-prism.js";
 import { authApi, reducer as authReducer } from "~/modules/auth/auth.js";
 import {
+	glossaryApi,
+	reducer as glossaryReducer,
+} from "~/modules/glossary/glossary.js";
+import {
 	documentsApi,
 	knowledgeApi,
 	reducer as knowledgeReducer,
@@ -40,6 +44,7 @@ type ExtraArguments = {
 	askPrismApi: typeof askPrismApi;
 	authApi: typeof authApi;
 	documentsApi: typeof documentsApi;
+	glossaryApi: typeof glossaryApi;
 	knowledgeApi: typeof knowledgeApi;
 	projectsApi: typeof projectsApi;
 	storage: typeof storage;
@@ -50,6 +55,7 @@ type ExtraArguments = {
 type RootReducer = {
 	askPrism: ReturnType<typeof askPrismReducer>;
 	auth: ReturnType<typeof authReducer>;
+	glossary: ReturnType<typeof glossaryReducer>;
 	knowledge: ReturnType<typeof knowledgeReducer>;
 	projects: ReturnType<typeof projectsReducer>;
 	users: ReturnType<typeof usersReducer>;
@@ -78,6 +84,7 @@ class Store {
 			reducer: {
 				askPrism: askPrismReducer,
 				auth: authReducer,
+				glossary: glossaryReducer,
 				knowledge: knowledgeReducer,
 				projects: projectsReducer,
 				users: usersReducer,
@@ -91,6 +98,7 @@ class Store {
 			askPrismApi,
 			authApi,
 			documentsApi,
+			glossaryApi,
 			knowledgeApi,
 			projectsApi,
 			storage,

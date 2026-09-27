@@ -1,7 +1,7 @@
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import { DocumentValidationMessage } from "../libs/constants/constants.js";
-import { DocumentProcessingStatus, SearchStatus } from "../libs/enums/enums.js";
+import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import {
 	formatFileSize,
 	mapIntegrationChangesToProposedStructure,
@@ -13,7 +13,6 @@ import {
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,
-	searchKnowledge,
 	submitManualText,
 	updateKnowledgeEntry,
 } from "./actions.js";
@@ -30,10 +29,6 @@ const initialState: State = {
 	isIntegrationPreviewLoading: false,
 	isTreeLoading: false,
 	processingStatus: DocumentProcessingStatus.IDLE,
-	searchErrorMessage: null,
-	searchQuery: "",
-	searchResults: [],
-	searchStatus: SearchStatus.IDLE,
 	selectedEntry: null,
 	selectedFiles: [],
 	tree: [],
@@ -202,29 +197,6 @@ const { actions, name, reducer } = createSlice({
 		builder.addCase(updateKnowledgeEntry.rejected, (state, action) => {
 			state.errorMessage =
 				action.error.message ?? "Failed to update knowledge entry";
-		});
-		builder.addCase(searchKnowledge.pending, (state, action) => {
-			state.searchErrorMessage = null;
-			state.searchQuery = action.meta.arg.query;
-			state.searchStatus = SearchStatus.LOADING;
-		});
-		builder.addCase(searchKnowledge.fulfilled, (state, action) => {
-			if (state.searchQuery !== action.meta.arg.query) {
-				return;
-			}
-
-			state.searchErrorMessage = null;
-			state.searchResults = action.payload.items;
-			state.searchStatus = SearchStatus.SUCCEEDED;
-		});
-		builder.addCase(searchKnowledge.rejected, (state, action) => {
-			if (state.searchQuery !== action.meta.arg.query) {
-				return;
-			}
-
-			state.searchErrorMessage =
-				action.error.message ?? "Failed to search knowledge base";
-			state.searchStatus = SearchStatus.FAILED;
 		});
 	},
 	initialState,

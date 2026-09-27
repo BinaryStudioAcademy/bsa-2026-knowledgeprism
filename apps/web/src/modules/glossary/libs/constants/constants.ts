@@ -1,0 +1,5 @@
+const PAGE_TITLE = "Glossary";
+const SEARCH_DEBOUNCE_MS = 300;
+const SEARCH_PLACEHOLDER = "Search terms...";
+
+export { PAGE_TITLE, SEARCH_DEBOUNCE_MS, SEARCH_PLACEHOLDER };

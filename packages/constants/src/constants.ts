@@ -24,6 +24,11 @@ export {
 	IntegrationResolution,
 } from "./modules/documents/documents.js";
 export {
+	GlossaryApiPath,
+	GlossaryValidationMessage,
+	GlossaryValidationRule,
+} from "./modules/glossary/glossary.js";
+export {
 	KnowledgeApiPath,
 	KnowledgeNodeType,
 	KnowledgeValidationMessage,
