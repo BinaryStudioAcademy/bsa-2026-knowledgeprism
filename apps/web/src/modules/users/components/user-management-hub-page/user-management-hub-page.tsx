@@ -112,7 +112,7 @@ const UserManagementHubPage: React.FC = () => {
 								<tr>
 									<th className="px-4 py-3 font-medium">User</th>
 									<th className="px-4 py-3 font-medium">Status</th>
-									<th className="px-4 py-3 font-medium">Roles</th>
+									<th className="px-4 py-3 font-medium">Total</th>
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-border">
