@@ -160,6 +160,7 @@ const useActiveExtractionItems = ({
 		void dispatch(
 			actions.fetchExtractionItems({
 				documentId: activeDocumentId,
+				pipelineSessionId: getPipelineSessionId(),
 				projectId,
 			}),
 		);
@@ -483,40 +484,26 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			return;
 		}
 
+		const request = {
+			documentId: activeDocumentId,
+			pipelineSessionId: getPipelineSessionId(),
+			projectId,
+		};
+
 		if (activeDocumentStatus === DocumentStatus.FAILED) {
 			void (async () => {
 				try {
-					await dispatch(
-						actions.retryDocumentProcessing({
-							documentId: activeDocumentId,
-							projectId,
-						}),
-					).unwrap();
+					await dispatch(actions.retryDocumentProcessing(request)).unwrap();
 
-					void dispatch(
-						actions.pollDocumentStatus({
-							documentId: activeDocumentId,
-							projectId,
-						}),
-					);
+					void dispatch(actions.pollDocumentStatus(request));
 				} catch {
 					// Redux handles the error state
 				}
 			})();
 		} else if (activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION) {
-			void dispatch(
-				actions.fetchExtractionItems({
-					documentId: activeDocumentId,
-					projectId,
-				}),
-			);
+			void dispatch(actions.fetchExtractionItems(request));
 		} else {
-			void dispatch(
-				actions.pollDocumentStatus({
-					documentId: activeDocumentId,
-					projectId,
-				}),
-			);
+			void dispatch(actions.pollDocumentStatus(request));
 		}
 	}, [activeDocumentId, activeDocumentStatus, dispatch, projectId]);
 
@@ -575,6 +562,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 							documentId: activeDocumentId,
 							extractionItemId: patch.id,
 							payload: { text: patch.text, title: patch.title },
+							pipelineSessionId,
 							projectId,
 						}),
 					).unwrap();
@@ -588,6 +576,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					actions.submitExtractionReview({
 						documentId: activeDocumentId,
 						payload: { approvedIds, rejectedIds },
+						pipelineSessionId,
 						projectId,
 					}),
 				).unwrap();
@@ -600,6 +589,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					void dispatch(
 						actions.pollDocumentStatus({
 							documentId: activeDocumentId,
+							pipelineSessionId,
 							projectId,
 						}),
 					);

@@ -7,6 +7,7 @@ import { DocumentValidationMessage } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus, SearchStatus } from "../libs/enums/enums.js";
 import {
 	formatFileSize,
+	isMatchingPipelineSession,
 	mapIntegrationChangesToProposedStructure,
 	removeTrackedDocumentId,
 } from "../libs/helpers/helpers.js";
@@ -99,12 +100,9 @@ const isCurrentPipelineProject = (state: State, projectId: string): boolean => {
 
 const isCurrentPipelineSession = (
 	state: State,
-	{ pipelineSessionId, projectId }: PipelineSessionScope,
+	scope: PipelineSessionScope,
 ): boolean => {
-	return (
-		isCurrentPipelineProject(state, projectId) &&
-		state.pipelineSessionId === pipelineSessionId
-	);
+	return isMatchingPipelineSession(state, scope);
 };
 
 const isCurrentUploadSession = (
@@ -191,16 +189,16 @@ const removeTrackedDocument = (
 
 const applyTrackedDocumentStatus = ({
 	documentId,
+	pipelineSessionId,
 	projectId,
 	state,
 	status,
-}: {
+}: PipelineSessionScope & {
 	documentId: number;
-	projectId: string;
 	state: State;
 	status: TrackedDocument["status"];
 }): void => {
-	if (!isCurrentPipelineProject(state, projectId)) {
+	if (!isCurrentPipelineSession(state, { pipelineSessionId, projectId })) {
 		return;
 	}
 
@@ -452,52 +450,56 @@ const { actions, name, reducer } = createSlice({
 			state.errorMessage = action.error.message ?? "Failed to submit text";
 		});
 		builder.addCase(pollDocumentStatus.pending, (state, action) => {
-			if (isCurrentPipelineProject(state, action.meta.arg.projectId)) {
+			if (isCurrentPipelineSession(state, action.meta.arg)) {
 				state.errorMessage = null;
 			}
 		});
 		builder.addCase(pollDocumentStatus.fulfilled, (state, action) => {
-			const { documentId, projectId } = action.meta.arg;
-
-			if (!isCurrentPipelineProject(state, projectId)) {
+			if (!isCurrentPipelineSession(state, action.meta.arg)) {
 				return;
 			}
 
-			if (state.activeDocumentId === documentId) {
+			if (state.activeDocumentId === action.meta.arg.documentId) {
 				state.errorMessage = null;
 			}
 
 			applyTrackedDocumentStatus({
-				documentId,
-				projectId,
+				...action.meta.arg,
 				state,
 				status: action.payload.status,
 			});
 		});
 		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
-			const { documentId, projectId } = action.meta.arg;
-
 			if (
-				!isCurrentPipelineProject(state, projectId) ||
-				state.activeDocumentId !== documentId
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				state.activeDocumentId !== action.meta.arg.documentId
 			) {
 				return;
 			}
 
 			state.errorMessage = action.error.message ?? "Failed to poll status";
 		});
-		builder.addCase(fetchExtractionItems.pending, (state) => {
-			state.errorMessage = null;
+		builder.addCase(fetchExtractionItems.pending, (state, action) => {
+			if (isCurrentPipelineSession(state, action.meta.arg)) {
+				state.errorMessage = null;
+			}
 		});
 		builder.addCase(fetchExtractionItems.fulfilled, (state, action) => {
-			if (state.activeDocumentId !== action.meta.arg.documentId) {
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				state.activeDocumentId !== action.meta.arg.documentId
+			) {
 				return;
 			}
+
 			state.extractionItems = action.payload.items;
 			state.errorMessage = null;
 		});
 		builder.addCase(fetchExtractionItems.rejected, (state, action) => {
-			if (state.activeDocumentId !== action.meta.arg.documentId) {
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				state.activeDocumentId !== action.meta.arg.documentId
+			) {
 				return;
 			}
 
@@ -505,27 +507,25 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? "Failed to fetch extraction items";
 		});
 		builder.addCase(updateExtractionItem.fulfilled, (state, action) => {
+			if (!isCurrentPipelineSession(state, action.meta.arg)) {
+				return;
+			}
+
 			const updatedItem = action.payload;
 			state.extractionItems = state.extractionItems.map((item) =>
 				item.id === updatedItem.id ? updatedItem : item,
 			);
 		});
 		builder.addCase(submitExtractionReview.fulfilled, (state, action) => {
-			const { documentId, projectId } = action.meta.arg;
-
 			applyTrackedDocumentStatus({
-				documentId,
-				projectId,
+				...action.meta.arg,
 				state,
 				status: action.payload.status,
 			});
 		});
 		builder.addCase(applyIntegrationChanges.fulfilled, (state, action) => {
-			const { documentId, projectId } = action.meta.arg;
-
 			applyTrackedDocumentStatus({
-				documentId,
-				projectId,
+				...action.meta.arg,
 				state,
 				status: action.payload.status,
 			});
@@ -569,7 +569,7 @@ const { actions, name, reducer } = createSlice({
 			reconcileActiveDocument(state);
 		});
 		builder.addCase(submitExtractionReview.rejected, (state, action) => {
-			if (!isCurrentPipelineProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentPipelineSession(state, action.meta.arg)) {
 				return;
 			}
 
@@ -577,7 +577,7 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? "Failed to submit extraction review";
 		});
 		builder.addCase(retryDocumentProcessing.pending, (state, action) => {
-			if (!isCurrentPipelineProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentPipelineSession(state, action.meta.arg)) {
 				return;
 			}
 
@@ -589,7 +589,7 @@ const { actions, name, reducer } = createSlice({
 			});
 		});
 		builder.addCase(retryDocumentProcessing.fulfilled, (state, action) => {
-			if (!isCurrentPipelineProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentPipelineSession(state, action.meta.arg)) {
 				return;
 			}
 
@@ -601,7 +601,7 @@ const { actions, name, reducer } = createSlice({
 			});
 		});
 		builder.addCase(retryDocumentProcessing.rejected, (state, action) => {
-			if (!isCurrentPipelineProject(state, action.meta.arg.projectId)) {
+			if (!isCurrentPipelineSession(state, action.meta.arg)) {
 				return;
 			}
 
@@ -753,11 +753,12 @@ const { actions, name, reducer } = createSlice({
 		},
 		syncTrackedDocumentStatus(
 			state,
-			action: PayloadAction<{
-				documentId: number;
-				projectId: string;
-				status: ValueOf<typeof DocumentStatus>;
-			}>,
+			action: PayloadAction<
+				PipelineSessionScope & {
+					documentId: number;
+					status: ValueOf<typeof DocumentStatus>;
+				}
+			>,
 		) {
 			applyTrackedDocumentStatus({ ...action.payload, state });
 		},

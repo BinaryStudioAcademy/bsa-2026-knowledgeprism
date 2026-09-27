@@ -68,6 +68,7 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 					actions.applyIntegrationChanges({
 						documentId,
 						payload: { resolutions },
+						pipelineSessionId,
 						projectId,
 					}),
 				).unwrap();
