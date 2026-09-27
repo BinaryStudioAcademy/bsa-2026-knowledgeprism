@@ -93,15 +93,29 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		return document ? DocumentEntity.initialize(document) : null;
 	}
 
-	public async findByIdAndProjectId({
-		id,
-		projectId,
-	}: {
-		id: number;
-		projectId: number;
-	}): Promise<DocumentEntity | null> {
-		const document = await this.documentModel
-			.query()
+	public async findByIdAndProjectId(
+		{
+			id,
+			projectId,
+		}: {
+			id: number;
+			projectId: number;
+		},
+		{
+			forUpdate = false,
+			transaction,
+		}: {
+			forUpdate?: boolean;
+			transaction?: Transaction;
+		} = {},
+	): Promise<DocumentEntity | null> {
+		let query = this.documentModel.query(transaction);
+
+		if (forUpdate) {
+			query = query.forUpdate();
+		}
+
+		const document = await query
 			.findOne({
 				id,
 				projectId,
