@@ -380,11 +380,17 @@ const { actions, name, reducer } = createSlice({
 		builder.addCase(submitManualText.rejected, (state, action) => {
 			state.errorMessage = action.error.message ?? "Failed to submit text";
 		});
-		builder.addCase(pollDocumentStatus.pending, (state) => {
-			state.errorMessage = null;
+		builder.addCase(pollDocumentStatus.pending, (state, action) => {
+			if (isCurrentPipelineProject(state, action.meta.arg.projectId)) {
+				state.errorMessage = null;
+			}
 		});
 		builder.addCase(pollDocumentStatus.fulfilled, (state, action) => {
 			const { documentId, projectId } = action.meta.arg;
+
+			if (!isCurrentPipelineProject(state, projectId)) {
+				return;
+			}
 
 			if (state.activeDocumentId === documentId) {
 				state.errorMessage = null;
@@ -398,7 +404,12 @@ const { actions, name, reducer } = createSlice({
 			});
 		});
 		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
-			if (state.activeDocumentId !== action.meta.arg.documentId) {
+			const { documentId, projectId } = action.meta.arg;
+
+			if (
+				!isCurrentPipelineProject(state, projectId) ||
+				state.activeDocumentId !== documentId
+			) {
 				return;
 			}
 
@@ -487,10 +498,18 @@ const { actions, name, reducer } = createSlice({
 			reconcileActiveDocument(state);
 		});
 		builder.addCase(submitExtractionReview.rejected, (state, action) => {
+			if (!isCurrentPipelineProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			state.errorMessage =
 				action.error.message ?? "Failed to submit extraction review";
 		});
 		builder.addCase(retryDocumentProcessing.pending, (state, action) => {
+			if (!isCurrentPipelineProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			state.errorMessage = null;
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
@@ -499,6 +518,10 @@ const { actions, name, reducer } = createSlice({
 			});
 		});
 		builder.addCase(retryDocumentProcessing.fulfilled, (state, action) => {
+			if (!isCurrentPipelineProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			state.errorMessage = null;
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
@@ -507,6 +530,10 @@ const { actions, name, reducer } = createSlice({
 			});
 		});
 		builder.addCase(retryDocumentProcessing.rejected, (state, action) => {
+			if (!isCurrentPipelineProject(state, action.meta.arg.projectId)) {
+				return;
+			}
+
 			state.errorMessage = action.error.message ?? "Failed to retry processing";
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
@@ -518,9 +545,6 @@ const { actions, name, reducer } = createSlice({
 	initialState,
 	name: "knowledge",
 	reducers: {
-		cancelDocumentPolling() {
-			clearAllPollTimers();
-		},
 		clearError(state) {
 			state.errorMessage = null;
 		},
@@ -538,6 +562,10 @@ const { actions, name, reducer } = createSlice({
 		},
 		finishAddingKnowledge(state) {
 			state.isAddingKnowledge = false;
+		},
+		releasePipeline(state) {
+			clearAllPollTimers();
+			state.pipelineProjectId = null;
 		},
 		removeDocument(state, action: PayloadAction<{ id: string }>) {
 			state.selectedFiles = state.selectedFiles.filter(

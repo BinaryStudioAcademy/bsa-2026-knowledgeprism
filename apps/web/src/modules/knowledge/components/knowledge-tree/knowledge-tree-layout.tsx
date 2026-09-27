@@ -125,7 +125,7 @@ const useProjectKnowledgePipeline = ({
 		void dispatch(actions.initializeProjectKnowledgePipeline({ projectId }));
 
 		return () => {
-			dispatch(actions.cancelDocumentPolling());
+			dispatch(actions.releasePipeline());
 		};
 	}, [canEdit, dispatch, projectId]);
 };
