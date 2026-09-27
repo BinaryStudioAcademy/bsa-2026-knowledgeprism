@@ -31,8 +31,20 @@ const ATTEMPT_NUMBER = 1;
 const DOCUMENT_SIZE = 100;
 const CONFIDENCE_SCORE = 0.95;
 const PAGE_NUMBER = 1;
+const MIN_EXPECTED_CALLS = 2;
+
+type FindCallOptions = {
+	forUpdate?: boolean | undefined;
+	transaction?: Transaction | undefined;
+};
+
+type TransactionContext = {
+	id: number;
+	releaseLock?: () => void;
+};
 
 const createTestSetup = (): {
+	getFindCalls: () => FindCallOptions[];
 	getItems: () => ExtractionItemEntity[];
 	service: DocumentReviewService;
 } => {
@@ -54,20 +66,25 @@ const createTestSetup = (): {
 		}),
 	];
 
-	let lockChain: Promise<null> = Promise.resolve(null);
+	let nextTransactionId = 1;
+	let rowLockQueue: Promise<null> = Promise.resolve(null);
+	const findCalls: FindCallOptions[] = [];
 
 	const database = {
 		transaction: async <T>(
 			handler: (transaction: Transaction) => Promise<T>,
 		): Promise<T> => {
-			const previousLock = lockChain;
-			const { promise, resolve } = Promise.withResolvers<null>();
-			lockChain = promise;
-			await previousLock;
+			const transaction = {
+				id: nextTransactionId++,
+			} as unknown as Transaction;
+
 			try {
-				return await handler({} as Transaction);
+				return await handler(transaction);
 			} finally {
-				resolve(null);
+				const context = transaction as unknown as TransactionContext;
+				if (context.releaseLock) {
+					context.releaseLock();
+				}
 			}
 		},
 	} as unknown as Database;
@@ -102,25 +119,44 @@ const createTestSetup = (): {
 				}),
 			);
 		},
-		findByIdAndProjectId: (): Promise<DocumentEntity | null> => {
-			return Promise.resolve(
-				DocumentEntity.initialize({
-					content: "content",
-					contentHash: "hash",
-					createdAt: new Date(),
-					errorMessage: null,
-					id: DOCUMENT_ID,
-					mimeType: "application/pdf",
-					name: "sample.pdf",
-					projectId: PROJECT_ID,
-					s3Key: null,
-					sizeInBytes: DOCUMENT_SIZE,
-					sourceType: DocumentSourceType.UPLOAD,
-					status: documentStatus,
-					updatedAt: new Date(),
-					uploadedBy: USER_ID,
-				}),
-			);
+		findByIdAndProjectId: async (
+			_reference: { id: number; projectId: number },
+			options?: { forUpdate?: boolean; transaction?: Transaction },
+		): Promise<DocumentEntity | null> => {
+			findCalls.push({
+				forUpdate: options?.forUpdate,
+				transaction: options?.transaction,
+			});
+
+			if (options?.forUpdate && options.transaction) {
+				const previousLock = rowLockQueue;
+				const { promise, resolve } = Promise.withResolvers<null>();
+				rowLockQueue = promise;
+				await previousLock;
+				(options.transaction as unknown as TransactionContext).releaseLock =
+					(): void => {
+						resolve(null);
+					};
+			}
+
+			await Promise.resolve();
+
+			return DocumentEntity.initialize({
+				content: "content",
+				contentHash: "hash",
+				createdAt: new Date(),
+				errorMessage: null,
+				id: DOCUMENT_ID,
+				mimeType: "application/pdf",
+				name: "sample.pdf",
+				projectId: PROJECT_ID,
+				s3Key: null,
+				sizeInBytes: DOCUMENT_SIZE,
+				sourceType: DocumentSourceType.UPLOAD,
+				status: documentStatus,
+				updatedAt: new Date(),
+				uploadedBy: USER_ID,
+			});
 		},
 		startProcessing: ({
 			status,
@@ -155,8 +191,10 @@ const createTestSetup = (): {
 	} as unknown as DocumentRepository;
 
 	const extractionItemRepository = {
-		findByDocumentId: (): Promise<ExtractionItemEntity[]> =>
-			Promise.resolve(items),
+		findByDocumentId: async (): Promise<ExtractionItemEntity[]> => {
+			await Promise.resolve();
+			return items;
+		},
 		findById: (id: number): Promise<ExtractionItemEntity | null> => {
 			return Promise.resolve(
 				items.find((item) => item.toObject().id === id) ?? null,
@@ -192,7 +230,7 @@ const createTestSetup = (): {
 
 			return Promise.resolve();
 		},
-		updatePendingContent: ({
+		updatePendingContent: async ({
 			id,
 			payload,
 		}: {
@@ -200,13 +238,14 @@ const createTestSetup = (): {
 			id: number;
 			payload: { text: string; title: string };
 		}): Promise<ExtractionItemEntity | null> => {
+			await Promise.resolve();
 			const currentItem = items.find((item) => item.toObject().id === id);
 			if (!currentItem) {
-				return Promise.resolve(null);
+				return null;
 			}
 			const current = currentItem.toObject();
 			if (current.status !== ExtractionItemStatus.PENDING) {
-				return Promise.resolve(null);
+				return null;
 			}
 			const updated = ExtractionItemEntity.initialize({
 				...current,
@@ -215,7 +254,7 @@ const createTestSetup = (): {
 			});
 			items = items.map((item) => (item.toObject().id === id ? updated : item));
 
-			return Promise.resolve(updated);
+			return updated;
 		},
 	} as unknown as ExtractionItemRepository;
 
@@ -247,6 +286,7 @@ const createTestSetup = (): {
 	});
 
 	return {
+		getFindCalls: (): FindCallOptions[] => findCalls,
 		getItems: (): ExtractionItemEntity[] => items,
 		service,
 	};
@@ -254,7 +294,7 @@ const createTestSetup = (): {
 
 void describe("DocumentReviewService Concurrency", () => {
 	void it("uses edited content when edit finishes before review", async () => {
-		const { getItems, service } = createTestSetup();
+		const { getFindCalls, getItems, service } = createTestSetup();
 
 		const editPromise = service.updateItem({
 			context: { organisationId: ORGANISATION_ID, userId: USER_ID },
@@ -296,10 +336,18 @@ void describe("DocumentReviewService Concurrency", () => {
 		);
 		assert.strictEqual(approvedItem.toObject().title, "Updated title");
 		assert.strictEqual(approvedItem.toObject().text, "Updated text");
+
+		const calls = getFindCalls();
+		assert.ok(calls.length >= MIN_EXPECTED_CALLS);
+		assert.ok(
+			calls.every(
+				(call) => call.forUpdate === true && Boolean(call.transaction),
+			),
+		);
 	});
 
 	void it("rejects edit with 409 conflict when approval starts first", async () => {
-		const { service } = createTestSetup();
+		const { getFindCalls, service } = createTestSetup();
 
 		const reviewPromise = service.review({
 			context: { organisationId: ORGANISATION_ID, userId: USER_ID },
@@ -339,6 +387,14 @@ void describe("DocumentReviewService Concurrency", () => {
 
 				return true;
 			},
+		);
+
+		const calls = getFindCalls();
+		assert.ok(calls.length >= MIN_EXPECTED_CALLS);
+		assert.ok(
+			calls.every(
+				(call) => call.forUpdate === true && Boolean(call.transaction),
+			),
 		);
 	});
 });
