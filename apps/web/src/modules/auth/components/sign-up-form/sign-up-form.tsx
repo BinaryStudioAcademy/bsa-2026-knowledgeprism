@@ -53,12 +53,9 @@ const SignUpForm = ({ onSubmit }: Properties): React.JSX.Element => {
 	const { sections, title } = DOCUMENT_CONTENT[activeDocument];
 
 	const handleOpenDocument = useCallback(
-		(document: Exclude<LegalDocument, null>) =>
-			(event_: React.MouseEvent): void => {
-				event_.preventDefault();
-				event_.stopPropagation();
-				setOpenDocument(document);
-			},
+		(document: Exclude<LegalDocument, null>) => (): void => {
+			setOpenDocument(document);
+		},
 		[],
 	);
 
@@ -137,36 +134,35 @@ const SignUpForm = ({ onSubmit }: Properties): React.JSX.Element => {
 					placeholder="Repeat your password"
 					type="password"
 				/>
-				<Checkbox
-					control={control}
-					label={
-						<span>
-							I agree to the{" "}
-							<button
-								className="cursor-pointer underline hover:text-accent focus:outline-none"
-								onClick={handleOpenDocument("terms")}
-								type="button"
-							>
-								Terms
-							</button>{" "}
-							and{" "}
-							<button
-								className="cursor-pointer underline hover:text-accent focus:outline-none"
-								onClick={handleOpenDocument("privacy")}
-								type="button"
-							>
-								Privacy Policy
-							</button>
-						</span>
-					}
-					name="agreeToTerms"
-				/>
+
+				<div className="flex items-center gap-2 text-sm text-text">
+					<Checkbox control={control} name="agreeToTerms" />
+					<span>
+						I agree to the{" "}
+						<button
+							className="cursor-pointer underline hover:text-accent focus-visible:rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+							onClick={handleOpenDocument("terms")}
+							type="button"
+						>
+							Terms
+						</button>{" "}
+						and{" "}
+						<button
+							className="cursor-pointer underline hover:text-accent focus-visible:rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+							onClick={handleOpenDocument("privacy")}
+							type="button"
+						>
+							Privacy Policy
+						</button>
+					</span>
+				</div>
+
 				<Button className="w-full" type="submit">
 					Create organisation
 				</Button>
 			</form>
 			<Paragraph
-				className="pt-2 w-full text-center"
+				className="w-full pt-2 text-center"
 				size={ParagraphSize.BODY_SMALL}
 			>
 				Already have an account?{" "}

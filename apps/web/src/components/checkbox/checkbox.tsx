@@ -79,7 +79,7 @@ type Properties<T extends FieldValues = FieldValues> = {
 	control: Control<T>;
 	disabled?: boolean;
 	id?: string;
-	label: React.ReactNode;
+	label?: React.ReactNode;
 	name: FieldPath<T>;
 };
 
