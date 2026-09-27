@@ -70,7 +70,6 @@ const userSignUp = z
 		),
 		password: z
 			.string()
-			.trim()
 			.min(UserValidationRule.PASSWORD_MINIMUM_LENGTH, {
 				error: UserValidationMessage.PASSWORD_MINIMUM_LENGTH,
 			})
