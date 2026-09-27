@@ -36,6 +36,7 @@ import { ProposedStructureSuccessModal } from "./libs/components/proposed-struct
 import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
 
 const EMPTY_LENGTH = 0;
+const LAST_INDEX_OFFSET = 1;
 const LIVE_KB_CONTENT_FALLBACK = "No live knowledge base content.";
 const ICON_SIZE_MEDIUM = 16;
 const ICON_SIZE_SMALL = 14;
@@ -321,6 +322,46 @@ const removeSectionFromPages = ({
 			};
 		})
 		.filter((section) => section.pages.length > EMPTY_LENGTH);
+};
+
+const clampIndex = (index: number, length: number): number =>
+	Math.max(EMPTY_LENGTH, Math.min(index, length - LAST_INDEX_OFFSET));
+
+const rejectActiveSection = ({
+	activePageIndex,
+	activeSectionIndex,
+	pages,
+}: {
+	activePageIndex: number;
+	activeSectionIndex: number;
+	pages: ProposedSection[];
+}): {
+	nextPageIndex: number;
+	nextPages: ProposedSection[];
+	nextSectionIndex: number;
+} => {
+	const pageIndex =
+		activePageIndex < pages.length ? activePageIndex : DEFAULT_PAGE_INDEX;
+	const sectionCount = pages.at(pageIndex)?.pages.length ?? EMPTY_LENGTH;
+	const sectionIndex =
+		activeSectionIndex < sectionCount
+			? activeSectionIndex
+			: DEFAULT_SECTION_INDEX;
+	const nextPages = removeSectionFromPages({
+		activePageIndex: pageIndex,
+		activeSectionIndex: sectionIndex,
+		pages,
+	});
+	const nextPageIndex = clampIndex(pageIndex, nextPages.length);
+	const isPageGroupRemoved = nextPages.length < pages.length;
+	const nextSectionIndex = isPageGroupRemoved
+		? DEFAULT_SECTION_INDEX
+		: clampIndex(
+				sectionIndex,
+				nextPages.at(nextPageIndex)?.pages.length ?? EMPTY_LENGTH,
+			);
+
+	return { nextPageIndex, nextPages, nextSectionIndex };
 };
 
 const updatePageInPages = ({
@@ -803,17 +844,17 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, [applyChanges, handleApproveExtraction, isExtractionValidation, pages]);
 
 	const handleRejectItem = useCallback((): void => {
-		setPages((previousPages) =>
-			removeSectionFromPages({
-				activePageIndex,
-				activeSectionIndex,
-				pages: previousPages,
-			}),
-		);
+		const { nextPageIndex, nextPages, nextSectionIndex } = rejectActiveSection({
+			activePageIndex,
+			activeSectionIndex,
+			pages,
+		});
 
-		setActiveSectionIndex(DEFAULT_SECTION_INDEX);
+		setPages(nextPages);
+		setActivePageIndex(nextPageIndex);
+		setActiveSectionIndex(nextSectionIndex);
 		setActiveNodeType("child");
-	}, [activePageIndex, activeSectionIndex]);
+	}, [activePageIndex, activeSectionIndex, pages]);
 
 	const handleCancelEdit = useCallback((): void => {
 		setPages(backupPages);

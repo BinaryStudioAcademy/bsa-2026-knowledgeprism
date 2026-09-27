@@ -299,7 +299,7 @@ class DocumentReviewController extends BaseController {
 	 *        200:
 	 *          description: Pending review documents
 	 *        403:
-	 *          description: User is not a member of the project
+	 *          description: User cannot write knowledge in the project
 	 */
 	private async findPendingReviews(
 		options: APIHandlerOptions<{

@@ -477,7 +477,7 @@ class DocumentReviewService {
 		context: ProjectAccessContext;
 		projectId: number;
 	}): Promise<PendingReviewDocumentsResponseDto> {
-		await this.projectService.assertProjectAccess(projectId, context);
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
 
 		const documents = await this.documentRepository.findByProjectIdAndStatuses({
 			projectId,

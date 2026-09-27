@@ -47,12 +47,15 @@ const initialState: State = {
 	activeDocumentStatus: IDLE_DOCUMENT_STATUS,
 	errorMessage: null,
 	extractionItems: [],
+	integrationPreviewDocumentId: null,
 	integrationPreviewError: null,
+	integrationPreviewRequestId: null,
 	integrationPreviewSections: [],
 	isAddingKnowledge: false,
 	isEntryLoading: false,
 	isIntegrationPreviewLoading: false,
 	isTreeLoading: false,
+	pipelineProjectId: null,
 	processingStatus: DocumentProcessingStatus.IDLE,
 	searchErrorMessage: null,
 	searchQuery: "",
@@ -78,6 +81,10 @@ const IN_FLIGHT_DOCUMENT_STATUSES = new Set<TrackedDocument["status"]>([
 	DocumentStatus.PROCESSING,
 	DocumentStatus.UPLOADED,
 ]);
+
+const isCurrentPipelineProject = (state: State, projectId: string): boolean => {
+	return state.pipelineProjectId === projectId;
+};
 
 const findTrackedDocument = (
 	state: State,
@@ -165,6 +172,10 @@ const applyTrackedDocumentStatus = ({
 	state: State;
 	status: TrackedDocument["status"];
 }): void => {
+	if (!isCurrentPipelineProject(state, projectId)) {
+		return;
+	}
+
 	if (status === DocumentStatus.COMPLETED) {
 		removeTrackedDocument(state, projectId, documentId);
 	} else {
@@ -264,17 +275,28 @@ const { actions, name, reducer } = createSlice({
 					DocumentValidationMessage.PROCESSING_FAILED;
 			}
 		});
-		builder.addCase(fetchIntegrationChanges.pending, (state) => {
+		builder.addCase(fetchIntegrationChanges.pending, (state, action) => {
+			state.integrationPreviewDocumentId = action.meta.arg.documentId;
 			state.integrationPreviewError = null;
+			state.integrationPreviewRequestId = action.meta.requestId;
+			state.integrationPreviewSections = [];
 			state.isIntegrationPreviewLoading = true;
 		});
 		builder.addCase(fetchIntegrationChanges.fulfilled, (state, action) => {
+			if (state.integrationPreviewRequestId !== action.meta.requestId) {
+				return;
+			}
+
 			state.integrationPreviewSections =
 				mapIntegrationChangesToProposedStructure(action.payload);
 			state.integrationPreviewError = null;
 			state.isIntegrationPreviewLoading = false;
 		});
 		builder.addCase(fetchIntegrationChanges.rejected, (state, action) => {
+			if (state.integrationPreviewRequestId !== action.meta.requestId) {
+				return;
+			}
+
 			state.integrationPreviewError =
 				typeof action.payload === "string"
 					? action.payload
@@ -428,6 +450,11 @@ const { actions, name, reducer } = createSlice({
 		});
 		builder.addCase(fetchPendingReviewDocuments.fulfilled, (state, action) => {
 			const { projectId } = action.meta.arg;
+
+			if (!isCurrentPipelineProject(state, projectId)) {
+				return;
+			}
+
 			const pendingIds = new Set(
 				action.payload.items.map((document) => document.id),
 			);
@@ -465,30 +492,27 @@ const { actions, name, reducer } = createSlice({
 		});
 		builder.addCase(retryDocumentProcessing.pending, (state, action) => {
 			state.errorMessage = null;
-			upsertTrackedDocumentStatus(
+			applyTrackedDocumentStatus({
+				...action.meta.arg,
 				state,
-				action.meta.arg.documentId,
-				DocumentStatus.PROCESSING,
-			);
-			reconcileActiveDocument(state);
+				status: DocumentStatus.PROCESSING,
+			});
 		});
 		builder.addCase(retryDocumentProcessing.fulfilled, (state, action) => {
 			state.errorMessage = null;
-			upsertTrackedDocumentStatus(
+			applyTrackedDocumentStatus({
+				...action.meta.arg,
 				state,
-				action.meta.arg.documentId,
-				action.payload.status,
-			);
-			reconcileActiveDocument(state);
+				status: action.payload.status,
+			});
 		});
 		builder.addCase(retryDocumentProcessing.rejected, (state, action) => {
 			state.errorMessage = action.error.message ?? "Failed to retry processing";
-			upsertTrackedDocumentStatus(
+			applyTrackedDocumentStatus({
+				...action.meta.arg,
 				state,
-				action.meta.arg.documentId,
-				DocumentStatus.FAILED,
-			);
-			reconcileActiveDocument(state);
+				status: DocumentStatus.FAILED,
+			});
 		});
 	},
 	initialState,
@@ -501,7 +525,9 @@ const { actions, name, reducer } = createSlice({
 			state.errorMessage = null;
 		},
 		clearIntegrationPreview(state) {
+			state.integrationPreviewDocumentId = null;
 			state.integrationPreviewError = null;
+			state.integrationPreviewRequestId = null;
 			state.integrationPreviewSections = [];
 			state.isIntegrationPreviewLoading = false;
 		},
@@ -536,16 +562,19 @@ const { actions, name, reducer } = createSlice({
 				state.processingStatus = DocumentProcessingStatus.READY;
 			}
 		},
-		resetState(state) {
+		resetState(state, action: PayloadAction<null | string>) {
 			clearAllPollTimers();
 			state.activeDocumentId = null;
 			state.activeDocumentStatus = IDLE_DOCUMENT_STATUS;
 			state.errorMessage = null;
 			state.extractionItems = [];
+			state.integrationPreviewDocumentId = null;
 			state.integrationPreviewError = null;
+			state.integrationPreviewRequestId = null;
 			state.integrationPreviewSections = [];
 			state.isAddingKnowledge = false;
 			state.isIntegrationPreviewLoading = false;
+			state.pipelineProjectId = action.payload;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
 			state.trackedDocuments = [];
@@ -605,9 +634,17 @@ const { actions, name, reducer } = createSlice({
 		},
 		trackDocument(
 			state,
-			action: PayloadAction<{ documentId: number; label: string }>,
+			action: PayloadAction<{
+				documentId: number;
+				label: string;
+				projectId: string;
+			}>,
 		) {
-			const { documentId, label } = action.payload;
+			const { documentId, label, projectId } = action.payload;
+
+			if (!isCurrentPipelineProject(state, projectId)) {
+				return;
+			}
 
 			if (!findTrackedDocument(state, documentId)) {
 				state.trackedDocuments.push({
@@ -624,6 +661,10 @@ const { actions, name, reducer } = createSlice({
 			action: PayloadAction<{ documentId: number; projectId: string }>,
 		) {
 			const { documentId, projectId } = action.payload;
+
+			if (!isCurrentPipelineProject(state, projectId)) {
+				return;
+			}
 
 			removeTrackedDocument(state, projectId, documentId);
 			reconcileActiveDocument(state);

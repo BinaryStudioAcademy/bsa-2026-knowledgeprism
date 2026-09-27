@@ -58,12 +58,15 @@ type KnowledgeState = {
 	activeDocumentStatus: "IDLE" | ValueOf<typeof DocumentStatus>;
 	errorMessage: null | string;
 	extractionItems: ExtractionItemResponseDto[];
+	integrationPreviewDocumentId: null | number;
 	integrationPreviewError: null | string;
+	integrationPreviewRequestId: null | string;
 	integrationPreviewSections: ProposedSection[];
 	isAddingKnowledge: boolean;
 	isEntryLoading: boolean;
 	isIntegrationPreviewLoading: boolean;
 	isTreeLoading: boolean;
+	pipelineProjectId: null | string;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
 	searchErrorMessage: null | string;
 	searchQuery: string;

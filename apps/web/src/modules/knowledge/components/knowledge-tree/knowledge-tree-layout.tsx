@@ -18,7 +18,6 @@ import {
 	useCurrentProjectId,
 	useModal,
 } from "~/hooks/hooks.js";
-import { type ValueOf } from "~/lib/types/types.js";
 
 import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
@@ -27,6 +26,7 @@ import {
 	deriveExtractionReviewIds,
 } from "../../libs/helpers/helpers.js";
 import {
+	type KnowledgeState,
 	type ProposedPage,
 	type ProposedSection,
 } from "../../libs/types/types.js";
@@ -61,6 +61,41 @@ type Properties = {
 	items: KnowledgeTreeItemResponseDto[];
 	onSelectPage: (id: number) => void;
 	selectedPageId?: number | undefined;
+};
+
+const getPipelineVisibility = ({
+	activeDocumentStatus,
+	canEdit,
+	isAddingKnowledge,
+	isPreviewOpen,
+	trackedDocuments,
+}: {
+	activeDocumentStatus: KnowledgeState["activeDocumentStatus"];
+	canEdit: boolean;
+	isAddingKnowledge: boolean;
+	isPreviewOpen: boolean;
+	trackedDocuments: KnowledgeState["trackedDocuments"];
+}): {
+	canResumePreview: boolean;
+	isPreviewVisible: boolean;
+	isShowDocumentPipelineUi: boolean;
+} => {
+	if (!canEdit) {
+		return {
+			canResumePreview: false,
+			isPreviewVisible: false,
+			isShowDocumentPipelineUi: false,
+		};
+	}
+
+	return {
+		canResumePreview:
+			activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION ||
+			activeDocumentStatus === DocumentStatus.WAITING_FOR_APPROVAL,
+		isPreviewVisible: isPreviewOpen,
+		isShowDocumentPipelineUi:
+			isAddingKnowledge || trackedDocuments.length > EMPTY_LENGTH,
+	};
 };
 
 const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
@@ -174,40 +209,27 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			return;
 		}
 
-		dispatch(actions.resetState());
+		dispatch(actions.resetState(canEdit ? projectId : null));
+
+		if (!canEdit) {
+			return;
+		}
+
 		void dispatch(actions.initializeProjectKnowledgePipeline({ projectId }));
 
 		return () => {
 			dispatch(actions.cancelDocumentPolling());
 		};
-	}, [dispatch, projectId]);
+	}, [canEdit, dispatch, projectId]);
 
-	const pipelineDocumentStatuses = useMemo((): ValueOf<
-		typeof DocumentStatus
-	>[] => {
-		return [
-			DocumentStatus.UPLOADED,
-			DocumentStatus.PROCESSING,
-			DocumentStatus.PARSED,
-			DocumentStatus.EXTRACTING,
-			DocumentStatus.EXTRACTED,
-			DocumentStatus.WAITING_FOR_VALIDATION,
-			DocumentStatus.INTEGRATING,
-			DocumentStatus.WAITING_FOR_APPROVAL,
-			DocumentStatus.FAILED,
-		];
-	}, []);
-
-	const hasActiveDocumentPipeline = useMemo(() => {
-		return trackedDocuments.some((document) =>
-			pipelineDocumentStatuses.includes(
-				document.status as ValueOf<typeof DocumentStatus>,
-			),
-		);
-	}, [pipelineDocumentStatuses, trackedDocuments]);
-
-	const isShowDocumentPipelineUi =
-		isAddingKnowledge || hasActiveDocumentPipeline;
+	const { canResumePreview, isPreviewVisible, isShowDocumentPipelineUi } =
+		getPipelineVisibility({
+			activeDocumentStatus,
+			canEdit,
+			isAddingKnowledge,
+			isPreviewOpen,
+			trackedDocuments,
+		});
 
 	const pendingReviewDocuments = useMemo(() => {
 		return trackedDocuments.filter(
@@ -234,10 +256,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			}),
 		);
 	}, [activeDocumentId, activeDocumentStatus, dispatch, projectId]);
-
-	const canResumePreview =
-		activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION ||
-		activeDocumentStatus === DocumentStatus.WAITING_FOR_APPROVAL;
 
 	const handleAddMore = useCallback((): void => {
 		setIsPreviewOpen(false);
@@ -495,7 +513,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		[onSelectPage],
 	);
 
-	if (isPreviewOpen) {
+	if (isPreviewVisible) {
 		return (
 			<KnowledgeTreePreviewLayer
 				activeDocumentId={activeDocumentId}

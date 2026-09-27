@@ -99,6 +99,7 @@ const confirmDocumentUpload = createAppAsyncThunk<
 			sliceSyncActions.trackDocument({
 				documentId,
 				label: label ?? `Document ${String(documentId)}`,
+				projectId,
 			}),
 		);
 
@@ -285,6 +286,7 @@ const submitManualText = createAsyncThunk<
 			sliceSyncActions.trackDocument({
 				documentId: response.id,
 				label,
+				projectId,
 			}),
 		);
 
@@ -323,7 +325,10 @@ const pollDocumentStatus = createAppAsyncThunk<
 	{ documentId: number; projectId: string }
 >(
 	`${sliceName}/poll-document-status`,
-	async ({ documentId, projectId }, { dispatch, extra, signal }) => {
+	async ({ documentId, projectId }, { dispatch, extra, getState, signal }) => {
+		const isPipelineProject = (): boolean =>
+			getState().knowledge.pipelineProjectId === projectId;
+
 		try {
 			const statusResponse = await extra.documentsApi.getDocumentStatus({
 				documentId,
@@ -340,20 +345,22 @@ const pollDocumentStatus = createAppAsyncThunk<
 
 			if (terminalStatuses.includes(statusResponse.status)) {
 				clearPollTimer(documentId);
-			} else {
+			} else if (isPipelineProject()) {
 				scheduleNextPoll({ dispatch, documentId, projectId, signal });
 			}
 
 			return statusResponse;
 		} catch (error) {
-			if (signal.aborted) {
-				throw error;
+			if (!signal.aborted && isPipelineProject()) {
+				scheduleNextPoll({ dispatch, documentId, projectId, signal });
 			}
-
-			scheduleNextPoll({ dispatch, documentId, projectId, signal });
 
 			throw error;
 		}
+	},
+	{
+		condition: ({ projectId }, { getState }) =>
+			getState().knowledge.pipelineProjectId === projectId,
 	},
 );
 
@@ -411,6 +418,7 @@ const initializeProjectKnowledgePipeline = createAppAsyncThunk<
 				sliceSyncActions.trackDocument({
 					documentId,
 					label: `Document ${String(documentId)}`,
+					projectId,
 				}),
 			);
 		}
