@@ -445,10 +445,13 @@ const resumeNextPendingReview = createAppAsyncThunk<
 			// Fall back to the locally tracked documents.
 		}
 
-		const { activeDocumentId: documentId, activeDocumentStatus: status } =
-			getState().knowledge;
+		const {
+			activeDocumentId: documentId,
+			activeDocumentStatus: status,
+			pipelineProjectId,
+		} = getState().knowledge;
 
-		if (documentId === null) {
+		if (pipelineProjectId !== projectId || documentId === null) {
 			return { openPreview: false };
 		}
 
@@ -461,7 +464,9 @@ const resumeNextPendingReview = createAppAsyncThunk<
 				return { openPreview: false };
 			}
 
-			return { openPreview: true };
+			return {
+				openPreview: getState().knowledge.pipelineProjectId === projectId,
+			};
 		}
 
 		if (status === DocumentStatus.WAITING_FOR_APPROVAL) {
@@ -473,11 +478,11 @@ const resumeNextPendingReview = createAppAsyncThunk<
 );
 
 const switchActiveDocument = createAppAsyncThunk<
-	null,
+	boolean,
 	{ documentId: number; projectId: string }
 >(
 	`${sliceName}/switch-active-document`,
-	async ({ documentId, projectId }, { dispatch, extra, signal }) => {
+	async ({ documentId, projectId }, { dispatch, extra, getState, signal }) => {
 		dispatch(sliceSyncActions.setActiveDocumentId(documentId));
 
 		const statusResponse = await extra.documentsApi.getDocumentStatus({
@@ -485,6 +490,10 @@ const switchActiveDocument = createAppAsyncThunk<
 			projectId,
 			signal,
 		});
+
+		if (getState().knowledge.pipelineProjectId !== projectId) {
+			return false;
+		}
 
 		dispatch(
 			sliceSyncActions.syncTrackedDocumentStatus({
@@ -498,7 +507,7 @@ const switchActiveDocument = createAppAsyncThunk<
 			await dispatch(fetchExtractionItems({ documentId, projectId })).unwrap();
 		}
 
-		return null;
+		return getState().knowledge.pipelineProjectId === projectId;
 	},
 );
 

@@ -67,22 +67,28 @@ const getPipelineVisibility = ({
 	activeDocumentStatus,
 	canEdit,
 	isAddingKnowledge,
-	isPreviewOpen,
+	pipelineProjectId,
+	previewProjectId,
+	projectId,
 	trackedDocuments,
 }: {
 	activeDocumentStatus: KnowledgeState["activeDocumentStatus"];
 	canEdit: boolean;
 	isAddingKnowledge: boolean;
-	isPreviewOpen: boolean;
+	pipelineProjectId: KnowledgeState["pipelineProjectId"];
+	previewProjectId: null | string;
+	projectId: string;
 	trackedDocuments: KnowledgeState["trackedDocuments"];
 }): {
 	canResumePreview: boolean;
+	isPipelineOwned: boolean;
 	isPreviewVisible: boolean;
 	isShowDocumentPipelineUi: boolean;
 } => {
-	if (!canEdit) {
+	if (!canEdit || pipelineProjectId !== projectId) {
 		return {
 			canResumePreview: false,
+			isPipelineOwned: false,
 			isPreviewVisible: false,
 			isShowDocumentPipelineUi: false,
 		};
@@ -92,10 +98,73 @@ const getPipelineVisibility = ({
 		canResumePreview:
 			activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION ||
 			activeDocumentStatus === DocumentStatus.WAITING_FOR_APPROVAL,
-		isPreviewVisible: isPreviewOpen,
+		isPipelineOwned: true,
+		isPreviewVisible: previewProjectId === projectId,
 		isShowDocumentPipelineUi:
 			isAddingKnowledge || trackedDocuments.length > EMPTY_LENGTH,
 	};
+};
+
+const useProjectKnowledgePipeline = ({
+	canEdit,
+	projectId,
+}: {
+	canEdit: boolean;
+	projectId: string;
+}): void => {
+	const dispatch = useAppDispatch();
+
+	useEffect(() => {
+		if (!canEdit) {
+			dispatch(actions.resetState(null));
+
+			return;
+		}
+
+		dispatch(actions.resetState(projectId));
+		void dispatch(actions.initializeProjectKnowledgePipeline({ projectId }));
+
+		return () => {
+			dispatch(actions.cancelDocumentPolling());
+		};
+	}, [canEdit, dispatch, projectId]);
+};
+
+const useActiveExtractionItems = ({
+	activeDocumentId,
+	activeDocumentStatus,
+	isPipelineOwned,
+	projectId,
+}: {
+	activeDocumentId: null | number;
+	activeDocumentStatus: KnowledgeState["activeDocumentStatus"];
+	isPipelineOwned: boolean;
+	projectId: string;
+}): void => {
+	const dispatch = useAppDispatch();
+
+	useEffect(() => {
+		if (
+			!isPipelineOwned ||
+			!activeDocumentId ||
+			activeDocumentStatus !== DocumentStatus.WAITING_FOR_VALIDATION
+		) {
+			return;
+		}
+
+		void dispatch(
+			actions.fetchExtractionItems({
+				documentId: activeDocumentId,
+				projectId,
+			}),
+		);
+	}, [
+		activeDocumentId,
+		activeDocumentStatus,
+		dispatch,
+		isPipelineOwned,
+		projectId,
+	]);
 };
 
 const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
@@ -186,6 +255,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		isAddingKnowledge,
 		isEntryLoading,
 		isTreeLoading,
+		pipelineProjectId,
 		trackedDocuments,
 	} = useAppSelector((state) => state.knowledge);
 	const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -196,40 +266,37 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		showModal: handleOpenAddModal,
 	} = useModal();
 
-	const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
+	const [previewProjectId, setPreviewProjectId] = useState<null | string>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+
+	const setIsPreviewOpen = useCallback(
+		(isOpen: boolean): void => {
+			setPreviewProjectId(isOpen ? projectId : null);
+		},
+		[projectId],
+	);
 
 	const isKbEmpty = items.length === EMPTY_LENGTH;
 
 	const isExtractionValidationPreview =
 		activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION;
 
-	useEffect(() => {
-		if (!projectId) {
-			return;
-		}
+	useProjectKnowledgePipeline({ canEdit, projectId });
 
-		dispatch(actions.resetState(canEdit ? projectId : null));
-
-		if (!canEdit) {
-			return;
-		}
-
-		void dispatch(actions.initializeProjectKnowledgePipeline({ projectId }));
-
-		return () => {
-			dispatch(actions.cancelDocumentPolling());
-		};
-	}, [canEdit, dispatch, projectId]);
-
-	const { canResumePreview, isPreviewVisible, isShowDocumentPipelineUi } =
-		getPipelineVisibility({
-			activeDocumentStatus,
-			canEdit,
-			isAddingKnowledge,
-			isPreviewOpen,
-			trackedDocuments,
-		});
+	const {
+		canResumePreview,
+		isPipelineOwned,
+		isPreviewVisible,
+		isShowDocumentPipelineUi,
+	} = getPipelineVisibility({
+		activeDocumentStatus,
+		canEdit,
+		isAddingKnowledge,
+		pipelineProjectId,
+		previewProjectId,
+		projectId,
+		trackedDocuments,
+	});
 
 	const pendingReviewDocuments = useMemo(() => {
 		return trackedDocuments.filter(
@@ -240,28 +307,18 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		);
 	}, [activeDocumentId, trackedDocuments]);
 
-	useEffect(() => {
-		if (
-			!projectId ||
-			!activeDocumentId ||
-			activeDocumentStatus !== DocumentStatus.WAITING_FOR_VALIDATION
-		) {
-			return;
-		}
-
-		void dispatch(
-			actions.fetchExtractionItems({
-				documentId: activeDocumentId,
-				projectId,
-			}),
-		);
-	}, [activeDocumentId, activeDocumentStatus, dispatch, projectId]);
+	useActiveExtractionItems({
+		activeDocumentId,
+		activeDocumentStatus,
+		isPipelineOwned,
+		projectId,
+	});
 
 	const handleAddMore = useCallback((): void => {
 		setIsPreviewOpen(false);
 		dispatch(actions.clearIntegrationPreview());
 		handleOpenAddModal();
-	}, [dispatch, handleOpenAddModal]);
+	}, [dispatch, handleOpenAddModal, setIsPreviewOpen]);
 
 	const openNextPendingReview = useCallback(async (): Promise<void> => {
 		if (!projectId) {
@@ -273,7 +330,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		).unwrap();
 
 		setIsPreviewOpen(openPreview);
-	}, [dispatch, projectId]);
+	}, [dispatch, projectId, setIsPreviewOpen]);
 
 	const handleApproveIntegration = useCallback((): void => {
 		void openNextPendingReview();
@@ -283,7 +340,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	const handleClosePreview = useCallback((): void => {
 		setIsPreviewOpen(false);
 		dispatch(actions.clearIntegrationPreview());
-	}, [dispatch]);
+	}, [dispatch, setIsPreviewOpen]);
 
 	const handleCloseSidebar = useCallback((): void => {
 		setIsSidebarOpen(false);
@@ -292,7 +349,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	const handleFinishLoading = useCallback((): void => {
 		dispatch(actions.finishAddingKnowledge());
 		setIsPreviewOpen(true);
-	}, [dispatch]);
+	}, [dispatch, setIsPreviewOpen]);
 
 	const handleOpenPreview = useCallback((): void => {
 		void openNextPendingReview();
@@ -319,13 +376,13 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			}
 
 			void (async () => {
-				await dispatch(
+				const isSwitched = await dispatch(
 					actions.switchActiveDocument({ documentId, projectId }),
 				).unwrap();
-				setIsPreviewOpen(true);
+				setIsPreviewOpen(isSwitched);
 			})();
 		},
-		[dispatch, projectId],
+		[dispatch, projectId, setIsPreviewOpen],
 	);
 
 	const handleRetry = useCallback((): void => {
