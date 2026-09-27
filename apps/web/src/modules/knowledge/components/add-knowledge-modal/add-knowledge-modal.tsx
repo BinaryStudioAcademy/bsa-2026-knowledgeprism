@@ -1,5 +1,6 @@
 import { HTTPCode } from "@knowledgeprism/constants";
 import { type ManualTextCreateRequestDto } from "@knowledgeprism/types";
+import { unwrapResult } from "@reduxjs/toolkit";
 import {
 	type JSX,
 	type KeyboardEvent,
@@ -18,6 +19,7 @@ import {
 	useCurrentProjectId,
 } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { store } from "~/lib/store/store.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { actions } from "../../knowledge.js";
@@ -62,6 +64,10 @@ const INITIAL_FORM_SESSION_KEY = 0;
 const SINGLE_ITEM_COUNT = 1;
 const TAB_ICON_SIZE = 14;
 const TAB_INDEX_STEP = 1;
+
+const isUploadProjectCurrent = (projectId: string): boolean => {
+	return store.instance.getState().knowledge.uploadProjectId === projectId;
+};
 
 const getCountLabel = (
 	readyCount: number,
@@ -186,7 +192,6 @@ const AddKnowledgeModal = ({
 	}, [dispatch, onClose]);
 
 	const submitAndClose = useCallback((): void => {
-		dispatch(actions.startAddingKnowledge());
 		for (const item of readyDocuments) {
 			dispatch(actions.removeDocument({ id: item.id }));
 		}
@@ -229,6 +234,10 @@ const AddKnowledgeModal = ({
 					}),
 				);
 
+				if (!isUploadProjectCurrent(projectId)) {
+					return;
+				}
+
 				if (actions.confirmDocumentUpload.rejected.match(result)) {
 					setUploadConfirmationErrorStatus(result.error.status ?? null);
 					return;
@@ -267,7 +276,7 @@ const AddKnowledgeModal = ({
 			try {
 				const trimmedTitle = title?.trim();
 
-				await dispatch(
+				const result = await dispatch(
 					actions.submitManualText({
 						payload: {
 							content: content.trim(),
@@ -275,8 +284,13 @@ const AddKnowledgeModal = ({
 						},
 						projectId,
 					}),
-				).unwrap();
+				);
 
+				if (!isUploadProjectCurrent(projectId)) {
+					return;
+				}
+
+				unwrapResult(result);
 				submitAndClose();
 			} finally {
 				setIsManualTextSubmitting(false);

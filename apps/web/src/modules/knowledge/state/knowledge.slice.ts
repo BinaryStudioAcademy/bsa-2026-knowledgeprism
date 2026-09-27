@@ -665,9 +665,6 @@ const { actions, name, reducer } = createSlice({
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
 		},
-		startAddingKnowledge(state) {
-			state.isAddingKnowledge = true;
-		},
 		startProcessing(
 			state,
 			action: PayloadAction<{ id: string; name: string; size: number }>,
