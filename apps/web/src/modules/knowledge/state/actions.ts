@@ -32,7 +32,10 @@ import {
 	formatFileSize,
 	readTrackedDocumentIds,
 } from "../libs/helpers/helpers.js";
-import { type UploadedDocumentItem } from "../libs/types/types.js";
+import {
+	type PipelineSessionScope,
+	type UploadedDocumentItem,
+} from "../libs/types/types.js";
 import { clearPollTimer, schedulePollTimer } from "./document-poll-timers.js";
 import {
 	name as sliceName,
@@ -370,7 +373,7 @@ const pollDocumentStatus = createAppAsyncThunk<
 
 const fetchPendingReviewDocuments = createAppAsyncThunk<
 	PendingReviewDocumentsResponseDto,
-	{ projectId: string }
+	PipelineSessionScope
 >(
 	`${sliceName}/fetch-pending-review-documents`,
 	async ({ projectId }, { extra, signal }) => {
@@ -408,12 +411,22 @@ const updateExtractionItem = createAppAsyncThunk<
 });
 
 const initializeProjectKnowledgePipeline = createAppAsyncThunk<
-	null,
+	boolean,
 	{ projectId: string }
 >(
 	`${sliceName}/initialize-project-knowledge-pipeline`,
-	async ({ projectId }, { dispatch }) => {
-		await dispatch(fetchPendingReviewDocuments({ projectId }));
+	async ({ projectId }, { dispatch, getState }) => {
+		const { pipelineSessionId } = getState().knowledge;
+		const isSessionCurrent = (): boolean =>
+			getState().knowledge.pipelineSessionId === pipelineSessionId;
+
+		await dispatch(
+			fetchPendingReviewDocuments({ pipelineSessionId, projectId }),
+		);
+
+		if (!isSessionCurrent()) {
+			return false;
+		}
 
 		const documentIds = readTrackedDocumentIds(projectId);
 
@@ -433,7 +446,7 @@ const initializeProjectKnowledgePipeline = createAppAsyncThunk<
 			),
 		);
 
-		return null;
+		return true;
 	},
 );
 
@@ -443,19 +456,28 @@ const resumeNextPendingReview = createAppAsyncThunk<
 >(
 	`${sliceName}/resume-next-pending-review`,
 	async ({ projectId }, { dispatch, getState }) => {
+		const { pipelineSessionId } = getState().knowledge;
+		const isSessionCurrent = (): boolean => {
+			const { knowledge } = getState();
+
+			return (
+				knowledge.pipelineProjectId === projectId &&
+				knowledge.pipelineSessionId === pipelineSessionId
+			);
+		};
+
 		try {
-			await dispatch(fetchPendingReviewDocuments({ projectId })).unwrap();
+			await dispatch(
+				fetchPendingReviewDocuments({ pipelineSessionId, projectId }),
+			).unwrap();
 		} catch {
 			// Fall back to the locally tracked documents.
 		}
 
-		const {
-			activeDocumentId: documentId,
-			activeDocumentStatus: status,
-			pipelineProjectId,
-		} = getState().knowledge;
+		const { activeDocumentId: documentId, activeDocumentStatus: status } =
+			getState().knowledge;
 
-		if (pipelineProjectId !== projectId || documentId === null) {
+		if (documentId === null || !isSessionCurrent()) {
 			return { openPreview: false };
 		}
 
@@ -468,9 +490,7 @@ const resumeNextPendingReview = createAppAsyncThunk<
 				return { openPreview: false };
 			}
 
-			return {
-				openPreview: getState().knowledge.pipelineProjectId === projectId,
-			};
+			return { openPreview: isSessionCurrent() };
 		}
 
 		if (status === DocumentStatus.WAITING_FOR_APPROVAL) {

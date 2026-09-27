@@ -12,6 +12,7 @@ import {
 } from "../libs/helpers/helpers.js";
 import {
 	type KnowledgeState,
+	type PipelineSessionScope,
 	type TrackedDocument,
 } from "../libs/types/types.js";
 import {
@@ -67,6 +68,7 @@ const initialState: State = {
 	selectedFiles: [],
 	trackedDocuments: [],
 	tree: [],
+	treeRequestId: null,
 	uploadSession: null,
 	uploadSessionSequence: 0,
 };
@@ -93,6 +95,16 @@ const IN_FLIGHT_DOCUMENT_STATUSES = new Set<TrackedDocument["status"]>([
 
 const isCurrentPipelineProject = (state: State, projectId: string): boolean => {
 	return state.pipelineProjectId === projectId;
+};
+
+const isCurrentPipelineSession = (
+	state: State,
+	{ pipelineSessionId, projectId }: PipelineSessionScope,
+): boolean => {
+	return (
+		isCurrentPipelineProject(state, projectId) &&
+		state.pipelineSessionId === pipelineSessionId
+	);
 };
 
 const isCurrentUploadSession = (
@@ -344,18 +356,29 @@ const { actions, name, reducer } = createSlice({
 			state.integrationPreviewSections = [];
 			state.isIntegrationPreviewLoading = false;
 		});
-		builder.addCase(fetchKnowledgeTree.pending, (state) => {
+		builder.addCase(fetchKnowledgeTree.pending, (state, action) => {
 			state.isTreeLoading = true;
 			state.errorMessage = null;
 			state.tree = [];
+			state.treeRequestId = action.meta.requestId;
 			state.selectedEntry = null;
 		});
 		builder.addCase(fetchKnowledgeTree.fulfilled, (state, action) => {
+			if (state.treeRequestId !== action.meta.requestId) {
+				return;
+			}
+
 			state.isTreeLoading = false;
 			state.tree = action.payload.items;
+			state.treeRequestId = null;
 		});
 		builder.addCase(fetchKnowledgeTree.rejected, (state, action) => {
+			if (state.treeRequestId !== action.meta.requestId) {
+				return;
+			}
+
 			state.isTreeLoading = false;
+			state.treeRequestId = null;
 			state.errorMessage =
 				action.error.message ?? "Failed to fetch knowledge tree";
 		});
@@ -510,7 +533,7 @@ const { actions, name, reducer } = createSlice({
 		builder.addCase(fetchPendingReviewDocuments.fulfilled, (state, action) => {
 			const { projectId } = action.meta.arg;
 
-			if (!isCurrentPipelineProject(state, projectId)) {
+			if (!isCurrentPipelineSession(state, action.meta.arg)) {
 				return;
 			}
 

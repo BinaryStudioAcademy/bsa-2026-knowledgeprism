@@ -77,8 +77,14 @@ type KnowledgeState = {
 	selectedFiles: UploadedDocumentItem[];
 	trackedDocuments: TrackedDocument[];
 	tree: KnowledgeTreeItemResponseDto[];
+	treeRequestId: null | string;
 	uploadSession: null | UploadSession;
 	uploadSessionSequence: number;
+};
+
+type PipelineSessionScope = {
+	pipelineSessionId: number;
+	projectId: string;
 };
 
 type ProposedPage = {
@@ -136,6 +142,7 @@ export {
 	type IntegrationPreviewProperties,
 	type KbEntry,
 	type KnowledgeState,
+	type PipelineSessionScope,
 	type ProposedPage,
 	type ProposedSection,
 	type TrackedDocument,
