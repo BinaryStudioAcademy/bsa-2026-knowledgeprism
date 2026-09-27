@@ -11,6 +11,7 @@ type AskPrismErrorType = "connection" | "not_found" | null;
 type State = {
 	answer: null | string;
 	currentAskRequestId: null | string;
+	currentProjectId: null | number;
 	currentSuggestionsRequestId: null | string;
 	dataStatus: ValueOf<typeof DataStatus>;
 	errorType: AskPrismErrorType;
@@ -31,6 +32,7 @@ const DEFAULT_SUGGESTED_QUESTIONS = [
 const initialState: State = {
 	answer: null,
 	currentAskRequestId: null,
+	currentProjectId: null,
 	currentSuggestionsRequestId: null,
 	dataStatus: DataStatus.IDLE,
 	errorType: null,
@@ -44,6 +46,7 @@ const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
 		builder.addCase(askQuestion.pending, (state, action) => {
 			state.currentAskRequestId = action.meta.requestId;
+			state.currentProjectId = Number(action.meta.arg.projectId);
 			state.answer = null;
 			state.dataStatus = DataStatus.PENDING;
 			state.errorType = null;
@@ -82,6 +85,7 @@ const { actions, name, reducer } = createSlice({
 
 		builder.addCase(loadSuggestedQuestions.pending, (state, action) => {
 			state.currentSuggestionsRequestId = action.meta.requestId;
+			state.currentProjectId = Number(action.meta.arg.projectId);
 			state.isSuggestionsLoading = true;
 		});
 		builder.addCase(loadSuggestedQuestions.fulfilled, (state, action) => {
@@ -104,6 +108,7 @@ const { actions, name, reducer } = createSlice({
 		reset(state) {
 			state.answer = null;
 			state.currentAskRequestId = null;
+			state.currentProjectId = null;
 			state.currentSuggestionsRequestId = null;
 			state.dataStatus = DataStatus.IDLE;
 			state.errorType = null;
