@@ -4,6 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import {
 	useAppDispatch,
 	useAppSelector,
+	useCanWriteKnowledge,
 	useCurrentProjectId,
 } from "~/hooks/hooks.js";
 
@@ -14,6 +15,7 @@ const KnowledgeTreePage: React.FC = () => {
 	const projectId = useCurrentProjectId();
 	const dispatch = useAppDispatch();
 	const [searchParameters] = useSearchParams();
+	const canWriteKnowledge = useCanWriteKnowledge();
 	const { selectedEntry, tree } = useAppSelector((state) => state.knowledge);
 
 	const [manualSelectedPageId, setManualSelectedPageId] = useState<
@@ -94,7 +96,7 @@ const KnowledgeTreePage: React.FC = () => {
 
 	return (
 		<KnowledgeTreeLayout
-			canEdit={true}
+			canEdit={canWriteKnowledge}
 			entries={entries}
 			isTreeReady={isTreeReady}
 			items={tree}

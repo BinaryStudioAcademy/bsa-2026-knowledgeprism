@@ -30,6 +30,7 @@ const AskPrismView = (): JSX.Element => {
 
 	const {
 		answer,
+		currentProjectId,
 		dataStatus,
 		errorType,
 		isSuggestionsLoading,
@@ -38,7 +39,10 @@ const AskPrismView = (): JSX.Element => {
 		suggestedQuestions,
 	} = useAppSelector(({ askPrism }) => askPrism);
 
-	const isLoading = dataStatus === DataStatus.PENDING;
+	const isCurrentProject = currentProjectId === numericProjectId;
+	const isLoading = isCurrentProject && dataStatus === DataStatus.PENDING;
+	const isSuggestionsActuallyLoading =
+		!isCurrentProject || isSuggestionsLoading;
 
 	useEffect(() => {
 		dispatch(askPrismActions.reset());
@@ -152,13 +156,13 @@ const AskPrismView = (): JSX.Element => {
 
 			<div className="min-h-0 flex-1 overflow-y-auto py-4">
 				<AnswerCard
-					answer={answer}
-					dataStatus={dataStatus}
-					errorType={errorType}
+					answer={isCurrentProject ? answer : null}
+					dataStatus={isCurrentProject ? dataStatus : DataStatus.IDLE}
+					errorType={isCurrentProject ? errorType : null}
 					onRetry={handleRetry}
 					onSourceSelect={handleSourceSelect}
-					query={submittedQuery}
-					sources={sources}
+					query={isCurrentProject ? submittedQuery : ""}
+					sources={isCurrentProject ? sources : []}
 				/>
 			</div>
 
@@ -168,7 +172,7 @@ const AskPrismView = (): JSX.Element => {
 						<span className="font-sans text-xs text-text-faint">
 							Suggested questions:
 						</span>
-						{isSuggestionsLoading ? (
+						{isSuggestionsActuallyLoading ? (
 							<div className="flex animate-pulse gap-2">
 								<span className="h-6 w-28 rounded-md bg-surface" />
 								<span className="h-6 w-36 rounded-md bg-surface" />
