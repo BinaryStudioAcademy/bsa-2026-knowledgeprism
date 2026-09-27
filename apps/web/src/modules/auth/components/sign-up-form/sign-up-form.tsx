@@ -136,7 +136,12 @@ const SignUpForm = ({ onSubmit }: Properties): React.JSX.Element => {
 				/>
 
 				<div className="flex items-center gap-2 text-sm text-text">
-					<Checkbox control={control} name="agreeToTerms" />
+					<Checkbox
+						aria-label="I agree to the Terms and Privacy Policy"
+						control={control}
+						name="agreeToTerms"
+					/>
+
 					<span>
 						I agree to the{" "}
 						<button
