@@ -109,9 +109,11 @@ const workspacesSlice = createSlice({
 				state.projects = action.payload;
 				clearLastActiveProjectIfMissing(state);
 			})
-			.addCase(fetchProjects.rejected, (state) => {
+			.addCase(fetchProjects.rejected, (state, action) => {
 				state.isLoading = false;
+				state.error = action.error.message ?? "Failed to fetch projects";
 			})
+
 			.addCase(fetchRecentDocuments.pending, (state) => {
 				state.isLoadingRecent = true;
 			})
