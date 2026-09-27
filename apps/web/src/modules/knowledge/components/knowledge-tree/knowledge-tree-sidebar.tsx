@@ -111,6 +111,10 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 		[],
 	);
 
+	const handleSearchClear = useCallback(() => {
+		setSearchQuery("");
+	}, []);
+
 	const handleSelectPage = useCallback(
 		(id: number) => {
 			onSelectPage(id);
@@ -186,6 +190,7 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 
 				<KnowledgeTreeSearchBar
 					onChange={handleSearchChange}
+					onClear={handleSearchClear}
 					value={searchQuery}
 				/>
 
