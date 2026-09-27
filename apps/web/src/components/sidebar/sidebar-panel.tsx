@@ -17,6 +17,7 @@ import {
 	EXPANDED_NAV_ITEM_CLASS,
 	PROJECT_ICON_SIZE,
 	RAIL_NAV_ITEM_CLASS,
+	WORKSPACES_LABEL,
 } from "./libs/constants.js";
 import { type NavItem, NavRow, NavTooltip } from "./sidebar-nav-item.js";
 
@@ -92,27 +93,68 @@ const ProjectHeading = ({
 	);
 };
 
-const BackToProjectsLink = ({
+const BackToProjectsLink = (): React.JSX.Element => {
+	return (
+		<Link
+			className={getValidClassNames("nav-item", EXPANDED_NAV_ITEM_CLASS)}
+			to={AppRoute.WORKSPACES}
+		>
+			<span className="inline-flex rotate-180">
+				<Icon name="arrow-right-long" size={PROJECT_ICON_SIZE} />
+			</span>
+			<span>{BACK_TO_PROJECTS_LABEL}</span>
+		</Link>
+	);
+};
+
+const BackChevron = (): React.JSX.Element => {
+	return (
+		<span className="inline-flex rotate-180">
+			<Icon name="chevron-filled-right" size={CHEVRON_ICON_SIZE} />
+		</span>
+	);
+};
+
+const WorkspacesEyebrow = (): React.JSX.Element => {
+	return (
+		<Link
+			className="inline-flex w-fit items-center gap-1 rounded-md px-2 py-1 text-2xs font-medium text-text-faint transition-colors hover:bg-secondary hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none"
+			to={AppRoute.WORKSPACES}
+		>
+			<BackChevron />
+			{WORKSPACES_LABEL}
+		</Link>
+	);
+};
+
+const SidebarHeading = ({
 	isExpanded,
+	projectId,
+	projectName,
+	role,
 }: {
 	isExpanded: boolean;
-}): React.JSX.Element => {
+	projectId: string | undefined;
+	projectName: string;
+	role: string;
+}): null | React.JSX.Element => {
+	if (!isExpanded) {
+		return null;
+	}
+
+	if (projectId) {
+		return (
+			<div className="flex w-full flex-col items-stretch gap-1">
+				<WorkspacesEyebrow />
+				<ProjectHeading projectName={projectName} role={role} />
+			</div>
+		);
+	}
+
 	return (
-		<NavTooltip isEnabled={!isExpanded} label={BACK_TO_PROJECTS_LABEL}>
-			<Link
-				aria-label={isExpanded ? undefined : BACK_TO_PROJECTS_LABEL}
-				className={getValidClassNames(
-					"nav-item",
-					isExpanded ? EXPANDED_NAV_ITEM_CLASS : RAIL_NAV_ITEM_CLASS,
-				)}
-				to={AppRoute.ROOT}
-			>
-				<span className="inline-flex rotate-180">
-					<Icon name="arrow-right-long" size={PROJECT_ICON_SIZE} />
-				</span>
-				{isExpanded && <span>{BACK_TO_PROJECTS_LABEL}</span>}
-			</Link>
-		</NavTooltip>
+		<div className="flex w-full flex-col items-stretch">
+			<BackToProjectsLink />
+		</div>
 	);
 };
 
@@ -142,18 +184,12 @@ const SidebarPanel = ({
 			tabIndex={-1}
 		>
 			<SidebarToggle isExpanded={isExpanded} onToggle={onToggle} />
-			{projectId ? (
-				isExpanded && <ProjectHeading projectName={projectName} role={role} />
-			) : (
-				<div
-					className={getValidClassNames(
-						"flex w-full flex-col",
-						isExpanded ? "items-stretch" : "items-center",
-					)}
-				>
-					<BackToProjectsLink isExpanded={isExpanded} />
-				</div>
-			)}
+			<SidebarHeading
+				isExpanded={isExpanded}
+				projectId={projectId}
+				projectName={projectName}
+				role={role}
+			/>
 			{primaryNavItems.length > EMPTY_LENGTH && (
 				<nav
 					className={getValidClassNames(
