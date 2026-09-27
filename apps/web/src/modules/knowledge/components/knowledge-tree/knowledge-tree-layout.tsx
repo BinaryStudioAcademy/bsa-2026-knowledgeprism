@@ -470,9 +470,20 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			}
 
 			void (async () => {
+				const pipelineSessionId = getPipelineSessionId();
+
 				const isSwitched = await dispatch(
-					actions.switchActiveDocument({ documentId, projectId }),
+					actions.switchActiveDocument({
+						documentId,
+						pipelineSessionId,
+						projectId,
+					}),
 				).unwrap();
+
+				if (!isPipelineSessionCurrent(pipelineSessionId)) {
+					return;
+				}
+
 				setIsPreviewOpen(isSwitched);
 			})();
 		},

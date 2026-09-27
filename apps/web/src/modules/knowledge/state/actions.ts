@@ -514,17 +514,17 @@ const resumeNextPendingReview = createAppAsyncThunk<
 
 const switchActiveDocument = createAppAsyncThunk<
 	boolean,
-	{ documentId: number; projectId: string }
+	DocumentPipelineRequest
 >(
 	`${sliceName}/switch-active-document`,
-	async ({ documentId, projectId }, { dispatch, extra, getState, signal }) => {
-		const request: DocumentPipelineRequest = {
-			documentId,
-			pipelineSessionId: getState().knowledge.pipelineSessionId,
-			projectId,
-		};
+	async (request, { dispatch, extra, getState, signal }) => {
+		const { documentId, projectId } = request;
 		const isSessionCurrent = (): boolean =>
 			isMatchingPipelineSession(getState().knowledge, request);
+
+		if (!isSessionCurrent()) {
+			return false;
+		}
 
 		dispatch(sliceSyncActions.setActiveDocumentId(documentId));
 
