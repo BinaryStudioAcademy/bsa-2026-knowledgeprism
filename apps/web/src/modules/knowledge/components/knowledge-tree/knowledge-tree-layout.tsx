@@ -474,7 +474,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			projectId,
 		};
 
-		if (activeDocumentStatus === DocumentStatus.FAILED) {
+		if (errorMessage || activeDocumentStatus === DocumentStatus.FAILED) {
 			void (async () => {
 				try {
 					await dispatch(actions.retryDocumentProcessing(request)).unwrap();
@@ -489,7 +489,13 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		} else {
 			void dispatch(actions.pollDocumentStatus(request));
 		}
-	}, [activeDocumentId, activeDocumentStatus, dispatch, projectId]);
+	}, [
+		activeDocumentId,
+		activeDocumentStatus,
+		dispatch,
+		errorMessage,
+		projectId,
+	]);
 
 	const mappedExtractionStructure = useMemo((): ProposedSection[] => {
 		if (extractionItems.length === EMPTY_LENGTH) {
