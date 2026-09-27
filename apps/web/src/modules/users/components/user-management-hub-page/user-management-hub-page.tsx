@@ -1,3 +1,5 @@
+import { OrganisationRole } from "@knowledgeprism/constants";
+
 import {
 	Avatar,
 	Button,
@@ -14,24 +16,34 @@ import {
 	useNavigate,
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
-import { actions as projectsActions } from "~/modules/projects/projects.js";
 import { actions as userActions } from "~/modules/users/users.js";
+import { fetchProjects } from "~/modules/workspaces/state/workspaces.slice.js";
+import { workspacesApi } from "~/modules/workspaces/workspaces.js";
 
+const EMPTY_LENGTH = 0;
 const UserManagementHubPage: React.FC = () => {
-	const SINGLE_PROJECT_COUNT = 1;
-
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 
 	const currentUser = useAppSelector(({ auth }) => auth.user);
 	const dataStatus = useAppSelector(({ users }) => users.dataStatus);
 	const users = useAppSelector(({ users }) => users.users);
-	const projects = useAppSelector(({ projects }) => projects.projects);
+
+	const {
+		error: projectsError,
+		isLoading: isProjectsLoading,
+		projects,
+	} = useAppSelector(({ workspaces }) => workspaces);
 
 	useEffect(() => {
 		void dispatch(userActions.loadAll());
-		void dispatch(projectsActions.loadAllProjects());
 	}, [dispatch]);
+
+	useEffect(() => {
+		if (projects.length === EMPTY_LENGTH) {
+			void dispatch(fetchProjects(workspacesApi));
+		}
+	}, [dispatch, projects.length]);
 
 	const handleAddUserClick = useCallback((): void => {
 		void navigate(AppRoute.USERS_NEW);
@@ -46,6 +58,33 @@ const UserManagementHubPage: React.FC = () => {
 			}
 		},
 		[navigate],
+	);
+
+	const renderProjectsCount = useCallback(
+		(user: (typeof users)[number]): React.ReactElement => {
+			const isCurrentUserAdmin =
+				currentUser?.user.organisationRole === OrganisationRole.ADMIN;
+			const isUserAdmin =
+				user.id === currentUser?.user.id
+					? isCurrentUserAdmin
+					: (user as { organisationRole?: string }).organisationRole ===
+						OrganisationRole.ADMIN;
+
+			if (!isUserAdmin) {
+				return <span>{String(user.assignedProjects.length)} Projects</span>;
+			}
+
+			if (isProjectsLoading) {
+				return <span className="text-text-muted">Loading...</span>;
+			}
+
+			if (projectsError) {
+				return <span className="font-semibold text-error-hover">—</span>;
+			}
+
+			return <span>{String(projects.length)} Projects</span>;
+		},
+		[currentUser, isProjectsLoading, projects.length, projectsError],
 	);
 
 	return (
@@ -78,12 +117,6 @@ const UserManagementHubPage: React.FC = () => {
 							</thead>
 							<tbody className="divide-y divide-border">
 								{users.map((user) => {
-									const isUserAdmin =
-										user.id === currentUser?.user.id ||
-										Boolean((user as { isAdmin?: boolean }).isAdmin);
-									const projectsCount = isUserAdmin
-										? projects.length
-										: user.assignedProjects.length;
 									return (
 										<tr
 											className="cursor-pointer transition-colors hover:bg-bg-subtle"
@@ -96,6 +129,7 @@ const UserManagementHubPage: React.FC = () => {
 													alt={`${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()}
 													initials={(() => {
 														const FIRST_CHARACTER_INDEX = 0;
+
 														return (
 															user.firstName?.[FIRST_CHARACTER_INDEX] ??
 															user.email.charAt(FIRST_CHARACTER_INDEX)
@@ -122,11 +156,10 @@ const UserManagementHubPage: React.FC = () => {
 													</span>
 												)}
 											</td>
-											<td className="px-4 py-3 text-text-muted">
-												{projectsCount}{" "}
-												{projectsCount === SINGLE_PROJECT_COUNT
-													? "Project"
-													: "Projects"}
+											<td className="w-32 px-4 py-3 text-text-muted">
+												<span className="inline-block min-w-20">
+													{renderProjectsCount(user)}
+												</span>
 											</td>
 										</tr>
 									);
