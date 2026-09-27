@@ -17,77 +17,107 @@ type Properties = {
 	isInteractionDisabled: boolean;
 };
 
+const EMPTY_FILES_COUNT = 0;
+
 const DocumentUpload = ({
 	className = "",
 	isInteractionDisabled,
 }: Properties): JSX.Element => {
 	const dispatch = useAppDispatch();
 	const projectId = useCurrentProjectId();
-	const { errorMessage, selectedFile } = useAppSelector(
+	const { errorMessage, selectedFiles } = useAppSelector(
 		(state) => state.knowledge,
 	);
-	const fileReference = useRef<File | null>(null);
-	const uploadTaskReference = useRef<null | { abort: () => void }>(null);
+	const filesMapReference = useRef<Map<string, File>>(new Map());
+	const uploadTasksReference = useRef<Map<string, { abort: () => void }>>(
+		new Map(),
+	);
 
 	useEffect(() => {
+		const uploadTasks = uploadTasksReference.current;
+		const filesMap = filesMapReference.current;
+
 		return () => {
-			uploadTaskReference.current?.abort();
+			for (const task of uploadTasks.values()) {
+				task.abort();
+			}
+			uploadTasks.clear();
+			filesMap.clear();
 		};
 	}, []);
 
-	const handleFileSelect = useCallback(
-		(file: File): void => {
-			const validationResult = validateFile(file);
+	const handleFilesSelect = useCallback(
+		(files: File[]): void => {
+			for (const file of files) {
+				const validationResult = validateFile(file);
 
-			if (!validationResult.isValid) {
-				dispatch(actions.setError(validationResult.error ?? "Invalid file"));
-				return;
+				if (!validationResult.isValid) {
+					dispatch(actions.setError(validationResult.error ?? "Invalid file"));
+					continue;
+				}
+
+				dispatch(actions.clearError());
+				const id = `${file.name}-${String(file.lastModified)}-${String(Date.now())}`;
+				filesMapReference.current.set(id, file);
+
+				dispatch(
+					actions.startProcessing({ id, name: file.name, size: file.size }),
+				);
+
+				const uploadTask = dispatch(
+					actions.processDocument({ file, id, projectId }),
+				);
+				uploadTasksReference.current.set(id, uploadTask);
 			}
-
-			dispatch(actions.clearError());
-			fileReference.current = file;
-			const id = `${file.name}-${String(Date.now())}`;
-			dispatch(
-				actions.startProcessing({ id, name: file.name, size: file.size }),
-			);
-			uploadTaskReference.current = dispatch(
-				actions.processDocument({ file, id, projectId }),
-			);
 		},
 		[dispatch, projectId],
 	);
 
-	const handleRetry = useCallback((): void => {
-		if (isInteractionDisabled || !selectedFile || !fileReference.current) {
-			return;
-		}
+	const handleRetry = useCallback(
+		(id: string) => (): void => {
+			const targetItem = selectedFiles.find((file) => file.id === id);
+			const targetFile = filesMapReference.current.get(id);
 
-		dispatch(
-			actions.startProcessing({
-				id: selectedFile.id,
-				name: selectedFile.name,
-				size: selectedFile.size,
-			}),
-		);
-		uploadTaskReference.current = dispatch(
-			actions.processDocument({
-				documentId: selectedFile.documentId,
-				file: fileReference.current,
-				id: selectedFile.id,
-				projectId,
-				uploadUrl: selectedFile.uploadUrl,
-			}),
-		);
-	}, [dispatch, isInteractionDisabled, projectId, selectedFile]);
+			if (isInteractionDisabled || !targetItem || !targetFile) {
+				return;
+			}
 
-	const handleRemove = useCallback((): void => {
-		if (isInteractionDisabled) {
-			return;
-		}
+			dispatch(
+				actions.startProcessing({
+					id: targetItem.id,
+					name: targetItem.name,
+					size: targetItem.size,
+				}),
+			);
 
-		uploadTaskReference.current?.abort();
-		dispatch(actions.removeDocument());
-	}, [dispatch, isInteractionDisabled]);
+			const uploadTask = dispatch(
+				actions.processDocument({
+					documentId: targetItem.documentId,
+					file: targetFile,
+					id: targetItem.id,
+					projectId,
+					uploadUrl: targetItem.uploadUrl,
+				}),
+			);
+			uploadTasksReference.current.set(id, uploadTask);
+		},
+		[dispatch, isInteractionDisabled, projectId, selectedFiles],
+	);
+
+	const handleRemove = useCallback(
+		(id: string) => (): void => {
+			if (isInteractionDisabled) {
+				return;
+			}
+
+			uploadTasksReference.current.get(id)?.abort();
+			uploadTasksReference.current.delete(id);
+			filesMapReference.current.delete(id);
+
+			dispatch(actions.removeDocument({ id }));
+		},
+		[dispatch, isInteractionDisabled],
+	);
 
 	return (
 		<div className={`flex flex-col gap-4 ${className}`}>
@@ -100,18 +130,23 @@ const DocumentUpload = ({
 			)}
 
 			<FileDropzone
-				disabled={Boolean(selectedFile)}
-				onFileSelected={handleFileSelect}
+				disabled={isInteractionDisabled}
+				onFilesSelected={handleFilesSelect}
 			/>
 
-			{selectedFile && (
-				<DocumentRow
-					isDisabled={isInteractionDisabled}
-					item={selectedFile}
-					onCancel={handleRemove}
-					onRemove={handleRemove}
-					onRetry={handleRetry}
-				/>
+			{selectedFiles.length > EMPTY_FILES_COUNT && (
+				<div className="flex flex-col gap-2">
+					{selectedFiles.map((file) => (
+						<DocumentRow
+							isDisabled={isInteractionDisabled}
+							item={file}
+							key={file.id}
+							onCancel={handleRemove(file.id)}
+							onRemove={handleRemove(file.id)}
+							onRetry={handleRetry(file.id)}
+						/>
+					))}
+				</div>
 			)}
 		</div>
 	);
