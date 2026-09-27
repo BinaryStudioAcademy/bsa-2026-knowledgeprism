@@ -7,6 +7,8 @@ import {
 	useAppSelector,
 	useOptionalCurrentProjectId,
 } from "~/hooks/hooks.js";
+import { hasKnowledgeWriteAccess } from "~/modules/knowledge/libs/helpers/helpers.js";
+import { useProjectKnowledgePipeline } from "~/modules/knowledge/libs/hooks/use-project-knowledge-pipeline.hook.js";
 import {
 	fetchProjects,
 	workspacesActions,
@@ -36,6 +38,11 @@ const SidebarLayout: React.FC = () => {
 	const currentProject = projects.find(
 		(project) => project.id === effectiveProjectId,
 	);
+
+	useProjectKnowledgePipeline({
+		canEdit: hasKnowledgeWriteAccess(currentProject?.role),
+		projectId: effectiveProjectId,
+	});
 
 	return (
 		<div className="flex h-full min-h-0 flex-col overflow-hidden tablet:flex-row">

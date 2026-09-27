@@ -10,6 +10,7 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { generatePath } from "react-router-dom";
 
 import { Icon, type IconName } from "~/components/icon/icon.js";
 import { Modal } from "~/components/modal/modal.js";
@@ -17,7 +18,9 @@ import {
 	useAppDispatch,
 	useAppSelector,
 	useCurrentProjectId,
+	useNavigate,
 } from "~/hooks/hooks.js";
+import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
@@ -108,6 +111,7 @@ const AddKnowledgeModal = ({
 	projectName,
 }: Properties): JSX.Element => {
 	const dispatch = useAppDispatch();
+	const navigate = useNavigate();
 	const projectId = useCurrentProjectId();
 	const [activeTab, setActiveTab] = useState<ValueOf<typeof AddKnowledgeTab>>(
 		AddKnowledgeTab.UPLOAD,
@@ -200,7 +204,8 @@ const AddKnowledgeModal = ({
 		setFormSessionKey((currentKey) => currentKey + FORM_SESSION_KEY_INCREMENT);
 		setUploadConfirmationErrorStatus(null);
 		onClose();
-	}, [dispatch, onClose, readyDocuments]);
+		void navigate(generatePath(AppRoute.PROJECT_KNOWLEDGE_TREE, { projectId }));
+	}, [dispatch, navigate, onClose, projectId, readyDocuments]);
 
 	const handleClose = useCallback((): void => {
 		if (isSubmissionPending) {

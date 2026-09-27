@@ -1,4 +1,3 @@
-import { ProjectMemberRole } from "@knowledgeprism/constants";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { Avatar, Button, Header, Icon, Logo } from "~/components/components.js";
@@ -12,6 +11,7 @@ import {
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
+import { hasKnowledgeWriteAccess } from "~/modules/knowledge/libs/helpers/helpers.js";
 
 interface WorkspaceHeaderProperties {
 	avatarUrl?: null | string;
@@ -69,13 +69,10 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 
 	const isWorkspaceListPage = WORKSPACE_LIST_PATHS.includes(pathname);
 
-	const currentProjectRole = currentProject?.role.trim().toUpperCase();
-	const isAllowedRole =
-		currentProjectRole === ProjectMemberRole.ADMIN.toUpperCase() ||
-		currentProjectRole === ProjectMemberRole.EDITOR.toUpperCase();
-
 	const canShowAddKnowledge =
-		Boolean(projectId) && !isWorkspaceListPage && isAllowedRole;
+		Boolean(projectId) &&
+		!isWorkspaceListPage &&
+		hasKnowledgeWriteAccess(currentProject?.role);
 
 	const dropdownReference = useRef<HTMLDivElement>(null);
 	const navigate = useNavigate();

@@ -110,31 +110,6 @@ const getPipelineVisibility = ({
 	};
 };
 
-const useProjectKnowledgePipeline = ({
-	canEdit,
-	projectId,
-}: {
-	canEdit: boolean;
-	projectId: string;
-}): void => {
-	const dispatch = useAppDispatch();
-
-	useEffect(() => {
-		if (!canEdit) {
-			dispatch(actions.resetState(null));
-
-			return;
-		}
-
-		dispatch(actions.resetState(projectId));
-		void dispatch(actions.initializeProjectKnowledgePipeline({ projectId }));
-
-		return () => {
-			dispatch(actions.releasePipeline());
-		};
-	}, [canEdit, dispatch, projectId]);
-};
-
 const useActiveExtractionItems = ({
 	activeDocumentId,
 	activeDocumentStatus,
@@ -362,8 +337,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 
 	const isExtractionValidationPreview =
 		activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION;
-
-	useProjectKnowledgePipeline({ canEdit, projectId });
 
 	const {
 		canResumePreview,
