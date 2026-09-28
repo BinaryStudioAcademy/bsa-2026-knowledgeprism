@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { store } from "~/lib/store/store.js";
 
 import { knowledgeApi } from "../knowledge.js";
+import { useProjectKnowledgePipeline } from "../libs/hooks/use-project-knowledge-pipeline.hook.js";
 import { actions } from "../state/knowledge.slice.js";
 import { KnowledgeTreePage } from "./knowledge-tree-page.js";
 
@@ -47,6 +48,7 @@ const createTree = (id: number, title: string): KnowledgeTreeResponseDto => ({
 
 const ProjectRoute = ({ projectId }: { projectId: string }): JSX.Element => {
 	const navigate = useNavigate();
+	useProjectKnowledgePipeline({ canEdit: false, projectId });
 
 	useEffect(() => {
 		void navigate(`/workspaces/${projectId}/knowledge-tree`);
