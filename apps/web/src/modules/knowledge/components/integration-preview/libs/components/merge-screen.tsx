@@ -25,6 +25,7 @@ const VALID_RESOLUTIONS: readonly ConflictResolution[] = [
 
 type MergeScreenProperties = {
 	conflicts: FieldConflict[];
+	isApplying: boolean;
 	onCancel: () => void;
 	onPublish: (
 		resolvedPages: ProposedSection[],
@@ -99,6 +100,7 @@ const hasDuplicateIncomingFieldConflict = (
 
 const MergeScreen = ({
 	conflicts: initialConflicts,
+	isApplying,
 	onCancel,
 	onPublish,
 	pages,
@@ -113,6 +115,10 @@ const MergeScreen = ({
 
 	const handleResolveConflict = useCallback(
 		(event: MouseEvent<HTMLButtonElement>): void => {
+			if (isApplying) {
+				return;
+			}
+
 			const target = event.currentTarget;
 			const conflictId = target.dataset["conflictId"];
 			const rawResolution = target.dataset["resolution"] as ConflictResolution;
@@ -129,10 +135,14 @@ const MergeScreen = ({
 				);
 			}
 		},
-		[],
+		[isApplying],
 	);
 
 	const handleConsolidatedPublish = useCallback((): void => {
+		if (isApplying) {
+			return;
+		}
+
 		if (hasDuplicateIncomingFieldConflict(conflicts)) {
 			setValidationError(DUPLICATE_INCOMING_FIELD_MESSAGE);
 
@@ -154,7 +164,7 @@ const MergeScreen = ({
 		}));
 
 		onPublish(resolvedPages, conflicts);
-	}, [conflicts, onPublish, pages]);
+	}, [conflicts, isApplying, onPublish, pages]);
 
 	const hasAllResolved = conflicts.every((item) => Boolean(item.resolution));
 
@@ -242,6 +252,7 @@ const MergeScreen = ({
 										)}
 										data-conflict-id={conflict.id}
 										data-resolution="keep"
+										disabled={isApplying}
 										onClick={handleResolveConflict}
 										type="button"
 									>
@@ -282,6 +293,7 @@ const MergeScreen = ({
 										)}
 										data-conflict-id={conflict.id}
 										data-resolution="use-new"
+										disabled={isApplying}
 										onClick={handleResolveConflict}
 										type="button"
 									>
@@ -295,11 +307,11 @@ const MergeScreen = ({
 			</div>
 
 			<div className="mt-auto flex shrink-0 items-center justify-between border-t border-border-subtle pt-2.5 px-1">
-				<Button onClick={onCancel} variant="secondary">
+				<Button disabled={isApplying} onClick={onCancel} variant="secondary">
 					Cancel
 				</Button>
 				<Button
-					disabled={!hasAllResolved}
+					disabled={!hasAllResolved || isApplying}
 					onClick={handleConsolidatedPublish}
 					variant="primary"
 				>

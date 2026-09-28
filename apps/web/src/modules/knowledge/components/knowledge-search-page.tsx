@@ -36,9 +36,13 @@ const KnowledgeSearchPage: React.FC = () => {
 	const { searchResults } = useAppSelector((state) => state.knowledge);
 
 	useEffect(() => {
-		void dispatch(
+		const request = dispatch(
 			actions.searchKnowledge({ projectId, query: debouncedQuery.trim() }),
 		);
+
+		return () => {
+			request.abort();
+		};
 	}, [debouncedQuery, dispatch, projectId]);
 
 	const entries: KnowledgeEntry[] = searchResults.map((item) => ({

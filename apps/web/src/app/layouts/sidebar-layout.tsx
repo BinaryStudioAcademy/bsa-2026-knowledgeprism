@@ -6,8 +6,10 @@ import { MobileNav, RouterOutlet, Sidebar } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
+	useCanWriteKnowledge,
 	useOptionalCurrentProjectId,
 } from "~/hooks/hooks.js";
+import { useProjectKnowledgePipeline } from "~/modules/knowledge/libs/hooks/use-project-knowledge-pipeline.hook.js";
 import {
 	fetchProjects,
 	workspacesActions,
@@ -38,6 +40,13 @@ const SidebarLayout: React.FC = () => {
 	const currentProject = projects.find(
 		(project) => project.id === effectiveProjectId,
 	);
+
+	const canWriteKnowledge = useCanWriteKnowledge();
+
+	useProjectKnowledgePipeline({
+		canEdit: canWriteKnowledge,
+		projectId: effectiveProjectId,
+	});
 
 	const hasProjects = projects.length > EMPTY_LENGTH;
 	const isAdmin = user?.user.organisationRole === OrganisationRole.ADMIN;

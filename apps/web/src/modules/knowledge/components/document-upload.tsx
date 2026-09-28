@@ -25,9 +25,10 @@ const DocumentUpload = ({
 }: Properties): JSX.Element => {
 	const dispatch = useAppDispatch();
 	const projectId = useCurrentProjectId();
-	const { errorMessage, selectedFiles } = useAppSelector(
+	const { selectedFiles, uploadErrorMessage, uploadSession } = useAppSelector(
 		(state) => state.knowledge,
 	);
+	const uploadSessionId = uploadSession?.id;
 	const filesMapReference = useRef<Map<string, File>>(new Map());
 	const uploadTasksReference = useRef<Map<string, { abort: () => void }>>(
 		new Map(),
@@ -48,15 +49,21 @@ const DocumentUpload = ({
 
 	const handleFilesSelect = useCallback(
 		(files: File[]): void => {
+			if (uploadSessionId === undefined) {
+				return;
+			}
+
 			for (const file of files) {
 				const validationResult = validateFile(file);
 
 				if (!validationResult.isValid) {
-					dispatch(actions.setError(validationResult.error ?? "Invalid file"));
+					dispatch(
+						actions.setUploadError(validationResult.error ?? "Invalid file"),
+					);
 					continue;
 				}
 
-				dispatch(actions.clearError());
+				dispatch(actions.clearUploadError());
 				const id = `${file.name}-${String(file.lastModified)}-${String(Date.now())}`;
 				filesMapReference.current.set(id, file);
 
@@ -65,12 +72,12 @@ const DocumentUpload = ({
 				);
 
 				const uploadTask = dispatch(
-					actions.processDocument({ file, id, projectId }),
+					actions.processDocument({ file, id, projectId, uploadSessionId }),
 				);
 				uploadTasksReference.current.set(id, uploadTask);
 			}
 		},
-		[dispatch, projectId],
+		[dispatch, projectId, uploadSessionId],
 	);
 
 	const handleRetry = useCallback(
@@ -78,7 +85,12 @@ const DocumentUpload = ({
 			const targetItem = selectedFiles.find((file) => file.id === id);
 			const targetFile = filesMapReference.current.get(id);
 
-			if (isInteractionDisabled || !targetItem || !targetFile) {
+			if (
+				isInteractionDisabled ||
+				!targetItem ||
+				!targetFile ||
+				uploadSessionId === undefined
+			) {
 				return;
 			}
 
@@ -96,12 +108,19 @@ const DocumentUpload = ({
 					file: targetFile,
 					id: targetItem.id,
 					projectId,
+					uploadSessionId,
 					uploadUrl: targetItem.uploadUrl,
 				}),
 			);
 			uploadTasksReference.current.set(id, uploadTask);
 		},
-		[dispatch, isInteractionDisabled, projectId, selectedFiles],
+		[
+			dispatch,
+			isInteractionDisabled,
+			projectId,
+			selectedFiles,
+			uploadSessionId,
+		],
 	);
 
 	const handleRemove = useCallback(
@@ -121,16 +140,18 @@ const DocumentUpload = ({
 
 	return (
 		<div className={`flex flex-col gap-4 ${className}`}>
-			{errorMessage && (
+			{uploadErrorMessage && (
 				<Alert
-					description={errorMessage}
+					description={uploadErrorMessage}
 					title="Upload error"
 					variant="error"
 				/>
 			)}
 
 			<FileDropzone
-				disabled={isInteractionDisabled}
+				disabled={
+					isInteractionDisabled || selectedFiles.length > EMPTY_FILES_COUNT
+				}
 				onFilesSelected={handleFilesSelect}
 			/>
 

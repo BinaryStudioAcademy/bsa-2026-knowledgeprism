@@ -4,10 +4,16 @@ import {
 	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
+	type ExtractionItemResponseDto,
+	type ExtractionItemsResponseDto,
+	type ExtractionItemsReviewRequestDto,
+	type ExtractionItemsReviewResponseDto,
+	type ExtractionItemUpdateRequestDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
+	type PendingReviewDocumentsResponseDto,
 } from "@knowledgeprism/types";
 
 import { BaseHTTPApi } from "~/api/api.js";
@@ -153,6 +159,31 @@ class DocumentsApi extends BaseHTTPApi {
 		return await response.json<DocumentStatusResponseDto>();
 	}
 
+	public async getExtractionItems({
+		documentId,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<ExtractionItemsResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.EXTRACTION_ITEMS, {
+				documentId: String(documentId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "GET",
+				signal,
+			},
+		);
+
+		return await response.json<ExtractionItemsResponseDto>();
+	}
+
 	public async getIntegrationChanges({
 		documentId,
 		projectId,
@@ -176,6 +207,111 @@ class DocumentsApi extends BaseHTTPApi {
 		);
 
 		return await response.json<IntegrationChangesResponseDto>();
+	}
+
+	public async getPendingReviewDocuments({
+		projectId,
+		signal,
+	}: {
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<PendingReviewDocumentsResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.PENDING_REVIEWS, { projectId }),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "GET",
+				signal,
+			},
+		);
+
+		return await response.json<PendingReviewDocumentsResponseDto>();
+	}
+
+	public async retryProcessing({
+		documentId,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<DocumentStatusResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.DOCUMENT_RETRY, {
+				documentId: String(documentId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify({}),
+				signal,
+			},
+		);
+
+		return await response.json<DocumentStatusResponseDto>();
+	}
+
+	public async submitExtractionReview({
+		documentId,
+		payload,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		payload: ExtractionItemsReviewRequestDto;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<ExtractionItemsReviewResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.EXTRACTION_ITEMS_REVIEW, {
+				documentId: String(documentId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify(payload),
+				signal,
+			},
+		);
+
+		return await response.json<ExtractionItemsReviewResponseDto>();
+	}
+
+	public async updateExtractionItem({
+		documentId,
+		extractionItemId,
+		payload,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		extractionItemId: number;
+		payload: ExtractionItemUpdateRequestDto;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<ExtractionItemResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.EXTRACTION_ITEMS_$ID, {
+				documentId: String(documentId),
+				id: String(extractionItemId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "PATCH",
+				payload: JSON.stringify(payload),
+				signal,
+			},
+		);
+
+		return await response.json<ExtractionItemResponseDto>();
 	}
 
 	public async uploadFileToStorage({
