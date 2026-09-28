@@ -7,25 +7,61 @@ import {
 	Heading,
 	Input,
 	Link,
+	Modal,
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
-import { useAppForm, useCallback } from "~/hooks/hooks.js";
+import {
+	privacyPolicy,
+	TermsOfServices,
+} from "~/components/footer/data/data.js";
+import { useAppForm, useCallback, useState } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/app-route.enum.js";
 
 import { DEFAULT_SIGN_UP_PAYLOAD } from "./libs/constants.js";
 import { type SignUpFormValues } from "./libs/types.js";
 import { signUpFormValidationSchema } from "./libs/validation-schema.js";
 
+type LegalDocument = "privacy" | "terms" | null;
+
 type Properties = {
 	onSubmit: (payload: UserSignUpRequestDto) => void;
 };
 
-const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
+const SECTION_NUMBER_OFFSET = 1;
+
+const DOCUMENT_CONTENT = {
+	privacy: {
+		sections: privacyPolicy,
+		title: "Privacy Policy",
+	},
+	terms: {
+		sections: TermsOfServices,
+		title: "Terms of Service",
+	},
+} as const;
+
+const SignUpForm = ({ onSubmit }: Properties): React.JSX.Element => {
+	const [openDocument, setOpenDocument] = useState<LegalDocument>(null);
 	const { control, handleSubmit } = useAppForm<SignUpFormValues>({
 		defaultValues: DEFAULT_SIGN_UP_PAYLOAD,
 		validationSchema: signUpFormValidationSchema,
 	});
+
+	const isModalOpen = openDocument !== null;
+	const activeDocument = openDocument ?? "privacy";
+	const { sections, title } = DOCUMENT_CONTENT[activeDocument];
+
+	const handleOpenDocument = useCallback(
+		(document: Exclude<LegalDocument, null>) => (): void => {
+			setOpenDocument(document);
+		},
+		[],
+	);
+
+	const handleCloseModal = useCallback((): void => {
+		setOpenDocument(null);
+	}, []);
 
 	const handleValidSubmit = useCallback(
 		(values: SignUpFormValues): void => {
@@ -87,7 +123,7 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 					hintInfo={UserValidationMessage.PASSWORD_HINT}
 					label="Password"
 					name="password"
-					placeholder="At least 8 characters"
+					placeholder="Enter password"
 					type="password"
 				/>
 				<Input
@@ -98,28 +134,40 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 					placeholder="Repeat your password"
 					type="password"
 				/>
-				<Checkbox
-					control={control}
-					label={
-						<span>
-							I agree to the{" "}
-							<a className="underline" href="/terms">
-								Terms
-							</a>{" "}
-							and{" "}
-							<a className="underline" href="/privacy">
-								Privacy Policy
-							</a>
-						</span>
-					}
-					name="agreeToTerms"
-				/>
+
+				<div className="flex items-center gap-2 text-sm text-text">
+					<Checkbox
+						aria-label="I agree to the Terms and Privacy Policy"
+						control={control}
+						name="agreeToTerms"
+					/>
+
+					<span>
+						I agree to the{" "}
+						<button
+							className="cursor-pointer underline hover:text-accent focus-visible:rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+							onClick={handleOpenDocument("terms")}
+							type="button"
+						>
+							Terms
+						</button>{" "}
+						and{" "}
+						<button
+							className="cursor-pointer underline hover:text-accent focus-visible:rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+							onClick={handleOpenDocument("privacy")}
+							type="button"
+						>
+							Privacy Policy
+						</button>
+					</span>
+				</div>
+
 				<Button className="w-full" type="submit">
 					Create organisation
 				</Button>
 			</form>
 			<Paragraph
-				className="pt-2 w-full text-center"
+				className="w-full pt-2 text-center"
 				size={ParagraphSize.BODY_SMALL}
 			>
 				Already have an account?{" "}
@@ -127,6 +175,32 @@ const SignUpForm: React.FC<Properties> = ({ onSubmit }: Properties) => {
 					Log in
 				</Link>
 			</Paragraph>
+			<Modal
+				hasCloseButton
+				isOpen={isModalOpen}
+				onClose={handleCloseModal}
+				size="large"
+				title={title}
+			>
+				<div className="flex max-h-140 flex-col">
+					<div className="flex flex-col gap-4 overflow-y-auto">
+						{sections.map(({ answer, title: sectionTitle }, index) => (
+							<section className="mb-2" key={sectionTitle}>
+								<h3 className="mb-2 font-sans text-base font-medium">
+									{index + SECTION_NUMBER_OFFSET}. {sectionTitle}
+								</h3>
+								<p className="text-sm leading-6 text-text-muted">{answer}</p>
+							</section>
+						))}
+					</div>
+
+					<div className="-mx-7 flex items-end justify-end border-t border-gray-300 bg-surface px-7 pt-4">
+						<Button onClick={handleCloseModal} variant="primary">
+							Close
+						</Button>
+					</div>
+				</div>
+			</Modal>
 		</>
 	);
 };

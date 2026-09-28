@@ -11,6 +11,10 @@ import {
 	name as sliceName,
 } from "./ask-prism.slice.js";
 
+const isUnauthorizedError = (error: unknown): error is HTTPError => {
+	return error instanceof HTTPError && error.status === HTTPCode.UNAUTHORIZED;
+};
+
 const askQuestion = createAsyncThunk<
 	AskPrismResponseDto,
 	{ projectId: number | string; query: string },
@@ -23,6 +27,10 @@ const askQuestion = createAsyncThunk<
 		try {
 			return await askPrismApi.ask(projectId, { query });
 		} catch (error: unknown) {
+			if (isUnauthorizedError(error)) {
+				throw error;
+			}
+
 			const isNotFoundError =
 				error instanceof HTTPError && error.status === HTTPCode.NOT_FOUND;
 
@@ -44,7 +52,11 @@ const loadSuggestedQuestions = createAsyncThunk<
 
 	try {
 		return await askPrismApi.getSuggestedQuestions(projectId);
-	} catch {
+	} catch (error: unknown) {
+		if (isUnauthorizedError(error)) {
+			throw error;
+		}
+
 		return DEFAULT_SUGGESTED_QUESTIONS;
 	}
 });

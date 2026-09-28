@@ -84,35 +84,31 @@ class WorkspacesApi {
 	}
 
 	public async getProjects(): Promise<ProjectItem[]> {
-		try {
-			const response = await fetch(`${this.#baseUrl}/projects`, {
-				headers: {
-					"Content-Type": "application/json",
-				},
-			});
+		const response = await fetch(`${this.#baseUrl}/projects`, {
+			headers: {
+				"Content-Type": "application/json",
+			},
+		});
 
-			if (!response.ok) {
-				throw new Error(`Failed to fetch projects: ${response.statusText}`);
-			}
-
-			const data = (await response.json()) as ProjectsResponse;
-
-			if (Array.isArray(data)) {
-				return data.map((item) => mapProjectListItemToItem(item));
-			}
-
-			if ("items" in data && Array.isArray(data.items)) {
-				return data.items.map((item) => mapProjectListItemToItem(item));
-			}
-
-			if ("projects" in data && Array.isArray(data.projects)) {
-				return data.projects.map((item) => mapProjectListItemToItem(item));
-			}
-
-			return [];
-		} catch {
-			return [];
+		if (!response.ok) {
+			throw await this.parseError(response);
 		}
+
+		const data = (await response.json()) as ProjectsResponse;
+
+		if (Array.isArray(data)) {
+			return data.map((item) => mapProjectListItemToItem(item));
+		}
+
+		if ("items" in data && Array.isArray(data.items)) {
+			return data.items.map((item) => mapProjectListItemToItem(item));
+		}
+
+		if ("projects" in data && Array.isArray(data.projects)) {
+			return data.projects.map((item) => mapProjectListItemToItem(item));
+		}
+
+		return [];
 	}
 
 	public async getRecentDocuments(): Promise<RecentDocumentItem[]> {
