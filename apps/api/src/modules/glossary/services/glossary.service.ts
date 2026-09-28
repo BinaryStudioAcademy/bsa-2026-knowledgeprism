@@ -5,7 +5,11 @@ import {
 	type GlossaryTermResponseDto,
 	type GlossaryTermsResponseDto,
 } from "@knowledgeprism/types";
-import { checkGlossaryConsistency } from "@knowledgeprism/worker";
+import {
+	checkGlossaryConsistency,
+	type EmbeddingVector,
+	embedGlossaryTerm,
+} from "@knowledgeprism/worker";
 import {
 	ForeignKeyViolationError,
 	type Transaction,
@@ -146,6 +150,26 @@ class GlossaryService {
 		};
 	}
 
+	// Legacy rows created before the embedding column existed have no cached vector yet —
+	// compute and persist it once here so every later check reuses it instead of
+	// re-embedding the same term on every request.
+	private async resolveEmbedding(
+		term: GlossaryTermEntity,
+	): Promise<EmbeddingVector> {
+		const cached = term.getEmbedding();
+
+		if (cached !== null) {
+			return cached;
+		}
+
+		const { definition, id, name } = term.toObject();
+		const embedding = await embedGlossaryTerm({ definition, name });
+
+		await this.glossaryTermRepository.updateEmbedding({ embedding, id });
+
+		return embedding;
+	}
+
 	private async saveWithUniqueName(
 		save: () => Promise<GlossaryTermResponseDto>,
 	): Promise<GlossaryTermResponseDto> {
@@ -205,11 +229,18 @@ class GlossaryService {
 
 		const matches = await checkGlossaryConsistency({
 			content,
-			terms: terms.map((term) => {
-				const { definition, id, name } = term.toObject();
+			terms: await Promise.all(
+				terms.map(async (term) => {
+					const { definition, id, name } = term.toObject();
 
-				return { definition, id, name };
-			}),
+					return {
+						definition,
+						embedding: await this.resolveEmbedding(term),
+						id,
+						name,
+					};
+				}),
+			),
 		});
 
 		return { matches };
@@ -230,6 +261,8 @@ class GlossaryService {
 
 		await this.assertNameAvailable({ excludedId: null, name, projectId });
 
+		const embedding = await embedGlossaryTerm({ definition, name });
+
 		const term = await this.saveWithUniqueName(() =>
 			this.database.transaction(async (transaction) => {
 				await this.assertRelatedTermsExist(
@@ -241,6 +274,7 @@ class GlossaryService {
 					{
 						entity: GlossaryTermEntity.initializeNew({
 							definition,
+							embedding,
 							name,
 							projectId,
 						}),
@@ -351,6 +385,8 @@ class GlossaryService {
 
 		await this.assertNameAvailable({ excludedId: id, name, projectId });
 
+		const embedding = await embedGlossaryTerm({ definition, name });
+
 		const term = await this.saveWithUniqueName(() =>
 			this.database.transaction(async (transaction) => {
 				await this.assertRelatedTermsExist(
@@ -359,7 +395,7 @@ class GlossaryService {
 				);
 
 				const updatedTerm = await this.glossaryTermRepository.update(
-					{ definition, id, name, updatedBy: context.userId },
+					{ definition, embedding, id, name, updatedBy: context.userId },
 					transaction,
 				);
 

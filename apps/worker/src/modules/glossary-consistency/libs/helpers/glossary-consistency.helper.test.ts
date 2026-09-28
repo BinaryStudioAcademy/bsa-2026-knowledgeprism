@@ -7,11 +7,13 @@ import { mapConsistencyOutput } from "./map-consistency-output.helper.js";
 
 const API_TERM: GlossaryConsistencyTerm = {
 	definition: "Application programming interface.",
+	embedding: [],
 	id: 1,
 	name: "API",
 };
 const SLA_TERM: GlossaryConsistencyTerm = {
 	definition: "Service level agreement.",
+	embedding: [],
 	id: 2,
 	name: "SLA",
 };

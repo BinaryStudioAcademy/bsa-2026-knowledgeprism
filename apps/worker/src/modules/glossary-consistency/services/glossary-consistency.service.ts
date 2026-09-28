@@ -12,30 +12,12 @@ import {
 
 const EMPTY_COUNT = 0;
 
-const toTermText = (term: GlossaryConsistencyTerm): string => {
-	return `${term.name}: ${term.definition}`;
-};
-
-const embedTermCandidates = async (
+// Each term's vector is computed once, on create/update, and cached by the caller —
+// building candidates here is a pure in-memory reshape, no embedding call per check.
+const toTermCandidates = (
 	terms: GlossaryConsistencyTerm[],
-): Promise<EmbeddingCandidate<GlossaryConsistencyTerm>[]> => {
-	const termVectors = await embed(
-		terms.map((term) => toTermText(term)),
-		EmbeddingInputType.SEARCH_DOCUMENT,
-	);
-
-	return terms.map((term, index) => {
-		const vector = termVectors[index];
-
-		if (vector === undefined) {
-			throw new Error(
-				`Embedding service returned no vector for term ${term.id.toString()}`,
-			);
-		}
-
-		return { item: term, vector };
-	});
-};
+): EmbeddingCandidate<GlossaryConsistencyTerm>[] =>
+	terms.map((term) => ({ item: term, vector: term.embedding }));
 
 // One embedding of the whole content dilutes the signal: a single unrelated sentence
 // elsewhere in the text pulls the score down below any real term match. Embedding
@@ -84,7 +66,7 @@ const checkGlossaryConsistency = async ({
 		return [];
 	}
 
-	const candidates = await embedTermCandidates(terms);
+	const candidates = toTermCandidates(terms);
 	const relevantTerms = await findRelevantTerms(content, candidates);
 
 	if (relevantTerms.length === EMPTY_COUNT) {

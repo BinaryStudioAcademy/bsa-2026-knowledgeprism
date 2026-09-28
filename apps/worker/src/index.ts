@@ -13,6 +13,7 @@ export {
 	embed,
 	search,
 } from "./modules/embeddings/services/embedding.service.js";
+export { embedGlossaryTerm } from "./modules/glossary-consistency/libs/helpers/embed-glossary-term.helper.js";
 export {
 	type GlossaryConsistencyMatch,
 	type GlossaryConsistencyTerm,
