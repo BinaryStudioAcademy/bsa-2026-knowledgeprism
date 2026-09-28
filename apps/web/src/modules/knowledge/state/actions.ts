@@ -28,13 +28,13 @@ import { type AsyncThunkConfig, type ValueOf } from "~/lib/types/types.js";
 import {
 	DocumentValidationMessage,
 	KnowledgeNotificationMessage,
-	PDF_MIME_TYPE,
 	POLL_DOCUMENT_STATUS_INTERVAL_MS,
 } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import {
 	addTrackedDocumentId,
 	formatFileSize,
+	getFileContentType,
 	isMatchingPipelineSession,
 	readTrackedDocumentIds,
 	removeTrackedDocumentId,
@@ -241,7 +241,7 @@ const processDocument = createAsyncThunk<
 			if (!resolvedDocumentId || !resolvedUploadUrl) {
 				const intent = await documentsApi.createUploadIntent({
 					payload: {
-						contentType: file.type || PDF_MIME_TYPE,
+						contentType: getFileContentType(file),
 						fileName: file.name,
 						sizeInBytes: file.size,
 					},

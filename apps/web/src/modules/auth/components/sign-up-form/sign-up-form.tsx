@@ -123,7 +123,7 @@ const SignUpForm = ({ onSubmit }: Properties): React.JSX.Element => {
 					hintInfo={UserValidationMessage.PASSWORD_HINT}
 					label="Password"
 					name="password"
-					placeholder="At least 8 characters"
+					placeholder="Enter password"
 					type="password"
 				/>
 				<Input

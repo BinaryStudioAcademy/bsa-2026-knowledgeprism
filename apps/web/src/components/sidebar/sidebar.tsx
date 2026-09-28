@@ -28,6 +28,7 @@ type NavItem = {
 };
 
 type SidebarProperties = {
+	isAdmin?: boolean;
 	onAddKnowledge?: () => void;
 	projectName: string;
 	role: string;
@@ -60,7 +61,7 @@ const buildPrimaryNavItems = (projectId: string | undefined): NavItem[] => [
 	},
 ];
 
-const buildUtilityNavItems = (role: string): NavItem[] => {
+const buildUtilityNavItems = (role: string, isAdmin?: boolean): NavItem[] => {
 	const items: NavItem[] = [
 		{
 			icon: <Icon name="settings" />,
@@ -70,7 +71,7 @@ const buildUtilityNavItems = (role: string): NavItem[] => {
 		},
 	];
 
-	if (role === ProjectMemberRole.ADMIN) {
+	if (role === ProjectMemberRole.ADMIN || Boolean(isAdmin)) {
 		items.push({
 			icon: <Icon name="users" />,
 			id: "users",
@@ -113,6 +114,7 @@ const NavRow = ({ icon, label, to }: NavItem) => {
 		{
 			"is-active": isActive,
 		},
+		!to && "cursor-not-allowed opacity-40 hover:bg-transparent",
 	);
 
 	if (to) {
@@ -130,7 +132,7 @@ const NavRow = ({ icon, label, to }: NavItem) => {
 	}
 
 	return (
-		<button aria-label={label} className={className} type="button">
+		<button aria-label={label} className={className} disabled type="button">
 			{icon}
 			<span className="hidden desktop:inline">{label}</span>
 		</button>
@@ -138,6 +140,7 @@ const NavRow = ({ icon, label, to }: NavItem) => {
 };
 
 const Sidebar: React.FC<SidebarProperties> = ({
+	isAdmin,
 	onAddKnowledge,
 	projectName,
 	role,
@@ -147,7 +150,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 
 	const primaryNavItems = buildPrimaryNavItems(projectId);
-	const utilityNavItems = buildUtilityNavItems(role);
+	const utilityNavItems = buildUtilityNavItems(role, isAdmin);
 	const canAddKnowledge = useCanWriteKnowledge();
 
 	const handleAddClick = useCallback((): void => {
@@ -162,7 +165,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 
 	return (
 		<aside className="hidden h-full tablet:flex tablet:w-14 desktop:w-58 flex-shrink-0 flex-col gap-5 border-r border-border bg-surface py-5 desktop:px-3.5">
-			{projectId && (
+			{projectId ? (
 				<div className="hidden desktop:flex items-center gap-2.5 p-2 text-accent">
 					<Icon name="project" size={PROJECT_ICON_SIZE} />
 					<div>
@@ -171,6 +174,22 @@ const Sidebar: React.FC<SidebarProperties> = ({
 							{role} ROLE
 						</div>
 					</div>
+				</div>
+			) : (
+				<div className="flex w-full flex-col items-center desktop:items-stretch">
+					<Link
+						aria-label="Back to the projects"
+						className={getValidClassNames(
+							"nav-item desktop:justify-start",
+							RESPONSIVE_NAV_ITEM_CLASS,
+						)}
+						to={AppRoute.ROOT}
+					>
+						<span className="inline-flex rotate-180">
+							<Icon name="arrow-right-long" size={PROJECT_ICON_SIZE} />
+						</span>
+						<span className="hidden desktop:inline">Back to the projects</span>
+					</Link>
 				</div>
 			)}
 

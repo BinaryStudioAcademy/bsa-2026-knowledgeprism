@@ -1,8 +1,8 @@
 const FeatureId = {
-	EXTRACT: "extract",
+	ASK_PRISM: "ask-prism",
 	GLOSSARY: "glossary",
-	SEARCH: "search",
-	SECURITY: "security",
+	INTEGRATION: "integration",
+	KNOWLEDGE_BASE: "knowledge-base",
 } as const;
 
 export { FeatureId };

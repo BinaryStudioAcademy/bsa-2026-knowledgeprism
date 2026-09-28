@@ -1,11 +1,11 @@
 const HOW_IT_WORKS_SECTION_COPY = {
 	eyebrow: "How it works",
-	heading: "From raw files to answered questions.",
+	heading: "Simple steps to structured knowledge",
 } as const;
 
 const HOW_IT_WORKS_STEPS = [
 	{
-		body: "Drop in PDFs, specs and plain text — no formatting required.",
+		body: "Upload PDF and TXT documents, or write content manually. No formatting required.",
 		number: "01",
 		title: "Ingest",
 		variant: "default",
@@ -17,15 +17,15 @@ const HOW_IT_WORKS_STEPS = [
 		variant: "default",
 	},
 	{
-		body: "Everything lands in a queryable graph — Knowledge Trees, shared Glossary.",
+		body: "Everything lands in a queryable graph — Knowledge Trees, shared Glossary. Preview and make any necessary edits before committing.",
 		number: "03",
 		title: "Structure",
 		variant: "default",
 	},
 	{
-		body: "Ask Prism questions in plain language. Every answer cites its source.",
+		body: "Discover information and ask Prism questions in plain language. Every answer cites its sources.",
 		number: "04",
-		title: "Ask",
+		title: "Enjoy",
 		variant: "highlight",
 	},
 ] as const;

@@ -10,6 +10,9 @@ const email = z
 	.min(UserValidationRule.EMAIL_MINIMUM_LENGTH, {
 		error: UserValidationMessage.EMAIL_REQUIRE,
 	})
+	.max(UserValidationRule.EMAIL_MAXIMUM_LENGTH, {
+		error: UserValidationMessage.EMAIL_WRONG,
+	})
 	.pipe(
 		z.email({
 			error: UserValidationMessage.EMAIL_WRONG,
