@@ -13,6 +13,13 @@ type GlossaryCheck = {
 
 const INITIAL_GLOSSARY_CHECK: GlossaryCheck = { content: "", matches: [] };
 
+// Integration Preview remounts a fresh component instance between the extraction-review
+// screen and the post-integration preview screen (different `key`s, same content) — without
+// this cache, the same content gets re-sent to check-consistency on every remount even though
+// nothing changed. Keyed by content, cleared per browser session; never exported/mutated
+// outside this module.
+const glossaryCheckCache = new Map<string, GlossaryConsistencyMatchDto[]>();
+
 // Scans the proposed content against the project's glossary (Add Knowledge's Integration
 // Preview surface, kp-419) and returns suggestions the reviewer can accept, keep, or ignore.
 const useGlossaryConsistencyCheck = ({
@@ -51,6 +58,13 @@ const useGlossaryConsistencyCheck = ({
 				return;
 			}
 
+			const cachedMatches = glossaryCheckCache.get(debouncedContent);
+
+			if (cachedMatches) {
+				setGlossaryCheck({ content: debouncedContent, matches: cachedMatches });
+				return;
+			}
+
 			setIsCheckingGlossary(true);
 
 			try {
@@ -62,6 +76,7 @@ const useGlossaryConsistencyCheck = ({
 				).unwrap();
 
 				if (!isCancelled) {
+					glossaryCheckCache.set(debouncedContent, response.matches);
 					setGlossaryCheck({
 						content: debouncedContent,
 						matches: response.matches,
