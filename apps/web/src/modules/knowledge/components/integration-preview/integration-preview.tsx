@@ -31,9 +31,11 @@ import {
 	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
 
+import { GlossarySuggestions } from "./libs/components/glossary-suggestions.js";
 import { MergeScreen } from "./libs/components/merge-screen.js";
 import { ProposedStructureSuccessModal } from "./libs/components/proposed-structure-success-modal.js";
 import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
+import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consistency-check.hook.js";
 
 const EMPTY_LENGTH = 0;
 const LIVE_KB_CONTENT_FALLBACK = "No live knowledge base content.";
@@ -456,6 +458,16 @@ const SectionDetails = ({
 	const isParentSelected = activeNodeType === "parent";
 	const selectedNode = isParentSelected ? activePage : activeSection;
 
+	const {
+		glossaryMatches,
+		isCheckingGlossary,
+		onAcceptGlossarySuggestion: handleAcceptGlossarySuggestion,
+		onKeepGlossarySuggestion: handleKeepGlossarySuggestion,
+	} = useGlossaryConsistencyCheck({
+		content: isParentSelected ? "" : (activeSection?.content ?? ""),
+		onContentChange,
+	});
+
 	if (!selectedNode) {
 		return (
 			<div className="flex flex-1 min-w-0 flex-col gap-3 p-3.5 tablet:p-6 tablet:overflow-y-auto">
@@ -476,6 +488,10 @@ const SectionDetails = ({
 			: `${activePage.title} > ${currentTitle}`;
 	const selectedTitleLabel = getNodeTitleLabel(selectedNode.type, "Node");
 	const editorKey = `${selectedNode.id}-${isEditMode ? "edit" : "view"}`;
+	// The read-only editor only ever needs to remount when the underlying content changes
+	// from outside it (e.g. a glossary suggestion is accepted) — unlike editorKey above, it
+	// must not depend on isEditMode/typing, or every keystroke in edit mode would remount it.
+	const readOnlyEditorKey = `${editorKey}-${activeSection?.content ?? ""}`;
 	const handleTitleChange = isParentSelected
 		? onPageTitleChange
 		: onTitleChange;
@@ -576,10 +592,17 @@ const SectionDetails = ({
 							<SectionContentEditor
 								content={activeSection.content}
 								isEditable={false}
-								key={editorKey}
+								key={readOnlyEditorKey}
 							/>
 						</div>
 					)}
+
+					<GlossarySuggestions
+						isChecking={isCheckingGlossary}
+						matches={glossaryMatches}
+						onAccept={handleAcceptGlossarySuggestion}
+						onKeep={handleKeepGlossarySuggestion}
+					/>
 				</div>
 			)}
 

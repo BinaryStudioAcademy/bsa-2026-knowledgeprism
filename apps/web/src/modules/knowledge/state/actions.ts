@@ -1,7 +1,8 @@
-import { DocumentStatus } from "@knowledgeprism/constants";
+import { DocumentStatus, HTTPCode } from "@knowledgeprism/constants";
 import {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentStatusResponseDto,
+	type GlossaryConsistencyCheckResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
 	type KnowledgeEntryResponseDto,
@@ -12,6 +13,7 @@ import {
 } from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
+import { HTTPError } from "~/lib/http/http.js";
 import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
@@ -27,6 +29,11 @@ import { name as sliceName } from "./knowledge.slice.js";
 type ApplyIntegrationChangesPayload = {
 	documentId: number;
 	payload: IntegrationChangesApplyRequestDto;
+	projectId: string;
+};
+
+type CheckGlossaryConsistencyPayload = {
+	content: string;
 	projectId: string;
 };
 
@@ -238,8 +245,39 @@ const submitManualText = createAsyncThunk<
 	},
 );
 
+const isUnauthorizedError = (error: unknown): error is HTTPError => {
+	return error instanceof HTTPError && error.status === HTTPCode.UNAUTHORIZED;
+};
+
+const checkGlossaryConsistency = createAsyncThunk<
+	GlossaryConsistencyCheckResponseDto,
+	CheckGlossaryConsistencyPayload,
+	AsyncThunkConfig
+>(
+	`${sliceName}/check-glossary-consistency`,
+	async ({ content, projectId }, { extra, signal }) => {
+		try {
+			return await extra.glossaryApi.checkConsistency({
+				content,
+				projectId,
+				signal,
+			});
+		} catch (error: unknown) {
+			// A failed consistency check should not block reviewing the proposed content;
+			// fail open to "no suggestions" (the same pattern as kp-314's Ask Prism fix),
+			// except when the session is gone — let the global error middleware log out.
+			if (isUnauthorizedError(error)) {
+				throw error;
+			}
+
+			return { matches: [] };
+		}
+	},
+);
+
 export {
 	applyIntegrationChanges,
+	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,

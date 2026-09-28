@@ -1,9 +1,11 @@
 import { GlossaryValidationMessage, HTTPCode } from "@knowledgeprism/constants";
 import {
+	type GlossaryConsistencyCheckResponseDto,
 	type GlossaryTermRequestDto,
 	type GlossaryTermResponseDto,
 	type GlossaryTermsResponseDto,
 } from "@knowledgeprism/types";
+import { checkGlossaryConsistency } from "@knowledgeprism/worker";
 import {
 	ForeignKeyViolationError,
 	type Transaction,
@@ -183,6 +185,34 @@ class GlossaryService {
 			message: GlossaryValidationMessage.RELATED_TERMS_INVALID,
 			status: HTTPCode.UNPROCESSED_ENTITY,
 		});
+	}
+
+	public async checkConsistency({
+		content,
+		context,
+		projectId,
+	}: {
+		content: string;
+		context: ProjectAccessContext;
+		projectId: number;
+	}): Promise<GlossaryConsistencyCheckResponseDto> {
+		await this.projectService.assertProjectAccess(projectId, context);
+
+		const terms = await this.glossaryTermRepository.findAllByProjectId({
+			projectId,
+			query: EMPTY_QUERY,
+		});
+
+		const matches = await checkGlossaryConsistency({
+			content,
+			terms: terms.map((term) => {
+				const { definition, id, name } = term.toObject();
+
+				return { definition, id, name };
+			}),
+		});
+
+		return { matches };
 	}
 
 	public async create({

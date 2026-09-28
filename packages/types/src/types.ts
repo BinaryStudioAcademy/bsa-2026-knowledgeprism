@@ -39,6 +39,9 @@ export {
 	type ManualTextRouteParametersDto,
 } from "./modules/documents/documents.js";
 export {
+	type GlossaryConsistencyCheckRequestDto,
+	type GlossaryConsistencyCheckResponseDto,
+	type GlossaryConsistencyMatchDto,
 	type GlossaryRelatedTermDto,
 	type GlossaryRouteParametersDto,
 	type GlossarySearchQueryDto,
