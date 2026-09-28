@@ -1,7 +1,8 @@
 import tailwindcss from "@tailwindcss/vite";
 import reactPlugin from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
-import { type ConfigEnv, defineConfig, loadEnv } from "vite";
+import { type ConfigEnv, loadEnv } from "vite";
+import { defineConfig } from "vitest/config";
 
 const config = ({ mode }: ConfigEnv): ReturnType<typeof defineConfig> => {
 	const {
@@ -36,6 +37,11 @@ const config = ({ mode }: ConfigEnv): ReturnType<typeof defineConfig> => {
 					target: VITE_APP_PROXY_SERVER_URL,
 				},
 			},
+		},
+		test: {
+			environment: "jsdom",
+			restoreMocks: true,
+			setupFiles: ["./src/test/setup.ts"],
 		},
 	});
 };
