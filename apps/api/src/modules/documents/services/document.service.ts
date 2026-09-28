@@ -174,6 +174,22 @@ class DocumentService {
 		return document;
 	}
 
+	private async findOwnedManualDocument(reference: {
+		id: number;
+		projectId: number;
+	}): Promise<DocumentEntity> {
+		const document = await this.findOwnedDocument(reference);
+
+		if (document.toObject().sourceType !== DocumentSourceType.MANUAL) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
+		return document;
+	}
+
 	private async hasApprovedItems(documentId: number): Promise<boolean> {
 		const items =
 			await this.extractionItemRepository.findByDocumentId(documentId);
@@ -275,7 +291,7 @@ class DocumentService {
 			numericProjectId,
 			context,
 		);
-		await this.findOwnedDocument({
+		await this.findOwnedManualDocument({
 			id,
 			projectId: numericProjectId,
 		});
@@ -588,7 +604,7 @@ class DocumentService {
 
 		await this.projectService.assertProjectAccess(numericProjectId, context);
 
-		const document = await this.findOwnedDocument({
+		const document = await this.findOwnedManualDocument({
 			id,
 			projectId: numericProjectId,
 		});
@@ -612,17 +628,10 @@ class DocumentService {
 			context,
 		);
 
-		const document = await this.findOwnedDocument({
+		const document = await this.findOwnedManualDocument({
 			id,
 			projectId: numericProjectId,
 		});
-
-		if (document.toObject().sourceType !== DocumentSourceType.MANUAL) {
-			throw new HTTPError({
-				message: DocumentErrorMessage.NOT_FOUND,
-				status: HTTPCode.NOT_FOUND,
-			});
-		}
 
 		const retriedDocument = await this.restartFailedProcessing(document);
 
