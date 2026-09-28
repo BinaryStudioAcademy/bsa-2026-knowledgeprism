@@ -17,8 +17,7 @@ const HEADER_NAV_ID = "header-nav";
 const HEADER_SECTION_LINKS = [
 	{ href: "#what", label: "Product" },
 	{ href: "#how", label: "How it works" },
-	// Restored in weeks 5–6 with FeaturesSection:
-	// { href: "#features", label: "Features" },
+	{ href: "#features", label: "Features" },
 ] as const;
 
 const SCROLL_TO_TOP_POSITION = 0;

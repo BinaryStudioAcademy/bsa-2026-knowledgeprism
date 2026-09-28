@@ -8,11 +8,9 @@ import { FeaturesSection } from "./features-section/features-section.js";
 import { HeroSection } from "./hero-section/hero-section.js";
 import { HowItWorksSection } from "./how-it-works-section/how-it-works-section.js";
 import { LandingHeader } from "./landing-header/landing-header.js";
+import { SecuritySection } from "./security-section/security-section.js";
 import { SocialProofSection } from "./social-proof-section/social-proof-section.js";
 import { WhatItIsSection } from "./what-it-is-section/what-it-is-section.js";
-
-// Restored in weeks 5–6, once those features are actually implemented.
-FeaturesSection.displayName = "FeaturesSection";
 
 const LandingPage: React.FC = () => {
 	useEffect(() => {
@@ -30,8 +28,9 @@ const LandingPage: React.FC = () => {
 			<SocialProofSection />
 			<WhatItIsSection />
 			<HowItWorksSection />
-			{/* FeaturesSection is restored in weeks 5–6, once those features are actually implemented. <FeaturesSection /> */}
+			<FeaturesSection />
 			<AudienceSection />
+			<SecuritySection />
 			<CtaSection />
 			<Footer />
 		</>

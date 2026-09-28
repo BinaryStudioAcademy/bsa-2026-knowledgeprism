@@ -13,7 +13,6 @@ import {
 	useCallback,
 	useEffect,
 	useNavigate,
-	useState,
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 import { actions as projectsActions } from "~/modules/projects/projects.js";
@@ -34,7 +33,6 @@ type AccountSettingsFormValues = {
 const AccountSettingsPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
-	const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
 	const { availableProjects, currentUserId, selectedUser, selectedUserStatus } =
 		useAppSelector(({ auth, projects, users }) => ({
@@ -83,8 +81,6 @@ const AccountSettingsPage: React.FC = () => {
 				return;
 			}
 
-			setErrorMessage(undefined);
-
 			void dispatch(
 				userActions.updateUser({
 					id: currentUserId,
@@ -96,12 +92,7 @@ const AccountSettingsPage: React.FC = () => {
 				}),
 			)
 				.unwrap()
-				.catch((error: unknown) => {
-					const message =
-						(error as { message?: string }).message ??
-						"An unexpected error occurred";
-					setErrorMessage(message);
-				});
+				.catch(() => {});
 		},
 		[dispatch, currentUserId],
 	);
@@ -136,7 +127,6 @@ const AccountSettingsPage: React.FC = () => {
 					<UserForm
 						availableProjects={availableProjects}
 						control={control}
-						errorMessage={errorMessage}
 						isEditMode={true}
 						isReadOnly={true}
 						onCancel={handleCancel}

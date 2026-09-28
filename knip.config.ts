@@ -19,7 +19,9 @@ const config: KnipConfig = {
 			// To check unused components comment out this line.
 			entry: ["src/components/components.ts"],
 		},
-		"apps/worker": { entry: ["src/**/*.test.ts"] },
+		"apps/worker": {
+			entry: ["src/**/*.test.ts"],
+		},
 		"packages/config": {
 			includeEntryExports: true,
 		},

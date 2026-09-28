@@ -129,6 +129,23 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		return DocumentEntity.initialize(document);
 	}
 
+	public async findByProjectIdAndStatuses({
+		projectId,
+		statuses,
+	}: {
+		projectId: number;
+		statuses: ValueOf<typeof DocumentStatus>[];
+	}): Promise<DocumentEntity[]> {
+		const documents = await this.documentModel
+			.query()
+			.where({ projectId })
+			.whereIn("status", statuses)
+			.orderBy("updatedAt", "asc")
+			.execute();
+
+		return documents.map((document) => DocumentEntity.initialize(document));
+	}
+
 	public async findProcessingByHash({
 		contentHash,
 		projectId,

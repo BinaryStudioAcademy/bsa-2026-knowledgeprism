@@ -23,6 +23,8 @@ const initialState: State = {
 	users: [],
 };
 
+const NOT_FOUND_INDEX = -1;
+
 const { actions, name, reducer } = createSlice({
 	extraReducers(builder) {
 		builder.addCase(loadAll.pending, (state) => {
@@ -57,8 +59,26 @@ const { actions, name, reducer } = createSlice({
 		builder.addCase(updateUser.pending, (state) => {
 			state.dataStatus = DataStatus.PENDING;
 		});
-		builder.addCase(updateUser.fulfilled, (state) => {
+		builder.addCase(updateUser.fulfilled, (state, action) => {
 			state.dataStatus = DataStatus.FULFILLED;
+
+			if (state.selectedUser?.id === action.payload.id) {
+				state.selectedUser = action.payload;
+			}
+
+			const userIndex = state.users.findIndex(
+				(user) => user.id === action.payload.id,
+			);
+
+			if (userIndex === NOT_FOUND_INDEX) {
+				return;
+			}
+
+			const currentUser = state.users[userIndex];
+			if (currentUser) {
+				currentUser.firstName = action.payload.firstName;
+				currentUser.lastName = action.payload.lastName;
+			}
 		});
 		builder.addCase(updateUser.rejected, (state) => {
 			state.dataStatus = DataStatus.REJECTED;

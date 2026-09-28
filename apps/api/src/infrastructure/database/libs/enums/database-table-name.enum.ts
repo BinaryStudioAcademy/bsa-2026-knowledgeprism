@@ -8,6 +8,7 @@ const DatabaseTableName = {
 	MIGRATIONS: "migrations",
 	ORGANISATIONS: "organisations",
 	PROJECT_MEMBERS: "project_members",
+	PROJECT_STORAGE_CLEANUPS: "project_storage_cleanups",
 	PROJECTS: "projects",
 	SESSIONS: "sessions",
 	USERS: "users",

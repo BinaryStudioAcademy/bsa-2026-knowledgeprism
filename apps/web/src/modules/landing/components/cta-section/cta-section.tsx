@@ -1,11 +1,20 @@
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { useLandingReveal } from "~/modules/landing/libs/use-landing-reveal.hook.js";
 
 import { FloatingMark } from "../floating-mark/floating-mark.js";
 import { CTA_SECTION_COPY } from "./libs/constants.js";
 
 const CtaSection: React.FC = () => {
+	const [sectionReference, revealClassName] = useLandingReveal();
+
 	return (
-		<section className="relative overflow-hidden bg-primary">
+		<section
+			className={getValidClassNames(
+				"relative overflow-hidden bg-primary",
+				revealClassName,
+			)}
+			ref={sectionReference}
+		>
 			<FloatingMark
 				className={getValidClassNames(
 					"pointer-events-none absolute size-[30px] text-primary-fg/[0.15]",
@@ -16,7 +25,7 @@ const CtaSection: React.FC = () => {
 				<h2 className="mb-4 font-serif text-[clamp(28px,4vw,42px)] font-normal leading-[1.15] text-primary-fg">
 					{CTA_SECTION_COPY.heading}
 				</h2>
-				<p className="mx-auto max-w-[520px] text-[15.5px] leading-[1.65] text-primary-fg/65">
+				<p className="text-[15.5px] leading-[1.65] text-primary-fg/65">
 					{CTA_SECTION_COPY.body}
 				</p>
 			</div>

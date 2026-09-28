@@ -1,12 +1,19 @@
-const PDF_MIME_TYPE = "application/pdf";
-const SUPPORTED_FILE_EXTENSIONS = [".pdf"] as const;
-const SUPPORTED_FILE_MIME_TYPES = [PDF_MIME_TYPE] as const;
+import { DocumentContentType } from "@knowledgeprism/constants";
+
+const SUPPORTED_FILE_TYPES = [
+	{ contentType: DocumentContentType.PDF, extension: ".pdf" },
+	{ contentType: DocumentContentType.TXT, extension: ".txt" },
+] as const;
+const SUPPORTED_FILE_EXTENSIONS = SUPPORTED_FILE_TYPES.map(({ extension }) => {
+	return extension;
+});
 
 const DocumentValidationMessage = {
 	EMPTY_FILE: "The selected file is empty.",
 	FILE_TOO_LARGE: "File is too large. Maximum file size is 25 MB.",
 	PROCESSING_FAILED: "Processing failed",
-	UNSUPPORTED_FORMAT: "Unsupported file format. Please upload a PDF file.",
+	UNSUPPORTED_FORMAT:
+		"Unsupported file format. Please upload a PDF or TXT file.",
 } as const;
 
 const EMPTY_LENGTH = 0;
@@ -18,6 +25,7 @@ const LAST_INDEX_OFFSET = 1;
 const FALLBACK_DEFER_EXECUTION_MS = 0;
 const FOCUS_DELAY_MS = 10;
 const GLOSSARY_CHECK_DEBOUNCE_MS = 800;
+const POLL_DOCUMENT_STATUS_INTERVAL_MS = 3000;
 
 const KNOWLEDGE_TREE_ITEM_CONFIG = {
 	BASE_PADDING: 10,
@@ -28,6 +36,11 @@ const KNOWLEDGE_TREE_ITEM_CONFIG = {
 	TAB_INDEX_UNFOCUSABLE: -1,
 } as const;
 
+const KnowledgeNotificationMessage = {
+	ENTRY_UPDATED: "Changes successfully saved",
+	MANUAL_TEXT_SUBMITTED: "Text submitted for processing",
+} as const;
+
 export {
 	DocumentValidationMessage,
 	EMPTY_LENGTH,
@@ -36,12 +49,13 @@ export {
 	GLOSSARY_CHECK_DEBOUNCE_MS,
 	INDEX_OFFSET,
 	KNOWLEDGE_TREE_ITEM_CONFIG,
+	KnowledgeNotificationMessage,
 	LAST_INDEX_OFFSET,
 	MIN_INDEX,
 	NOT_FOUND_INDEX,
-	PDF_MIME_TYPE,
+	POLL_DOCUMENT_STATUS_INTERVAL_MS,
 	START_INDEX,
 	SUPPORTED_FILE_EXTENSIONS,
-	SUPPORTED_FILE_MIME_TYPES,
+	SUPPORTED_FILE_TYPES,
 };
 export { FileValidationRule } from "@knowledgeprism/constants";

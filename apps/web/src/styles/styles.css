@@ -279,6 +279,67 @@ body:has(dialog:modal) {
 	}
 }
 
+@keyframes fade-out {
+	from {
+		opacity: 1;
+	}
+
+	to {
+		opacity: 0;
+	}
+}
+
+@keyframes progress-shrink {
+	from {
+		transform: scaleX(1);
+	}
+
+	to {
+		transform: scaleX(0);
+	}
+}
+
 .animate-fade-in {
 	animation: fade-in-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-fade-out {
+	animation: fade-out 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.animate-progress {
+	transform-origin: left;
+	animation-name: progress-shrink;
+	animation-timing-function: linear;
+	animation-fill-mode: forwards;
+}
+
+@keyframes landing-reveal-in {
+	from {
+		opacity: 0;
+		transform: translateY(56px) scale(0.96);
+	}
+
+	to {
+		opacity: 1;
+		transform: translateY(0) scale(1);
+	}
+}
+
+.landing-reveal {
+	opacity: 0;
+	transform: translateY(56px) scale(0.96);
+}
+
+.landing-reveal-in {
+	animation: landing-reveal-in 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.landing-reveal,
+	.landing-reveal-in {
+		opacity: 1;
+		transform: none;
+		animation: none;
+	}
 }

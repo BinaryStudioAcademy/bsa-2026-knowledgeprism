@@ -1,3 +1,4 @@
+import { OrganisationRole } from "@knowledgeprism/constants";
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 
@@ -5,8 +6,10 @@ import { MobileNav, RouterOutlet, Sidebar } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
+	useCanWriteKnowledge,
 	useOptionalCurrentProjectId,
 } from "~/hooks/hooks.js";
+import { useProjectKnowledgePipeline } from "~/modules/knowledge/libs/hooks/use-project-knowledge-pipeline.hook.js";
 import {
 	fetchProjects,
 	workspacesActions,
@@ -20,6 +23,7 @@ const SidebarLayout: React.FC = () => {
 	const effectiveProjectId = useOptionalCurrentProjectId();
 	const dispatch = useAppDispatch();
 	const { projects } = useAppSelector(({ workspaces }) => workspaces);
+	const { user } = useAppSelector(({ auth }) => auth);
 
 	useEffect(() => {
 		if (projects.length === EMPTY_LENGTH) {
@@ -37,18 +41,32 @@ const SidebarLayout: React.FC = () => {
 		(project) => project.id === effectiveProjectId,
 	);
 
+	const canWriteKnowledge = useCanWriteKnowledge();
+
+	useProjectKnowledgePipeline({
+		canEdit: canWriteKnowledge,
+		projectId: effectiveProjectId,
+	});
+
+	const hasProjects = projects.length > EMPTY_LENGTH;
+	const isAdmin = user?.user.organisationRole === OrganisationRole.ADMIN;
+	const shouldRenderSidebar = hasProjects || isAdmin;
+
 	return (
 		<div className="flex h-full min-h-0 flex-col overflow-hidden tablet:flex-row">
-			<Sidebar
-				projectName={currentProject?.name ?? ""}
-				role={currentProject?.role ?? ""}
-			/>
+			{shouldRenderSidebar && (
+				<Sidebar
+					isAdmin={isAdmin}
+					projectName={currentProject?.name ?? ""}
+					role={currentProject?.role ?? ""}
+				/>
+			)}
 
 			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
 				<RouterOutlet />
 			</div>
 
-			<MobileNav />
+			{shouldRenderSidebar && <MobileNav />}
 		</div>
 	);
 };

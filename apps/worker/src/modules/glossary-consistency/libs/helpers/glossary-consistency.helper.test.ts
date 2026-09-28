@@ -129,18 +129,37 @@ void describe("mapConsistencyOutput", () => {
 	});
 
 	void it("recovers the final answer when Claude second-guesses itself inline before it", () => {
-		const raw =
-			'[{"sourceExcerpt":"application programming interface","termId":1,"suggestedText":"API","explanation":"wrong first guess"}]\n\n' +
-			"Wait, let me reconsider. Actually there is no mismatch here.\n\n[]";
+		const wrongGuess = JSON.stringify([
+			{
+				explanation: "wrong first guess",
+				sourceExcerpt: "application programming interface",
+				suggestedText: "API",
+				termId: 1,
+			},
+		]);
+		const raw = `${wrongGuess}\n\nWait, let me reconsider. Actually there is no mismatch here.\n\n[]`;
 
 		assert.deepEqual(mapConsistencyOutput(raw, content, [API_TERM]), []);
 	});
 
 	void it("recovers a real match when it is the last array after reconsideration", () => {
-		const raw =
-			'[{"sourceExcerpt":"web service","termId":1,"suggestedText":"API","explanation":"wrong first guess"}]\n\n' +
-			"Wait, let me reconsider the actual paraphrase.\n\n" +
-			'[{"sourceExcerpt":"application programming interface","termId":1,"suggestedText":"API","explanation":"Refers to the API without using its canonical name."}]';
+		const wrongGuess = JSON.stringify([
+			{
+				explanation: "wrong first guess",
+				sourceExcerpt: "web service",
+				suggestedText: "API",
+				termId: 1,
+			},
+		]);
+		const correctAnswer = JSON.stringify([
+			{
+				explanation: "Refers to the API without using its canonical name.",
+				sourceExcerpt: "application programming interface",
+				suggestedText: "API",
+				termId: 1,
+			},
+		]);
+		const raw = `${wrongGuess}\n\nWait, let me reconsider the actual paraphrase.\n\n${correctAnswer}`;
 
 		const result = mapConsistencyOutput(raw, content, [API_TERM]);
 

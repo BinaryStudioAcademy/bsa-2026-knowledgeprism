@@ -5,8 +5,11 @@ import {
 	type UserUpdateRequestDto,
 } from "@knowledgeprism/types";
 
+import { NotificationVariant } from "~/lib/enums/enums.js";
+import { notificationService } from "~/lib/notifications/notification.service.js";
 import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 
+import { UserNotificationMessage } from "../libs/constants/user-notification-message.constant.js";
 import { name as sliceName } from "./users.slice.js";
 
 const loadAll = createAppAsyncThunk<UserGetAllResponseDto, undefined>(
@@ -30,19 +33,33 @@ const loadUserById = createAppAsyncThunk<UserDetailsResponseDto, number>(
 const createUser = createAppAsyncThunk<
 	UserDetailsResponseDto,
 	UserCreateRequestDto
->(`${sliceName}/create`, (payload, { extra }) => {
+>(`${sliceName}/create`, async (payload, { extra }) => {
 	const { userApi } = extra;
 
-	return userApi.create(payload);
+	const user = await userApi.create(payload);
+
+	notificationService.notify({
+		message: UserNotificationMessage.CREATED,
+		variant: NotificationVariant.SUCCESS,
+	});
+
+	return user;
 });
 
 const updateUser = createAppAsyncThunk<
 	UserDetailsResponseDto,
 	{ id: number; payload: UserUpdateRequestDto }
->(`${sliceName}/update`, ({ id, payload }, { extra }) => {
+>(`${sliceName}/update`, async ({ id, payload }, { extra }) => {
 	const { userApi } = extra;
 
-	return userApi.update(id, payload);
+	const updatedUser = await userApi.update(id, payload);
+
+	notificationService.notify({
+		message: UserNotificationMessage.UPDATED,
+		variant: NotificationVariant.SUCCESS,
+	});
+
+	return updatedUser;
 });
 
 export { createUser, loadAll, loadUserById, updateUser };
