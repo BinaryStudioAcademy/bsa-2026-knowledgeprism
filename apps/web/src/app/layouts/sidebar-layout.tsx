@@ -1,3 +1,4 @@
+import { OrganisationRole } from "@knowledgeprism/constants";
 import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 
@@ -20,6 +21,7 @@ const SidebarLayout: React.FC = () => {
 	const effectiveProjectId = useOptionalCurrentProjectId();
 	const dispatch = useAppDispatch();
 	const { projects } = useAppSelector(({ workspaces }) => workspaces);
+	const { user } = useAppSelector(({ auth }) => auth);
 
 	useEffect(() => {
 		if (projects.length === EMPTY_LENGTH) {
@@ -37,18 +39,25 @@ const SidebarLayout: React.FC = () => {
 		(project) => project.id === effectiveProjectId,
 	);
 
+	const hasProjects = projects.length > EMPTY_LENGTH;
+	const isAdmin = user?.user.organisationRole === OrganisationRole.ADMIN;
+	const shouldRenderSidebar = hasProjects || isAdmin;
+
 	return (
 		<div className="flex h-full min-h-0 flex-col overflow-hidden tablet:flex-row">
-			<Sidebar
-				projectName={currentProject?.name ?? ""}
-				role={currentProject?.role ?? ""}
-			/>
+			{shouldRenderSidebar && (
+				<Sidebar
+					isAdmin={isAdmin}
+					projectName={currentProject?.name ?? ""}
+					role={currentProject?.role ?? ""}
+				/>
+			)}
 
 			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
 				<RouterOutlet />
 			</div>
 
-			<MobileNav />
+			{shouldRenderSidebar && <MobileNav />}
 		</div>
 	);
 };
