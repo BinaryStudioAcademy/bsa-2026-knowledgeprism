@@ -32,7 +32,6 @@ type ProjectRole = "EDITOR" | "VIEWER";
 type Properties<T extends FieldValues> = {
 	availableProjects?: AvailableProject[];
 	control: Control<T, null>;
-	errorMessage?: string | undefined;
 	isAdmin?: boolean;
 	isEditMode?: boolean;
 	isLoading?: boolean;
@@ -63,7 +62,6 @@ const ROLE_OPTIONS = [
 const UserForm = <T extends FieldValues>({
 	availableProjects = [],
 	control,
-	errorMessage,
 	isAdmin = false,
 	isEditMode = false,
 	isLoading = false,
@@ -130,7 +128,23 @@ const UserForm = <T extends FieldValues>({
 	const hasAssignedProjects = assignedProjects.length > EMPTY_LENGTH;
 	const shouldShowProjectsSection = isReadOnly ? hasAssignedProjects : true;
 
+	const projectSectionDescription = (() => {
+		if (isAdmin) {
+			return "Admin for all projects in organizations";
+		}
+
+		if (isReadOnly) {
+			return "Projects you're assigned to and your role on each.";
+		}
+
+		return "Assign this user to projects and set their roles.";
+	})();
+
 	const renderProjectsContent = (): React.ReactNode => {
+		if (isAdmin) {
+			return null;
+		}
+
 		if (isReadOnly) {
 			return (
 				<>
@@ -264,21 +278,17 @@ const UserForm = <T extends FieldValues>({
 						<div>
 							<div className="font-medium text-text">Project Assignment</div>
 							<div className="text-sm text-text-muted">
-								{isReadOnly
-									? "Projects you're assigned to and your role on each."
-									: "Assign this user to projects and set their roles."}
+								{projectSectionDescription}
 							</div>
 						</div>
-						<div className="flex flex-col gap-4 pt-2">
-							{renderProjectsContent()}
-						</div>
+						{!isAdmin && (
+							<div className="flex flex-col gap-4 pt-2">
+								{renderProjectsContent()}
+							</div>
+						)}
 					</div>
 				)}
 			</div>
-
-			{errorMessage && (
-				<div className="text-sm font-medium text-error">{errorMessage}</div>
-			)}
 
 			<div className="flex justify-end gap-3 border-t border-border pt-6 pb-2">
 				<Button

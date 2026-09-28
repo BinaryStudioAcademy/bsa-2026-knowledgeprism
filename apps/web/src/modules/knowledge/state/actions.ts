@@ -18,11 +18,14 @@ import {
 } from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
+import { NotificationVariant } from "~/lib/enums/enums.js";
+import { notificationService } from "~/lib/notifications/notification.service.js";
 import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 import { type AsyncThunkConfig, type ValueOf } from "~/lib/types/types.js";
 
 import {
 	DocumentValidationMessage,
+	KnowledgeNotificationMessage,
 	PDF_MIME_TYPE,
 	POLL_DOCUMENT_STATUS_INTERVAL_MS,
 } from "../libs/constants/constants.js";
@@ -327,11 +330,18 @@ const updateKnowledgeEntry = createAsyncThunk<
 	AsyncThunkConfig
 >(`${sliceName}/update-entry`, async (payload, { extra }) => {
 	const { knowledgeApi } = extra;
-	return await knowledgeApi.updateKnowledgeEntry({
+	const entry = await knowledgeApi.updateKnowledgeEntry({
 		entryId: payload.entryId,
 		payload: payload.payload,
 		projectId: payload.projectId,
 	});
+
+	notificationService.notify({
+		message: KnowledgeNotificationMessage.ENTRY_UPDATED,
+		variant: NotificationVariant.SUCCESS,
+	});
+
+	return entry;
 });
 
 const submitManualText = createAsyncThunk<
@@ -344,22 +354,22 @@ const submitManualText = createAsyncThunk<
 		{ payload, projectId, uploadSessionId },
 		{ dispatch, extra, getState, signal },
 	) => {
-		const response = await extra.documentsApi.createManualText({
+		const manualText = await extra.documentsApi.createManualText({
 			payload,
 			projectId,
 			signal,
 		});
 
 		if (getState().knowledge.uploadSession?.id !== uploadSessionId) {
-			return response;
+			return manualText;
 		}
 
 		const label = payload.title?.trim() || "Manual text";
 
-		addTrackedDocumentId(projectId, response.id);
+		addTrackedDocumentId(projectId, manualText.id);
 		dispatch(
 			sliceSyncActions.trackDocument({
-				documentId: response.id,
+				documentId: manualText.id,
 				label,
 				projectId,
 			}),
@@ -367,13 +377,18 @@ const submitManualText = createAsyncThunk<
 
 		void dispatch(
 			pollDocumentStatus({
-				documentId: response.id,
+				documentId: manualText.id,
 				pipelineSessionId: getState().knowledge.pipelineSessionId,
 				projectId,
 			}),
 		);
 
-		return response;
+		notificationService.notify({
+			message: KnowledgeNotificationMessage.MANUAL_TEXT_SUBMITTED,
+			variant: NotificationVariant.SUCCESS,
+		});
+
+		return manualText;
 	},
 );
 

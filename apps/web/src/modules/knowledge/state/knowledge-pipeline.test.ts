@@ -6,9 +6,9 @@ import {
 } from "@knowledgeprism/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { errorService } from "~/lib/errors/error.service.js";
+import { notificationService } from "~/lib/notifications/notification.service.js";
 import { store } from "~/lib/store/store.js";
-import { type AppError } from "~/lib/types/app-error.type.js";
+import { type AppNotification } from "~/lib/types/types.js";
 
 import { documentsApi } from "../knowledge.js";
 import {
@@ -82,15 +82,18 @@ const createDeferred = <Value>(): PromiseWithResolvers<Value> =>
 	Promise.withResolvers<Value>();
 
 describe("knowledge pipeline lifecycle", () => {
-	let unsubscribeErrors: () => void;
-	let notificationListener: ReturnType<typeof vi.fn<(error: AppError) => void>>;
+	let unsubscribeNotifications: () => void;
+	let notificationListener: ReturnType<
+		typeof vi.fn<(notification: AppNotification) => void>
+	>;
 
 	beforeEach(() => {
 		vi.useFakeTimers();
 		sessionStorage.clear();
 		store.instance.dispatch(actions.resetState(PROJECT_ID));
-		notificationListener = vi.fn<(error: AppError) => void>();
-		unsubscribeErrors = errorService.subscribe(notificationListener);
+		notificationListener = vi.fn<(notification: AppNotification) => void>();
+		unsubscribeNotifications =
+			notificationService.subscribe(notificationListener);
 		notificationListener.mockClear();
 	});
 
@@ -104,7 +107,7 @@ describe("knowledge pipeline lifecycle", () => {
 		}
 
 		store.instance.dispatch(actions.resetState(null));
-		unsubscribeErrors();
+		unsubscribeNotifications();
 		vi.clearAllTimers();
 		vi.useRealTimers();
 	});
