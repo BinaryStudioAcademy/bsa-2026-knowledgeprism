@@ -88,9 +88,13 @@ const KnowledgeTreePage: React.FC = () => {
 			return;
 		}
 
-		void dispatch(
+		const request = dispatch(
 			actions.fetchKnowledgeEntry({ entryId: activePageId, projectId }),
 		);
+
+		return () => {
+			request.abort();
+		};
 	}, [dispatch, activePageId, projectId]);
 
 	const handleSelectPage = useCallback(

@@ -6,11 +6,9 @@ import { type ValueOf } from "~/lib/types/types.js";
 import { DocumentValidationMessage } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus, SearchStatus } from "../libs/enums/enums.js";
 import {
-	addTrackedDocumentId,
 	formatFileSize,
 	isMatchingPipelineSession,
 	mapIntegrationChangesToProposedStructure,
-	removeTrackedDocumentId,
 } from "../libs/helpers/helpers.js";
 import {
 	type KnowledgeState,
@@ -50,6 +48,8 @@ const SESSION_COUNTER_STEP = 1;
 const initialState: State = {
 	activeDocumentId: null,
 	activeDocumentStatus: IDLE_DOCUMENT_STATUS,
+	activeDocumentSwitchRequestId: null,
+	entryRequestId: null,
 	extractionItems: [],
 	extractionItemsDocumentId: null,
 	integrationPreviewDocumentId: null,
@@ -67,13 +67,16 @@ const initialState: State = {
 	processingStatus: DocumentProcessingStatus.IDLE,
 	searchErrorMessage: null,
 	searchQuery: "",
+	searchRequestId: null,
 	searchResults: [],
 	searchStatus: SearchStatus.IDLE,
 	selectedEntry: null,
 	selectedFiles: [],
+	statusRequestIds: {},
 	trackedDocuments: [],
 	tree: [],
 	treeRequestId: null,
+	updateEntryRequestId: null,
 	uploadErrorMessage: null,
 	uploadSession: null,
 	uploadSessionSequence: 0,
@@ -144,6 +147,22 @@ const setPipelineError = (
 	state.pipelineErrors[documentId] = message;
 };
 
+const clearDocumentStatusRequest = (state: State, documentId: number): void => {
+	state.statusRequestIds = Object.fromEntries(
+		Object.entries(state.statusRequestIds).filter(
+			([storedDocumentId]) => Number(storedDocumentId) !== documentId,
+		),
+	);
+};
+
+const invalidateDocumentStatusPolling = (
+	state: State,
+	documentId: number,
+): void => {
+	clearPollTimer(documentId);
+	clearDocumentStatusRequest(state, documentId);
+};
+
 const pickActiveDocument = (state: State): TrackedDocument | undefined => {
 	const current = findTrackedDocument(state, state.activeDocumentId);
 
@@ -206,14 +225,10 @@ const upsertTrackedDocumentStatus = (
 	});
 };
 
-const removeTrackedDocument = (
-	state: State,
-	projectId: string,
-	documentId: number,
-): void => {
+const removeTrackedDocument = (state: State, documentId: number): void => {
 	clearPollTimer(documentId);
 	clearDocumentPipelineError(state, documentId);
-	removeTrackedDocumentId(projectId, documentId);
+	clearDocumentStatusRequest(state, documentId);
 	state.trackedDocuments = state.trackedDocuments.filter(
 		(document) => document.documentId !== documentId,
 	);
@@ -243,8 +258,10 @@ const applyTrackedDocumentStatus = ({
 		return;
 	}
 
+	clearDocumentStatusRequest(state, documentId);
+
 	if (FINISHED_DOCUMENT_STATUSES.has(status)) {
-		removeTrackedDocument(state, projectId, documentId);
+		removeTrackedDocument(state, documentId);
 	} else {
 		upsertTrackedDocumentStatus(state, documentId, status);
 	}
@@ -421,24 +438,45 @@ const { actions, name, reducer } = createSlice({
 			state.knowledgeErrorMessage =
 				action.error.message ?? "Failed to fetch knowledge tree";
 		});
-		builder.addCase(fetchKnowledgeEntry.pending, (state) => {
+		builder.addCase(fetchKnowledgeEntry.pending, (state, action) => {
+			state.entryRequestId = action.meta.requestId;
 			state.isEntryLoading = true;
 			state.knowledgeErrorMessage = null;
 		});
 		builder.addCase(fetchKnowledgeEntry.fulfilled, (state, action) => {
+			if (state.entryRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.entryRequestId = null;
 			state.isEntryLoading = false;
 			state.knowledgeErrorMessage = null;
 			state.selectedEntry = action.payload;
 		});
 		builder.addCase(fetchKnowledgeEntry.rejected, (state, action) => {
+			if (state.entryRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.entryRequestId = null;
 			state.isEntryLoading = false;
+			if (action.meta.aborted) {
+				return;
+			}
+
 			state.knowledgeErrorMessage =
 				action.error.message ?? "Failed to fetch knowledge entry";
 		});
-		builder.addCase(updateKnowledgeEntry.pending, (state) => {
+		builder.addCase(updateKnowledgeEntry.pending, (state, action) => {
+			state.updateEntryRequestId = action.meta.requestId;
 			state.knowledgeErrorMessage = null;
 		});
 		builder.addCase(updateKnowledgeEntry.fulfilled, (state, action) => {
+			if (state.updateEntryRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.updateEntryRequestId = null;
 			state.knowledgeErrorMessage = null;
 			if (state.selectedEntry?.id === action.payload.id) {
 				state.selectedEntry = action.payload;
@@ -451,25 +489,43 @@ const { actions, name, reducer } = createSlice({
 			}
 		});
 		builder.addCase(updateKnowledgeEntry.rejected, (state, action) => {
+			if (state.updateEntryRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.updateEntryRequestId = null;
+			if (action.meta.aborted) {
+				return;
+			}
+
 			state.knowledgeErrorMessage =
 				action.error.message ?? "Failed to update knowledge entry";
 		});
 		builder.addCase(searchKnowledge.pending, (state, action) => {
 			state.searchErrorMessage = null;
 			state.searchQuery = action.meta.arg.query;
+			state.searchRequestId = action.meta.requestId;
 			state.searchStatus = SearchStatus.LOADING;
 		});
 		builder.addCase(searchKnowledge.fulfilled, (state, action) => {
-			if (state.searchQuery !== action.meta.arg.query) {
+			if (state.searchRequestId !== action.meta.requestId) {
 				return;
 			}
 
 			state.searchErrorMessage = null;
+			state.searchRequestId = null;
 			state.searchResults = action.payload.items;
 			state.searchStatus = SearchStatus.SUCCEEDED;
 		});
 		builder.addCase(searchKnowledge.rejected, (state, action) => {
-			if (state.searchQuery !== action.meta.arg.query) {
+			if (state.searchRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.searchRequestId = null;
+			if (action.meta.aborted) {
+				state.searchStatus = SearchStatus.IDLE;
+
 				return;
 			}
 
@@ -493,10 +549,23 @@ const { actions, name, reducer } = createSlice({
 			state.uploadErrorMessage =
 				action.error.message ?? "Failed to submit text";
 		});
-		builder.addCase(pollDocumentStatus.fulfilled, (state, action) => {
+		builder.addCase(pollDocumentStatus.pending, (state, action) => {
 			if (
 				!isCurrentPipelineSession(state, action.meta.arg) ||
 				!findTrackedDocument(state, action.meta.arg.documentId)
+			) {
+				return;
+			}
+
+			state.statusRequestIds[action.meta.arg.documentId] =
+				action.meta.requestId;
+		});
+		builder.addCase(pollDocumentStatus.fulfilled, (state, action) => {
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				!findTrackedDocument(state, action.meta.arg.documentId) ||
+				state.statusRequestIds[action.meta.arg.documentId] !==
+					action.meta.requestId
 			) {
 				return;
 			}
@@ -512,11 +581,14 @@ const { actions, name, reducer } = createSlice({
 		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
 			if (
 				!isCurrentPipelineSession(state, action.meta.arg) ||
-				!findTrackedDocument(state, action.meta.arg.documentId)
+				!findTrackedDocument(state, action.meta.arg.documentId) ||
+				state.statusRequestIds[action.meta.arg.documentId] !==
+					action.meta.requestId
 			) {
 				return;
 			}
 
+			clearDocumentStatusRequest(state, action.meta.arg.documentId);
 			setPipelineError(
 				state,
 				action.meta.arg.documentId,
@@ -602,6 +674,11 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? "Failed to update extraction item",
 			);
 		});
+		builder.addCase(submitExtractionReview.pending, (state, action) => {
+			if (isCurrentPipelineSession(state, action.meta.arg)) {
+				invalidateDocumentStatusPolling(state, action.meta.arg.documentId);
+			}
+		});
 		builder.addCase(submitExtractionReview.fulfilled, (state, action) => {
 			if (
 				!isCurrentPipelineSession(state, action.meta.arg) ||
@@ -617,6 +694,11 @@ const { actions, name, reducer } = createSlice({
 				status: action.payload.status,
 			});
 		});
+		builder.addCase(applyIntegrationChanges.pending, (state, action) => {
+			if (isCurrentPipelineSession(state, action.meta.arg)) {
+				invalidateDocumentStatusPolling(state, action.meta.arg.documentId);
+			}
+		});
 		builder.addCase(applyIntegrationChanges.fulfilled, (state, action) => {
 			if (
 				!isCurrentPipelineSession(state, action.meta.arg) ||
@@ -625,7 +707,9 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.integrationPreviewError = null;
+			if (state.integrationPreviewDocumentId === action.meta.arg.documentId) {
+				state.integrationPreviewError = null;
+			}
 			clearDocumentPipelineError(state, action.meta.arg.documentId);
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
@@ -646,12 +730,10 @@ const { actions, name, reducer } = createSlice({
 					continue;
 				}
 
-				addTrackedDocumentId(action.meta.arg.projectId, document.id);
 				const existing = findTrackedDocument(state, document.id);
 
 				if (existing) {
 					existing.label = document.name;
-					existing.status = document.status;
 				} else {
 					state.trackedDocuments.push({
 						documentId: document.id,
@@ -691,7 +773,9 @@ const { actions, name, reducer } = createSlice({
 
 			const message =
 				action.error.message ?? "Failed to apply integration changes";
-			state.integrationPreviewError = message;
+			if (state.integrationPreviewDocumentId === action.meta.arg.documentId) {
+				state.integrationPreviewError = message;
+			}
 			setPipelineError(state, action.meta.arg.documentId, message);
 		});
 		builder.addCase(retryDocumentProcessing.pending, (state, action) => {
@@ -699,6 +783,7 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
+			invalidateDocumentStatusPolling(state, action.meta.arg.documentId);
 			clearDocumentPipelineError(state, action.meta.arg.documentId);
 		});
 		builder.addCase(retryDocumentProcessing.fulfilled, (state, action) => {
@@ -729,7 +814,7 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? "Failed to retry processing",
 			);
 		});
-		builder.addCase(switchActiveDocument.rejected, (state, action) => {
+		builder.addCase(switchActiveDocument.pending, (state, action) => {
 			if (
 				!isCurrentPipelineSession(state, action.meta.arg) ||
 				!findTrackedDocument(state, action.meta.arg.documentId)
@@ -737,6 +822,24 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
+			state.activeDocumentSwitchRequestId = action.meta.requestId;
+			invalidateDocumentStatusPolling(state, action.meta.arg.documentId);
+		});
+		builder.addCase(switchActiveDocument.fulfilled, (state, action) => {
+			if (state.activeDocumentSwitchRequestId === action.meta.requestId) {
+				state.activeDocumentSwitchRequestId = null;
+			}
+		});
+		builder.addCase(switchActiveDocument.rejected, (state, action) => {
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				!findTrackedDocument(state, action.meta.arg.documentId) ||
+				state.activeDocumentSwitchRequestId !== action.meta.requestId
+			) {
+				return;
+			}
+
+			state.activeDocumentSwitchRequestId = null;
 			setPipelineError(
 				state,
 				action.meta.arg.documentId,
@@ -773,14 +876,17 @@ const { actions, name, reducer } = createSlice({
 					status:
 						| typeof DocumentStatus.WAITING_FOR_APPROVAL
 						| typeof DocumentStatus.WAITING_FOR_VALIDATION;
+					switchRequestId: string;
 				}
 			>,
 		) {
-			const { documentId, extractionItems, status } = action.payload;
+			const { documentId, extractionItems, status, switchRequestId } =
+				action.payload;
 
 			if (
 				!isCurrentPipelineSession(state, action.payload) ||
-				!findTrackedDocument(state, documentId)
+				!findTrackedDocument(state, documentId) ||
+				state.activeDocumentSwitchRequestId !== switchRequestId
 			) {
 				return;
 			}
@@ -822,8 +928,14 @@ const { actions, name, reducer } = createSlice({
 		},
 		releasePipeline(state) {
 			clearAllPollTimers();
+			state.activeDocumentSwitchRequestId = null;
+			state.entryRequestId = null;
 			state.pipelineProjectId = null;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
+			state.searchRequestId = null;
+			state.statusRequestIds = {};
+			state.treeRequestId = null;
+			state.updateEntryRequestId = null;
 		},
 		releaseUploadSession(state, action: PayloadAction<string>) {
 			if (state.uploadSession?.projectId !== action.payload) {
@@ -868,6 +980,8 @@ const { actions, name, reducer } = createSlice({
 			clearAllPollTimers();
 			state.activeDocumentId = null;
 			state.activeDocumentStatus = IDLE_DOCUMENT_STATUS;
+			state.activeDocumentSwitchRequestId = null;
+			state.entryRequestId = null;
 			state.extractionItems = [];
 			state.extractionItemsDocumentId = null;
 			state.integrationPreviewDocumentId = null;
@@ -881,8 +995,18 @@ const { actions, name, reducer } = createSlice({
 			state.pipelineProjectId = action.payload;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
+			state.searchErrorMessage = null;
+			state.searchQuery = "";
+			state.searchRequestId = null;
+			state.searchResults = [];
+			state.searchStatus = SearchStatus.IDLE;
 			state.selectedFiles = [];
+			state.selectedEntry = null;
+			state.statusRequestIds = {};
 			state.trackedDocuments = [];
+			state.tree = [];
+			state.treeRequestId = null;
+			state.updateEntryRequestId = null;
 		},
 		setUploadError(state, action: PayloadAction<string>) {
 			state.uploadErrorMessage = action.payload;
@@ -951,7 +1075,7 @@ const { actions, name, reducer } = createSlice({
 
 			reconcileActiveDocument(state);
 		},
-		untrackDocument(
+		untrackDocumentState(
 			state,
 			action: PayloadAction<{ documentId: number; projectId: string }>,
 		) {
@@ -961,7 +1085,7 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			removeTrackedDocument(state, projectId, documentId);
+			removeTrackedDocument(state, documentId);
 			reconcileActiveDocument(state);
 		},
 	},

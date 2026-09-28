@@ -15,6 +15,7 @@ import {
 	submitExtractionReview,
 	submitManualText,
 	switchActiveDocument,
+	untrackDocument,
 	updateExtractionItem,
 	updateKnowledgeEntry,
 } from "./actions.js";
@@ -38,6 +39,7 @@ const allActions = {
 	submitExtractionReview,
 	submitManualText,
 	switchActiveDocument,
+	untrackDocument,
 	updateExtractionItem,
 	updateKnowledgeEntry,
 };

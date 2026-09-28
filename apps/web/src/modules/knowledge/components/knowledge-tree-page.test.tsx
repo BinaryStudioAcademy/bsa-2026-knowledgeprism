@@ -89,7 +89,9 @@ describe("KnowledgeTreePage project races", () => {
 		);
 
 		await waitFor(() => {
-			expect(getTree).toHaveBeenCalledWith({ projectId: "a" });
+			expect(getTree).toHaveBeenCalledWith(
+				expect.objectContaining({ projectId: "a" }),
+			);
 		});
 
 		view.rerender(
@@ -100,7 +102,9 @@ describe("KnowledgeTreePage project races", () => {
 			</Provider>,
 		);
 		await waitFor(() => {
-			expect(getTree).toHaveBeenCalledWith({ projectId: "b" });
+			expect(getTree).toHaveBeenCalledWith(
+				expect.objectContaining({ projectId: "b" }),
+			);
 		});
 
 		await act(async () => {

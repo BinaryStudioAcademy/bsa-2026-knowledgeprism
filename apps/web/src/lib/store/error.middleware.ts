@@ -14,11 +14,17 @@ const IGNORED_ACTION_TYPES = new Set([
 	"askPrism/ask-question/rejected",
 	"askPrism/load-suggested-questions/rejected",
 	"auth/load-current-user/rejected",
+	"knowledge/apply-integration-changes/rejected",
 	"knowledge/confirm-document-upload/rejected",
+	"knowledge/fetch-extraction-items/rejected",
 	"knowledge/fetch-integration-changes/rejected",
+	"knowledge/fetch-pending-review-documents/rejected",
 	"knowledge/poll-document-status/rejected",
 	"knowledge/process-document/rejected",
+	"knowledge/retry-document-processing/rejected",
+	"knowledge/submit-extraction-review/rejected",
 	"knowledge/submit-manual-text/rejected",
+	"knowledge/update-extraction-item/rejected",
 ]);
 
 const AUTH_FORM_ACTION_TYPES = new Set([
@@ -30,6 +36,32 @@ type PipelineScope = {
 	pipelineSessionId: number;
 	projectId: string;
 };
+
+type RequestIdField =
+	| "activeDocumentSwitchRequestId"
+	| "entryRequestId"
+	| "integrationPreviewRequestId"
+	| "searchRequestId"
+	| "treeRequestId"
+	| "updateEntryRequestId";
+
+const REQUEST_ID_FIELD_BY_ACTION_TYPE = new Map<string, RequestIdField>([
+	["knowledge/fetch-entry/rejected", "entryRequestId"],
+	[
+		"knowledge/fetch-integration-changes/rejected",
+		"integrationPreviewRequestId",
+	],
+	["knowledge/fetch-tree/rejected", "treeRequestId"],
+	["knowledge/search-knowledge/rejected", "searchRequestId"],
+	[
+		"knowledge/switch-active-document/rejected",
+		"activeDocumentSwitchRequestId",
+	],
+	["knowledge/update-entry/rejected", "updateEntryRequestId"],
+]);
+
+const POLL_STATUS_REJECTED_ACTION_TYPE =
+	"knowledge/poll-document-status/rejected";
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
 	return typeof value === "object" && value !== null;
@@ -70,6 +102,52 @@ const isPipelineScopeCurrent = (
 	);
 };
 
+const isLatestOwnedRequest = (action: unknown, state: unknown): boolean => {
+	if (
+		!isRecord(action) ||
+		typeof action["type"] !== "string" ||
+		!isRecord(action["meta"]) ||
+		typeof action["meta"]["requestId"] !== "string"
+	) {
+		return true;
+	}
+
+	const field = REQUEST_ID_FIELD_BY_ACTION_TYPE.get(action["type"]);
+
+	if (
+		field === undefined &&
+		action["type"] !== POLL_STATUS_REJECTED_ACTION_TYPE
+	) {
+		return true;
+	}
+
+	if (!isRecord(state) || !isRecord(state["knowledge"])) {
+		return false;
+	}
+
+	const knowledge = state["knowledge"];
+
+	if (action["type"] === POLL_STATUS_REJECTED_ACTION_TYPE) {
+		const argument = action["meta"]["arg"];
+		const statusRequestIds = knowledge["statusRequestIds"];
+
+		if (!isRecord(argument) || !isRecord(statusRequestIds)) {
+			return false;
+		}
+
+		const documentId = argument["documentId"];
+
+		return (
+			typeof documentId === "number" &&
+			statusRequestIds[String(documentId)] === action["meta"]["requestId"]
+		);
+	}
+
+	return (
+		field === undefined || knowledge[field] === action["meta"]["requestId"]
+	);
+};
+
 const isUnauthorizedError = (error: unknown): boolean => {
 	const { message, status } = normalizeError(error);
 
@@ -80,6 +158,7 @@ const isUnauthorizedError = (error: unknown): boolean => {
 };
 
 const errorMiddleware: Middleware = (middlewareApi) => (next) => (action) => {
+	const stateBeforeAction: unknown = middlewareApi.getState();
 	const result = next(action);
 
 	if (!isRejected(action) || action.meta.aborted || action.meta.condition) {
@@ -88,9 +167,7 @@ const errorMiddleware: Middleware = (middlewareApi) => (next) => (action) => {
 
 	const error = action.payload ?? action.error;
 
-	if (isUnauthorizedError(error) && !AUTH_FORM_ACTION_TYPES.has(action.type)) {
-		middlewareApi.dispatch(authActions.clearUser());
-
+	if (!isLatestOwnedRequest(action, stateBeforeAction)) {
 		return result;
 	}
 
@@ -100,6 +177,12 @@ const errorMiddleware: Middleware = (middlewareApi) => (next) => (action) => {
 		pipelineScope &&
 		!isPipelineScopeCurrent(pipelineScope, middlewareApi.getState())
 	) {
+		return result;
+	}
+
+	if (isUnauthorizedError(error) && !AUTH_FORM_ACTION_TYPES.has(action.type)) {
+		middlewareApi.dispatch(authActions.clearUser());
+
 		return result;
 	}
 

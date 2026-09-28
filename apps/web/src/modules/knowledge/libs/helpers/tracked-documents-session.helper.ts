@@ -19,7 +19,12 @@ const readTrackedDocumentIds = (projectId: string): number[] => {
 			return [];
 		}
 
-		return parsed.filter((value): value is number => typeof value === "number");
+		return parsed.filter(
+			(value): value is number =>
+				typeof value === "number" &&
+				Number.isSafeInteger(value) &&
+				value > EMPTY_LENGTH,
+		);
 	} catch {
 		return [];
 	}

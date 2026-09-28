@@ -86,9 +86,11 @@ describe("IntegrationPreview extraction review", () => {
 	it("disables Back, Edit, and structure navigation while approval is applying", async () => {
 		const deferred = createDeferred();
 		const approve = vi.fn(() => deferred.promise);
+		const handleApplyingChange = vi.fn();
 		render(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
+				onApplyingChange={handleApplyingChange}
 				onApproveExtraction={approve}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
@@ -102,6 +104,7 @@ describe("IntegrationPreview extraction review", () => {
 		await waitFor(() => {
 			expect(approve).toHaveBeenCalledOnce();
 		});
+		expect(handleApplyingChange).toHaveBeenLastCalledWith(true);
 
 		expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
 		expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
@@ -113,6 +116,7 @@ describe("IntegrationPreview extraction review", () => {
 			deferred.resolve(false);
 			await deferred.promise;
 		});
+		expect(handleApplyingChange).toHaveBeenLastCalledWith(false);
 	});
 
 	it("disables merge Cancel and Publish while integration apply is active", async () => {

@@ -43,7 +43,9 @@ type PreviewLayerProperties = {
 	extractionStructure: ProposedSection[];
 	isAddModalOpen: boolean;
 	isExtractionValidationPreview: boolean;
+	isReviewMutationPending: boolean;
 	onAddMore: () => void;
+	onApplyingChange: (isApplying: boolean) => void;
 	onApproveIntegration: () => void;
 	onCloseAddModal: () => void;
 	onClosePreview: () => void;
@@ -188,7 +190,9 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	extractionStructure,
 	isAddModalOpen,
 	isExtractionValidationPreview,
+	isReviewMutationPending,
 	onAddMore,
+	onApplyingChange,
 	onApproveIntegration,
 	onCloseAddModal,
 	onClosePreview,
@@ -199,19 +203,24 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 }: PreviewLayerProperties) => {
 	const handlePendingReviewClick = useCallback(
 		(event: MouseEvent<HTMLButtonElement>): void => {
+			if (isReviewMutationPending) {
+				return;
+			}
+
 			const documentId = Number(event.currentTarget.dataset["documentId"]);
 
 			if (Number.isFinite(documentId)) {
 				onSwitchDocument(documentId);
 			}
 		},
-		[onSwitchDocument],
+		[isReviewMutationPending, onSwitchDocument],
 	);
 
 	const previewContent = isExtractionValidationPreview ? (
 		<IntegrationPreview
 			key={`extraction-${String(activeDocumentId)}-${String(extractionStructure.length)}`}
 			onAddMore={onAddMore}
+			onApplyingChange={onApplyingChange}
 			onApproveExtraction={onExtractionValidationApprove}
 			onClose={onClosePreview}
 			proposedStructure={extractionStructure}
@@ -225,6 +234,7 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 					: undefined
 			}
 			onAddMore={onAddMore}
+			onApplyingChange={onApplyingChange}
 			onApprove={onApproveIntegration}
 			onClose={onClosePreview}
 			projectId={projectId}
@@ -241,6 +251,7 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 							<button
 								className="rounded-md border border-border px-2 py-1 text-text hover:bg-secondary"
 								data-document-id={document.documentId}
+								disabled={isReviewMutationPending}
 								key={document.documentId}
 								onClick={handlePendingReviewClick}
 								type="button"
@@ -282,6 +293,8 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		trackedDocuments,
 	} = useAppSelector((state) => state.knowledge);
 	const [isEditing, setIsEditing] = useState<boolean>(false);
+	const [isReviewMutationPending, setIsReviewMutationPending] =
+		useState<boolean>(false);
 
 	const {
 		hideModal: handleCloseAddModal,
@@ -408,7 +421,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 
 	const handleResetState = useCallback((): void => {
 		if (projectId && activeDocumentId) {
-			dispatch(
+			void dispatch(
 				actions.untrackDocument({ documentId: activeDocumentId, projectId }),
 			);
 		}
@@ -424,7 +437,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				const requestedPipelineSessionId = getPipelineSessionId();
 
 				try {
-					const isSwitched = await dispatch(
+					const { isLatest, isSwitched } = await dispatch(
 						actions.switchActiveDocument({
 							documentId,
 							pipelineSessionId: requestedPipelineSessionId,
@@ -432,7 +445,10 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 						}),
 					).unwrap();
 
-					if (!isPipelineSessionCurrent(requestedPipelineSessionId)) {
+					if (
+						!isLatest ||
+						!isPipelineSessionCurrent(requestedPipelineSessionId)
+					) {
 						return;
 					}
 
@@ -601,7 +617,9 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				extractionStructure={mappedExtractionStructure}
 				isAddModalOpen={isAddModalOpen}
 				isExtractionValidationPreview={isExtractionValidationPreview}
+				isReviewMutationPending={isReviewMutationPending}
 				onAddMore={handleAddMore}
+				onApplyingChange={setIsReviewMutationPending}
 				onApproveIntegration={handleApproveIntegration}
 				onCloseAddModal={handleCloseAddModal}
 				onClosePreview={handleClosePreview}

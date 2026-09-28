@@ -811,6 +811,7 @@ const PreviewFooter = ({
 
 const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	onAddMore,
+	onApplyingChange,
 	onApprove,
 	onApproveExtraction,
 	onClose,
@@ -834,6 +835,13 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	const [isMergeScreenOpen, setIsMergeScreenOpen] = useState<boolean>(false);
 	const [activeConflicts, setActiveConflicts] = useState<FieldConflict[]>([]);
 	const [isApplying, setIsApplying] = useState<boolean>(false);
+	const setApplyingState = useCallback(
+		(isApplyingValue: boolean): void => {
+			setIsApplying(isApplyingValue);
+			onApplyingChange?.(isApplyingValue);
+		},
+		[onApplyingChange],
+	);
 
 	const activePage = pages[activePageIndex] ?? pages[DEFAULT_PAGE_INDEX];
 	const activeSection =
@@ -861,10 +869,10 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 				return;
 			}
 
-			setIsApplying(true);
+			setApplyingState(true);
 
 			if (!onApprove) {
-				setIsApplying(false);
+				setApplyingState(false);
 
 				return;
 			}
@@ -878,7 +886,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			} catch {
 				return;
 			} finally {
-				setIsApplying(false);
+				setApplyingState(false);
 			}
 
 			if (isApplied) {
@@ -886,7 +894,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 				setIsSuccessModalOpen(true);
 			}
 		},
-		[isApplying, onApprove, proposedStructure],
+		[isApplying, onApprove, proposedStructure, setApplyingState],
 	);
 
 	const handleApproveExtraction = useCallback(async (): Promise<void> => {
@@ -894,7 +902,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			return;
 		}
 
-		setIsApplying(true);
+		setApplyingState(true);
 
 		let isApplied: boolean;
 
@@ -903,13 +911,13 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		} catch {
 			return;
 		} finally {
-			setIsApplying(false);
+			setApplyingState(false);
 		}
 
 		if (isApplied) {
 			setIsSuccessModalOpen(true);
 		}
-	}, [isApplying, onApproveExtraction, pages]);
+	}, [isApplying, onApproveExtraction, pages, setApplyingState]);
 
 	const handleApprove = useCallback((): void => {
 		if (isApplying) {

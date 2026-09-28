@@ -34,6 +34,7 @@ type FieldConflict = {
 
 type IntegrationPreviewProperties = {
 	onAddMore: () => void;
+	onApplyingChange?: (isApplying: boolean) => void;
 	onApprove?: (
 		resolutions: IntegrationConflictResolutionDto[],
 	) => Promise<boolean>;
@@ -56,6 +57,8 @@ interface KbEntry {
 type KnowledgeState = {
 	activeDocumentId: null | number;
 	activeDocumentStatus: "IDLE" | ValueOf<typeof DocumentStatus>;
+	activeDocumentSwitchRequestId: null | string;
+	entryRequestId: null | string;
 	extractionItems: ExtractionItemResponseDto[];
 	extractionItemsDocumentId: null | number;
 	integrationPreviewDocumentId: null | number;
@@ -73,13 +76,16 @@ type KnowledgeState = {
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
 	searchErrorMessage: null | string;
 	searchQuery: string;
+	searchRequestId: null | string;
 	searchResults: KnowledgeSearchItemDto[];
 	searchStatus: ValueOf<typeof SearchStatus>;
 	selectedEntry: KnowledgeEntryResponseDto | null;
 	selectedFiles: UploadedDocumentItem[];
+	statusRequestIds: Record<number, string>;
 	trackedDocuments: TrackedDocument[];
 	tree: KnowledgeTreeItemResponseDto[];
 	treeRequestId: null | string;
+	updateEntryRequestId: null | string;
 	uploadErrorMessage: null | string;
 	uploadSession: null | UploadSession;
 	uploadSessionSequence: number;

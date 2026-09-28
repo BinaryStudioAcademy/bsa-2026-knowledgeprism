@@ -25,6 +25,7 @@ const MISSING_DOCUMENT_MESSAGE =
 type Properties = {
 	documentId: number | undefined;
 	onAddMore: () => void;
+	onApplyingChange: (isApplying: boolean) => void;
 	onApprove: () => void;
 	onClose: () => void;
 	projectId: null | string;
@@ -33,6 +34,7 @@ type Properties = {
 const IntegrationPreviewPanel: React.FC<Properties> = ({
 	documentId,
 	onAddMore,
+	onApplyingChange,
 	onApprove,
 	onClose,
 	projectId,
@@ -147,6 +149,7 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 			<IntegrationPreview
 				key={previewKey}
 				onAddMore={onAddMore}
+				onApplyingChange={onApplyingChange}
 				onApprove={handleApply}
 				onClose={onClose}
 				proposedStructure={integrationPreviewSections}
