@@ -7,16 +7,12 @@ import {
 	type ExtractionItemResponseDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeEntryResponseDto,
-	type KnowledgeSearchItemDto,
 	type KnowledgeTreeItemResponseDto,
 } from "@knowledgeprism/types";
 
 import { type ValueOf } from "~/lib/types/types.js";
 
-import {
-	type DocumentProcessingStatus,
-	type SearchStatus,
-} from "../enums/enums.js";
+import { type DocumentProcessingStatus } from "../enums/enums.js";
 
 type ChangeStatus = "conflict" | "created" | "duplicate" | "modified";
 
@@ -76,11 +72,6 @@ type KnowledgeState = {
 	pipelineProjectId: null | string;
 	pipelineSessionId: number;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
-	searchErrorMessage: null | string;
-	searchQuery: string;
-	searchRequestId: null | string;
-	searchResults: KnowledgeSearchItemDto[];
-	searchStatus: ValueOf<typeof SearchStatus>;
 	selectedEntry: KnowledgeEntryResponseDto | null;
 	selectedFiles: UploadedDocumentItem[];
 	statusRequestIds: Record<number, string>;
