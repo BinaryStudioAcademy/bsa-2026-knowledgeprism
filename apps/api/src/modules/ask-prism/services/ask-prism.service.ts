@@ -1,12 +1,15 @@
+import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import { type AskPrismResponseDto } from "@knowledgeprism/types";
 import { embed, EmbeddingInputType, search } from "@knowledgeprism/worker";
 
+import { type KnowledgeNodeEntity } from "~/modules/knowledge/models/knowledge-node.entity.js";
 import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/knowledge-node.repository.js";
 import {
 	type ProjectAccessContext,
 	type ProjectService,
 } from "~/modules/projects/services/project.service.js";
 
+import { DEFAULT_SUGGESTED_QUESTIONS } from "../libs/constants/default-suggested-questions.constant.js";
 import { RAG_FALLBACK_MESSAGE } from "../libs/constants/rag-fallback-message.constant.js";
 import { invokeRagGeneration } from "../libs/helpers/invoke-rag-generation.helper.js";
 
@@ -16,6 +19,7 @@ type Constructor = {
 };
 
 const EMPTY_LENGTH = 0;
+const MAX_SUGGESTIONS = 3;
 
 class AskPrismService {
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
@@ -47,6 +51,20 @@ class AskPrismService {
 		};
 		traverse(blocks);
 		return text.trim();
+	}
+
+	private isEligibleForSuggestion(node: KnowledgeNodeEntity): boolean {
+		const nodeObject = node.toObject();
+		const textContent = this.extractTextFromBlocks(nodeObject.contentJson);
+
+		if (
+			nodeObject.type === KnowledgeNodeType.PAGE &&
+			textContent.length === EMPTY_LENGTH
+		) {
+			return false;
+		}
+
+		return textContent.length > EMPTY_LENGTH;
 	}
 
 	public async generateAnswer(
@@ -175,19 +193,18 @@ class AskPrismService {
 		const nodes =
 			await this.knowledgeNodeRepository.findAllByProjectId(projectId);
 
-		if (nodes.length === EMPTY_LENGTH) {
-			return [
-				"What are the main features of this project?",
-				"What are the coding guidelines?",
-				"How do I get started?",
-			];
+		const eligibleNodes = nodes.filter((node) =>
+			this.isEligibleForSuggestion(node),
+		);
+
+		if (eligibleNodes.length === EMPTY_LENGTH) {
+			return [...DEFAULT_SUGGESTED_QUESTIONS];
 		}
 
-		const MAX_SUGGESTIONS = 3;
-
-		return nodes
+		return eligibleNodes
 			.slice(EMPTY_LENGTH, MAX_SUGGESTIONS)
 			.map((node) => `Tell me about ${node.toObject().title}`);
 	}
 }
+
 export { AskPrismService };
