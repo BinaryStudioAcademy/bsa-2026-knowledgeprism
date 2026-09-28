@@ -80,6 +80,8 @@ describe("KnowledgeTreePage project races", () => {
 				projectId === "a" ? projectA.promise : projectB.promise,
 			);
 
+		store.instance.dispatch(actions.resetState("a"));
+
 		const view = render(
 			<Provider store={store.instance}>
 				<MemoryRouter initialEntries={["/workspaces/a/knowledge-tree"]}>
@@ -93,6 +95,8 @@ describe("KnowledgeTreePage project races", () => {
 				expect.objectContaining({ projectId: "a" }),
 			);
 		});
+
+		store.instance.dispatch(actions.resetState("b"));
 
 		view.rerender(
 			<Provider store={store.instance}>
