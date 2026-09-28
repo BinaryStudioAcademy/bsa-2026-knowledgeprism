@@ -126,9 +126,9 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	useFocusReturn({ opened: isOverlayOpen });
 
 	const primaryNavItems =
-		!routeProjectId || shell.mode === "phone"
+		routeProjectId && shell.mode === "phone"
 			? []
-			: buildPrimaryNavItems(routeProjectId);
+			: buildPrimaryNavItems(projectId);
 	const utilityNavItems = buildUtilityNavItems(role, isAdmin);
 
 	const handleAddClick = useCallback((): void => {
