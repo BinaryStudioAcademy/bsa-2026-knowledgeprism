@@ -119,6 +119,24 @@ describe("IntegrationPreview extraction review", () => {
 		expect(handleApplyingChange).toHaveBeenLastCalledWith(false);
 	});
 
+	it("shows a document-scoped extraction review error", () => {
+		render(
+			<IntegrationPreview
+				errorMessage="Extraction update failed"
+				onAddMore={vi.fn()}
+				onApproveExtraction={vi.fn()}
+				onClose={vi.fn()}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					createExtractionItem(),
+				])}
+				variant="extraction-validation"
+			/>,
+		);
+
+		expect(screen.getByText("Review could not be saved")).toBeInTheDocument();
+		expect(screen.getByText("Extraction update failed")).toBeInTheDocument();
+	});
+
 	it("disables merge Cancel and Publish while integration apply is active", async () => {
 		const deferred = createDeferred();
 		const approve = vi.fn(() => deferred.promise);

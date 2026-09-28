@@ -52,6 +52,7 @@ type PreviewLayerProperties = {
 	onExtractionValidationApprove: (pages: ProposedSection[]) => Promise<boolean>;
 	onSwitchDocument: (documentId: number) => void;
 	pendingReviewDocuments: { documentId: number; label: string }[];
+	pipelineErrorMessage: null | string;
 	projectId: null | string;
 };
 
@@ -199,6 +200,7 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	onExtractionValidationApprove,
 	onSwitchDocument,
 	pendingReviewDocuments,
+	pipelineErrorMessage,
 	projectId,
 }: PreviewLayerProperties) => {
 	const handlePendingReviewClick = useCallback(
@@ -218,6 +220,7 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 
 	const previewContent = isExtractionValidationPreview ? (
 		<IntegrationPreview
+			errorMessage={pipelineErrorMessage}
 			key={`extraction-${String(activeDocumentId)}-${String(extractionStructure.length)}`}
 			onAddMore={onAddMore}
 			onApplyingChange={onApplyingChange}
@@ -293,8 +296,19 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		trackedDocuments,
 	} = useAppSelector((state) => state.knowledge);
 	const [isEditing, setIsEditing] = useState<boolean>(false);
-	const [isReviewMutationPending, setIsReviewMutationPending] =
-		useState<boolean>(false);
+	const [reviewMutationSessionId, setReviewMutationSessionId] = useState<
+		null | number
+	>(null);
+	const isReviewMutationPending = reviewMutationSessionId === pipelineSessionId;
+
+	const handleReviewMutationChange = useCallback(
+		(isApplying: boolean): void => {
+			if (isPipelineSessionCurrent(pipelineSessionId)) {
+				setReviewMutationSessionId(isApplying ? pipelineSessionId : null);
+			}
+		},
+		[pipelineSessionId],
+	);
 
 	const {
 		hideModal: handleCloseAddModal,
@@ -619,13 +633,14 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				isExtractionValidationPreview={isExtractionValidationPreview}
 				isReviewMutationPending={isReviewMutationPending}
 				onAddMore={handleAddMore}
-				onApplyingChange={setIsReviewMutationPending}
+				onApplyingChange={handleReviewMutationChange}
 				onApproveIntegration={handleApproveIntegration}
 				onCloseAddModal={handleCloseAddModal}
 				onClosePreview={handleClosePreview}
 				onExtractionValidationApprove={handleExtractionValidationApprove}
 				onSwitchDocument={handleSwitchDocument}
 				pendingReviewDocuments={pendingReviewDocuments}
+				pipelineErrorMessage={activePipelineError}
 				projectId={projectId}
 			/>
 		);

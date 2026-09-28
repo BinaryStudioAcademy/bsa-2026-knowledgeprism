@@ -114,6 +114,16 @@ const FINISHED_DOCUMENT_STATUSES = new Set<ValueOf<typeof DocumentStatus>>([
 	DocumentStatus.COMPLETED,
 ]);
 
+const POLLING_TERMINAL_DOCUMENT_STATUSES = new Set<
+	ValueOf<typeof DocumentStatus>
+>([
+	DocumentStatus.CANCELLED,
+	DocumentStatus.COMPLETED,
+	DocumentStatus.FAILED,
+	DocumentStatus.WAITING_FOR_APPROVAL,
+	DocumentStatus.WAITING_FOR_VALIDATION,
+]);
+
 const isReviewableDocumentStatus = (
 	status: ValueOf<typeof DocumentStatus>,
 ): status is ReviewableDocumentStatus => {
@@ -401,7 +411,9 @@ const updateKnowledgeEntry = createAsyncThunk<
 			signal,
 		});
 
-		if (getState().knowledge.updateEntryRequestId === requestId) {
+		if (
+			getState().knowledge.updateEntryRequestIds[payload.entryId] === requestId
+		) {
 			notificationService.notify({
 				message: KnowledgeNotificationMessage.ENTRY_UPDATED,
 				variant: NotificationVariant.SUCCESS,
@@ -512,15 +524,7 @@ const pollDocumentStatus = createAppAsyncThunk<
 
 			persistDocumentStatus(projectId, documentId, statusResponse.status);
 
-			const terminalStatuses: ValueOf<typeof DocumentStatus>[] = [
-				DocumentStatus.WAITING_FOR_VALIDATION,
-				DocumentStatus.WAITING_FOR_APPROVAL,
-				DocumentStatus.CANCELLED,
-				DocumentStatus.COMPLETED,
-				DocumentStatus.FAILED,
-			];
-
-			if (terminalStatuses.includes(statusResponse.status)) {
+			if (POLLING_TERMINAL_DOCUMENT_STATUSES.has(statusResponse.status)) {
 				clearPollTimer(documentId);
 			} else {
 				scheduleNextPoll({ dispatch, request, signal });
@@ -550,36 +554,108 @@ const fetchPendingReviewDocuments = createAppAsyncThunk<
 	PipelineSessionScope
 >(
 	`${sliceName}/fetch-pending-review-documents`,
-	async (scope, { dispatch, extra, getState, signal }) => {
+	async (scope, { dispatch, extra, getState, requestId, signal }) => {
+		const trackedDocumentIdsAtStart = getState().knowledge.trackedDocuments.map(
+			(document) => document.documentId,
+		);
+		const trackedDocumentIdsAtStartSet = new Set(trackedDocumentIdsAtStart);
+		const isRequestCurrent = (): boolean =>
+			isMatchingPipelineSession(getState().knowledge, scope) &&
+			getState().knowledge.pendingReviewRequestId === requestId;
 		const response = await extra.documentsApi.getPendingReviewDocuments({
 			projectId: scope.projectId,
 			signal,
 		});
 
-		for (const document of response.items) {
-			if (isReviewableDocumentStatus(document.status)) {
-				addTrackedDocumentId(scope.projectId, document.id);
-			}
+		if (!isRequestCurrent()) {
+			return response;
 		}
 
-		if (isMatchingPipelineSession(getState().knowledge, scope)) {
-			const pendingDocumentIds = new Set(
-				response.items.map((document) => document.id),
-			);
-			const missingReviewDocumentIds = getState()
-				.knowledge.trackedDocuments.filter(
+		const pendingDocuments = response.items.filter((document) =>
+			isReviewableDocumentStatus(document.status),
+		);
+		const pendingDocumentIds = new Set(
+			pendingDocuments.map((document) => document.id),
+		);
+		const currentTrackedDocuments = getState().knowledge.trackedDocuments;
+		const currentTrackedDocumentIds = new Set(
+			currentTrackedDocuments.map((document) => document.documentId),
+		);
+		const trackedDocumentIdsToReconcile = new Set([
+			...pendingDocuments
+				.filter((document) => currentTrackedDocumentIds.has(document.id))
+				.map((document) => document.id),
+			...currentTrackedDocuments
+				.filter(
 					(document) =>
 						(document.status === DocumentStatus.WAITING_FOR_VALIDATION ||
 							document.status === DocumentStatus.WAITING_FOR_APPROVAL) &&
 						!pendingDocumentIds.has(document.documentId),
 				)
-				.map((document) => document.documentId);
+				.map((document) => document.documentId),
+		]);
+		const discoveryCandidates = pendingDocuments.filter(
+			(document) =>
+				!trackedDocumentIdsAtStartSet.has(document.id) &&
+				!currentTrackedDocumentIds.has(document.id),
+		);
 
-			await Promise.all(
-				missingReviewDocumentIds.map((documentId) =>
+		const [discoveredDocuments] = await Promise.all([
+			Promise.all(
+				discoveryCandidates.map((document) =>
+					extra.documentsApi.getDocumentStatus({
+						documentId: document.id,
+						projectId: scope.projectId,
+						signal,
+					}),
+				),
+			),
+			Promise.all(
+				[...trackedDocumentIdsToReconcile].map((documentId) =>
 					dispatch(pollDocumentStatus({ ...scope, documentId })),
 				),
-			);
+			),
+		]);
+
+		if (!isRequestCurrent()) {
+			return response;
+		}
+
+		dispatch(
+			sliceSyncActions.reconcilePendingReviewDocuments({
+				...scope,
+				discoveredDocuments,
+				labels: response.items.map((document) => ({
+					documentId: document.id,
+					label: document.name,
+				})),
+				requestId,
+				trackedDocumentIdsAtStart,
+			}),
+		);
+
+		const acceptedDocumentIds = new Set(
+			getState().knowledge.trackedDocuments.map(
+				(document) => document.documentId,
+			),
+		);
+
+		for (const document of discoveredDocuments) {
+			if (
+				FINISHED_DOCUMENT_STATUSES.has(document.status) ||
+				acceptedDocumentIds.has(document.id)
+			) {
+				persistDocumentStatus(scope.projectId, document.id, document.status);
+			}
+
+			if (
+				acceptedDocumentIds.has(document.id) &&
+				!POLLING_TERMINAL_DOCUMENT_STATUSES.has(document.status)
+			) {
+				void dispatch(
+					pollDocumentStatus({ ...scope, documentId: document.id }),
+				);
+			}
 		}
 
 		return response;

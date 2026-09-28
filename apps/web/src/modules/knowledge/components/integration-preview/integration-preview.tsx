@@ -14,6 +14,7 @@ import {
 } from "react";
 
 import {
+	Alert,
 	Button,
 	Heading,
 	Icon,
@@ -810,6 +811,7 @@ const PreviewFooter = ({
 );
 
 const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
+	errorMessage,
 	onAddMore,
 	onApplyingChange,
 	onApprove,
@@ -1110,6 +1112,13 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 	return (
 		<div className="mx-auto flex h-full w-full max-w-7xl flex-col justify-between gap-3 p-3 tablet:p-4 pb-2 tablet:pb-4 font-sans text-text">
+			{errorMessage && (
+				<Alert
+					description={errorMessage}
+					title="Review could not be saved"
+					variant="error"
+				/>
+			)}
 			<div className="flex flex-1 min-h-0 flex-col tablet:flex-row overflow-y-auto tablet:overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
 				<StructureAside
 					activeNodeType={activeNodeType}

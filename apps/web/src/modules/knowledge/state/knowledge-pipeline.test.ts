@@ -25,6 +25,7 @@ import {
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchKnowledgeEntry,
+	fetchKnowledgeTree,
 	fetchPendingReviewDocuments,
 	initializeProjectKnowledgePipeline,
 	pollDocumentStatus,
@@ -35,6 +36,7 @@ import {
 	submitManualText,
 	switchActiveDocument,
 	untrackDocument,
+	updateExtractionItem,
 	updateKnowledgeEntry,
 } from "./actions.js";
 import { actions } from "./knowledge.slice.js";
@@ -49,6 +51,7 @@ const KNOWLEDGE_ENTRY_A_ID = 1;
 const KNOWLEDGE_ENTRY_B_ID = 2;
 const POLL_RETRY_DELAY_MS = 30_000;
 const SINGLE_CALL_COUNT = 1;
+const TWO_CALL_COUNT = 2;
 
 const createStatusResponse = (
 	documentId: number,
@@ -410,6 +413,102 @@ describe("knowledge pipeline lifecycle", () => {
 		);
 	});
 
+	it("does not resurrect a document removed after pending-review recovery starts", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.WAITING_FOR_APPROVAL);
+		addTrackedDocumentId(PROJECT_ID, DOCUMENT_A_ID);
+		const pendingReviews = createDeferred<{
+			items: DocumentStatusResponseDto[];
+		}>();
+		vi.spyOn(documentsApi, "getPendingReviewDocuments").mockReturnValue(
+			pendingReviews.promise,
+		);
+		vi.spyOn(documentsApi, "getDocumentStatus").mockResolvedValue(
+			createStatusResponse(DOCUMENT_A_ID, DocumentStatus.COMPLETED),
+		);
+
+		const recovery = store.instance.dispatch(
+			fetchPendingReviewDocuments({
+				pipelineSessionId:
+					store.instance.getState().knowledge.pipelineSessionId,
+				projectId: PROJECT_ID,
+			}),
+		);
+		await Promise.resolve();
+		await store.instance.dispatch(
+			pollDocumentStatus(createRequest(DOCUMENT_A_ID)),
+		);
+		pendingReviews.resolve({
+			items: [
+				createStatusResponse(
+					DOCUMENT_A_ID,
+					DocumentStatus.WAITING_FOR_APPROVAL,
+				),
+			],
+		});
+		await recovery;
+
+		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
+		expect(readTrackedDocumentIds(PROJECT_ID)).not.toContain(DOCUMENT_A_ID);
+	});
+
+	it("authoritatively advances an existing pending review", async () => {
+		trackDocumentWithStatus(
+			DOCUMENT_A_ID,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		);
+		vi.spyOn(documentsApi, "getPendingReviewDocuments").mockResolvedValue({
+			items: [
+				createStatusResponse(
+					DOCUMENT_A_ID,
+					DocumentStatus.WAITING_FOR_APPROVAL,
+				),
+			],
+		});
+		vi.spyOn(documentsApi, "getDocumentStatus").mockResolvedValue(
+			createStatusResponse(DOCUMENT_A_ID, DocumentStatus.WAITING_FOR_APPROVAL),
+		);
+
+		await store.instance.dispatch(
+			fetchPendingReviewDocuments({
+				pipelineSessionId:
+					store.instance.getState().knowledge.pipelineSessionId,
+				projectId: PROJECT_ID,
+			}),
+		);
+
+		expect(store.instance.getState().knowledge.trackedDocuments).toContainEqual(
+			expect.objectContaining({
+				documentId: DOCUMENT_A_ID,
+				status: DocumentStatus.WAITING_FOR_APPROVAL,
+			}),
+		);
+	});
+
+	it("verifies a newly discovered review before tracking it", async () => {
+		vi.spyOn(documentsApi, "getPendingReviewDocuments").mockResolvedValue({
+			items: [
+				createStatusResponse(
+					DOCUMENT_A_ID,
+					DocumentStatus.WAITING_FOR_VALIDATION,
+				),
+			],
+		});
+		vi.spyOn(documentsApi, "getDocumentStatus").mockResolvedValue(
+			createStatusResponse(DOCUMENT_A_ID, DocumentStatus.COMPLETED),
+		);
+
+		await store.instance.dispatch(
+			fetchPendingReviewDocuments({
+				pipelineSessionId:
+					store.instance.getState().knowledge.pipelineSessionId,
+				projectId: PROJECT_ID,
+			}),
+		);
+
+		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
+		expect(readTrackedDocumentIds(PROJECT_ID)).not.toContain(DOCUMENT_A_ID);
+	});
+
 	it("ignores an older status response for the same document", async () => {
 		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
 		const olderStatus = createDeferred<DocumentStatusResponseDto>();
@@ -450,6 +549,9 @@ describe("knowledge pipeline lifecycle", () => {
 		vi.spyOn(documentsApi, "getPendingReviewDocuments").mockResolvedValue({
 			items: [pendingDocument],
 		});
+		vi.spyOn(documentsApi, "getDocumentStatus").mockResolvedValue(
+			pendingDocument,
+		);
 		await store.instance.dispatch(
 			fetchPendingReviewDocuments({
 				pipelineSessionId:
@@ -753,6 +855,31 @@ describe("knowledge pipeline lifecycle", () => {
 		expect(state.pipelineErrors[DOCUMENT_A_ID]).toBeUndefined();
 	});
 
+	it("retains a genuine extraction edit failure for the active preview", () => {
+		trackDocumentWithStatus(
+			DOCUMENT_A_ID,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		);
+		const request = {
+			...createRequest(DOCUMENT_A_ID),
+			extractionItemId: EXTRACTION_ITEM_ID,
+			payload: { text: "Updated text", title: "Updated title" },
+		};
+		store.instance.dispatch(updateExtractionItem.pending("update", request));
+		store.instance.dispatch(
+			updateExtractionItem.rejected(
+				new Error("extraction update failed"),
+				"update",
+				request,
+			),
+		);
+
+		expect(
+			store.instance.getState().knowledge.pipelineErrors[DOCUMENT_A_ID],
+		).toBe("extraction update failed");
+		expect(notificationListener).not.toHaveBeenCalled();
+	});
+
 	it("keeps successful upload confirmation fulfilled when storage writes fail", async () => {
 		store.instance.dispatch(actions.acquireUploadSession(PROJECT_ID));
 		const uploadSessionId =
@@ -898,6 +1025,22 @@ describe("knowledge pipeline lifecycle", () => {
 		expect(notificationListener).not.toHaveBeenCalled();
 	});
 
+	it("notifies when pending-review recovery fails", async () => {
+		vi.spyOn(documentsApi, "getPendingReviewDocuments").mockRejectedValue(
+			new Error("recovery unavailable"),
+		);
+
+		await store.instance.dispatch(
+			fetchPendingReviewDocuments({
+				pipelineSessionId:
+					store.instance.getState().knowledge.pipelineSessionId,
+				projectId: PROJECT_ID,
+			}),
+		);
+
+		expect(notificationListener).toHaveBeenCalledTimes(SINGLE_CALL_COUNT);
+	});
+
 	it("does not retry permanent polling failures", async () => {
 		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
 		const getStatus = vi
@@ -913,6 +1056,68 @@ describe("knowledge pipeline lifecycle", () => {
 		expect(
 			store.instance.getState().knowledge.pipelineErrors[DOCUMENT_A_ID],
 		).toBe("not found");
+	});
+
+	it("applies concurrent successful updates for different entries", async () => {
+		const treeRequest = { projectId: PROJECT_ID };
+		store.instance.dispatch(fetchKnowledgeTree.pending("tree", treeRequest));
+		store.instance.dispatch(
+			fetchKnowledgeTree.fulfilled(
+				{
+					items: [
+						{
+							id: KNOWLEDGE_ENTRY_A_ID,
+							parentId: null,
+							position: 0,
+							title: "Entry A",
+							type: KnowledgeNodeType.ENTRY,
+							updatedAt: "2026-09-28T00:00:00.000Z",
+						},
+						{
+							id: KNOWLEDGE_ENTRY_B_ID,
+							parentId: null,
+							position: 1,
+							title: "Entry B",
+							type: KnowledgeNodeType.ENTRY,
+							updatedAt: "2026-09-28T00:00:00.000Z",
+						},
+					],
+				},
+				"tree",
+				treeRequest,
+			),
+		);
+		const updateA = createDeferred<KnowledgeEntryResponseDto>();
+		const updateB = createDeferred<KnowledgeEntryResponseDto>();
+		vi.spyOn(knowledgeApi, "updateKnowledgeEntry").mockImplementation(
+			({ entryId }) =>
+				entryId === KNOWLEDGE_ENTRY_A_ID ? updateA.promise : updateB.promise,
+		);
+
+		const requestA = store.instance.dispatch(
+			updateKnowledgeEntry({
+				entryId: KNOWLEDGE_ENTRY_A_ID,
+				payload: { contentJson: [], title: "Updated A" },
+				projectId: PROJECT_ID,
+			}),
+		);
+		const requestB = store.instance.dispatch(
+			updateKnowledgeEntry({
+				entryId: KNOWLEDGE_ENTRY_B_ID,
+				payload: { contentJson: [], title: "Updated B" },
+				projectId: PROJECT_ID,
+			}),
+		);
+		updateB.resolve(createKnowledgeEntry(KNOWLEDGE_ENTRY_B_ID, "Updated B"));
+		await requestB;
+		updateA.resolve(createKnowledgeEntry(KNOWLEDGE_ENTRY_A_ID, "Updated A"));
+		await requestA;
+
+		expect(store.instance.getState().knowledge.tree).toEqual([
+			expect.objectContaining({ id: KNOWLEDGE_ENTRY_A_ID, title: "Updated A" }),
+			expect.objectContaining({ id: KNOWLEDGE_ENTRY_B_ID, title: "Updated B" }),
+		]);
+		expect(notificationListener).toHaveBeenCalledTimes(TWO_CALL_COUNT);
 	});
 
 	it("does not notify when an entry update finishes after a project change", async () => {

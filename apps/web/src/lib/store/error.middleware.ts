@@ -18,7 +18,6 @@ const IGNORED_ACTION_TYPES = new Set([
 	"knowledge/confirm-document-upload/rejected",
 	"knowledge/fetch-extraction-items/rejected",
 	"knowledge/fetch-integration-changes/rejected",
-	"knowledge/fetch-pending-review-documents/rejected",
 	"knowledge/poll-document-status/rejected",
 	"knowledge/process-document/rejected",
 	"knowledge/retry-document-processing/rejected",
@@ -41,9 +40,9 @@ type RequestIdField =
 	| "activeDocumentSwitchRequestId"
 	| "entryRequestId"
 	| "integrationPreviewRequestId"
+	| "pendingReviewRequestId"
 	| "searchRequestId"
-	| "treeRequestId"
-	| "updateEntryRequestId";
+	| "treeRequestId";
 
 const REQUEST_ID_FIELD_BY_ACTION_TYPE = new Map<string, RequestIdField>([
 	["knowledge/fetch-entry/rejected", "entryRequestId"],
@@ -51,17 +50,21 @@ const REQUEST_ID_FIELD_BY_ACTION_TYPE = new Map<string, RequestIdField>([
 		"knowledge/fetch-integration-changes/rejected",
 		"integrationPreviewRequestId",
 	],
+	[
+		"knowledge/fetch-pending-review-documents/rejected",
+		"pendingReviewRequestId",
+	],
 	["knowledge/fetch-tree/rejected", "treeRequestId"],
 	["knowledge/search-knowledge/rejected", "searchRequestId"],
 	[
 		"knowledge/switch-active-document/rejected",
 		"activeDocumentSwitchRequestId",
 	],
-	["knowledge/update-entry/rejected", "updateEntryRequestId"],
 ]);
 
 const POLL_STATUS_REJECTED_ACTION_TYPE =
 	"knowledge/poll-document-status/rejected";
+const UPDATE_ENTRY_REJECTED_ACTION_TYPE = "knowledge/update-entry/rejected";
 
 const isRecord = (value: unknown): value is Record<string, unknown> => {
 	return typeof value === "object" && value !== null;
@@ -116,7 +119,8 @@ const isLatestOwnedRequest = (action: unknown, state: unknown): boolean => {
 
 	if (
 		field === undefined &&
-		action["type"] !== POLL_STATUS_REJECTED_ACTION_TYPE
+		action["type"] !== POLL_STATUS_REJECTED_ACTION_TYPE &&
+		action["type"] !== UPDATE_ENTRY_REJECTED_ACTION_TYPE
 	) {
 		return true;
 	}
@@ -140,6 +144,22 @@ const isLatestOwnedRequest = (action: unknown, state: unknown): boolean => {
 		return (
 			typeof documentId === "number" &&
 			statusRequestIds[String(documentId)] === action["meta"]["requestId"]
+		);
+	}
+
+	if (action["type"] === UPDATE_ENTRY_REJECTED_ACTION_TYPE) {
+		const argument = action["meta"]["arg"];
+		const updateEntryRequestIds = knowledge["updateEntryRequestIds"];
+
+		if (!isRecord(argument) || !isRecord(updateEntryRequestIds)) {
+			return false;
+		}
+
+		const entryId = argument["entryId"];
+
+		return (
+			typeof entryId === "number" &&
+			updateEntryRequestIds[String(entryId)] === action["meta"]["requestId"]
 		);
 	}
 

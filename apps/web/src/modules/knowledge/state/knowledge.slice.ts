@@ -1,4 +1,5 @@
 import { DocumentStatus } from "@knowledgeprism/constants";
+import { type DocumentStatusResponseDto } from "@knowledgeprism/types";
 import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 import { type ValueOf } from "~/lib/types/types.js";
@@ -61,6 +62,7 @@ const initialState: State = {
 	isIntegrationPreviewLoading: false,
 	isTreeLoading: false,
 	knowledgeErrorMessage: null,
+	pendingReviewRequestId: null,
 	pipelineErrors: {},
 	pipelineProjectId: null,
 	pipelineSessionId: 0,
@@ -76,7 +78,7 @@ const initialState: State = {
 	trackedDocuments: [],
 	tree: [],
 	treeRequestId: null,
-	updateEntryRequestId: null,
+	updateEntryRequestIds: {},
 	uploadErrorMessage: null,
 	uploadSession: null,
 	uploadSessionSequence: 0,
@@ -145,6 +147,14 @@ const setPipelineError = (
 	message: string,
 ): void => {
 	state.pipelineErrors[documentId] = message;
+};
+
+const clearEntryUpdateRequest = (state: State, entryId: number): void => {
+	state.updateEntryRequestIds = Object.fromEntries(
+		Object.entries(state.updateEntryRequestIds).filter(
+			([storedEntryId]) => Number(storedEntryId) !== entryId,
+		),
+	);
 };
 
 const clearDocumentStatusRequest = (state: State, documentId: number): void => {
@@ -468,17 +478,21 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? "Failed to fetch knowledge entry";
 		});
 		builder.addCase(updateKnowledgeEntry.pending, (state, action) => {
-			state.updateEntryRequestId = action.meta.requestId;
+			state.updateEntryRequestIds[action.meta.arg.entryId] =
+				action.meta.requestId;
 			state.knowledgeErrorMessage = null;
 		});
 		builder.addCase(updateKnowledgeEntry.fulfilled, (state, action) => {
-			if (state.updateEntryRequestId !== action.meta.requestId) {
+			if (
+				state.updateEntryRequestIds[action.meta.arg.entryId] !==
+				action.meta.requestId
+			) {
 				return;
 			}
 
-			state.updateEntryRequestId = null;
-			state.knowledgeErrorMessage = null;
+			clearEntryUpdateRequest(state, action.meta.arg.entryId);
 			if (state.selectedEntry?.id === action.payload.id) {
+				state.knowledgeErrorMessage = null;
 				state.selectedEntry = action.payload;
 			}
 
@@ -489,17 +503,22 @@ const { actions, name, reducer } = createSlice({
 			}
 		});
 		builder.addCase(updateKnowledgeEntry.rejected, (state, action) => {
-			if (state.updateEntryRequestId !== action.meta.requestId) {
+			if (
+				state.updateEntryRequestIds[action.meta.arg.entryId] !==
+				action.meta.requestId
+			) {
 				return;
 			}
 
-			state.updateEntryRequestId = null;
+			clearEntryUpdateRequest(state, action.meta.arg.entryId);
 			if (action.meta.aborted) {
 				return;
 			}
 
-			state.knowledgeErrorMessage =
-				action.error.message ?? "Failed to update knowledge entry";
+			if (state.selectedEntry?.id === action.meta.arg.entryId) {
+				state.knowledgeErrorMessage =
+					action.error.message ?? "Failed to update knowledge entry";
+			}
 		});
 		builder.addCase(searchKnowledge.pending, (state, action) => {
 			state.searchErrorMessage = null;
@@ -640,6 +659,11 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? "Failed to fetch extraction items",
 			);
 		});
+		builder.addCase(updateExtractionItem.pending, (state, action) => {
+			if (isCurrentPipelineSession(state, action.meta.arg)) {
+				clearDocumentPipelineError(state, action.meta.arg.documentId);
+			}
+		});
 		builder.addCase(updateExtractionItem.fulfilled, (state, action) => {
 			const document = findTrackedDocument(state, action.meta.arg.documentId);
 
@@ -675,9 +699,12 @@ const { actions, name, reducer } = createSlice({
 			);
 		});
 		builder.addCase(submitExtractionReview.pending, (state, action) => {
-			if (isCurrentPipelineSession(state, action.meta.arg)) {
-				invalidateDocumentStatusPolling(state, action.meta.arg.documentId);
+			if (!isCurrentPipelineSession(state, action.meta.arg)) {
+				return;
 			}
+
+			invalidateDocumentStatusPolling(state, action.meta.arg.documentId);
+			clearDocumentPipelineError(state, action.meta.arg.documentId);
 		});
 		builder.addCase(submitExtractionReview.fulfilled, (state, action) => {
 			if (
@@ -717,33 +744,25 @@ const { actions, name, reducer } = createSlice({
 				status: action.payload.status,
 			});
 		});
+		builder.addCase(fetchPendingReviewDocuments.pending, (state, action) => {
+			if (isCurrentPipelineSession(state, action.meta.arg)) {
+				state.pendingReviewRequestId = action.meta.requestId;
+			}
+		});
 		builder.addCase(fetchPendingReviewDocuments.fulfilled, (state, action) => {
-			if (!isCurrentPipelineSession(state, action.meta.arg)) {
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				state.pendingReviewRequestId !== action.meta.requestId
+			) {
 				return;
 			}
 
-			for (const document of action.payload.items) {
-				if (
-					document.status !== DocumentStatus.WAITING_FOR_VALIDATION &&
-					document.status !== DocumentStatus.WAITING_FOR_APPROVAL
-				) {
-					continue;
-				}
-
-				const existing = findTrackedDocument(state, document.id);
-
-				if (existing) {
-					existing.label = document.name;
-				} else {
-					state.trackedDocuments.push({
-						documentId: document.id,
-						label: document.name,
-						status: document.status,
-					});
-				}
+			state.pendingReviewRequestId = null;
+		});
+		builder.addCase(fetchPendingReviewDocuments.rejected, (state, action) => {
+			if (state.pendingReviewRequestId === action.meta.requestId) {
+				state.pendingReviewRequestId = null;
 			}
-
-			reconcileActiveDocument(state);
 		});
 		builder.addCase(submitExtractionReview.rejected, (state, action) => {
 			const document = findTrackedDocument(state, action.meta.arg.documentId);
@@ -926,16 +945,65 @@ const { actions, name, reducer } = createSlice({
 		clearUploadError(state) {
 			state.uploadErrorMessage = null;
 		},
+		reconcilePendingReviewDocuments(
+			state,
+			action: PayloadAction<
+				PipelineSessionScope & {
+					discoveredDocuments: DocumentStatusResponseDto[];
+					labels: { documentId: number; label: string }[];
+					requestId: string;
+					trackedDocumentIdsAtStart: number[];
+				}
+			>,
+		) {
+			if (
+				!isCurrentPipelineSession(state, action.payload) ||
+				state.pendingReviewRequestId !== action.payload.requestId
+			) {
+				return;
+			}
+
+			for (const { documentId, label } of action.payload.labels) {
+				const existing = findTrackedDocument(state, documentId);
+
+				if (existing) {
+					existing.label = label;
+				}
+			}
+
+			const trackedDocumentIdsAtStart = new Set(
+				action.payload.trackedDocumentIdsAtStart,
+			);
+
+			for (const document of action.payload.discoveredDocuments) {
+				if (
+					findTrackedDocument(state, document.id) ||
+					trackedDocumentIdsAtStart.has(document.id) ||
+					FINISHED_DOCUMENT_STATUSES.has(document.status)
+				) {
+					continue;
+				}
+
+				state.trackedDocuments.push({
+					documentId: document.id,
+					label: document.name,
+					status: document.status,
+				});
+			}
+
+			reconcileActiveDocument(state);
+		},
 		releasePipeline(state) {
 			clearAllPollTimers();
 			state.activeDocumentSwitchRequestId = null;
 			state.entryRequestId = null;
+			state.pendingReviewRequestId = null;
 			state.pipelineProjectId = null;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
 			state.searchRequestId = null;
 			state.statusRequestIds = {};
 			state.treeRequestId = null;
-			state.updateEntryRequestId = null;
+			state.updateEntryRequestIds = {};
 		},
 		releaseUploadSession(state, action: PayloadAction<string>) {
 			if (state.uploadSession?.projectId !== action.payload) {
@@ -991,6 +1059,7 @@ const { actions, name, reducer } = createSlice({
 			state.isAddingKnowledge = false;
 			state.isIntegrationPreviewLoading = false;
 			state.knowledgeErrorMessage = null;
+			state.pendingReviewRequestId = null;
 			state.pipelineErrors = {};
 			state.pipelineProjectId = action.payload;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
@@ -1006,7 +1075,7 @@ const { actions, name, reducer } = createSlice({
 			state.trackedDocuments = [];
 			state.tree = [];
 			state.treeRequestId = null;
-			state.updateEntryRequestId = null;
+			state.updateEntryRequestIds = {};
 		},
 		setUploadError(state, action: PayloadAction<string>) {
 			state.uploadErrorMessage = action.payload;

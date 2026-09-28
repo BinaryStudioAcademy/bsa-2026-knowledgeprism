@@ -33,6 +33,7 @@ type FieldConflict = {
 };
 
 type IntegrationPreviewProperties = {
+	errorMessage?: null | string;
 	onAddMore: () => void;
 	onApplyingChange?: (isApplying: boolean) => void;
 	onApprove?: (
@@ -70,6 +71,7 @@ type KnowledgeState = {
 	isIntegrationPreviewLoading: boolean;
 	isTreeLoading: boolean;
 	knowledgeErrorMessage: null | string;
+	pendingReviewRequestId: null | string;
 	pipelineErrors: Record<number, string>;
 	pipelineProjectId: null | string;
 	pipelineSessionId: number;
@@ -85,7 +87,7 @@ type KnowledgeState = {
 	trackedDocuments: TrackedDocument[];
 	tree: KnowledgeTreeItemResponseDto[];
 	treeRequestId: null | string;
-	updateEntryRequestId: null | string;
+	updateEntryRequestIds: Record<number, string>;
 	uploadErrorMessage: null | string;
 	uploadSession: null | UploadSession;
 	uploadSessionSequence: number;
