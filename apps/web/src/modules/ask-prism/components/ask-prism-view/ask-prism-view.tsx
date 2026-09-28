@@ -1,3 +1,4 @@
+import { type AskPrismSourceDto } from "@knowledgeprism/types";
 import {
 	type BaseSyntheticEvent,
 	type ChangeEvent,
@@ -7,11 +8,11 @@ import {
 	useEffect,
 	useState,
 } from "react";
-import { useParams } from "react-router-dom";
+import { generatePath, useNavigate, useParams } from "react-router-dom";
 
 import { Heading, Icon, Paragraph } from "~/components/components.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
-import { DataStatus } from "~/lib/enums/enums.js";
+import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 
 import { actions as askPrismActions } from "../../state/state.js";
 import { AnswerCard } from "../answer-card/answer-card.js";
@@ -24,10 +25,12 @@ const AskPrismView = (): JSX.Element => {
 	const numericProjectId = Number(projectId);
 
 	const dispatch = useAppDispatch();
+	const navigate = useNavigate();
 	const [query, setQuery] = useState("");
 
 	const {
 		answer,
+		currentProjectId,
 		dataStatus,
 		errorType,
 		isSuggestionsLoading,
@@ -36,7 +39,10 @@ const AskPrismView = (): JSX.Element => {
 		suggestedQuestions,
 	} = useAppSelector(({ askPrism }) => askPrism);
 
-	const isLoading = dataStatus === DataStatus.PENDING;
+	const isCurrentProject = currentProjectId === numericProjectId;
+	const isLoading = isCurrentProject && dataStatus === DataStatus.PENDING;
+	const isSuggestionsActuallyLoading =
+		!isCurrentProject || isSuggestionsLoading;
 
 	useEffect(() => {
 		dispatch(askPrismActions.reset());
@@ -117,6 +123,25 @@ const AskPrismView = (): JSX.Element => {
 		);
 	}, [dispatch, numericProjectId, submittedQuery]);
 
+	const handleSourceSelect = useCallback(
+		(source: AskPrismSourceDto): void => {
+			if (!projectId) {
+				return;
+			}
+
+			const knowledgeTreePath = generatePath(AppRoute.PROJECT_KNOWLEDGE_TREE, {
+				projectId,
+			});
+
+			const targetUrl = source.nodeId
+				? `${knowledgeTreePath}?nodeId=${String(source.nodeId)}`
+				: knowledgeTreePath;
+
+			void navigate(targetUrl);
+		},
+		[navigate, projectId],
+	);
+
 	return (
 		<div className="mx-auto flex h-full w-full max-w-[680px] min-h-0 flex-col px-4 pt-6 tablet:pt-8">
 			<div className="flex shrink-0 flex-col gap-1.5 border-b border-border pb-4">
@@ -131,12 +156,13 @@ const AskPrismView = (): JSX.Element => {
 
 			<div className="min-h-0 flex-1 overflow-y-auto py-4">
 				<AnswerCard
-					answer={answer}
-					dataStatus={dataStatus}
-					errorType={errorType}
+					answer={isCurrentProject ? answer : null}
+					dataStatus={isCurrentProject ? dataStatus : DataStatus.IDLE}
+					errorType={isCurrentProject ? errorType : null}
 					onRetry={handleRetry}
-					query={submittedQuery}
-					sources={sources}
+					onSourceSelect={handleSourceSelect}
+					query={isCurrentProject ? submittedQuery : ""}
+					sources={isCurrentProject ? sources : []}
 				/>
 			</div>
 
@@ -146,7 +172,7 @@ const AskPrismView = (): JSX.Element => {
 						<span className="font-sans text-xs text-text-faint">
 							Suggested questions:
 						</span>
-						{isSuggestionsLoading ? (
+						{isSuggestionsActuallyLoading ? (
 							<div className="flex animate-pulse gap-2">
 								<span className="h-6 w-28 rounded-md bg-surface" />
 								<span className="h-6 w-36 rounded-md bg-surface" />

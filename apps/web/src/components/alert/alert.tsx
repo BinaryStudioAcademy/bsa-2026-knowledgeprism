@@ -7,6 +7,11 @@ const alertStyles = tv({
 		indicator: "mt-0.5 size-4 shrink-0 rounded-full",
 	},
 	variants: {
+		hasTrailingAction: {
+			true: {
+				base: "pr-10 py-5",
+			},
+		},
 		variant: {
 			error: {
 				base: "border border-error/25 bg-error-bg",
@@ -26,21 +31,27 @@ const alertStyles = tv({
 
 type Properties = VariantProps<typeof alertStyles> & {
 	description: string;
-	title: string;
+	hasTrailingAction?: boolean;
+	title?: string;
 	variant: "error" | "success" | "warning";
 };
 
-const Alert = ({ description, title, variant }: Properties): JSX.Element => {
-	const { base, indicator } = alertStyles({ variant });
+const Alert = ({
+	description,
+	hasTrailingAction,
+	title,
+	variant,
+}: Properties): JSX.Element => {
+	const { base, indicator } = alertStyles({ hasTrailingAction, variant });
 
 	return (
 		<div className={base()}>
 			<span aria-hidden="true" className={indicator()} />
 			<div className="min-w-0">
-				<p className="text-sm font-medium leading-tight text-text">{title}</p>
-				<p className="mt-0.5 text-sm leading-tight text-text-muted">
-					{description}
-				</p>
+				{title && (
+					<p className="text-sm font-medium leading-tight text-text">{title}</p>
+				)}
+				<p className="text-sm leading-tight text-text-muted">{description}</p>
 			</div>
 		</div>
 	);

@@ -9,19 +9,15 @@ import { ProjectFormValue } from "./lib/type.js";
 import { ProjectFormValidationSchema } from "./lib/validation-schema.js";
 
 type Properties = Readonly<{
-	error?: null | string;
 	initialValues?: ProjectFormValue;
 	isSubmitting?: boolean;
-	onClose: () => void;
 	onSubmit: (payload: ProjectFormValue) => void;
 	submitLabel: string;
 }>;
 
 function ProjectManagmentModalForm({
-	error,
 	initialValues,
 	isSubmitting,
-	onClose,
 	onSubmit,
 	submitLabel,
 }: Properties) {
@@ -69,15 +65,9 @@ function ProjectManagmentModalForm({
 				name="description"
 				placeholder="Enter your description"
 			/>
-			{error && (
-				<p className="text-xs text-error w-full text-center">{error}</p>
-			)}
-			<div className="flex items-center gap-5 w-full justify-between">
+			<div className="flex items-center gap-5 w-full justify-end">
 				<Button disabled={isFormDisabled} type="submit">
 					{isSubmitting ? <Loader size="sm" /> : submitLabel}
-				</Button>
-				<Button onClick={onClose} variant="destructive">
-					Close
 				</Button>
 			</div>
 		</form>

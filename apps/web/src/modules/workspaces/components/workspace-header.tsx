@@ -1,9 +1,9 @@
-import { ProjectMemberRole } from "@knowledgeprism/constants";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { Avatar, Button, Header, Icon, Logo } from "~/components/components.js";
 import {
 	useAppSelector,
+	useCanWriteKnowledge,
 	useLocation,
 	useModal,
 	useNavigate,
@@ -56,6 +56,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	const { hideModal, isOpen, showModal } = useModal();
 	const { pathname } = useLocation();
 	const projectId = useOptionalCurrentProjectId();
+	const canWriteKnowledge = useCanWriteKnowledge();
 	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 	const { projects } = useAppSelector(({ workspaces }) => workspaces);
 	const currentProject = projects.find((project) => project.id === projectId);
@@ -69,13 +70,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 
 	const isWorkspaceListPage = WORKSPACE_LIST_PATHS.includes(pathname);
 
-	const currentProjectRole = currentProject?.role.trim().toUpperCase();
-	const isAllowedRole =
-		currentProjectRole === ProjectMemberRole.ADMIN.toUpperCase() ||
-		currentProjectRole === ProjectMemberRole.EDITOR.toUpperCase();
-
-	const canShowAddKnowledge =
-		Boolean(projectId) && !isWorkspaceListPage && isAllowedRole;
+	const canShowAddKnowledge = canWriteKnowledge && !isWorkspaceListPage;
 
 	const dropdownReference = useRef<HTMLDivElement>(null);
 	const navigate = useNavigate();

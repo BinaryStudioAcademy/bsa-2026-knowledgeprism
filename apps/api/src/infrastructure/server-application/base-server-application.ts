@@ -99,13 +99,14 @@ class BaseServerApplication implements ServerApplication {
 						this.logger.error(`[${issue.path.toString()}] — ${issue.message}`);
 					}
 
+					const [firstIssue] = error.issues;
 					const response: ServerValidationErrorResponse = {
 						details: error.issues.map((issue) => ({
 							message: issue.message,
 							path: issue.path.map((segment) => segment.toString()),
 						})),
 						errorType: ServerErrorType.VALIDATION,
-						message: error.message,
+						message: firstIssue?.message ?? error.message,
 					};
 
 					return reply.status(HTTPCode.UNPROCESSED_ENTITY).send(response);
@@ -182,8 +183,12 @@ class BaseServerApplication implements ServerApplication {
 
 	private initValidationCompiler(): void {
 		this.app.setValidatorCompiler<ValidationSchema>(({ schema }) => {
-			return <T, R = ReturnType<ValidationSchema["parse"]>>(data: T): R => {
-				return schema.parse(data) as R;
+			return (data: unknown) => {
+				const result = schema.safeParse(data);
+
+				return result.success
+					? { value: result.data }
+					: { error: result.error };
 			};
 		});
 	}
