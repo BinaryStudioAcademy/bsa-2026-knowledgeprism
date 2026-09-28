@@ -14,31 +14,34 @@ logic below is still to be built). Treat the architecture in this file as
 the target design, not a guarantee that every piece already exists; check
 the actual code before assuming a module is implemented.
 
-## Agent Operating Rule: Research, Don't Write Code
+## Agent Operating Rule: AI-Assisted Development
 
-AI agents working in this repository must **not** write, edit, or commit
-production code (this excludes throwaway commands you run yourself to
-inspect state, e.g. `grep`/`find`/`cat` while researching). This applies
-regardless of how the request is phrased — "implement", "fix", "add",
-"refactor", "just do it", etc. all fall under this rule. Instead, for any
-request that would normally result in a code change, respond with:
+AI agents may create, edit, refactor, and test production code when the user
+explicitly requests implementation. Requests such as "implement", "fix",
+"add", or "refactor" authorize the agent to write the required changes into
+the working tree, including production code and tests.
 
-1. **Research** — what you found in the codebase relevant to the request:
-   files, modules, existing patterns, and any constraints from this
-   AGENTS.md or the linked spec that bear on the approach.
-2. **References** — links to the relevant files/lines in this repo
-   (`path:line`), and to any external docs (library APIs, RFCs) that
-   justify the approach.
-3. **Code snippets** — illustrative, non-applied snippets showing the
-   suggested change (diff-style or fenced code blocks are fine). Do not
-   write these into the working tree — present them in your response only,
-   for a human to review and apply.
+AI-generated changes must be reviewed by a human developer before they are
+merged.
 
-If asked to run tests, lint, or other read-only/verification commands,
-that's fine — the restriction is on producing or persisting code changes,
-not on investigation. If a task is ambiguous about whether it wants an
-implementation or a recommendation, default to treating it as a request
-for research and a proposal, and say so explicitly rather than guessing.
+When implementing changes, agents must:
+
+1. Inspect the existing implementation and related modules before editing.
+2. Keep changes within the requested issue or task scope.
+3. Preserve the domain workflow, authorization rules, and tenant isolation.
+4. Follow the existing architecture and repository conventions.
+5. Add or update relevant tests when behavior changes.
+6. Run relevant type checks, linting, tests, migrations, and builds.
+7. Report changed files, assumptions, and verification results.
+8. Never weaken validation, authorization, lint rules, or tests merely to
+   make checks pass.
+9. Preserve unrelated changes already present in the working tree.
+
+Review, diagnosis, investigation, and status requests remain read-only unless
+the user also asks for implementation.
+
+Agents must not commit, push, merge, deploy, or perform destructive actions
+unless the user explicitly requests that action.
 
 ## Repository Structure
 

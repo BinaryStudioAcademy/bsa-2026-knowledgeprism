@@ -1,5 +1,11 @@
 import { UserValidationMessage } from "@knowledgeprism/constants";
-import React, { useCallback, useMemo } from "react";
+import React, {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import {
 	type Control,
 	type FieldValues,
@@ -7,8 +13,9 @@ import {
 	useController,
 } from "react-hook-form";
 
-import { Button, Input, Select, Toggle } from "~/components/components.js";
+import { Button, Icon, Input, Toggle } from "~/components/components.js";
 import { useFormController } from "~/hooks/hooks.js";
+import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 type AssignedProject = {
 	projectId: number;
@@ -34,6 +41,25 @@ type Properties<T extends FieldValues> = {
 	onSubmit: (event_: React.BaseSyntheticEvent) => void;
 };
 
+const EMPTY_LENGTH = 0;
+const FIRST_INDEX = 0;
+const INDEX_OFFSET = 1;
+const NEGATIVE_INDEX = -1;
+const CHEVRON_ICON_SIZE = 12;
+const CHECK_ICON_SIZE = 14;
+
+const ARROW_DOWN_KEY = "ArrowDown";
+const ARROW_UP_KEY = "ArrowUp";
+const ENTER_KEY = "Enter";
+const ESCAPE_KEY = "Escape";
+const SPACE_KEY = " ";
+const TAB_KEY = "Tab";
+
+const ROLE_OPTIONS = [
+	{ label: "Viewer", value: "VIEWER" },
+	{ label: "Editor", value: "EDITOR" },
+] as const;
+
 const UserForm = <T extends FieldValues>({
 	availableProjects = [],
 	control,
@@ -45,8 +71,6 @@ const UserForm = <T extends FieldValues>({
 	onCancel,
 	onSubmit,
 }: Properties<T>): React.JSX.Element => {
-	const EMPTY_LENGTH = 0;
-
 	const { field: activeField } = useFormController({
 		control,
 		name: "isActive" as Path<T>,
@@ -106,7 +130,23 @@ const UserForm = <T extends FieldValues>({
 	const hasAssignedProjects = assignedProjects.length > EMPTY_LENGTH;
 	const shouldShowProjectsSection = isReadOnly ? hasAssignedProjects : true;
 
+	const projectSectionDescription = (() => {
+		if (isAdmin) {
+			return "Admin for all projects in organizations";
+		}
+
+		if (isReadOnly) {
+			return "Projects you're assigned to and your role on each.";
+		}
+
+		return "Assign this user to projects and set their roles.";
+	})();
+
 	const renderProjectsContent = (): React.ReactNode => {
+		if (isAdmin) {
+			return null;
+		}
+
 		if (isReadOnly) {
 			return (
 				<>
@@ -164,7 +204,7 @@ const UserForm = <T extends FieldValues>({
 	};
 
 	return (
-		<form className="flex w-full flex-col gap-6" onSubmit={onSubmit}>
+		<form className="flex w-full flex-col gap-6 pb-8" onSubmit={onSubmit}>
 			<div className="flex flex-col gap-4">
 				<div className="flex flex-col gap-4 tablet:flex-row">
 					<Input
@@ -240,15 +280,14 @@ const UserForm = <T extends FieldValues>({
 						<div>
 							<div className="font-medium text-text">Project Assignment</div>
 							<div className="text-sm text-text-muted">
-								{isReadOnly
-									? "Projects you're assigned to and your role on each."
-									: "Assign this user to projects and set their roles."}
-								{/* NOTE: Projects are currently mocked. When GET /projects endpoint is implemented, this should consume actual project data. */}
+								{projectSectionDescription}
 							</div>
 						</div>
-						<div className="flex flex-col gap-4 pt-2">
-							{renderProjectsContent()}
-						</div>
+						{!isAdmin && (
+							<div className="flex flex-col gap-4 pt-2">
+								{renderProjectsContent()}
+							</div>
+						)}
 					</div>
 				)}
 			</div>
@@ -257,7 +296,7 @@ const UserForm = <T extends FieldValues>({
 				<div className="text-sm font-medium text-error">{errorMessage}</div>
 			)}
 
-			<div className="flex justify-end gap-3 border-t border-border pt-6">
+			<div className="flex justify-end gap-3 border-t border-border pt-6 pb-2">
 				<Button
 					disabled={isLoading}
 					onClick={onCancel}
@@ -271,6 +310,223 @@ const UserForm = <T extends FieldValues>({
 				</Button>
 			</div>
 		</form>
+	);
+};
+
+type RoleOptionItemProperties = {
+	id?: string;
+	isFocused: boolean;
+	isSelected: boolean;
+	label: string;
+	onSelect: (newRole: ProjectRole) => void;
+	value: ProjectRole;
+};
+
+type RoleSelectProperties = {
+	onChange: (newRole: ProjectRole) => void;
+	value: ProjectRole;
+};
+
+const RoleOptionItem = ({
+	id,
+	isFocused,
+	isSelected,
+	label,
+	onSelect,
+	value,
+}: RoleOptionItemProperties): React.JSX.Element => {
+	const buttonReference = useRef<HTMLButtonElement>(null);
+
+	useEffect(() => {
+		if (isFocused) {
+			buttonReference.current?.focus();
+		}
+	}, [isFocused]);
+
+	const handleClick = useCallback((): void => {
+		onSelect(value);
+	}, [onSelect, value]);
+
+	return (
+		<button
+			aria-selected={isSelected}
+			className={getValidClassNames(
+				"dropdown-item flex w-full cursor-pointer items-center justify-between text-left",
+				isSelected && "font-medium text-accent",
+				isFocused && "bg-bg-subtle",
+			)}
+			id={id}
+			onClick={handleClick}
+			ref={buttonReference}
+			role="option"
+			type="button"
+		>
+			<span>{label}</span>
+			{isSelected && <Icon name="checkbox-tick" size={CHECK_ICON_SIZE} />}
+		</button>
+	);
+};
+
+const RoleSelect = ({
+	onChange,
+	value,
+}: RoleSelectProperties): React.JSX.Element => {
+	const [isOpen, setIsOpen] = useState(false);
+	const [focusedIndex, setFocusedIndex] = useState<number>(NEGATIVE_INDEX);
+
+	const containerReference = useRef<HTMLDivElement>(null);
+	const triggerReference = useRef<HTMLButtonElement>(null);
+
+	const handleClose = useCallback((): void => {
+		setIsOpen(false);
+		setFocusedIndex(NEGATIVE_INDEX);
+	}, []);
+
+	const handleToggle = useCallback((): void => {
+		setIsOpen((previous) => {
+			if (!previous) {
+				const selectedIndex = ROLE_OPTIONS.findIndex(
+					(option) => option.value === value,
+				);
+				setFocusedIndex(Math.max(selectedIndex, FIRST_INDEX));
+			}
+
+			return !previous;
+		});
+	}, [value]);
+
+	const handleDismiss = useCallback((): void => {
+		handleClose();
+		triggerReference.current?.focus();
+	}, [handleClose]);
+
+	const handleSelectOption = useCallback(
+		(newRole: ProjectRole): void => {
+			onChange(newRole);
+			handleDismiss();
+		},
+		[onChange, handleDismiss],
+	);
+
+	useEffect(() => {
+		if (!isOpen) {
+			return;
+		}
+
+		const handleClickOutside = (event: MouseEvent | TouchEvent): void => {
+			if (
+				containerReference.current &&
+				!containerReference.current.contains(event.target as Node)
+			) {
+				handleClose();
+			}
+		};
+
+		const handleKeyDown = (event: KeyboardEvent): void => {
+			switch (event.key) {
+				case ARROW_DOWN_KEY: {
+					event.preventDefault();
+					setFocusedIndex((previous) =>
+						previous < ROLE_OPTIONS.length - INDEX_OFFSET
+							? previous + INDEX_OFFSET
+							: FIRST_INDEX,
+					);
+					break;
+				}
+				case ARROW_UP_KEY: {
+					event.preventDefault();
+					setFocusedIndex(
+						(previous) =>
+							(previous > FIRST_INDEX ? previous : ROLE_OPTIONS.length) -
+							INDEX_OFFSET,
+					);
+					break;
+				}
+				case ENTER_KEY:
+				case SPACE_KEY: {
+					event.preventDefault();
+					if (
+						focusedIndex >= FIRST_INDEX &&
+						focusedIndex < ROLE_OPTIONS.length
+					) {
+						const selected = ROLE_OPTIONS[focusedIndex];
+						if (selected) {
+							handleSelectOption(selected.value);
+						}
+					}
+					break;
+				}
+				case ESCAPE_KEY:
+				case TAB_KEY: {
+					handleDismiss();
+					break;
+				}
+				default: {
+					break;
+				}
+			}
+		};
+
+		document.addEventListener("mousedown", handleClickOutside);
+		document.addEventListener("touchstart", handleClickOutside);
+		document.addEventListener("keydown", handleKeyDown);
+
+		return (): void => {
+			document.removeEventListener("mousedown", handleClickOutside);
+			document.removeEventListener("touchstart", handleClickOutside);
+			document.removeEventListener("keydown", handleKeyDown);
+		};
+	}, [isOpen, focusedIndex, handleClose, handleDismiss, handleSelectOption]);
+
+	const activeOption = ROLE_OPTIONS.find((option) => option.value === value);
+
+	return (
+		<div className="relative w-full" ref={containerReference}>
+			<Button
+				aria-expanded={isOpen}
+				aria-haspopup="listbox"
+				className="w-full cursor-pointer justify-between"
+				onClick={handleToggle}
+				ref={triggerReference}
+				type="button"
+				variant="secondary"
+			>
+				<span>{activeOption?.label ?? value}</span>
+				<span
+					className={getValidClassNames(
+						"ml-2 transition-transform duration-200",
+						isOpen && "rotate-180",
+					)}
+				>
+					<Icon name="chevron-down" size={CHEVRON_ICON_SIZE} />
+				</span>
+			</Button>
+
+			{isOpen && (
+				<div
+					aria-activedescendant={
+						focusedIndex >= FIRST_INDEX
+							? `role-option-${String(focusedIndex)}`
+							: undefined
+					}
+					className="dropdown-menu absolute inset-x-0 top-full z-50 mt-1 w-full min-w-full"
+					role="listbox"
+					tabIndex={0}
+				>
+					{ROLE_OPTIONS.map((option, index) => (
+						<RoleOptionItem
+							id={`role-option-${String(index)}`}
+							isFocused={focusedIndex === index}
+							isSelected={option.value === value}
+							key={option.value}
+							label={option.label}
+							onSelect={handleSelectOption}
+							value={option.value}
+						/>
+					))}
+				</div>
+			)}
+		</div>
 	);
 };
 
@@ -310,27 +566,20 @@ const ProjectListItem = ({
 	);
 
 	return (
-		<div className="flex flex-col gap-2 tablet:flex-row tablet:items-center tablet:justify-between">
-			<label className="flex items-center gap-2 font-medium text-text">
+		<div className="flex items-center justify-between gap-3">
+			<label className="flex min-w-0 items-center gap-2 font-medium text-text">
 				<input
 					checked={isAssigned}
-					className="size-4.5 rounded border-border accent-accent"
+					className="size-4.5 shrink-0 rounded border-border accent-accent"
 					onChange={handleToggle}
 					type="checkbox"
 				/>
-				{project.name}
+				<span className="truncate">{project.name}</span>
 			</label>
 
 			{isAssigned && (
-				<div className="w-full tablet:w-40">
-					<Select
-						onChange={handleRoleChange}
-						options={[
-							{ label: "Viewer", value: "VIEWER" },
-							{ label: "Editor", value: "EDITOR" },
-						]}
-						value={role}
-					/>
+				<div className="w-32 shrink-0">
+					<RoleSelect onChange={handleRoleChange} value={role} />
 				</div>
 			)}
 		</div>

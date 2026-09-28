@@ -11,6 +11,7 @@ const config: KnipConfig = {
 			entry: [
 				"src/infrastructure/bedrock/bedrock.ts",
 				"src/infrastructure/database/migrations/*.ts",
+				"src/**/*.test.ts",
 			],
 		},
 		"apps/web": {
