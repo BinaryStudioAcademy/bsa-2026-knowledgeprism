@@ -13,6 +13,7 @@ import {
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,
+	searchKnowledgeEntries,
 	submitManualText,
 	updateKnowledgeEntry,
 } from "./actions.js";
@@ -21,13 +22,16 @@ type State = KnowledgeState;
 
 const initialState: State = {
 	activeDocumentId: null,
+	contentSearchRequestId: null,
 	errorMessage: null,
 	integrationPreviewError: null,
 	integrationPreviewSections: [],
 	isAddingKnowledge: false,
 	isEntryLoading: false,
 	isIntegrationPreviewLoading: false,
+	isSearchingContent: false,
 	isTreeLoading: false,
+	matchedContentEntryIds: [],
 	processingStatus: DocumentProcessingStatus.IDLE,
 	selectedEntry: null,
 	selectedFiles: [],
@@ -157,6 +161,9 @@ const { actions, name, reducer } = createSlice({
 			state.errorMessage = null;
 			state.tree = [];
 			state.selectedEntry = null;
+			state.matchedContentEntryIds = [];
+			state.contentSearchRequestId = null;
+			state.isSearchingContent = false;
 		});
 		builder.addCase(fetchKnowledgeTree.fulfilled, (state, action) => {
 			state.isTreeLoading = false;
@@ -198,10 +205,34 @@ const { actions, name, reducer } = createSlice({
 			state.errorMessage =
 				action.error.message ?? "Failed to update knowledge entry";
 		});
+		builder.addCase(searchKnowledgeEntries.pending, (state, action) => {
+			state.contentSearchRequestId = action.meta.requestId;
+			state.isSearchingContent = true;
+		});
+		builder.addCase(searchKnowledgeEntries.fulfilled, (state, action) => {
+			if (state.contentSearchRequestId !== action.meta.requestId) {
+				return;
+			}
+			state.isSearchingContent = false;
+			state.matchedContentEntryIds = action.payload.items.map(
+				(item) => item.id,
+			);
+		});
+		builder.addCase(searchKnowledgeEntries.rejected, (state, action) => {
+			if (state.contentSearchRequestId !== action.meta.requestId) {
+				return;
+			}
+			state.isSearchingContent = false;
+		});
 	},
 	initialState,
 	name: "knowledge",
 	reducers: {
+		clearContentSearch(state) {
+			state.contentSearchRequestId = null;
+			state.isSearchingContent = false;
+			state.matchedContentEntryIds = [];
+		},
 		clearError(state) {
 			state.errorMessage = null;
 		},

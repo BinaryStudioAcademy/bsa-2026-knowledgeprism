@@ -1,4 +1,4 @@
-import { DocumentStatus } from "@knowledgeprism/constants";
+import { DocumentStatus, HTTPCode } from "@knowledgeprism/constants";
 import {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentStatusResponseDto,
@@ -6,12 +6,14 @@ import {
 	type IntegrationChangesResponseDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeSearchResponseDto,
 	type KnowledgeTreeResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
 } from "@knowledgeprism/types";
 import { createAsyncThunk } from "@reduxjs/toolkit";
 
+import { HTTPError } from "~/lib/http/http.js";
 import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 import { type AsyncThunkConfig } from "~/lib/types/types.js";
 
@@ -52,6 +54,11 @@ type ProcessDocumentRejection = {
 	documentId?: number | undefined;
 	message: string;
 	uploadUrl?: string | undefined;
+};
+
+type SearchKnowledgeEntriesPayload = {
+	projectId: string;
+	query: string;
 };
 
 type SubmitManualTextPayload = {
@@ -175,6 +182,34 @@ const fetchKnowledgeTree = createAsyncThunk<
 	});
 });
 
+const isUnauthorizedError = (error: unknown): error is HTTPError => {
+	return error instanceof HTTPError && error.status === HTTPCode.UNAUTHORIZED;
+};
+
+const searchKnowledgeEntries = createAsyncThunk<
+	KnowledgeSearchResponseDto,
+	SearchKnowledgeEntriesPayload,
+	AsyncThunkConfig
+>(
+	`${sliceName}/search-knowledge-entries`,
+	async ({ projectId, query }, { extra }) => {
+		const { knowledgeApi } = extra;
+
+		try {
+			return await knowledgeApi.search({ projectId, query });
+		} catch (error: unknown) {
+			// A failed background search should not disrupt the tree; fail open to "no
+			// content matches" (the title-only client filter still applies), except when the
+			// user's session is gone — then let the global error middleware log them out.
+			if (isUnauthorizedError(error)) {
+				throw error;
+			}
+
+			return { items: [] };
+		}
+	},
+);
+
 const applyIntegrationChanges = createAppAsyncThunk<
 	DocumentStatusResponseDto,
 	ApplyIntegrationChangesPayload
@@ -245,6 +280,7 @@ export {
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,
+	searchKnowledgeEntries,
 	submitManualText,
 	updateKnowledgeEntry,
 };

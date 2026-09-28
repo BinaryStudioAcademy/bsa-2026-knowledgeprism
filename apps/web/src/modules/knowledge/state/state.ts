@@ -5,6 +5,7 @@ import {
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,
+	searchKnowledgeEntries,
 	submitManualText,
 	updateKnowledgeEntry,
 } from "./actions.js";
@@ -18,6 +19,7 @@ const allActions = {
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	processDocument,
+	searchKnowledgeEntries,
 	submitManualText,
 	updateKnowledgeEntry,
 };

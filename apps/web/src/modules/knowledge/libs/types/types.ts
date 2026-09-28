@@ -43,13 +43,16 @@ interface KbEntry {
 
 type KnowledgeState = {
 	activeDocumentId: null | number;
+	contentSearchRequestId: null | string;
 	errorMessage: null | string;
 	integrationPreviewError: null | string;
 	integrationPreviewSections: ProposedSection[];
 	isAddingKnowledge: boolean;
 	isEntryLoading: boolean;
 	isIntegrationPreviewLoading: boolean;
+	isSearchingContent: boolean;
 	isTreeLoading: boolean;
+	matchedContentEntryIds: number[];
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
 	selectedEntry: KnowledgeEntryResponseDto | null;
 	selectedFiles: UploadedDocumentItem[];
