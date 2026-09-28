@@ -10,6 +10,7 @@ import {
 	render,
 	screen,
 	waitFor,
+	within,
 } from "@testing-library/react";
 import { type JSX, type ReactElement } from "react";
 import { Provider } from "react-redux";
@@ -24,6 +25,16 @@ import { type ProposedSection } from "../../libs/types/types.js";
 import { actions } from "../../state/knowledge.slice.js";
 import { LoadingState } from "../loading-state/loading-state.js";
 import { IntegrationPreview } from "./integration-preview.js";
+import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consistency-check.hook.js";
+
+vi.mock("./libs/hooks/use-glossary-consistency-check.hook.js", () => ({
+	useGlossaryConsistencyCheck: vi.fn(() => ({
+		glossaryMatches: [],
+		isCheckingGlossary: false,
+		onAcceptGlossarySuggestion: vi.fn(),
+		onKeepGlossarySuggestion: vi.fn(),
+	})),
+}));
 
 const TEST_PROJECT_ID = "project-a";
 
@@ -60,6 +71,12 @@ describe("IntegrationPreview extraction review", () => {
 		store.instance.dispatch(
 			workspacesActions.setLastActiveProject(TEST_PROJECT_ID),
 		);
+		vi.mocked(useGlossaryConsistencyCheck).mockReturnValue({
+			glossaryMatches: [],
+			isCheckingGlossary: false,
+			onAcceptGlossarySuggestion: vi.fn(),
+			onKeepGlossarySuggestion: vi.fn(),
+		});
 	});
 
 	afterEach(() => {
@@ -105,6 +122,50 @@ describe("IntegrationPreview extraction review", () => {
 		);
 
 		expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
+	});
+
+	it("dismisses a glossary suggestion and enters edit mode when its Edit action is used", () => {
+		const handleKeep = vi.fn();
+		const match = {
+			canonicalName: "API",
+			explanation: "Spells out the canonical term instead of using it.",
+			matchedTermId: 1,
+			sourceExcerpt: "application programming interface",
+			suggestedText: "API",
+		};
+		vi.mocked(useGlossaryConsistencyCheck).mockReturnValue({
+			glossaryMatches: [match],
+			isCheckingGlossary: false,
+			onAcceptGlossarySuggestion: vi.fn(),
+			onKeepGlossarySuggestion: handleKeep,
+		});
+
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onClose={vi.fn()}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					createExtractionItem(),
+				])}
+				variant="extraction-validation"
+			/>,
+		);
+
+		const suggestionPanel = screen
+			.getByText("Glossary suggestions (1)")
+			.closest("div")?.parentElement;
+
+		if (!suggestionPanel) {
+			throw new Error("Glossary suggestions panel not found");
+		}
+
+		fireEvent.click(
+			within(suggestionPanel).getByRole("button", { name: "Edit" }),
+		);
+
+		expect(handleKeep).toHaveBeenCalledWith(match);
+		expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
 	});
 
 	it("disables Back, Edit, and structure navigation while approval is applying", async () => {

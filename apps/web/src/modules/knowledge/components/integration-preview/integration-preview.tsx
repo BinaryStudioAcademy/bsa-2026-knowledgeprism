@@ -5,6 +5,7 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
+import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
 import {
 	type ChangeEvent,
 	type JSX,
@@ -84,6 +85,7 @@ type SectionDetailsProperties = {
 	isInteractionDisabled: boolean;
 	isTitleEmpty: boolean;
 	onContentChange: (content: string) => void;
+	onEnterEdit: () => void;
 	onPageTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
 	onRejectItem?: (() => void) | undefined;
 	onTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -577,6 +579,7 @@ const SectionDetails = ({
 	isInteractionDisabled,
 	isTitleEmpty,
 	onContentChange,
+	onEnterEdit,
 	onPageTitleChange,
 	onRejectItem,
 	onTitleChange,
@@ -594,6 +597,17 @@ const SectionDetails = ({
 		content: isParentSelected ? "" : (activeSection?.content ?? ""),
 		onContentChange,
 	});
+
+	// "Edit" on a suggestion means the reviewer wants to fix it themselves instead of
+	// taking the AI's replacement: dismiss it like Keep, then drop into edit mode so the
+	// content becomes directly editable.
+	const handleEditGlossarySuggestion = useCallback(
+		(match: GlossaryConsistencyMatchDto): void => {
+			handleKeepGlossarySuggestion(match);
+			onEnterEdit();
+		},
+		[handleKeepGlossarySuggestion, onEnterEdit],
+	);
 
 	if (!selectedNode) {
 		return (
@@ -753,6 +767,7 @@ const SectionDetails = ({
 						isChecking={isCheckingGlossary}
 						matches={glossaryMatches}
 						onAccept={handleAcceptGlossarySuggestion}
+						onEdit={handleEditGlossarySuggestion}
 						onKeep={handleKeepGlossarySuggestion}
 					/>
 				</div>
@@ -1169,6 +1184,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					isInteractionDisabled={isApplying}
 					isTitleEmpty={isTitleEmpty}
 					onContentChange={handleSectionContentChange}
+					onEnterEdit={handleEnterEdit}
 					onPageTitleChange={handlePageTitleChange}
 					onRejectItem={handleRejectItem}
 					onTitleChange={handleSectionTitleChange}

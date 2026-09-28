@@ -15,17 +15,23 @@ const EMPTY_LENGTH = 0;
 type GlossarySuggestionRowProperties = {
 	match: GlossaryConsistencyMatchDto;
 	onAccept: (match: GlossaryConsistencyMatchDto) => void;
+	onEdit: (match: GlossaryConsistencyMatchDto) => void;
 	onKeep: (match: GlossaryConsistencyMatchDto) => void;
 };
 
 const GlossarySuggestionRow = ({
 	match,
 	onAccept,
+	onEdit,
 	onKeep,
 }: GlossarySuggestionRowProperties): JSX.Element => {
 	const handleAccept = useCallback(() => {
 		onAccept(match);
 	}, [match, onAccept]);
+
+	const handleEdit = useCallback(() => {
+		onEdit(match);
+	}, [match, onEdit]);
 
 	const handleKeep = useCallback(() => {
 		onKeep(match);
@@ -59,6 +65,13 @@ const GlossarySuggestionRow = ({
 				</Button>
 				<Button
 					className="px-3 py-1 text-xs"
+					onClick={handleEdit}
+					variant="ghost"
+				>
+					Edit
+				</Button>
+				<Button
+					className="px-3 py-1 text-xs"
 					onClick={handleAccept}
 					variant="secondary"
 				>
@@ -73,6 +86,7 @@ type GlossarySuggestionsProperties = {
 	isChecking: boolean;
 	matches: GlossaryConsistencyMatchDto[];
 	onAccept: (match: GlossaryConsistencyMatchDto) => void;
+	onEdit: (match: GlossaryConsistencyMatchDto) => void;
 	onKeep: (match: GlossaryConsistencyMatchDto) => void;
 };
 
@@ -80,6 +94,7 @@ const GlossarySuggestions = ({
 	isChecking,
 	matches,
 	onAccept,
+	onEdit,
 	onKeep,
 }: GlossarySuggestionsProperties): JSX.Element | null => {
 	if (isChecking) {
@@ -107,6 +122,7 @@ const GlossarySuggestions = ({
 					key={`${match.matchedTermId.toString()}-${match.sourceExcerpt}`}
 					match={match}
 					onAccept={onAccept}
+					onEdit={onEdit}
 					onKeep={onKeep}
 				/>
 			))}
