@@ -1,4 +1,5 @@
 export {
+	DocumentContentType,
 	DocumentErrorMessage,
 	DocumentsApiPath,
 	DocumentSourceType,

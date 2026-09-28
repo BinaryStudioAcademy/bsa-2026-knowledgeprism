@@ -29,10 +29,13 @@ const analyze = async <T>(
 		return createAutoNewResult();
 	}
 
-	const queryVectors = await embed([itemText], EmbeddingInputType.SEARCH_QUERY);
-	const queryVector = queryVectors[FIRST_VECTOR_INDEX];
+	const itemVectors = await embed(
+		[itemText],
+		EmbeddingInputType.SEARCH_DOCUMENT,
+	);
+	const itemVector = itemVectors[FIRST_VECTOR_INDEX];
 
-	if (queryVector === undefined) {
+	if (itemVector === undefined) {
 		throw new Error(
 			"Embedding service returned no vector for the knowledge item",
 		);
@@ -40,7 +43,7 @@ const analyze = async <T>(
 
 	const matches = search({
 		candidates,
-		queryVector,
+		queryVector: itemVector,
 	});
 	const relevant = filterRelevantMatches(matches);
 

@@ -1,14 +1,17 @@
 import { UserStatus } from "@knowledgeprism/constants";
 import { type ProjectAssignmentDto } from "@knowledgeprism/types";
-import { type Transaction } from "objection";
+import { raw, type Transaction } from "objection";
 
 import { DatabaseTableName } from "~/infrastructure/database/database.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { ProjectMemberModel } from "~/modules/projects/models/project-member.model.js";
 import { ProjectModel } from "~/modules/projects/models/project.model.js";
+import { normalizeEmail } from "~/modules/users/libs/helpers/helpers.js";
 import { UserEntity } from "~/modules/users/models/user.entity.js";
 import { type UserModel } from "~/modules/users/models/user.model.js";
 import { type Repository } from "~/shared/types/types.js";
+
+const LOWERCASE_EMAIL_SQL = "lower(email)";
 
 type UserDatabaseRow = {
 	email: string;
@@ -191,7 +194,7 @@ class UserRepository implements Repository {
 	): Promise<null | UserEntity> {
 		const user = await this.userModel
 			.query(transaction)
-			.findOne({ email })
+			.findOne(raw(LOWERCASE_EMAIL_SQL), normalizeEmail(email))
 			.withGraphFetched("projectMembers")
 			.execute();
 
