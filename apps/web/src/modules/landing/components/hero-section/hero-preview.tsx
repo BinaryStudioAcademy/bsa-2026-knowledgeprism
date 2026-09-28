@@ -1,64 +1,79 @@
+import { Icon } from "~/components/icon/icon.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { LANDING_FLEX_COLUMN_CLASS } from "~/modules/landing/libs/constants.js";
 
-import { HERO_DEMO_PANEL } from "./libs/constants.js";
+import {
+	HERO_AVATAR_ICON_SIZE,
+	HERO_DEMO_PANEL,
+	HERO_PREVIEW_ICON_SIZE,
+	HERO_SOURCE_ICON_SIZE,
+	HERO_TREE_SECTIONS,
+} from "./libs/constants.js";
+
+const EMPTY_LENGTH = 0;
 
 const HeroPreview: React.FC = () => (
 	<div
 		className={getValidClassNames(
 			LANDING_FLEX_COLUMN_CLASS,
-			"flex justify-center mobile:min-w-[340px]",
+			"mobile:min-w-[320px]",
 		)}
 	>
-		<div className="w-full max-w-[440px] overflow-hidden rounded-[14px] border border-border bg-surface shadow-[0_20px_48px_rgba(45,42,38,0.12)]">
-			<div className="flex items-center justify-between border-b border-border-subtle px-[18px] py-3.5">
-				<span className="text-[12.5px] text-text-muted">
-					{HERO_DEMO_PANEL.BREADCRUMB}
-				</span>
-				<span className="flex items-center gap-1.5 text-[11.5px] text-accent">
-					<span className="inline-block size-1.5 rounded-full bg-accent" />
-					{HERO_DEMO_PANEL.BADGE}
-				</span>
+		<div className="relative ml-auto w-full max-w-[460px] overflow-hidden rounded-xl border border-border bg-surface">
+			<div className="border-b border-border-subtle px-4 py-3 text-[12.5px] font-medium">
+				{HERO_DEMO_PANEL.TITLE}
+			</div>
+			<div className="flex flex-col gap-1.5 px-4 py-3 pb-52">
+				{HERO_TREE_SECTIONS.map((section) => (
+					<div key={section.title}>
+						<div className="flex items-center gap-2 text-[13px] text-text-muted">
+							<Icon name="folder" size={HERO_PREVIEW_ICON_SIZE} />
+							{section.title}
+						</div>
+						{section.pages.length > EMPTY_LENGTH && (
+							<div className="mt-1 flex flex-col gap-1 pl-5">
+								{section.pages.map((page) => (
+									<div
+										className={getValidClassNames(
+											"rounded-md px-2 py-1.5 text-[13px]",
+											section.selectedPage === page
+												? "bg-border-subtle font-medium text-text"
+												: "text-text-muted",
+										)}
+										key={`${section.title}-${page}`}
+									>
+										{page}
+									</div>
+								))}
+							</div>
+						)}
+					</div>
+				))}
 			</div>
 
-			<div className="px-[18px] py-5">
-				<p className="mb-3.5 font-serif text-[19px] font-normal text-text">
-					{HERO_DEMO_PANEL.TITLE}
+			<div className="absolute right-3 bottom-3 w-[min(calc(100%-1.5rem),280px)] rounded-xl border border-border bg-surface p-2.5">
+				<p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.08em] text-text-faint">
+					Ask Prism
 				</p>
-
-				<div className="mb-[18px] flex gap-2.5">
-					<div className="flex-1 rounded-lg border border-border bg-bg px-3 py-2.5">
-						<p className="text-[9.5px] font-medium uppercase text-text-faint">
-							{HERO_DEMO_PANEL.STAT_LEFT.LABEL}
-						</p>
-						<p className="mt-0.5 text-[13.5px] font-medium text-text">
-							{HERO_DEMO_PANEL.STAT_LEFT.VALUE}
-						</p>
-					</div>
-					<div className="flex-1 rounded-lg border border-border bg-bg px-3 py-2.5">
-						<p className="text-[9.5px] font-medium uppercase text-text-faint">
-							{HERO_DEMO_PANEL.STAT_RIGHT.LABEL}
-						</p>
-						<p className="mt-0.5 text-[13.5px] font-medium text-text">
-							{HERO_DEMO_PANEL.STAT_RIGHT.VALUE}
-						</p>
-					</div>
+				<div className="mb-2 flex justify-end">
+					<span className="max-w-[95%] rounded-[10px_10px_3px_10px] bg-primary px-2 py-1.5 text-[10.5px] leading-[1.4] text-primary-fg">
+						{HERO_DEMO_PANEL.QUESTION}
+					</span>
 				</div>
-
-				<div className="border-t border-border-subtle pt-4">
-					<div className="mb-2.5 flex justify-end">
-						<span className="max-w-[78%] rounded-[12px_12px_3px_12px] bg-primary px-[13px] py-2 text-[12.5px] text-primary-fg">
-							{HERO_DEMO_PANEL.QUESTION}
-						</span>
-					</div>
-					<div className="flex gap-2">
-						<span className="size-5 shrink-0 rounded-md bg-accent" />
-						<p className="text-[12.5px] leading-[1.5] text-text">
-							{HERO_DEMO_PANEL.ANSWER}{" "}
-							<span className="inline-flex rounded-full bg-success-bg px-1.5 py-0.5 text-[10.5px] font-medium text-accent">
-								{HERO_DEMO_PANEL.TAG}
-							</span>
+				<div className="flex gap-1.5">
+					<span className="flex size-[18px] shrink-0 items-center justify-center rounded-md bg-accent text-white">
+						<Icon name="prism" size={HERO_AVATAR_ICON_SIZE} />
+					</span>
+					<div className="min-w-0">
+						<p className="text-[10.5px] leading-[1.45] text-text">
+							{HERO_DEMO_PANEL.ANSWER}
 						</p>
+						<span className="mt-1.5 inline-flex max-w-full flex-wrap items-center gap-1 rounded-full border border-accent/20 bg-success-bg px-1.5 py-0.5 text-[10px] font-medium text-accent">
+							<Icon name="file" size={HERO_SOURCE_ICON_SIZE} />
+							<span>{HERO_DEMO_PANEL.SOURCE_TITLE}</span>
+							<span className="opacity-60">·</span>
+							<span>{HERO_DEMO_PANEL.SOURCE_SECTION}</span>
+						</span>
 					</div>
 				</div>
 			</div>
