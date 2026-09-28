@@ -1058,6 +1058,7 @@ const { actions, name, reducer } = createSlice({
 			state.integrationPreviewSections = [];
 			state.isAddingKnowledge = false;
 			state.isIntegrationPreviewLoading = false;
+			state.isTreeLoading = false;
 			state.knowledgeErrorMessage = null;
 			state.pendingReviewRequestId = null;
 			state.pipelineErrors = {};
