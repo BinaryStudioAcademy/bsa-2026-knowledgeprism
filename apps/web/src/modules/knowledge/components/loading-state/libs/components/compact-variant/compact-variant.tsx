@@ -1,5 +1,5 @@
 import { DocumentStatus } from "@knowledgeprism/constants";
-import { type JSX, useEffect, useState } from "react";
+import { type JSX, type ReactNode, useEffect, useState } from "react";
 
 import {
 	Button,
@@ -36,6 +36,42 @@ const getCompactStatusText = (
 	}
 };
 
+type DelayedPreviewProperties = {
+	children: ReactNode;
+	onPreview?: (() => void) | undefined;
+};
+
+const DelayedPreview = ({
+	children,
+	onPreview,
+}: DelayedPreviewProperties): JSX.Element => {
+	const [isReadyToPreview, setIsReadyToPreview] = useState(false);
+
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			setIsReadyToPreview(true);
+		}, LOADING_FINISH_DELAY_MS);
+
+		return () => {
+			clearTimeout(timer);
+		};
+	}, []);
+
+	if (!isReadyToPreview) {
+		return <>{children}</>;
+	}
+
+	return (
+		<Button
+			className="w-full sm:w-fit sm:self-end"
+			onClick={onPreview}
+			variant="accent"
+		>
+			Preview is ready
+		</Button>
+	);
+};
+
 const CompactVariant = ({
 	currentStatus,
 	isError,
@@ -47,97 +83,68 @@ const CompactVariant = ({
 	const isReady =
 		currentStatus === DocumentStatus.WAITING_FOR_VALIDATION ||
 		currentStatus === DocumentStatus.WAITING_FOR_APPROVAL;
-	const [previousIsReady, setPreviousIsReady] = useState<boolean>(isReady);
-	const [showButton, setShowButton] = useState<boolean>(false);
+	const progressContent = (
+		<div className="mb-1 flex w-full flex-col gap-1 @5xl:pr-6">
+			<div className="flex min-h-7 items-center justify-between">
+				{isError ? (
+					<Paragraph
+						className="font-medium text-error"
+						size={ParagraphSize.BODY_SMALL}
+					>
+						Processing failed
+					</Paragraph>
+				) : (
+					<>
+						<Paragraph size={ParagraphSize.BODY_SMALL}>
+							{getCompactStatusText(currentStatus)}
+						</Paragraph>
+						<Paragraph size={ParagraphSize.BODY_SMALL}>{percentage}%</Paragraph>
+					</>
+				)}
 
-	if (isReady !== previousIsReady) {
-		setPreviousIsReady(isReady);
-		setShowButton(false);
-	}
-
-	useEffect(() => {
-		if (!isReady) {
-			return;
-		}
-
-		const timer = setTimeout(() => {
-			setShowButton(true);
-		}, LOADING_FINISH_DELAY_MS);
-
-		return () => {
-			clearTimeout(timer);
-		};
-	}, [isReady]);
+				{isError && (
+					<div className="flex items-center gap-2">
+						<Button
+							aria-label="Retry"
+							className="size-7 p-0"
+							onClick={onRetry}
+							variant="icon"
+						>
+							<Icon name="refresh" size={14} />
+						</Button>
+						<Button
+							aria-label="Cancel"
+							className="size-7 p-0"
+							onClick={onCancel}
+							variant="icon"
+						>
+							<Icon name="close" size={14} />
+						</Button>
+					</div>
+				)}
+			</div>
+			<div className="h-1.5 w-full overflow-hidden rounded-full bg-border-subtle">
+				<div
+					className={getValidClassNames("h-full transition-all duration-300", {
+						"bg-accent": !isError,
+						"bg-error": isError,
+					})}
+					style={{
+						width: `${String(isError ? FULL_PERCENTAGE : percentage)}%`,
+					}}
+				/>
+			</div>
+		</div>
+	);
 
 	return (
 		<div className="flex w-full min-w-65 flex-col">
-			{!showButton && (
-				<div className="mb-1 flex w-full flex-col gap-1 @5xl:pr-6">
-					<div className="flex min-h-7 items-center justify-between">
-						{isError ? (
-							<Paragraph
-								className="font-medium text-error"
-								size={ParagraphSize.BODY_SMALL}
-							>
-								Processing failed
-							</Paragraph>
-						) : (
-							<>
-								<Paragraph size={ParagraphSize.BODY_SMALL}>
-									{getCompactStatusText(currentStatus)}
-								</Paragraph>
-								<Paragraph size={ParagraphSize.BODY_SMALL}>
-									{percentage}%
-								</Paragraph>
-							</>
-						)}
-
-						{isError && (
-							<div className="flex items-center gap-2">
-								<Button
-									aria-label="Retry"
-									className="size-7 p-0"
-									onClick={onRetry}
-									variant="icon"
-								>
-									<Icon name="refresh" size={14} />
-								</Button>
-								<Button
-									aria-label="Cancel"
-									className="size-7 p-0"
-									onClick={onCancel}
-									variant="icon"
-								>
-									<Icon name="close" size={14} />
-								</Button>
-							</div>
-						)}
-					</div>
-					<div className="h-1.5 w-full overflow-hidden rounded-full bg-border-subtle">
-						<div
-							className={getValidClassNames(
-								"h-full transition-all duration-300",
-								{
-									"bg-accent": !isError,
-									"bg-error": isError,
-								},
-							)}
-							style={{
-								width: `${String(isError ? FULL_PERCENTAGE : percentage)}%`,
-							}}
-						/>
-					</div>
-				</div>
-			)}
-
-			{showButton && (
-				<Button
-					className="w-full sm:w-fit sm:self-end"
-					onClick={onPreview}
-					variant="accent"
-				>
-					Preview is ready
-				</Button>
+			{isReady && !isError ? (
+				<DelayedPreview key={currentStatus} onPreview={onPreview}>
+					{progressContent}
+				</DelayedPreview>
+			) : (
+				progressContent
 			)}
 		</div>
 	);

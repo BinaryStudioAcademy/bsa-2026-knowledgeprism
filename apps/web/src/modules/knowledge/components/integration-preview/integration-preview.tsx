@@ -48,8 +48,10 @@ type EditorBlock = Block<BlockSchemaFromSpecs<BlockSpecs>>;
 
 type PreviewFooterProperties = {
 	approveLabel: string;
+	canEdit: boolean;
 	canSubmitReview: boolean;
 	hasContent: boolean;
+	isApplying: boolean;
 	isEditInvalid: boolean;
 	isEditMode: boolean;
 	onApprove: () => void;
@@ -73,6 +75,7 @@ type SectionDetailsProperties = {
 	activeSection: ProposedPage | undefined;
 	isContentEmpty: boolean;
 	isEditMode: boolean;
+	isInteractionDisabled: boolean;
 	isTitleEmpty: boolean;
 	onContentChange: (content: string) => void;
 	onPageTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -85,6 +88,7 @@ type StructureAsideProperties = {
 	activeNodeType: ActiveNodeType;
 	activePageIndex: number;
 	activeSectionIndex: number;
+	isInteractionDisabled: boolean;
 	onSelectPage: (event: MouseEvent<HTMLButtonElement>) => void;
 	onSelectSection: (event: MouseEvent<HTMLButtonElement>) => void;
 	pages: ProposedSection[];
@@ -458,6 +462,7 @@ const StructureAside = ({
 	activeNodeType,
 	activePageIndex,
 	activeSectionIndex,
+	isInteractionDisabled,
 	onSelectPage,
 	onSelectSection,
 	pages,
@@ -482,6 +487,7 @@ const StructureAside = ({
 									: "text-text hover:bg-secondary",
 							)}
 							data-page-index={pageIndex}
+							disabled={isInteractionDisabled}
 							onClick={onSelectPage}
 							type="button"
 						>
@@ -524,6 +530,7 @@ const StructureAside = ({
 										)}
 										data-page-index={pageIndex}
 										data-section-index={sectionIndex}
+										disabled={isInteractionDisabled}
 										key={section.id}
 										onClick={onSelectSection}
 										type="button"
@@ -561,6 +568,7 @@ const SectionDetails = ({
 	activeSection,
 	isContentEmpty,
 	isEditMode,
+	isInteractionDisabled,
 	isTitleEmpty,
 	onContentChange,
 	onPageTitleChange,
@@ -604,7 +612,11 @@ const SectionDetails = ({
 					</span>
 
 					{showRejectItem && !isParentSelected && onRejectItem && (
-						<Button onClick={onRejectItem} variant="secondary">
+						<Button
+							disabled={isInteractionDisabled}
+							onClick={onRejectItem}
+							variant="secondary"
+						>
 							Reject item
 						</Button>
 					)}
@@ -669,6 +681,21 @@ const SectionDetails = ({
 			</div>
 
 			{activeSection && !isParentSelected && (
+				<div className="rounded-md border border-border-subtle bg-secondary/40 p-3 text-xs text-text-muted">
+					{activeSection.sourcePageNumber !== undefined && (
+						<p className="font-medium text-text">
+							Source page: {activeSection.sourcePageNumber}
+						</p>
+					)}
+					{activeSection.sourceExcerpt && (
+						<p className="mt-1 whitespace-pre-wrap">
+							Source excerpt: {activeSection.sourceExcerpt}
+						</p>
+					)}
+				</div>
+			)}
+
+			{activeSection && !isParentSelected && (
 				<div className="flex flex-1 min-w-0 flex-col gap-3">
 					{isEditMode ? (
 						<div className="flex flex-1 flex-col gap-1">
@@ -722,8 +749,10 @@ const SectionDetails = ({
 
 const PreviewFooter = ({
 	approveLabel,
+	canEdit,
 	canSubmitReview,
 	hasContent,
+	isApplying,
 	isEditInvalid,
 	isEditMode,
 	onApprove,
@@ -737,6 +766,7 @@ const PreviewFooter = ({
 			<div className="flex w-full tablet:w-auto items-center justify-between tablet:justify-start gap-2 tablet:gap-3">
 				<Button
 					className="flex-1 tablet:flex-initial tablet:w-auto"
+					disabled={isApplying}
 					onClick={onCancelEdit}
 					variant="secondary"
 				>
@@ -744,7 +774,7 @@ const PreviewFooter = ({
 				</Button>
 				<Button
 					className="flex-1 tablet:flex-initial tablet:w-auto"
-					disabled={isEditInvalid}
+					disabled={isApplying || isEditInvalid}
 					onClick={onSaveEdit}
 					variant="primary"
 				>
@@ -754,7 +784,7 @@ const PreviewFooter = ({
 		) : (
 			<>
 				<Button
-					disabled={!hasContent}
+					disabled={!canEdit || !hasContent || isApplying}
 					onClick={onEnterEdit}
 					variant="secondary"
 				>
@@ -762,11 +792,11 @@ const PreviewFooter = ({
 				</Button>
 
 				<div className="flex items-center justify-end gap-2">
-					<Button onClick={onClose} variant="secondary">
+					<Button disabled={isApplying} onClick={onClose} variant="secondary">
 						Back
 					</Button>
 					<Button
-						disabled={!canSubmitReview}
+						disabled={!canSubmitReview || isApplying}
 						onClick={onApprove}
 						variant="primary"
 					>
@@ -810,6 +840,8 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		activePage?.pages[activeSectionIndex] ??
 		activePage?.pages[DEFAULT_SECTION_INDEX];
 	const selectedNode = activeNodeType === "parent" ? activePage : activeSection;
+	const canEditSelectedNode =
+		!isExtractionValidation || activeNodeType === "child";
 
 	const isTitleEmpty =
 		(selectedNode?.title.trim().length ?? EMPTY_LENGTH) === EMPTY_LENGTH;
@@ -837,11 +869,17 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 				return;
 			}
 
-			const isApplied = await onApprove(
-				toConflictResolutions({ conflicts, sections: proposedStructure }),
-			);
+			let isApplied: boolean;
 
-			setIsApplying(false);
+			try {
+				isApplied = await onApprove(
+					toConflictResolutions({ conflicts, sections: proposedStructure }),
+				);
+			} catch {
+				return;
+			} finally {
+				setIsApplying(false);
+			}
 
 			if (isApplied) {
 				setIsMergeScreenOpen(false);
@@ -858,9 +896,15 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 		setIsApplying(true);
 
-		const isApplied = await onApproveExtraction(pages);
+		let isApplied: boolean;
 
-		setIsApplying(false);
+		try {
+			isApplied = await onApproveExtraction(pages);
+		} catch {
+			return;
+		} finally {
+			setIsApplying(false);
+		}
 
 		if (isApplied) {
 			setIsSuccessModalOpen(true);
@@ -868,6 +912,10 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, [isApplying, onApproveExtraction, pages]);
 
 	const handleApprove = useCallback((): void => {
+		if (isApplying) {
+			return;
+		}
+
 		if (isExtractionValidation) {
 			void handleApproveExtraction();
 
@@ -884,7 +932,13 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 		setActiveConflicts(integrationConflicts);
 		setIsMergeScreenOpen(true);
-	}, [applyChanges, handleApproveExtraction, isExtractionValidation, pages]);
+	}, [
+		applyChanges,
+		handleApproveExtraction,
+		isApplying,
+		isExtractionValidation,
+		pages,
+	]);
 
 	const handleRejectItem = useCallback((): void => {
 		const { nextPageIndex, nextPages, nextSectionIndex } = rejectActiveSection({
@@ -905,8 +959,10 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, [backupPages]);
 
 	const handleCancelMerge = useCallback((): void => {
-		setIsMergeScreenOpen(false);
-	}, []);
+		if (!isApplying) {
+			setIsMergeScreenOpen(false);
+		}
+	}, [isApplying]);
 
 	const handleConsolidatedPublish = useCallback(
 		(
@@ -920,9 +976,13 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	);
 
 	const handleEnterEdit = useCallback((): void => {
+		if (!canEditSelectedNode || isApplying) {
+			return;
+		}
+
 		setBackupPages(pages);
 		setIsEditMode(true);
-	}, [pages]);
+	}, [canEditSelectedNode, isApplying, pages]);
 
 	const handleGoToKB = useCallback((): void => {
 		setIsSuccessModalOpen(false);
@@ -1014,6 +1074,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			<>
 				<MergeScreen
 					conflicts={activeConflicts}
+					isApplying={isApplying}
 					onCancel={handleCancelMerge}
 					onPublish={handleConsolidatedPublish}
 					pages={pages}
@@ -1046,6 +1107,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					activeNodeType={activeNodeType}
 					activePageIndex={activePageIndex}
 					activeSectionIndex={activeSectionIndex}
+					isInteractionDisabled={isApplying}
 					onSelectPage={handleSelectPage}
 					onSelectSection={handleSelectSection}
 					pages={pages}
@@ -1056,7 +1118,8 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					activePage={activePage}
 					activeSection={activeSection}
 					isContentEmpty={isContentEmpty}
-					isEditMode={isEditMode}
+					isEditMode={isEditMode && canEditSelectedNode}
+					isInteractionDisabled={isApplying}
 					isTitleEmpty={isTitleEmpty}
 					onContentChange={handleSectionContentChange}
 					onPageTitleChange={handlePageTitleChange}
@@ -1068,10 +1131,12 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 			<PreviewFooter
 				approveLabel={approveLabel}
+				canEdit={canEditSelectedNode}
 				canSubmitReview={canSubmitReview}
 				hasContent={hasContent}
+				isApplying={isApplying}
 				isEditInvalid={isEditInvalid}
-				isEditMode={isEditMode}
+				isEditMode={isEditMode && canEditSelectedNode}
 				onApprove={handleApprove}
 				onCancelEdit={handleCancelEdit}
 				onClose={onClose}

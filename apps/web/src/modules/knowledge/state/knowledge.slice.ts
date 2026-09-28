@@ -6,6 +6,7 @@ import { type ValueOf } from "~/lib/types/types.js";
 import { DocumentValidationMessage } from "../libs/constants/constants.js";
 import { DocumentProcessingStatus, SearchStatus } from "../libs/enums/enums.js";
 import {
+	addTrackedDocumentId,
 	formatFileSize,
 	isMatchingPipelineSession,
 	mapIntegrationChangesToProposedStructure,
@@ -30,10 +31,11 @@ import {
 	searchKnowledge,
 	submitExtractionReview,
 	submitManualText,
+	switchActiveDocument,
 	updateExtractionItem,
 	updateKnowledgeEntry,
 } from "./actions.js";
-import { clearAllPollTimers } from "./document-poll-timers.js";
+import { clearAllPollTimers, clearPollTimer } from "./document-poll-timers.js";
 
 type State = KnowledgeState;
 
@@ -48,8 +50,8 @@ const SESSION_COUNTER_STEP = 1;
 const initialState: State = {
 	activeDocumentId: null,
 	activeDocumentStatus: IDLE_DOCUMENT_STATUS,
-	errorMessage: null,
 	extractionItems: [],
+	extractionItemsDocumentId: null,
 	integrationPreviewDocumentId: null,
 	integrationPreviewError: null,
 	integrationPreviewRequestId: null,
@@ -58,6 +60,8 @@ const initialState: State = {
 	isEntryLoading: false,
 	isIntegrationPreviewLoading: false,
 	isTreeLoading: false,
+	knowledgeErrorMessage: null,
+	pipelineErrors: {},
 	pipelineProjectId: null,
 	pipelineSessionId: 0,
 	processingStatus: DocumentProcessingStatus.IDLE,
@@ -70,6 +74,7 @@ const initialState: State = {
 	trackedDocuments: [],
 	tree: [],
 	treeRequestId: null,
+	uploadErrorMessage: null,
 	uploadSession: null,
 	uploadSessionSequence: 0,
 };
@@ -86,12 +91,14 @@ const FINISHED_DOCUMENT_STATUSES = new Set<TrackedDocument["status"]>([
 ]);
 
 const IN_FLIGHT_DOCUMENT_STATUSES = new Set<TrackedDocument["status"]>([
+	DocumentStatus.APPROVED,
 	DocumentStatus.EXTRACTED,
 	DocumentStatus.EXTRACTING,
 	DocumentStatus.INTEGRATING,
 	DocumentStatus.PARSED,
 	DocumentStatus.PROCESSING,
 	DocumentStatus.UPLOADED,
+	DocumentStatus.VALIDATED,
 ]);
 
 const isCurrentPipelineProject = (state: State, projectId: string): boolean => {
@@ -121,6 +128,22 @@ const findTrackedDocument = (
 	);
 };
 
+const clearDocumentPipelineError = (state: State, documentId: number): void => {
+	state.pipelineErrors = Object.fromEntries(
+		Object.entries(state.pipelineErrors).filter(
+			([storedDocumentId]) => Number(storedDocumentId) !== documentId,
+		),
+	);
+};
+
+const setPipelineError = (
+	state: State,
+	documentId: number,
+	message: string,
+): void => {
+	state.pipelineErrors[documentId] = message;
+};
+
 const pickActiveDocument = (state: State): TrackedDocument | undefined => {
 	const current = findTrackedDocument(state, state.activeDocumentId);
 
@@ -148,9 +171,16 @@ const reconcileActiveDocument = (state: State): void => {
 	if (nextActiveId !== state.activeDocumentId) {
 		state.activeDocumentId = nextActiveId;
 		state.extractionItems = [];
+		state.extractionItemsDocumentId = null;
 	}
 
 	state.activeDocumentStatus = nextActive?.status ?? IDLE_DOCUMENT_STATUS;
+
+	if (state.activeDocumentStatus !== DocumentStatus.WAITING_FOR_VALIDATION) {
+		state.extractionItems = [];
+		state.extractionItemsDocumentId = null;
+	}
+
 	state.isAddingKnowledge = state.trackedDocuments.some((document) =>
 		IN_FLIGHT_DOCUMENT_STATUSES.has(document.status),
 	);
@@ -181,10 +211,17 @@ const removeTrackedDocument = (
 	projectId: string,
 	documentId: number,
 ): void => {
+	clearPollTimer(documentId);
+	clearDocumentPipelineError(state, documentId);
 	removeTrackedDocumentId(projectId, documentId);
 	state.trackedDocuments = state.trackedDocuments.filter(
 		(document) => document.documentId !== documentId,
 	);
+
+	if (state.extractionItemsDocumentId === documentId) {
+		state.extractionItems = [];
+		state.extractionItemsDocumentId = null;
+	}
 };
 
 const applyTrackedDocumentStatus = ({
@@ -199,6 +236,10 @@ const applyTrackedDocumentStatus = ({
 	status: TrackedDocument["status"];
 }): void => {
 	if (!isCurrentPipelineSession(state, { pipelineSessionId, projectId })) {
+		return;
+	}
+
+	if (!findTrackedDocument(state, documentId)) {
 		return;
 	}
 
@@ -218,7 +259,7 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.errorMessage = null;
+			state.uploadErrorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 		});
 		builder.addCase(confirmDocumentUpload.fulfilled, (state, action) => {
@@ -226,7 +267,7 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.errorMessage = null;
+			state.uploadErrorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.READY;
 			reconcileActiveDocument(state);
 		});
@@ -235,7 +276,7 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.errorMessage =
+			state.uploadErrorMessage =
 				action.error.message ?? DocumentValidationMessage.PROCESSING_FAILED;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
 		});
@@ -244,7 +285,7 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.errorMessage = null;
+			state.uploadErrorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 
 			const targetFile = state.selectedFiles.find(
@@ -270,7 +311,7 @@ const { actions, name, reducer } = createSlice({
 				state.selectedFiles[targetFileIndex] = action.payload;
 			}
 
-			state.errorMessage = null;
+			state.uploadErrorMessage = null;
 
 			const hasProcessing = state.selectedFiles.some(
 				(file) => file.status === DocumentProcessingStatus.PROCESSING,
@@ -314,13 +355,13 @@ const { actions, name, reducer } = createSlice({
 
 			if (hasProcessing) {
 				state.processingStatus = DocumentProcessingStatus.PROCESSING;
-				state.errorMessage = null;
+				state.uploadErrorMessage = null;
 			} else if (hasReady) {
 				state.processingStatus = DocumentProcessingStatus.READY;
-				state.errorMessage = null;
+				state.uploadErrorMessage = null;
 			} else {
 				state.processingStatus = DocumentProcessingStatus.FAILED;
-				state.errorMessage =
+				state.uploadErrorMessage =
 					action.payload?.message ??
 					DocumentValidationMessage.PROCESSING_FAILED;
 			}
@@ -356,7 +397,7 @@ const { actions, name, reducer } = createSlice({
 		});
 		builder.addCase(fetchKnowledgeTree.pending, (state, action) => {
 			state.isTreeLoading = true;
-			state.errorMessage = null;
+			state.knowledgeErrorMessage = null;
 			state.tree = [];
 			state.treeRequestId = action.meta.requestId;
 			state.selectedEntry = null;
@@ -377,26 +418,28 @@ const { actions, name, reducer } = createSlice({
 
 			state.isTreeLoading = false;
 			state.treeRequestId = null;
-			state.errorMessage =
+			state.knowledgeErrorMessage =
 				action.error.message ?? "Failed to fetch knowledge tree";
 		});
 		builder.addCase(fetchKnowledgeEntry.pending, (state) => {
 			state.isEntryLoading = true;
-			state.errorMessage = null;
+			state.knowledgeErrorMessage = null;
 		});
 		builder.addCase(fetchKnowledgeEntry.fulfilled, (state, action) => {
 			state.isEntryLoading = false;
+			state.knowledgeErrorMessage = null;
 			state.selectedEntry = action.payload;
 		});
 		builder.addCase(fetchKnowledgeEntry.rejected, (state, action) => {
 			state.isEntryLoading = false;
-			state.errorMessage =
+			state.knowledgeErrorMessage =
 				action.error.message ?? "Failed to fetch knowledge entry";
 		});
 		builder.addCase(updateKnowledgeEntry.pending, (state) => {
-			state.errorMessage = null;
+			state.knowledgeErrorMessage = null;
 		});
 		builder.addCase(updateKnowledgeEntry.fulfilled, (state, action) => {
+			state.knowledgeErrorMessage = null;
 			if (state.selectedEntry?.id === action.payload.id) {
 				state.selectedEntry = action.payload;
 			}
@@ -408,7 +451,7 @@ const { actions, name, reducer } = createSlice({
 			}
 		});
 		builder.addCase(updateKnowledgeEntry.rejected, (state, action) => {
-			state.errorMessage =
+			state.knowledgeErrorMessage =
 				action.error.message ?? "Failed to update knowledge entry";
 		});
 		builder.addCase(searchKnowledge.pending, (state, action) => {
@@ -439,7 +482,7 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.errorMessage = null;
+			state.uploadErrorMessage = null;
 			reconcileActiveDocument(state);
 		});
 		builder.addCase(submitManualText.rejected, (state, action) => {
@@ -447,21 +490,18 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.errorMessage = action.error.message ?? "Failed to submit text";
-		});
-		builder.addCase(pollDocumentStatus.pending, (state, action) => {
-			if (isCurrentPipelineSession(state, action.meta.arg)) {
-				state.errorMessage = null;
-			}
+			state.uploadErrorMessage =
+				action.error.message ?? "Failed to submit text";
 		});
 		builder.addCase(pollDocumentStatus.fulfilled, (state, action) => {
-			if (!isCurrentPipelineSession(state, action.meta.arg)) {
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				!findTrackedDocument(state, action.meta.arg.documentId)
+			) {
 				return;
 			}
 
-			if (state.activeDocumentId === action.meta.arg.documentId) {
-				state.errorMessage = null;
-			}
+			clearDocumentPipelineError(state, action.meta.arg.documentId);
 
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
@@ -472,42 +512,71 @@ const { actions, name, reducer } = createSlice({
 		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
 			if (
 				!isCurrentPipelineSession(state, action.meta.arg) ||
-				state.activeDocumentId !== action.meta.arg.documentId
+				!findTrackedDocument(state, action.meta.arg.documentId)
 			) {
 				return;
 			}
 
-			state.errorMessage = action.error.message ?? "Failed to poll status";
+			setPipelineError(
+				state,
+				action.meta.arg.documentId,
+				action.error.message ?? "Failed to poll status",
+			);
 		});
 		builder.addCase(fetchExtractionItems.pending, (state, action) => {
-			if (isCurrentPipelineSession(state, action.meta.arg)) {
-				state.errorMessage = null;
-			}
-		});
-		builder.addCase(fetchExtractionItems.fulfilled, (state, action) => {
 			if (
 				!isCurrentPipelineSession(state, action.meta.arg) ||
-				state.activeDocumentId !== action.meta.arg.documentId
+				state.activeDocumentId !== action.meta.arg.documentId ||
+				!findTrackedDocument(state, action.meta.arg.documentId)
+			) {
+				return;
+			}
+
+			clearDocumentPipelineError(state, action.meta.arg.documentId);
+			state.extractionItems = [];
+			state.extractionItemsDocumentId = null;
+		});
+		builder.addCase(fetchExtractionItems.fulfilled, (state, action) => {
+			const document = findTrackedDocument(state, action.meta.arg.documentId);
+
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				state.activeDocumentId !== action.meta.arg.documentId ||
+				document?.status !== DocumentStatus.WAITING_FOR_VALIDATION
 			) {
 				return;
 			}
 
 			state.extractionItems = action.payload.items;
-			state.errorMessage = null;
+			state.extractionItemsDocumentId = action.meta.arg.documentId;
+			clearDocumentPipelineError(state, action.meta.arg.documentId);
 		});
 		builder.addCase(fetchExtractionItems.rejected, (state, action) => {
+			const document = findTrackedDocument(state, action.meta.arg.documentId);
+
 			if (
 				!isCurrentPipelineSession(state, action.meta.arg) ||
-				state.activeDocumentId !== action.meta.arg.documentId
+				state.activeDocumentId !== action.meta.arg.documentId ||
+				document?.status !== DocumentStatus.WAITING_FOR_VALIDATION
 			) {
 				return;
 			}
 
-			state.errorMessage =
-				action.error.message ?? "Failed to fetch extraction items";
+			setPipelineError(
+				state,
+				action.meta.arg.documentId,
+				action.error.message ?? "Failed to fetch extraction items",
+			);
 		});
 		builder.addCase(updateExtractionItem.fulfilled, (state, action) => {
-			if (!isCurrentPipelineSession(state, action.meta.arg)) {
+			const document = findTrackedDocument(state, action.meta.arg.documentId);
+
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				state.activeDocumentId !== action.meta.arg.documentId ||
+				state.extractionItemsDocumentId !== action.meta.arg.documentId ||
+				document?.status !== DocumentStatus.WAITING_FOR_VALIDATION
+			) {
 				return;
 			}
 
@@ -515,8 +584,33 @@ const { actions, name, reducer } = createSlice({
 			state.extractionItems = state.extractionItems.map((item) =>
 				item.id === updatedItem.id ? updatedItem : item,
 			);
+			clearDocumentPipelineError(state, action.meta.arg.documentId);
+		});
+		builder.addCase(updateExtractionItem.rejected, (state, action) => {
+			const document = findTrackedDocument(state, action.meta.arg.documentId);
+
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				document?.status !== DocumentStatus.WAITING_FOR_VALIDATION
+			) {
+				return;
+			}
+
+			setPipelineError(
+				state,
+				action.meta.arg.documentId,
+				action.error.message ?? "Failed to update extraction item",
+			);
 		});
 		builder.addCase(submitExtractionReview.fulfilled, (state, action) => {
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				!findTrackedDocument(state, action.meta.arg.documentId)
+			) {
+				return;
+			}
+
+			clearDocumentPipelineError(state, action.meta.arg.documentId);
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
 				state,
@@ -524,6 +618,15 @@ const { actions, name, reducer } = createSlice({
 			});
 		});
 		builder.addCase(applyIntegrationChanges.fulfilled, (state, action) => {
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				!findTrackedDocument(state, action.meta.arg.documentId)
+			) {
+				return;
+			}
+
+			state.integrationPreviewError = null;
+			clearDocumentPipelineError(state, action.meta.arg.documentId);
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
 				state,
@@ -531,27 +634,19 @@ const { actions, name, reducer } = createSlice({
 			});
 		});
 		builder.addCase(fetchPendingReviewDocuments.fulfilled, (state, action) => {
-			const { projectId } = action.meta.arg;
-
 			if (!isCurrentPipelineSession(state, action.meta.arg)) {
 				return;
 			}
 
-			const pendingIds = new Set(
-				action.payload.items.map((document) => document.id),
-			);
-			const staleDocuments = state.trackedDocuments.filter(
-				(document) =>
-					(document.status === DocumentStatus.WAITING_FOR_VALIDATION ||
-						document.status === DocumentStatus.WAITING_FOR_APPROVAL) &&
-					!pendingIds.has(document.documentId),
-			);
-
-			for (const document of staleDocuments) {
-				removeTrackedDocument(state, projectId, document.documentId);
-			}
-
 			for (const document of action.payload.items) {
+				if (
+					document.status !== DocumentStatus.WAITING_FOR_VALIDATION &&
+					document.status !== DocumentStatus.WAITING_FOR_APPROVAL
+				) {
+					continue;
+				}
+
+				addTrackedDocumentId(action.meta.arg.projectId, document.id);
 				const existing = findTrackedDocument(state, document.id);
 
 				if (existing) {
@@ -569,31 +664,49 @@ const { actions, name, reducer } = createSlice({
 			reconcileActiveDocument(state);
 		});
 		builder.addCase(submitExtractionReview.rejected, (state, action) => {
-			if (!isCurrentPipelineSession(state, action.meta.arg)) {
+			const document = findTrackedDocument(state, action.meta.arg.documentId);
+
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				document?.status !== DocumentStatus.WAITING_FOR_VALIDATION
+			) {
 				return;
 			}
 
-			state.errorMessage =
-				action.error.message ?? "Failed to submit extraction review";
+			setPipelineError(
+				state,
+				action.meta.arg.documentId,
+				action.error.message ?? "Failed to submit extraction review",
+			);
+		});
+		builder.addCase(applyIntegrationChanges.rejected, (state, action) => {
+			const document = findTrackedDocument(state, action.meta.arg.documentId);
+
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				document?.status !== DocumentStatus.WAITING_FOR_APPROVAL
+			) {
+				return;
+			}
+
+			const message =
+				action.error.message ?? "Failed to apply integration changes";
+			state.integrationPreviewError = message;
+			setPipelineError(state, action.meta.arg.documentId, message);
 		});
 		builder.addCase(retryDocumentProcessing.pending, (state, action) => {
 			if (!isCurrentPipelineSession(state, action.meta.arg)) {
 				return;
 			}
 
-			state.errorMessage = null;
-			applyTrackedDocumentStatus({
-				...action.meta.arg,
-				state,
-				status: DocumentStatus.PROCESSING,
-			});
+			clearDocumentPipelineError(state, action.meta.arg.documentId);
 		});
 		builder.addCase(retryDocumentProcessing.fulfilled, (state, action) => {
 			if (!isCurrentPipelineSession(state, action.meta.arg)) {
 				return;
 			}
 
-			state.errorMessage = null;
+			clearDocumentPipelineError(state, action.meta.arg.documentId);
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
 				state,
@@ -601,16 +714,34 @@ const { actions, name, reducer } = createSlice({
 			});
 		});
 		builder.addCase(retryDocumentProcessing.rejected, (state, action) => {
-			if (!isCurrentPipelineSession(state, action.meta.arg)) {
+			const document = findTrackedDocument(state, action.meta.arg.documentId);
+
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				document?.status !== DocumentStatus.FAILED
+			) {
 				return;
 			}
 
-			state.errorMessage = action.error.message ?? "Failed to retry processing";
-			applyTrackedDocumentStatus({
-				...action.meta.arg,
+			setPipelineError(
 				state,
-				status: DocumentStatus.FAILED,
-			});
+				action.meta.arg.documentId,
+				action.error.message ?? "Failed to retry processing",
+			);
+		});
+		builder.addCase(switchActiveDocument.rejected, (state, action) => {
+			if (
+				!isCurrentPipelineSession(state, action.meta.arg) ||
+				!findTrackedDocument(state, action.meta.arg.documentId)
+			) {
+				return;
+			}
+
+			setPipelineError(
+				state,
+				action.meta.arg.documentId,
+				action.error.message ?? "Failed to switch review document",
+			);
 		});
 	},
 	initialState,
@@ -631,9 +762,37 @@ const { actions, name, reducer } = createSlice({
 			};
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
+			state.uploadErrorMessage = null;
 		},
-		clearError(state) {
-			state.errorMessage = null;
+		activatePreparedReviewDocument(
+			state,
+			action: PayloadAction<
+				PipelineSessionScope & {
+					documentId: number;
+					extractionItems: KnowledgeState["extractionItems"];
+					status:
+						| typeof DocumentStatus.WAITING_FOR_APPROVAL
+						| typeof DocumentStatus.WAITING_FOR_VALIDATION;
+				}
+			>,
+		) {
+			const { documentId, extractionItems, status } = action.payload;
+
+			if (
+				!isCurrentPipelineSession(state, action.payload) ||
+				!findTrackedDocument(state, documentId)
+			) {
+				return;
+			}
+
+			upsertTrackedDocumentStatus(state, documentId, status);
+			state.activeDocumentId = documentId;
+			state.activeDocumentStatus = status;
+			state.extractionItems = extractionItems;
+			state.extractionItemsDocumentId =
+				status === DocumentStatus.WAITING_FOR_VALIDATION ? documentId : null;
+			clearDocumentPipelineError(state, documentId);
+			reconcileActiveDocument(state);
 		},
 		clearIntegrationPreview(state) {
 			state.integrationPreviewDocumentId = null;
@@ -642,13 +801,24 @@ const { actions, name, reducer } = createSlice({
 			state.integrationPreviewSections = [];
 			state.isIntegrationPreviewLoading = false;
 		},
+		clearKnowledgeError(state) {
+			state.knowledgeErrorMessage = null;
+		},
+		clearPipelineError(
+			state,
+			action: PayloadAction<{ documentId: number; projectId: string }>,
+		) {
+			if (isCurrentPipelineProject(state, action.payload.projectId)) {
+				clearDocumentPipelineError(state, action.payload.documentId);
+			}
+		},
 		clearSelectedFiles(state) {
-			state.errorMessage = null;
+			state.uploadErrorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
 		},
-		finishAddingKnowledge(state) {
-			state.isAddingKnowledge = false;
+		clearUploadError(state) {
+			state.uploadErrorMessage = null;
 		},
 		releasePipeline(state) {
 			clearAllPollTimers();
@@ -669,13 +839,14 @@ const { actions, name, reducer } = createSlice({
 			state.uploadSession = null;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
+			state.uploadErrorMessage = null;
 		},
 		removeDocument(state, action: PayloadAction<{ id: string }>) {
 			state.selectedFiles = state.selectedFiles.filter(
 				(file) => file.id !== action.payload.id,
 			);
 			if (state.selectedFiles.length === EMPTY_FILES_COUNT) {
-				state.errorMessage = null;
+				state.uploadErrorMessage = null;
 				state.processingStatus = DocumentProcessingStatus.IDLE;
 				return;
 			}
@@ -697,30 +868,24 @@ const { actions, name, reducer } = createSlice({
 			clearAllPollTimers();
 			state.activeDocumentId = null;
 			state.activeDocumentStatus = IDLE_DOCUMENT_STATUS;
-			state.errorMessage = null;
 			state.extractionItems = [];
+			state.extractionItemsDocumentId = null;
 			state.integrationPreviewDocumentId = null;
 			state.integrationPreviewError = null;
 			state.integrationPreviewRequestId = null;
 			state.integrationPreviewSections = [];
 			state.isAddingKnowledge = false;
 			state.isIntegrationPreviewLoading = false;
+			state.knowledgeErrorMessage = null;
+			state.pipelineErrors = {};
 			state.pipelineProjectId = action.payload;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
 			state.trackedDocuments = [];
 		},
-		setActiveDocumentId(state, action: PayloadAction<number>) {
-			if (state.activeDocumentId !== action.payload) {
-				state.activeDocumentId = action.payload;
-				state.extractionItems = [];
-			}
-
-			reconcileActiveDocument(state);
-		},
-		setError(state, action: PayloadAction<string>) {
-			state.errorMessage = action.payload;
+		setUploadError(state, action: PayloadAction<string>) {
+			state.uploadErrorMessage = action.payload;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
 		},
 		startProcessing(
@@ -729,7 +894,7 @@ const { actions, name, reducer } = createSlice({
 		) {
 			const { id, name, size } = action.payload;
 
-			state.errorMessage = null;
+			state.uploadErrorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 
 			const existingIndex = state.selectedFiles.findIndex(

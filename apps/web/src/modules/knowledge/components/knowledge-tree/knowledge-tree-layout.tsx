@@ -1,15 +1,9 @@
-import { DocumentStatus, KnowledgeNodeType } from "@knowledgeprism/constants";
+import { DocumentStatus } from "@knowledgeprism/constants";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
 } from "@knowledgeprism/types";
-import React, {
-	type MouseEvent,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import React, { type MouseEvent, useCallback, useMemo, useState } from "react";
 
 import { Loader } from "~/components/components.js";
 import {
@@ -24,10 +18,10 @@ import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
 import {
 	collectExtractionItemPatches,
 	deriveExtractionReviewIds,
+	mapExtractionItemsToProposedStructure,
 } from "../../libs/helpers/helpers.js";
 import {
 	type KnowledgeState,
-	type ProposedPage,
 	type ProposedSection,
 } from "../../libs/types/types.js";
 import {
@@ -69,31 +63,35 @@ type Properties = {
 };
 
 const getPipelineVisibility = ({
+	activeDocumentId,
 	activeDocumentStatus,
 	canEdit,
+	extractionItemsDocumentId,
 	isAddingKnowledge,
 	pipelineProjectId,
-	previewProjectId,
+	pipelineSessionId,
+	previewSessionId,
 	projectId,
 	trackedDocuments,
 }: {
+	activeDocumentId: null | number;
 	activeDocumentStatus: KnowledgeState["activeDocumentStatus"];
 	canEdit: boolean;
+	extractionItemsDocumentId: null | number;
 	isAddingKnowledge: boolean;
 	pipelineProjectId: KnowledgeState["pipelineProjectId"];
-	previewProjectId: null | string;
+	pipelineSessionId: number;
+	previewSessionId: null | number;
 	projectId: string;
 	trackedDocuments: KnowledgeState["trackedDocuments"];
 }): {
 	canResumePreview: boolean;
-	isPipelineOwned: boolean;
 	isPreviewVisible: boolean;
 	isShowDocumentPipelineUi: boolean;
 } => {
 	if (!canEdit || pipelineProjectId !== projectId) {
 		return {
 			canResumePreview: false,
-			isPipelineOwned: false,
 			isPreviewVisible: false,
 			isShowDocumentPipelineUi: false,
 		};
@@ -103,84 +101,59 @@ const getPipelineVisibility = ({
 		canResumePreview:
 			activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION ||
 			activeDocumentStatus === DocumentStatus.WAITING_FOR_APPROVAL,
-		isPipelineOwned: true,
-		isPreviewVisible: previewProjectId === projectId,
+		isPreviewVisible:
+			previewSessionId === pipelineSessionId &&
+			(activeDocumentStatus === DocumentStatus.WAITING_FOR_APPROVAL ||
+				(activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION &&
+					extractionItemsDocumentId === activeDocumentId)),
 		isShowDocumentPipelineUi:
 			isAddingKnowledge || trackedDocuments.length > EMPTY_LENGTH,
 	};
 };
 
-const useActiveExtractionItems = ({
-	activeDocumentId,
-	activeDocumentStatus,
-	isPipelineOwned,
-	projectId,
-}: {
-	activeDocumentId: null | number;
-	activeDocumentStatus: KnowledgeState["activeDocumentStatus"];
-	isPipelineOwned: boolean;
-	projectId: string;
-}): void => {
-	const dispatch = useAppDispatch();
-
-	useEffect(() => {
-		if (
-			!isPipelineOwned ||
-			!activeDocumentId ||
-			activeDocumentStatus !== DocumentStatus.WAITING_FOR_VALIDATION
-		) {
-			return;
-		}
-
-		void dispatch(
-			actions.fetchExtractionItems({
-				documentId: activeDocumentId,
-				pipelineSessionId: getPipelineSessionId(),
-				projectId,
-			}),
-		);
-	}, [
-		activeDocumentId,
-		activeDocumentStatus,
-		dispatch,
-		isPipelineOwned,
-		projectId,
-	]);
-};
-
 type EmptyPipelineProperties = {
 	activeDocumentStatus: KnowledgeState["activeDocumentStatus"];
-	errorMessage: null | string;
 	isPreviewDismissed: boolean;
 	isShowDocumentPipelineUi: boolean;
+	knowledgeErrorMessage: null | string;
 	onCancel: () => void;
 	onFinish: () => void;
 	onPreview: () => void;
 	onRetry: () => void;
+	pipelineErrorMessage: null | string;
 };
 
 const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 	activeDocumentStatus,
-	errorMessage,
 	isPreviewDismissed,
 	isShowDocumentPipelineUi,
+	knowledgeErrorMessage,
 	onCancel,
 	onFinish,
 	onPreview,
 	onRetry,
+	pipelineErrorMessage,
 }: EmptyPipelineProperties) => {
 	if (!isShowDocumentPipelineUi) {
-		return errorMessage ? (
+		return knowledgeErrorMessage ? (
 			<div className="flex flex-col items-center gap-4 text-text-muted">
-				<p>{errorMessage}</p>
+				<p>{knowledgeErrorMessage}</p>
 			</div>
 		) : (
 			<KnowledgeTreeEmptyState />
 		);
 	}
 
-	if (errorMessage || activeDocumentStatus === DocumentStatus.FAILED) {
-		return (
+	let pipelineContent = (
+		<LoadingState
+			currentStatus={activeDocumentStatus}
+			onFinish={onFinish}
+			variant="full"
+		/>
+	);
+
+	if (pipelineErrorMessage || activeDocumentStatus === DocumentStatus.FAILED) {
+		pipelineContent = (
 			<LoadingState
 				currentStatus={activeDocumentStatus}
 				hasError={true}
@@ -189,10 +162,8 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 				variant="full"
 			/>
 		);
-	}
-
-	if (isPreviewDismissed) {
-		return (
+	} else if (isPreviewDismissed) {
+		pipelineContent = (
 			<LoadingState
 				currentStatus={activeDocumentStatus}
 				onPreview={onPreview}
@@ -202,11 +173,12 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 	}
 
 	return (
-		<LoadingState
-			currentStatus={activeDocumentStatus}
-			onFinish={onFinish}
-			variant="full"
-		/>
+		<div className="flex flex-col items-center gap-4">
+			{knowledgeErrorMessage && (
+				<p className="text-text-muted">{knowledgeErrorMessage}</p>
+			)}
+			{pipelineContent}
+		</div>
 	);
 };
 
@@ -298,12 +270,15 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	const {
 		activeDocumentId,
 		activeDocumentStatus,
-		errorMessage,
 		extractionItems,
+		extractionItemsDocumentId,
 		isAddingKnowledge,
 		isEntryLoading,
 		isTreeLoading,
+		knowledgeErrorMessage,
+		pipelineErrors,
 		pipelineProjectId,
+		pipelineSessionId,
 		trackedDocuments,
 	} = useAppSelector((state) => state.knowledge);
 	const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -314,44 +289,43 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		showModal: handleOpenAddModal,
 	} = useModal();
 
-	const [previewProjectId, setPreviewProjectId] = useState<null | string>(null);
-	const [dismissedPreviewDocumentId, setDismissedPreviewDocumentId] = useState<
-		null | number
-	>(null);
+	const [previewSessionId, setPreviewSessionId] = useState<null | number>(null);
+	const [dismissedPreview, setDismissedPreview] = useState<null | {
+		documentId: number;
+		pipelineSessionId: number;
+	}>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
 
 	const setIsPreviewOpen = useCallback(
 		(isOpen: boolean): void => {
-			setPreviewProjectId((currentProjectId) => {
-				if (isOpen) {
-					return projectId;
-				}
-
-				return currentProjectId === projectId ? null : currentProjectId;
-			});
+			setPreviewSessionId(isOpen ? pipelineSessionId : null);
 		},
-		[projectId],
+		[pipelineSessionId],
 	);
+
+	const activePipelineError =
+		activeDocumentId === null
+			? null
+			: (pipelineErrors[activeDocumentId] ?? null);
 
 	const isKbEmpty = items.length === EMPTY_LENGTH;
 
 	const isExtractionValidationPreview =
 		activeDocumentStatus === DocumentStatus.WAITING_FOR_VALIDATION;
 
-	const {
-		canResumePreview,
-		isPipelineOwned,
-		isPreviewVisible,
-		isShowDocumentPipelineUi,
-	} = getPipelineVisibility({
-		activeDocumentStatus,
-		canEdit,
-		isAddingKnowledge,
-		pipelineProjectId,
-		previewProjectId,
-		projectId,
-		trackedDocuments,
-	});
+	const { canResumePreview, isPreviewVisible, isShowDocumentPipelineUi } =
+		getPipelineVisibility({
+			activeDocumentId,
+			activeDocumentStatus,
+			canEdit,
+			extractionItemsDocumentId,
+			isAddingKnowledge,
+			pipelineProjectId,
+			pipelineSessionId,
+			previewSessionId,
+			projectId,
+			trackedDocuments,
+		});
 
 	const pendingReviewDocuments = useMemo(() => {
 		return trackedDocuments.filter(
@@ -361,13 +335,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					document.status === DocumentStatus.WAITING_FOR_APPROVAL),
 		);
 	}, [activeDocumentId, trackedDocuments]);
-
-	useActiveExtractionItems({
-		activeDocumentId,
-		activeDocumentStatus,
-		isPipelineOwned,
-		projectId,
-	});
 
 	const handleAddMore = useCallback((): void => {
 		setIsPreviewOpen(false);
@@ -381,18 +348,27 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		}: {
 			isClosingWhenNoneLeft: boolean;
 		}): Promise<void> => {
-			const pipelineSessionId = getPipelineSessionId();
+			const requestedPipelineSessionId = getPipelineSessionId();
 
-			const { openPreview } = await dispatch(
-				actions.resumeNextPendingReview({ projectId }),
-			).unwrap();
+			try {
+				const { openPreview } = await dispatch(
+					actions.resumeNextPendingReview({ projectId }),
+				).unwrap();
 
-			if (!isPipelineSessionCurrent(pipelineSessionId)) {
-				return;
-			}
+				if (!isPipelineSessionCurrent(requestedPipelineSessionId)) {
+					return;
+				}
 
-			if (openPreview || isClosingWhenNoneLeft) {
-				setIsPreviewOpen(openPreview);
+				if (openPreview || isClosingWhenNoneLeft) {
+					setIsPreviewOpen(openPreview);
+				}
+			} catch {
+				if (
+					isClosingWhenNoneLeft &&
+					isPipelineSessionCurrent(requestedPipelineSessionId)
+				) {
+					setIsPreviewOpen(false);
+				}
 			}
 		},
 		[dispatch, projectId, setIsPreviewOpen],
@@ -404,19 +380,23 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	}, [dispatch, openNextPendingReview, projectId]);
 
 	const handleClosePreview = useCallback((): void => {
-		setDismissedPreviewDocumentId(activeDocumentId);
+		if (activeDocumentId !== null) {
+			setDismissedPreview({
+				documentId: activeDocumentId,
+				pipelineSessionId,
+			});
+		}
 		setIsPreviewOpen(false);
 		dispatch(actions.clearIntegrationPreview());
-	}, [activeDocumentId, dispatch, setIsPreviewOpen]);
+	}, [activeDocumentId, dispatch, pipelineSessionId, setIsPreviewOpen]);
 
 	const handleCloseSidebar = useCallback((): void => {
 		setIsSidebarOpen(false);
 	}, []);
 
 	const handleFinishLoading = useCallback((): void => {
-		dispatch(actions.finishAddingKnowledge());
-		setIsPreviewOpen(true);
-	}, [dispatch, setIsPreviewOpen]);
+		void openNextPendingReview({ isClosingWhenNoneLeft: true });
+	}, [openNextPendingReview]);
 
 	const handleOpenPreview = useCallback((): void => {
 		void openNextPendingReview({ isClosingWhenNoneLeft: true });
@@ -427,8 +407,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	}, []);
 
 	const handleResetState = useCallback((): void => {
-		dispatch(actions.clearError());
-
 		if (projectId && activeDocumentId) {
 			dispatch(
 				actions.untrackDocument({ documentId: activeDocumentId, projectId }),
@@ -443,21 +421,25 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			}
 
 			void (async () => {
-				const pipelineSessionId = getPipelineSessionId();
+				const requestedPipelineSessionId = getPipelineSessionId();
 
-				const isSwitched = await dispatch(
-					actions.switchActiveDocument({
-						documentId,
-						pipelineSessionId,
-						projectId,
-					}),
-				).unwrap();
+				try {
+					const isSwitched = await dispatch(
+						actions.switchActiveDocument({
+							documentId,
+							pipelineSessionId: requestedPipelineSessionId,
+							projectId,
+						}),
+					).unwrap();
 
-				if (!isPipelineSessionCurrent(pipelineSessionId)) {
-					return;
+					if (!isPipelineSessionCurrent(requestedPipelineSessionId)) {
+						return;
+					}
+
+					setIsPreviewOpen(isSwitched);
+				} catch {
+					// The previous document remains active and the error is surfaced globally.
 				}
-
-				setIsPreviewOpen(isSwitched);
 			})();
 		},
 		[dispatch, projectId, setIsPreviewOpen],
@@ -491,39 +473,10 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		}
 	}, [activeDocumentId, activeDocumentStatus, dispatch, projectId]);
 
-	const mappedExtractionStructure = useMemo((): ProposedSection[] => {
-		if (extractionItems.length === EMPTY_LENGTH) {
-			return [];
-		}
-
-		const sectionsMap = new Map<number, ProposedPage[]>();
-
-		for (const item of extractionItems) {
-			const pageNumber = item.sourcePageNumber;
-			const pages = sectionsMap.get(pageNumber) ?? [];
-
-			pages.push({
-				content: item.text,
-				id: String(item.id),
-				integrationChangeId: item.id,
-				status: "created",
-				title: item.title,
-				type: KnowledgeNodeType.PAGE,
-			});
-
-			sectionsMap.set(pageNumber, pages);
-		}
-
-		return [...sectionsMap]
-			.toSorted(([pageA], [pageB]) => pageA - pageB)
-			.map(([pageNumber, pages]) => ({
-				id: `sec-${String(pageNumber)}`,
-				pages,
-				status: "created" as const,
-				title: `Extracted from Page ${String(pageNumber)}`,
-				type: KnowledgeNodeType.SECTION,
-			}));
-	}, [extractionItems]);
+	const mappedExtractionStructure = useMemo(
+		() => mapExtractionItemsToProposedStructure(extractionItems),
+		[extractionItems],
+	);
 
 	const submitExtractionValidation = useCallback(
 		async (pages: ProposedSection[]): Promise<boolean> => {
@@ -669,19 +622,24 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	}
 
 	if (isKbEmpty) {
+		const isActivePreviewDismissed =
+			activeDocumentId !== null &&
+			dismissedPreview !== null &&
+			dismissedPreview.documentId === activeDocumentId &&
+			dismissedPreview.pipelineSessionId === pipelineSessionId;
+
 		return (
 			<div className="flex h-full w-full items-center justify-center bg-bg">
 				<KnowledgeTreeEmptyPipeline
 					activeDocumentStatus={activeDocumentStatus}
-					errorMessage={errorMessage}
-					isPreviewDismissed={
-						canResumePreview && dismissedPreviewDocumentId === activeDocumentId
-					}
+					isPreviewDismissed={canResumePreview && isActivePreviewDismissed}
 					isShowDocumentPipelineUi={isShowDocumentPipelineUi}
+					knowledgeErrorMessage={knowledgeErrorMessage}
 					onCancel={handleResetState}
 					onFinish={handleFinishLoading}
 					onPreview={handleOpenPreview}
 					onRetry={handleRetry}
+					pipelineErrorMessage={activePipelineError}
 				/>
 				<AddKnowledgeModal
 					isOpen={isAddModalOpen}
@@ -695,11 +653,14 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 
 	let mainContent = (
 		<div className="flex flex-1 items-center justify-center text-text-muted">
-			{errorMessage ?? "Select a page to view its content."}
+			{knowledgeErrorMessage ?? "Select a page to view its content."}
 		</div>
 	);
 
-	if (isEntryLoading || (selectedPageId && !selectedEntry && !errorMessage)) {
+	if (
+		isEntryLoading ||
+		(selectedPageId && !selectedEntry && !knowledgeErrorMessage)
+	) {
 		mainContent = (
 			<div className="flex flex-1 items-center justify-center">
 				<Loader />
@@ -729,7 +690,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					breadcrumbs={breadcrumbs}
 					canEdit={canEdit}
 					currentStatus={activeDocumentStatus}
-					hasError={!!errorMessage}
+					hasError={Boolean(activePipelineError)}
 					isEditing={isEditing}
 					onCancel={handleCancelEdit}
 					onEdit={handleStartEdit}
@@ -741,7 +702,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				/>
 				{(isShowDocumentPipelineUi || canResumePreview) && (
 					<div className="border-b border-border bg-surface px-4 py-4 @5xl:hidden">
-						{!!errorMessage ||
+						{Boolean(activePipelineError) ||
 						activeDocumentStatus === DocumentStatus.FAILED ? (
 							<LoadingState
 								currentStatus={activeDocumentStatus}
@@ -769,4 +730,4 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	);
 };
 
-export { KnowledgeTreeLayout };
+export { getPipelineVisibility, KnowledgeTreeLayout };

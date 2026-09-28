@@ -78,6 +78,10 @@ type ProcessDocumentRejection = {
 	uploadUrl?: string | undefined;
 };
 
+type ReviewableDocumentStatus =
+	| typeof DocumentStatus.WAITING_FOR_APPROVAL
+	| typeof DocumentStatus.WAITING_FOR_VALIDATION;
+
 type SubmitManualTextPayload = {
 	payload: ManualTextCreateRequestDto;
 	projectId: string;
@@ -89,13 +93,34 @@ type UpdateExtractionItemPayload = DocumentPipelineRequest & {
 	payload: { text: string; title: string };
 };
 
+const isReviewableDocumentStatus = (
+	status: ValueOf<typeof DocumentStatus>,
+): status is ReviewableDocumentStatus => {
+	return (
+		status === DocumentStatus.WAITING_FOR_VALIDATION ||
+		status === DocumentStatus.WAITING_FOR_APPROVAL
+	);
+};
+
+const isTrackedDocumentRequestCurrent = (
+	request: DocumentPipelineRequest,
+	state: AsyncThunkConfig["state"],
+): boolean => {
+	return (
+		isMatchingPipelineSession(state.knowledge, request) &&
+		state.knowledge.trackedDocuments.some(
+			(document) => document.documentId === request.documentId,
+		)
+	);
+};
+
 const confirmDocumentUpload = createAppAsyncThunk<
 	DocumentConfirmUploadResponseDto,
 	ConfirmDocumentUploadPayload
 >(
 	`${sliceName}/confirm-document-upload`,
 	async (
-		{ documentId, label, projectId },
+		{ documentId, label, projectId, uploadSessionId },
 		{ dispatch, extra, getState, signal },
 	) => {
 		const response = await extra.documentsApi.confirmUpload({
@@ -104,22 +129,24 @@ const confirmDocumentUpload = createAppAsyncThunk<
 			signal,
 		});
 
-		addTrackedDocumentId(projectId, documentId);
-		dispatch(
-			sliceSyncActions.trackDocument({
-				documentId,
-				label: label ?? `Document ${String(documentId)}`,
-				projectId,
-			}),
-		);
+		if (getState().knowledge.uploadSession?.id === uploadSessionId) {
+			addTrackedDocumentId(projectId, documentId);
+			dispatch(
+				sliceSyncActions.trackDocument({
+					documentId,
+					label: label ?? `Document ${String(documentId)}`,
+					projectId,
+				}),
+			);
 
-		void dispatch(
-			pollDocumentStatus({
-				documentId,
-				pipelineSessionId: getState().knowledge.pipelineSessionId,
-				projectId,
-			}),
-		);
+			void dispatch(
+				pollDocumentStatus({
+					documentId,
+					pipelineSessionId: getState().knowledge.pipelineSessionId,
+					projectId,
+				}),
+			);
+		}
 
 		return response;
 	},
@@ -243,13 +270,38 @@ const applyIntegrationChanges = createAppAsyncThunk<
 	ApplyIntegrationChangesPayload
 >(
 	`${sliceName}/apply-integration-changes`,
-	async ({ documentId, payload, projectId }, { extra, signal }) => {
-		return await extra.documentsApi.applyIntegrationChanges({
-			documentId,
-			payload,
-			projectId,
-			signal,
-		});
+	async (request, { dispatch, extra, getState, signal }) => {
+		const { documentId, payload, projectId } = request;
+
+		try {
+			return await extra.documentsApi.applyIntegrationChanges({
+				documentId,
+				payload,
+				projectId,
+				signal,
+			});
+		} catch (error) {
+			if (
+				!signal.aborted &&
+				isTrackedDocumentRequestCurrent(request, getState())
+			) {
+				const reconciliation = await dispatch(pollDocumentStatus(request));
+
+				if (
+					pollDocumentStatus.fulfilled.match(reconciliation) &&
+					reconciliation.payload.status === DocumentStatus.COMPLETED &&
+					isMatchingPipelineSession(getState().knowledge, request)
+				) {
+					void dispatch(fetchKnowledgeTree({ projectId }));
+				}
+			}
+
+			throw error;
+		}
+	},
+	{
+		condition: (request, { getState }) =>
+			isTrackedDocumentRequestCurrent(request, getState()),
 	},
 );
 
@@ -288,12 +340,19 @@ const submitManualText = createAsyncThunk<
 	AsyncThunkConfig
 >(
 	`${sliceName}/submit-manual-text`,
-	async ({ payload, projectId }, { dispatch, extra, getState, signal }) => {
+	async (
+		{ payload, projectId, uploadSessionId },
+		{ dispatch, extra, getState, signal },
+	) => {
 		const response = await extra.documentsApi.createManualText({
 			payload,
 			projectId,
 			signal,
 		});
+
+		if (getState().knowledge.uploadSession?.id !== uploadSessionId) {
+			return response;
+		}
 
 		const label = payload.title?.trim() || "Manual text";
 
@@ -347,8 +406,8 @@ const pollDocumentStatus = createAppAsyncThunk<
 	`${sliceName}/poll-document-status`,
 	async (request, { dispatch, extra, getState, signal }) => {
 		const { documentId, projectId } = request;
-		const isSessionCurrent = (): boolean =>
-			isMatchingPipelineSession(getState().knowledge, request);
+		const isRequestCurrent = (): boolean =>
+			isTrackedDocumentRequestCurrent(request, getState());
 
 		try {
 			const statusResponse = await extra.documentsApi.getDocumentStatus({
@@ -357,7 +416,7 @@ const pollDocumentStatus = createAppAsyncThunk<
 				signal,
 			});
 
-			if (!isSessionCurrent()) {
+			if (!isRequestCurrent()) {
 				return statusResponse;
 			}
 
@@ -377,7 +436,7 @@ const pollDocumentStatus = createAppAsyncThunk<
 
 			return statusResponse;
 		} catch (error) {
-			if (!signal.aborted && isSessionCurrent()) {
+			if (!signal.aborted && isRequestCurrent()) {
 				scheduleNextPoll({ dispatch, request, signal });
 			}
 
@@ -386,7 +445,7 @@ const pollDocumentStatus = createAppAsyncThunk<
 	},
 	{
 		condition: (request, { getState }) =>
-			isMatchingPipelineSession(getState().knowledge, request),
+			isTrackedDocumentRequestCurrent(request, getState()),
 	},
 );
 
@@ -395,39 +454,99 @@ const fetchPendingReviewDocuments = createAppAsyncThunk<
 	PipelineSessionScope
 >(
 	`${sliceName}/fetch-pending-review-documents`,
-	async ({ projectId }, { extra, signal }) => {
-		return await extra.documentsApi.getPendingReviewDocuments({
-			projectId,
+	async (scope, { dispatch, extra, getState, signal }) => {
+		const response = await extra.documentsApi.getPendingReviewDocuments({
+			projectId: scope.projectId,
 			signal,
 		});
+
+		if (isMatchingPipelineSession(getState().knowledge, scope)) {
+			const pendingDocumentIds = new Set(
+				response.items.map((document) => document.id),
+			);
+			const missingReviewDocumentIds = getState()
+				.knowledge.trackedDocuments.filter(
+					(document) =>
+						(document.status === DocumentStatus.WAITING_FOR_VALIDATION ||
+							document.status === DocumentStatus.WAITING_FOR_APPROVAL) &&
+						!pendingDocumentIds.has(document.documentId),
+				)
+				.map((document) => document.documentId);
+
+			await Promise.all(
+				missingReviewDocumentIds.map((documentId) =>
+					dispatch(pollDocumentStatus({ ...scope, documentId })),
+				),
+			);
+		}
+
+		return response;
+	},
+	{
+		condition: (scope, { getState }) =>
+			isMatchingPipelineSession(getState().knowledge, scope),
 	},
 );
 
 const fetchExtractionItems = createAppAsyncThunk<
 	ExtractionItemsResponseDto,
 	DocumentPipelineRequest
->(`${sliceName}/fetch-extraction-items`, async (payload, { extra, signal }) => {
-	const { documentsApi } = extra;
-	return await documentsApi.getExtractionItems({
-		documentId: payload.documentId,
-		projectId: payload.projectId,
-		signal,
-	});
-});
+>(
+	`${sliceName}/fetch-extraction-items`,
+	async (payload, { extra, signal }) => {
+		const { documentsApi } = extra;
+		return await documentsApi.getExtractionItems({
+			documentId: payload.documentId,
+			projectId: payload.projectId,
+			signal,
+		});
+	},
+	{
+		condition: (request, { getState }) =>
+			isTrackedDocumentRequestCurrent(request, getState()),
+	},
+);
 
 const updateExtractionItem = createAppAsyncThunk<
 	ExtractionItemResponseDto,
 	UpdateExtractionItemPayload
->(`${sliceName}/update-extraction-item`, async (payload, { extra, signal }) => {
-	const { documentsApi } = extra;
-	return await documentsApi.updateExtractionItem({
-		documentId: payload.documentId,
-		extractionItemId: payload.extractionItemId,
-		payload: payload.payload,
-		projectId: payload.projectId,
-		signal,
-	});
-});
+>(
+	`${sliceName}/update-extraction-item`,
+	async (request, { dispatch, extra, getState, signal }) => {
+		const { documentsApi } = extra;
+
+		try {
+			return await documentsApi.updateExtractionItem({
+				documentId: request.documentId,
+				extractionItemId: request.extractionItemId,
+				payload: request.payload,
+				projectId: request.projectId,
+				signal,
+			});
+		} catch (error) {
+			if (
+				!signal.aborted &&
+				isTrackedDocumentRequestCurrent(request, getState())
+			) {
+				const reconciliation = await dispatch(pollDocumentStatus(request));
+
+				if (
+					pollDocumentStatus.fulfilled.match(reconciliation) &&
+					reconciliation.payload.status === DocumentStatus.COMPLETED &&
+					isMatchingPipelineSession(getState().knowledge, request)
+				) {
+					void dispatch(fetchKnowledgeTree({ projectId: request.projectId }));
+				}
+			}
+
+			throw error;
+		}
+	},
+	{
+		condition: (request, { getState }) =>
+			isTrackedDocumentRequestCurrent(request, getState()),
+	},
+);
 
 const initializeProjectKnowledgePipeline = createAppAsyncThunk<
 	boolean,
@@ -487,10 +606,14 @@ const resumeNextPendingReview = createAppAsyncThunk<
 			// Fall back to the locally tracked documents.
 		}
 
+		if (!isSessionCurrent()) {
+			return { openPreview: false };
+		}
+
 		const { activeDocumentId: documentId, activeDocumentStatus: status } =
 			getState().knowledge;
 
-		if (documentId === null || !isSessionCurrent()) {
+		if (documentId === null) {
 			return { openPreview: false };
 		}
 
@@ -501,11 +624,27 @@ const resumeNextPendingReview = createAppAsyncThunk<
 				return { openPreview: false };
 			}
 
-			return { openPreview: isSessionCurrent() };
+			const state = getState().knowledge;
+
+			return {
+				openPreview:
+					isSessionCurrent() &&
+					state.activeDocumentId === documentId &&
+					state.activeDocumentStatus ===
+						DocumentStatus.WAITING_FOR_VALIDATION &&
+					state.extractionItemsDocumentId === documentId,
+			};
 		}
 
 		if (status === DocumentStatus.WAITING_FOR_APPROVAL) {
-			return { openPreview: true };
+			const state = getState().knowledge;
+
+			return {
+				openPreview:
+					isSessionCurrent() &&
+					state.activeDocumentId === documentId &&
+					state.activeDocumentStatus === DocumentStatus.WAITING_FOR_APPROVAL,
+			};
 		}
 
 		return { openPreview: false };
@@ -520,13 +659,11 @@ const switchActiveDocument = createAppAsyncThunk<
 	async (request, { dispatch, extra, getState, signal }) => {
 		const { documentId, projectId } = request;
 		const isSessionCurrent = (): boolean =>
-			isMatchingPipelineSession(getState().knowledge, request);
+			isTrackedDocumentRequestCurrent(request, getState());
 
 		if (!isSessionCurrent()) {
 			return false;
 		}
-
-		dispatch(sliceSyncActions.setActiveDocumentId(documentId));
 
 		const statusResponse = await extra.documentsApi.getDocumentStatus({
 			documentId,
@@ -538,18 +675,53 @@ const switchActiveDocument = createAppAsyncThunk<
 			return false;
 		}
 
+		if (!isReviewableDocumentStatus(statusResponse.status)) {
+			dispatch(
+				sliceSyncActions.syncTrackedDocumentStatus({
+					...request,
+					status: statusResponse.status,
+				}),
+			);
+
+			if (
+				statusResponse.status !== DocumentStatus.CANCELLED &&
+				statusResponse.status !== DocumentStatus.COMPLETED &&
+				statusResponse.status !== DocumentStatus.FAILED
+			) {
+				void dispatch(pollDocumentStatus(request));
+			}
+
+			return false;
+		}
+
+		let extractionItems: ExtractionItemResponseDto[] = [];
+
+		if (statusResponse.status === DocumentStatus.WAITING_FOR_VALIDATION) {
+			const extractionResponse = await extra.documentsApi.getExtractionItems({
+				documentId,
+				projectId,
+				signal,
+			});
+			extractionItems = extractionResponse.items;
+		}
+
+		if (!isSessionCurrent()) {
+			return false;
+		}
+
 		dispatch(
-			sliceSyncActions.syncTrackedDocumentStatus({
+			sliceSyncActions.activatePreparedReviewDocument({
 				...request,
+				extractionItems,
 				status: statusResponse.status,
 			}),
 		);
 
-		if (statusResponse.status === DocumentStatus.WAITING_FOR_VALIDATION) {
-			await dispatch(fetchExtractionItems(request)).unwrap();
-		}
-
-		return isSessionCurrent();
+		return true;
+	},
+	{
+		condition: (request, { getState }) =>
+			isTrackedDocumentRequestCurrent(request, getState()),
 	},
 );
 
@@ -560,14 +732,38 @@ const submitExtractionReview = createAppAsyncThunk<
 	}
 >(
 	`${sliceName}/submit-extraction-review`,
-	async (payload, { extra, signal }) => {
+	async (payload, { dispatch, extra, getState, signal }) => {
 		const { documentsApi } = extra;
-		return await documentsApi.submitExtractionReview({
-			documentId: payload.documentId,
-			payload: payload.payload,
-			projectId: payload.projectId,
-			signal,
-		});
+
+		try {
+			return await documentsApi.submitExtractionReview({
+				documentId: payload.documentId,
+				payload: payload.payload,
+				projectId: payload.projectId,
+				signal,
+			});
+		} catch (error) {
+			if (
+				!signal.aborted &&
+				isTrackedDocumentRequestCurrent(payload, getState())
+			) {
+				const reconciliation = await dispatch(pollDocumentStatus(payload));
+
+				if (
+					pollDocumentStatus.fulfilled.match(reconciliation) &&
+					reconciliation.payload.status === DocumentStatus.COMPLETED &&
+					isMatchingPipelineSession(getState().knowledge, payload)
+				) {
+					void dispatch(fetchKnowledgeTree({ projectId: payload.projectId }));
+				}
+			}
+
+			throw error;
+		}
+	},
+	{
+		condition: (request, { getState }) =>
+			isTrackedDocumentRequestCurrent(request, getState()),
 	},
 );
 
@@ -576,13 +772,29 @@ const retryDocumentProcessing = createAppAsyncThunk<
 	DocumentPipelineRequest
 >(
 	`${sliceName}/retry-document-processing`,
-	async (payload, { extra, signal }) => {
+	async (payload, { dispatch, extra, getState, signal }) => {
 		const { documentsApi } = extra;
-		return await documentsApi.retryProcessing({
-			documentId: payload.documentId,
-			projectId: payload.projectId,
-			signal,
-		});
+
+		try {
+			return await documentsApi.retryProcessing({
+				documentId: payload.documentId,
+				projectId: payload.projectId,
+				signal,
+			});
+		} catch (error) {
+			if (
+				!signal.aborted &&
+				isTrackedDocumentRequestCurrent(payload, getState())
+			) {
+				await dispatch(pollDocumentStatus(payload));
+			}
+
+			throw error;
+		}
+	},
+	{
+		condition: (request, { getState }) =>
+			isTrackedDocumentRequestCurrent(request, getState()),
 	},
 );
 

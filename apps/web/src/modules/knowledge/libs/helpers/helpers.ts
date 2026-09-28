@@ -1,6 +1,7 @@
 export {
 	collectExtractionItemPatches,
 	deriveExtractionReviewIds,
+	mapExtractionItemsToProposedStructure,
 } from "./extraction-review.helper.js";
 export { filterKnowledgeTree } from "./filter-knowledge-tree.helper.js";
 export { formatFileSize } from "./format-file-size.helper.js";

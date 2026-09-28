@@ -56,8 +56,8 @@ interface KbEntry {
 type KnowledgeState = {
 	activeDocumentId: null | number;
 	activeDocumentStatus: "IDLE" | ValueOf<typeof DocumentStatus>;
-	errorMessage: null | string;
 	extractionItems: ExtractionItemResponseDto[];
+	extractionItemsDocumentId: null | number;
 	integrationPreviewDocumentId: null | number;
 	integrationPreviewError: null | string;
 	integrationPreviewRequestId: null | string;
@@ -66,6 +66,8 @@ type KnowledgeState = {
 	isEntryLoading: boolean;
 	isIntegrationPreviewLoading: boolean;
 	isTreeLoading: boolean;
+	knowledgeErrorMessage: null | string;
+	pipelineErrors: Record<number, string>;
 	pipelineProjectId: null | string;
 	pipelineSessionId: number;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
@@ -78,6 +80,7 @@ type KnowledgeState = {
 	trackedDocuments: TrackedDocument[];
 	tree: KnowledgeTreeItemResponseDto[];
 	treeRequestId: null | string;
+	uploadErrorMessage: null | string;
 	uploadSession: null | UploadSession;
 	uploadSessionSequence: number;
 };
@@ -96,6 +99,8 @@ type ProposedPage = {
 	matchedNodeId?: number;
 	originalContent?: string;
 	originalTitle?: string;
+	sourceExcerpt?: string;
+	sourcePageNumber?: number;
 	status: ChangeStatus;
 	summary?: string;
 	title: string;

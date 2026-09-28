@@ -1,3 +1,4 @@
+import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import { type ExtractionItemResponseDto } from "@knowledgeprism/types";
 
 import { type ProposedSection } from "../types/types.js";
@@ -6,6 +7,41 @@ type ExtractionItemPatch = {
 	id: number;
 	text: string;
 	title: string;
+};
+
+const EXTRACTION_SECTION_ID_PREFIX = "source-page";
+
+const mapExtractionItemsToProposedStructure = (
+	extractionItems: ExtractionItemResponseDto[],
+): ProposedSection[] => {
+	const sectionsByPage = new Map<number, ProposedSection["pages"]>();
+
+	for (const item of extractionItems) {
+		const pages = sectionsByPage.get(item.sourcePageNumber) ?? [];
+
+		pages.push({
+			content: item.text,
+			id: String(item.id),
+			integrationChangeId: item.id,
+			sourceExcerpt: item.sourceExcerpt,
+			sourcePageNumber: item.sourcePageNumber,
+			status: "created",
+			title: item.title,
+			type: KnowledgeNodeType.PAGE,
+		});
+
+		sectionsByPage.set(item.sourcePageNumber, pages);
+	}
+
+	return [...sectionsByPage]
+		.toSorted(([pageA], [pageB]) => pageA - pageB)
+		.map(([pageNumber, pages]) => ({
+			id: `${EXTRACTION_SECTION_ID_PREFIX}-${String(pageNumber)}`,
+			pages,
+			status: "created" as const,
+			title: `Extracted from Page ${String(pageNumber)}`,
+			type: KnowledgeNodeType.SECTION,
+		}));
 };
 
 const parseExtractionItemId = (pageId: string): null | number => {
@@ -89,4 +125,8 @@ const deriveExtractionReviewIds = (
 	return { approvedIds, rejectedIds };
 };
 
-export { collectExtractionItemPatches, deriveExtractionReviewIds };
+export {
+	collectExtractionItemPatches,
+	deriveExtractionReviewIds,
+	mapExtractionItemsToProposedStructure,
+};

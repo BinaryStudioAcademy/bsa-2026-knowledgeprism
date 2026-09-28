@@ -25,7 +25,7 @@ const DocumentUpload = ({
 }: Properties): JSX.Element => {
 	const dispatch = useAppDispatch();
 	const projectId = useCurrentProjectId();
-	const { errorMessage, selectedFiles, uploadSession } = useAppSelector(
+	const { selectedFiles, uploadErrorMessage, uploadSession } = useAppSelector(
 		(state) => state.knowledge,
 	);
 	const uploadSessionId = uploadSession?.id;
@@ -57,11 +57,13 @@ const DocumentUpload = ({
 				const validationResult = validateFile(file);
 
 				if (!validationResult.isValid) {
-					dispatch(actions.setError(validationResult.error ?? "Invalid file"));
+					dispatch(
+						actions.setUploadError(validationResult.error ?? "Invalid file"),
+					);
 					continue;
 				}
 
-				dispatch(actions.clearError());
+				dispatch(actions.clearUploadError());
 				const id = `${file.name}-${String(file.lastModified)}-${String(Date.now())}`;
 				filesMapReference.current.set(id, file);
 
@@ -138,16 +140,18 @@ const DocumentUpload = ({
 
 	return (
 		<div className={`flex flex-col gap-4 ${className}`}>
-			{errorMessage && (
+			{uploadErrorMessage && (
 				<Alert
-					description={errorMessage}
+					description={uploadErrorMessage}
 					title="Upload error"
 					variant="error"
 				/>
 			)}
 
 			<FileDropzone
-				disabled={isInteractionDisabled}
+				disabled={
+					isInteractionDisabled || selectedFiles.length > EMPTY_FILES_COUNT
+				}
 				onFilesSelected={handleFilesSelect}
 			/>
 

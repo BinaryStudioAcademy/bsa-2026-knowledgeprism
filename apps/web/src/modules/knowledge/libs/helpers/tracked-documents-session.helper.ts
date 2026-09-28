@@ -29,15 +29,22 @@ const writeTrackedDocumentIds = (
 	projectId: string,
 	documentIds: number[],
 ): void => {
-	const uniqueIds = [...new Set(documentIds)];
+	try {
+		const uniqueIds = [...new Set(documentIds)];
 
-	if (uniqueIds.length === EMPTY_LENGTH) {
-		sessionStorage.removeItem(buildStorageKey(projectId));
+		if (uniqueIds.length === EMPTY_LENGTH) {
+			sessionStorage.removeItem(buildStorageKey(projectId));
 
-		return;
+			return;
+		}
+
+		sessionStorage.setItem(
+			buildStorageKey(projectId),
+			JSON.stringify(uniqueIds),
+		);
+	} catch {
+		// Tracking persistence is best-effort recovery state only.
 	}
-
-	sessionStorage.setItem(buildStorageKey(projectId), JSON.stringify(uniqueIds));
 };
 
 const addTrackedDocumentId = (projectId: string, documentId: number): void => {
