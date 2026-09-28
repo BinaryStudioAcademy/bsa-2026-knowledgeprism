@@ -130,7 +130,23 @@ const UserForm = <T extends FieldValues>({
 	const hasAssignedProjects = assignedProjects.length > EMPTY_LENGTH;
 	const shouldShowProjectsSection = isReadOnly ? hasAssignedProjects : true;
 
+	const projectSectionDescription = (() => {
+		if (isAdmin) {
+			return "Admin for all projects in organizations";
+		}
+
+		if (isReadOnly) {
+			return "Projects you're assigned to and your role on each.";
+		}
+
+		return "Assign this user to projects and set their roles.";
+	})();
+
 	const renderProjectsContent = (): React.ReactNode => {
+		if (isAdmin) {
+			return null;
+		}
+
 		if (isReadOnly) {
 			return (
 				<>
@@ -264,14 +280,14 @@ const UserForm = <T extends FieldValues>({
 						<div>
 							<div className="font-medium text-text">Project Assignment</div>
 							<div className="text-sm text-text-muted">
-								{isReadOnly
-									? "Projects you're assigned to and your role on each."
-									: "Assign this user to projects and set their roles."}
+								{projectSectionDescription}
 							</div>
 						</div>
-						<div className="flex flex-col gap-4 pt-2">
-							{renderProjectsContent()}
-						</div>
+						{!isAdmin && (
+							<div className="flex flex-col gap-4 pt-2">
+								{renderProjectsContent()}
+							</div>
+						)}
 					</div>
 				)}
 			</div>
