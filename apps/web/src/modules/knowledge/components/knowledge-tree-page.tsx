@@ -22,7 +22,9 @@ const KnowledgeTreePage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const [searchParameters] = useSearchParams();
 	const canWriteKnowledge = useCanWriteKnowledge();
-	const { selectedEntry, tree } = useAppSelector((state) => state.knowledge);
+	const { pipelineSessionId, selectedEntry, tree } = useAppSelector(
+		(state) => state.knowledge,
+	);
 
 	const [manualSelection, setManualSelection] =
 		useState<ManualSelection | null>(null);
@@ -58,7 +60,11 @@ const KnowledgeTreePage: React.FC = () => {
 			isCurrentRequest = false;
 			request.abort();
 		};
-	}, [dispatch, projectId]);
+		// Re-fetches whenever the pipeline session changes (resetState/releasePipeline
+		// bump it), since those reducers also clear treeRequestId/tree — without this
+		// dependency, a pipeline reset racing this effect's own in-flight request
+		// permanently wipes its request-id guard and the tree never leaves "loading".
+	}, [dispatch, pipelineSessionId, projectId]);
 
 	const isTreeReady = fetchedProjectId === projectId;
 	const parentIds = new Set(tree.map((item) => item.parentId));

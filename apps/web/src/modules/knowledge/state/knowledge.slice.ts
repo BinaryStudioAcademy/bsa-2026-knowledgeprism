@@ -963,7 +963,6 @@ const { actions, name, reducer } = createSlice({
 			state.pipelineProjectId = null;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
 			state.statusRequestIds = {};
-			state.treeRequestId = null;
 			state.updateEntryRequestIds = {};
 		},
 		releaseUploadSession(state, action: PayloadAction<string>) {
