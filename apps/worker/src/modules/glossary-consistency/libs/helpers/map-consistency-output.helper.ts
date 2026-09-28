@@ -3,6 +3,8 @@ import {
 	type GlossaryConsistencyTerm,
 } from "../types/types.js";
 
+const LAST_INDEX_OFFSET = 1;
+
 type RawConsistencyMatch = {
 	explanation: string;
 	sourceExcerpt: string;
@@ -48,6 +50,25 @@ const isRawConsistencyMatch = (
 	);
 };
 
+// Despite the prompt requiring ONLY a JSON array, Claude occasionally second-guesses its first
+// answer inline ("Wait, let me reconsider...") before restating the real one, which makes the
+// full response invalid JSON. The model's actual answer is always the last array in the text, so
+// fall back to parsing that instead of rejecting an otherwise usable response.
+const parseTrailingJsonArray = (text: string): unknown => {
+	const arrayMatches = text.match(/\[[^[\]]*]/g);
+	const lastArray = arrayMatches?.at(-LAST_INDEX_OFFSET);
+
+	if (lastArray === undefined) {
+		return null;
+	}
+
+	try {
+		return JSON.parse(lastArray) as unknown;
+	} catch {
+		return null;
+	}
+};
+
 const parseRawValue = (raw: unknown): unknown => {
 	if (typeof raw !== "string") {
 		return raw;
@@ -62,7 +83,7 @@ const parseRawValue = (raw: unknown): unknown => {
 	try {
 		return JSON.parse(trimmed) as unknown;
 	} catch {
-		return null;
+		return parseTrailingJsonArray(trimmed);
 	}
 };
 

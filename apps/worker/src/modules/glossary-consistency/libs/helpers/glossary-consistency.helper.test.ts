@@ -127,4 +127,31 @@ void describe("mapConsistencyOutput", () => {
 	void it("returns null for a malformed response", () => {
 		assert.equal(mapConsistencyOutput("not json", content, [API_TERM]), null);
 	});
+
+	void it("recovers the final answer when Claude second-guesses itself inline before it", () => {
+		const raw =
+			'[{"sourceExcerpt":"application programming interface","termId":1,"suggestedText":"API","explanation":"wrong first guess"}]\n\n' +
+			"Wait, let me reconsider. Actually there is no mismatch here.\n\n[]";
+
+		assert.deepEqual(mapConsistencyOutput(raw, content, [API_TERM]), []);
+	});
+
+	void it("recovers a real match when it is the last array after reconsideration", () => {
+		const raw =
+			'[{"sourceExcerpt":"web service","termId":1,"suggestedText":"API","explanation":"wrong first guess"}]\n\n' +
+			"Wait, let me reconsider the actual paraphrase.\n\n" +
+			'[{"sourceExcerpt":"application programming interface","termId":1,"suggestedText":"API","explanation":"Refers to the API without using its canonical name."}]';
+
+		const result = mapConsistencyOutput(raw, content, [API_TERM]);
+
+		assert.deepEqual(result, [
+			{
+				canonicalName: "API",
+				explanation: "Refers to the API without using its canonical name.",
+				matchedTermId: 1,
+				sourceExcerpt: "application programming interface",
+				suggestedText: "API",
+			},
+		]);
+	});
 });
