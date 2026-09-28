@@ -1,6 +1,7 @@
 import { APIPath, DocumentsApiPath } from "@knowledgeprism/constants";
 import {
 	documentRouteParametersValidationSchema,
+	documentUploadIntentRouteParametersValidationSchema,
 	extractionItemRouteParametersValidationSchema,
 	extractionItemsReviewValidationSchema,
 	extractionItemUpdateValidationSchema,
@@ -8,6 +9,7 @@ import {
 } from "@knowledgeprism/schemas";
 import {
 	type DocumentRouteParametersDto,
+	type DocumentUploadIntentRouteParametersDto,
 	type ExtractionItemRouteParametersDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemUpdateRequestDto,
@@ -38,6 +40,19 @@ class DocumentReviewController extends BaseController {
 
 		this.documentReviewService = documentReviewService;
 
+		this.addRoute({
+			handler: (options) =>
+				this.findPendingReviews(
+					options as APIHandlerOptions<{
+						params: DocumentUploadIntentRouteParametersDto;
+					}>,
+				),
+			method: "GET",
+			path: DocumentsApiPath.PENDING_REVIEWS,
+			validation: {
+				params: documentUploadIntentRouteParametersValidationSchema,
+			},
+		});
 		this.addRoute({
 			handler: (options) =>
 				this.findStatus(
@@ -265,6 +280,37 @@ class DocumentReviewController extends BaseController {
 			payload: await this.documentReviewService.findItems(
 				this.getDocumentReference(options),
 			),
+			status: HTTPCode.OK,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/documents/pending-reviews:
+	 *    get:
+	 *      description: List documents waiting for extraction validation or integration approval
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      responses:
+	 *        200:
+	 *          description: Pending review documents
+	 *        403:
+	 *          description: User cannot write knowledge in the project
+	 */
+	private async findPendingReviews(
+		options: APIHandlerOptions<{
+			params: DocumentUploadIntentRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.documentReviewService.findPendingReviews({
+				context: this.getAuthenticatedSessionContext(options),
+				projectId: Number(options.params.projectId),
+			}),
 			status: HTTPCode.OK,
 		};
 	}

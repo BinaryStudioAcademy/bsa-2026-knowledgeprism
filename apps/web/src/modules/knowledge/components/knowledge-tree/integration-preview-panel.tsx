@@ -11,6 +11,10 @@ import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 
 import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
+import {
+	getPipelineSessionId,
+	isPipelineSessionCurrent,
+} from "../../state/session-guards.js";
 import { IntegrationPreview } from "../integration-preview/integration-preview.js";
 
 const EMPTY_INTEGRATION_CHANGES_MESSAGE =
@@ -21,6 +25,7 @@ const MISSING_DOCUMENT_MESSAGE =
 type Properties = {
 	documentId: number | undefined;
 	onAddMore: () => void;
+	onApplyingChange: (isApplying: boolean) => void;
 	onApprove: () => void;
 	onClose: () => void;
 	projectId: null | string;
@@ -29,12 +34,14 @@ type Properties = {
 const IntegrationPreviewPanel: React.FC<Properties> = ({
 	documentId,
 	onAddMore,
+	onApplyingChange,
 	onApprove,
 	onClose,
 	projectId,
 }: Properties) => {
 	const dispatch = useAppDispatch();
 	const {
+		integrationPreviewDocumentId,
 		integrationPreviewError,
 		integrationPreviewSections,
 		isIntegrationPreviewLoading,
@@ -56,15 +63,22 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 				return false;
 			}
 
+			const pipelineSessionId = getPipelineSessionId();
+
 			try {
 				await dispatch(
 					actions.applyIntegrationChanges({
 						documentId,
 						payload: { resolutions },
+						pipelineSessionId,
 						projectId,
 					}),
 				).unwrap();
 			} catch {
+				return false;
+			}
+
+			if (!isPipelineSessionCurrent(pipelineSessionId)) {
 				return false;
 			}
 
@@ -75,7 +89,10 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 		[dispatch, documentId, onApprove, projectId],
 	);
 
-	if (documentId === undefined) {
+	const displayedDocumentId =
+		documentId ?? integrationPreviewDocumentId ?? undefined;
+
+	if (displayedDocumentId === undefined) {
 		return (
 			<div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-bg p-4">
 				<Paragraph size={ParagraphSize.BODY_SMALL}>
@@ -88,7 +105,10 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 		);
 	}
 
-	if (isIntegrationPreviewLoading) {
+	if (
+		isIntegrationPreviewLoading ||
+		integrationPreviewDocumentId !== displayedDocumentId
+	) {
 		return (
 			<div className="flex h-full w-full items-center justify-center bg-bg">
 				<Loader size="lg" />
@@ -122,13 +142,14 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 		);
 	}
 
-	const previewKey = `${String(documentId)}-${String(integrationPreviewSections.length)}`;
+	const previewKey = `${String(displayedDocumentId)}-${String(integrationPreviewSections.length)}`;
 
 	return (
 		<div className="h-full w-full bg-bg">
 			<IntegrationPreview
 				key={previewKey}
 				onAddMore={onAddMore}
+				onApplyingChange={onApplyingChange}
 				onApprove={handleApply}
 				onClose={onClose}
 				proposedStructure={integrationPreviewSections}
