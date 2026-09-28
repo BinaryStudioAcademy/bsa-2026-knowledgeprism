@@ -1,13 +1,15 @@
 import React from "react";
 
-import { Icon } from "~/components/icon/icon.js";
+import { Icon, Loader } from "~/components/components.js";
 
 type Properties = {
+	isSearchingContent?: boolean;
 	onChange: (event_: React.ChangeEvent<HTMLInputElement>) => void;
 	value: string;
 };
 
 const KnowledgeTreeSearchBar: React.FC<Properties> = ({
+	isSearchingContent = false,
 	onChange,
 	value,
 }: Properties) => {
@@ -23,7 +25,11 @@ const KnowledgeTreeSearchBar: React.FC<Properties> = ({
 					value={value}
 				/>
 				<div className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted">
-					<Icon name="search" size={14} />
+					{isSearchingContent ? (
+						<Loader size="sm" />
+					) : (
+						<Icon name="search" size={14} />
+					)}
 				</div>
 			</div>
 		</div>
