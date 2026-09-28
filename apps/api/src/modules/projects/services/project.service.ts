@@ -17,6 +17,7 @@ import {
 } from "@knowledgeprism/types";
 import { UniqueViolationError } from "objection";
 
+import { type Database } from "~/infrastructure/database/database.js";
 import { DatabaseConstraintName } from "~/infrastructure/database/libs/enums/database-constraint-name.enum.js";
 import { HTTPError } from "~/infrastructure/http/http.js";
 import { ProjectEntity } from "~/modules/projects/models/project.entity.js";
@@ -25,9 +26,13 @@ import { type ProjectRepository } from "~/modules/projects/repositories/project.
 import { type UserEntity } from "~/modules/users/models/user.entity.js";
 import { type UserService } from "~/modules/users/services/user.service.js";
 
+import { type ProjectStorageCleanupService } from "./project-storage-cleanup.service.js";
+
 type Constructor = {
+	database: Database;
 	projectMemberRepository: ProjectMemberRepository;
 	projectRepository: ProjectRepository;
+	projectStorageCleanupService: ProjectStorageCleanupService;
 	userService: UserService;
 };
 
@@ -45,19 +50,27 @@ type ProjectWorkspaceDatabaseRow = {
 };
 
 class ProjectService {
+	private database: Database;
+
 	private projectMemberRepository: ProjectMemberRepository;
 
 	private projectRepository: ProjectRepository;
 
+	private projectStorageCleanupService: ProjectStorageCleanupService;
+
 	private userService: UserService;
 
 	public constructor({
+		database,
 		projectMemberRepository,
 		projectRepository,
+		projectStorageCleanupService,
 		userService,
 	}: Constructor) {
+		this.database = database;
 		this.projectMemberRepository = projectMemberRepository;
 		this.projectRepository = projectRepository;
+		this.projectStorageCleanupService = projectStorageCleanupService;
 		this.userService = userService;
 	}
 
@@ -296,17 +309,28 @@ class ProjectService {
 		await this.assertOrganisationAdmin(context);
 		await this.findProjectOrThrow(id, context.organisationId);
 
-		const wasDeleted = await this.projectRepository.deleteByIdAndOrganisationId(
-			id,
-			context.organisationId,
-		);
+		await this.database.transaction(async (transaction) => {
+			const wasDeleted =
+				await this.projectRepository.deleteByIdAndOrganisationId(
+					id,
+					context.organisationId,
+					transaction,
+				);
 
-		if (!wasDeleted) {
-			throw new HTTPError({
-				message: ProjectValidationMessage.NOT_FOUND,
-				status: HTTPCode.NOT_FOUND,
-			});
-		}
+			if (!wasDeleted) {
+				throw new HTTPError({
+					message: ProjectValidationMessage.NOT_FOUND,
+					status: HTTPCode.NOT_FOUND,
+				});
+			}
+
+			await this.projectStorageCleanupService.createCleanupTasks(
+				id,
+				transaction,
+			);
+		});
+
+		this.projectStorageCleanupService.triggerImmediateCleanups();
 	}
 
 	public async findAccessibleProjectIds(
