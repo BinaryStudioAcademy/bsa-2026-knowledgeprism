@@ -4,6 +4,7 @@ import {
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
 import {
+	type IntegrationChangeContentOverrideDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeNodeContentDto,
 } from "@knowledgeprism/types";
@@ -18,6 +19,7 @@ import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/k
 
 type ApplyParameters = {
 	changes: IntegrationChangeEntity[];
+	contentOverrides: IntegrationChangeContentOverrideDto[];
 	document: DocumentEntity;
 	resolutions: IntegrationConflictResolutionDto[];
 	userId: number;
@@ -34,6 +36,21 @@ const PARAGRAPH_BLOCK_TYPE = "paragraph";
 const toContentJson = (text: string): KnowledgeNodeContentDto => [
 	{ content: text, type: PARAGRAPH_BLOCK_TYPE },
 ];
+
+// The reviewer may have edited the proposed content in Integration Preview (manually, or by
+// accepting a glossary suggestion) before approving — use that edited text as the incoming
+// content/title instead of the original, unedited extraction when an override is present.
+const resolveIncoming = (
+	change: IntegrationChangeEntity,
+	override: IntegrationChangeContentOverrideDto | undefined,
+): { incomingContent: string; incomingTitle: string } => {
+	const { incomingContent, incomingTitle } = change.toObject();
+
+	return {
+		incomingContent: override?.content ?? incomingContent,
+		incomingTitle: override?.title ?? incomingTitle,
+	};
+};
 
 const isNodeChangedSinceAnalysis = (
 	node: KnowledgeNodeEntity,
@@ -66,18 +83,23 @@ class IntegrationApplier {
 		{
 			change,
 			node,
+			override,
 			resolution,
 			userId,
 		}: {
 			change: IntegrationChangeEntity;
 			node: KnowledgeNodeEntity;
+			override: IntegrationChangeContentOverrideDto | undefined;
 			resolution: IntegrationConflictResolutionDto | undefined;
 			userId: number;
 		},
 		transaction: Transaction,
 	): Promise<KnowledgeNodeEntity> {
-		const { extractionItemId, incomingContent, incomingTitle, type } =
-			change.toObject();
+		const { extractionItemId, type } = change.toObject();
+		const { incomingContent, incomingTitle } = resolveIncoming(
+			change,
+			override,
+		);
 		const { contentJson, id, title } = node.toObject();
 		const { content: isUseIncomingContent, title: isUseIncomingTitle } =
 			getIncomingFields(type, resolution);
@@ -108,8 +130,11 @@ class IntegrationApplier {
 		{
 			changes,
 			document,
+			overrideByChangeId,
 			userId,
-		}: Pick<ApplyParameters, "changes" | "document" | "userId">,
+		}: Pick<ApplyParameters, "changes" | "document" | "userId"> & {
+			overrideByChangeId: Map<number, IntegrationChangeContentOverrideDto>;
+		},
 		transaction: Transaction,
 	): Promise<void> {
 		if (changes.length === EMPTY_LENGTH) {
@@ -138,8 +163,11 @@ class IntegrationApplier {
 		);
 
 		for (const [position, change] of changes.entries()) {
-			const { extractionItemId, incomingContent, incomingTitle } =
-				change.toObject();
+			const { extractionItemId, id } = change.toObject();
+			const { incomingContent, incomingTitle } = resolveIncoming(
+				change,
+				overrideByChangeId.get(id),
+			);
 			const entryNode = await this.knowledgeNodeRepository.create(
 				{
 					entity: KnowledgeNodeEntity.initializeNew({
@@ -200,12 +228,21 @@ class IntegrationApplier {
 	}
 
 	public async apply(
-		{ changes, document, resolutions, userId }: ApplyParameters,
+		{
+			changes,
+			contentOverrides,
+			document,
+			resolutions,
+			userId,
+		}: ApplyParameters,
 		transaction: Transaction,
 	): Promise<void> {
 		const { projectId } = document.toObject();
 		const resolutionByChangeId = new Map(
 			resolutions.map((resolution) => [resolution.changeId, resolution]),
+		);
+		const overrideByChangeId = new Map(
+			contentOverrides.map((override) => [override.changeId, override]),
 		);
 		const nodes = await this.lockUnchangedMatchedNodes(
 			{ changes, projectId },
@@ -223,6 +260,7 @@ class IntegrationApplier {
 					{
 						change,
 						node: matchedNode,
+						override: overrideByChangeId.get(id),
 						resolution: resolutionByChangeId.get(id),
 						userId,
 					},
@@ -236,7 +274,7 @@ class IntegrationApplier {
 		}
 
 		await this.createEntries(
-			{ changes: newChanges, document, userId },
+			{ changes: newChanges, document, overrideByChangeId, userId },
 			transaction,
 		);
 	}

@@ -774,7 +774,7 @@ describe("knowledge pipeline lifecycle", () => {
 		await store.instance.dispatch(
 			applyIntegrationChanges({
 				...createRequest(DOCUMENT_A_ID),
-				payload: { resolutions: [] },
+				payload: { contentOverrides: [], resolutions: [] },
 			}),
 		);
 

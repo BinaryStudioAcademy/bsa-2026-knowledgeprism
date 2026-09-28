@@ -23,7 +23,10 @@ import {
 	ParagraphSize,
 } from "~/components/components.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import { toConflictResolutions } from "~/modules/knowledge/libs/helpers/helpers.js";
+import {
+	toConflictResolutions,
+	toContentOverrides,
+} from "~/modules/knowledge/libs/helpers/helpers.js";
 import {
 	type ChangeStatus,
 	type FieldConflict,
@@ -889,7 +892,10 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, [onAddMore]);
 
 	const applyChanges = useCallback(
-		async (conflicts: FieldConflict[]): Promise<void> => {
+		async (
+			conflicts: FieldConflict[],
+			sections: ProposedSection[],
+		): Promise<void> => {
 			if (isApplying) {
 				return;
 			}
@@ -907,6 +913,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			try {
 				isApplied = await onApprove(
 					toConflictResolutions({ conflicts, sections: proposedStructure }),
+					toContentOverrides(sections),
 				);
 			} catch {
 				return;
@@ -958,7 +965,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		const integrationConflicts = getAllIntegrationConflicts(pages);
 
 		if (integrationConflicts.length === EMPTY_LENGTH) {
-			void applyChanges([]);
+			void applyChanges([], pages);
 
 			return;
 		}
@@ -1003,7 +1010,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			resolvedConflicts: FieldConflict[],
 		): void => {
 			setPages(resolvedPages);
-			void applyChanges(resolvedConflicts);
+			void applyChanges(resolvedConflicts, resolvedPages);
 		},
 		[applyChanges],
 	);

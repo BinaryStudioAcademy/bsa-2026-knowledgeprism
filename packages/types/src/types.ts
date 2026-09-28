@@ -30,6 +30,7 @@ export {
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
 	type ExtractionItemUpdateRequestDto,
+	type IntegrationChangeContentOverrideDto,
 	type IntegrationChangeResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
