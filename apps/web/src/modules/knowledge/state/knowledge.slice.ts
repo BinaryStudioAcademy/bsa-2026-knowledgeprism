@@ -45,6 +45,7 @@ const IN_PROGRESS_PERCENTAGE = 50;
 const EMPTY_FILES_COUNT = 0;
 const FIRST_TRACKED_DOCUMENT_INDEX = 0;
 const SESSION_COUNTER_STEP = 1;
+const TREE_REVISION_STEP = 1;
 
 const initialState: State = {
 	activeDocumentId: null,
@@ -78,6 +79,7 @@ const initialState: State = {
 	trackedDocuments: [],
 	tree: [],
 	treeRequestId: null,
+	treeRevision: 0,
 	updateEntryRequestIds: {},
 	uploadErrorMessage: null,
 	uploadSession: null,
@@ -437,6 +439,7 @@ const { actions, name, reducer } = createSlice({
 			state.isTreeLoading = false;
 			state.tree = action.payload.items;
 			state.treeRequestId = null;
+			state.treeRevision += TREE_REVISION_STEP;
 		});
 		builder.addCase(fetchKnowledgeTree.rejected, (state, action) => {
 			if (state.treeRequestId !== action.meta.requestId) {
@@ -997,6 +1000,8 @@ const { actions, name, reducer } = createSlice({
 			clearAllPollTimers();
 			state.activeDocumentSwitchRequestId = null;
 			state.entryRequestId = null;
+			state.isEntryLoading = false;
+			state.isTreeLoading = false;
 			state.pendingReviewRequestId = null;
 			state.pipelineProjectId = null;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
@@ -1057,7 +1062,9 @@ const { actions, name, reducer } = createSlice({
 			state.integrationPreviewRequestId = null;
 			state.integrationPreviewSections = [];
 			state.isAddingKnowledge = false;
+			state.isEntryLoading = false;
 			state.isIntegrationPreviewLoading = false;
+			state.isTreeLoading = false;
 			state.knowledgeErrorMessage = null;
 			state.pendingReviewRequestId = null;
 			state.pipelineErrors = {};
@@ -1075,6 +1082,7 @@ const { actions, name, reducer } = createSlice({
 			state.trackedDocuments = [];
 			state.tree = [];
 			state.treeRequestId = null;
+			state.treeRevision = 0;
 			state.updateEntryRequestIds = {};
 		},
 		setUploadError(state, action: PayloadAction<string>) {

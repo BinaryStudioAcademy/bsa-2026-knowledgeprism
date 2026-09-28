@@ -22,7 +22,8 @@ const KnowledgeTreePage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const [searchParameters] = useSearchParams();
 	const canWriteKnowledge = useCanWriteKnowledge();
-	const { selectedEntry, tree } = useAppSelector((state) => state.knowledge);
+	const { pipelineProjectId, selectedEntry, tree, treeRevision } =
+		useAppSelector((state) => state.knowledge);
 
 	const [manualSelection, setManualSelection] =
 		useState<ManualSelection | null>(null);
@@ -36,7 +37,7 @@ const KnowledgeTreePage: React.FC = () => {
 			: undefined;
 
 	useEffect(() => {
-		if (!projectId) {
+		if (!projectId || pipelineProjectId !== projectId) {
 			return;
 		}
 
@@ -58,7 +59,7 @@ const KnowledgeTreePage: React.FC = () => {
 			isCurrentRequest = false;
 			request.abort();
 		};
-	}, [dispatch, projectId]);
+	}, [dispatch, pipelineProjectId, projectId]);
 
 	const isTreeReady = fetchedProjectId === projectId;
 	const parentIds = new Set(tree.map((item) => item.parentId));
@@ -76,7 +77,8 @@ const KnowledgeTreePage: React.FC = () => {
 			: undefined;
 	const manualSelectedPageId =
 		manualSelection?.projectId === projectId &&
-		manualSelection.queryNodeId === queryNodeId
+		manualSelection.queryNodeId === queryNodeId &&
+		tree.some((item) => item.id === manualSelection.pageId)
 			? manualSelection.pageId
 			: undefined;
 
@@ -95,7 +97,7 @@ const KnowledgeTreePage: React.FC = () => {
 		return () => {
 			request.abort();
 		};
-	}, [dispatch, activePageId, projectId]);
+	}, [dispatch, activePageId, projectId, treeRevision]);
 
 	const handleSelectPage = useCallback(
 		(id: number) => {

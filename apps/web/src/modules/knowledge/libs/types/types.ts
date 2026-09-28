@@ -87,6 +87,7 @@ type KnowledgeState = {
 	trackedDocuments: TrackedDocument[];
 	tree: KnowledgeTreeItemResponseDto[];
 	treeRequestId: null | string;
+	treeRevision: number;
 	updateEntryRequestIds: Record<number, string>;
 	uploadErrorMessage: null | string;
 	uploadSession: null | UploadSession;
