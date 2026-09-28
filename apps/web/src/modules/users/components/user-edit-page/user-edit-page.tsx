@@ -13,7 +13,6 @@ import {
 	useCallback,
 	useEffect,
 	useNavigate,
-	useState,
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 import { actions as projectsActions } from "~/modules/projects/projects.js";
@@ -38,7 +37,6 @@ const UserEditPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const { id } = useParams<{ id: string }>();
-	const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
 	const { availableProjects, currentUser, selectedUser, selectedUserStatus } =
 		useAppSelector(({ auth, projects, users }) => ({
@@ -87,15 +85,17 @@ const UserEditPage: React.FC = () => {
 		}
 	}, [selectedUser, reset]);
 
+	const isAdminEditingSelf = currentUser?.user.id === userId;
+
 	const handleValidSubmit = useCallback(
 		(values: UserEditFormValues): void => {
-			setErrorMessage(undefined);
-
 			void dispatch(
 				userActions.updateUser({
 					id: userId,
 					payload: {
-						assignedProjects: values.assignedProjects,
+						...(!isAdminEditingSelf && {
+							assignedProjects: values.assignedProjects,
+						}),
 						email: values.email,
 						firstName: values.firstName,
 						lastName: values.lastName,
@@ -111,14 +111,9 @@ const UserEditPage: React.FC = () => {
 				.then(() => {
 					void navigate(AppRoute.USERS);
 				})
-				.catch((error: unknown) => {
-					const message =
-						(error as { message?: string }).message ??
-						"An unexpected error occurred";
-					setErrorMessage(message);
-				});
+				.catch(() => {});
 		},
-		[dispatch, navigate, userId, selectedUser],
+		[dispatch, navigate, userId, selectedUser, isAdminEditingSelf],
 	);
 
 	const handleFormSubmit = useCallback(
@@ -131,8 +126,6 @@ const UserEditPage: React.FC = () => {
 	const handleCancel = useCallback((): void => {
 		void navigate(AppRoute.USERS);
 	}, [navigate]);
-
-	const isAdminEditingSelf = currentUser?.user.id === userId;
 
 	return (
 		<div className="relative flex flex-1 justify-center overflow-auto p-4 tablet:p-7 desktop:px-11 desktop:py-10">
@@ -153,7 +146,6 @@ const UserEditPage: React.FC = () => {
 					<UserForm
 						availableProjects={availableProjects}
 						control={control}
-						errorMessage={errorMessage}
 						isAdmin={isAdminEditingSelf}
 						isEditMode={true}
 						onCancel={handleCancel}

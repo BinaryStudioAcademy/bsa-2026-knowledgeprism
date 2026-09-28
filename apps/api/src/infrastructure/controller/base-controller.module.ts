@@ -66,6 +66,8 @@ class BaseController implements Controller {
 		const user = await UserModel.query().findById(userId);
 
 		if (user && user.status !== UserStatus.INACTIVE) {
+			session.organisationRole = user.organisationRole;
+
 			return;
 		}
 
@@ -106,16 +108,7 @@ class BaseController implements Controller {
 		await this.assertActiveSession(route, handlerOptions.session);
 
 		if (route.allowedRoles) {
-			let { organisationRole, userId } = handlerOptions.session;
-
-			if (userId && organisationRole === undefined) {
-				const user = await UserModel.query().findById(userId);
-
-				if (user) {
-					organisationRole = user.organisationRole;
-					handlerOptions.session.organisationRole = organisationRole;
-				}
-			}
+			const { organisationRole, userId } = handlerOptions.session;
 
 			const isAllowedByRole = Boolean(
 				organisationRole && route.allowedRoles.includes(organisationRole),

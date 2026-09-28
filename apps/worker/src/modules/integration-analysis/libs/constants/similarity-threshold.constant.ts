@@ -1,5 +1,5 @@
 const SimilarityThreshold = {
-	MINIMUM: 0.7,
+	MINIMUM: 0.6,
 } as const;
 
 export { SimilarityThreshold };

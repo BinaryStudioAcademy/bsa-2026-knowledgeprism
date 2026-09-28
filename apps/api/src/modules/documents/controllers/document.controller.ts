@@ -43,6 +43,7 @@ import { type DocumentService } from "~/modules/documents/services/document.serv
  *            type: string
  *            enum:
  *              - application/pdf
+ *              - text/plain
  *          sizeInBytes:
  *            type: number
  *            example: 1048576

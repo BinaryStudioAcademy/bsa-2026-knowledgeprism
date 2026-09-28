@@ -1,4 +1,5 @@
 const DocumentValidationMessage = {
+	CONTENT_MAXIMUM_LENGTH: "Content must be at most 100,000 characters",
 	CONTENT_REQUIRED: "Content is required",
 	IDENTIFIER_INVALID: "Identifier is invalid",
 	TEXT_REQUIRED: "Text is required",
