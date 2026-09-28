@@ -3,6 +3,7 @@
 	"type": "module",
 	"version": "1.0.0",
 	"scripts": {
+		"test": "tsx --test 'src/**/*.test.ts'",
 		"lint:type": "npx tsc --noEmit",
 		"lint:js": "npx eslint . --max-warnings=0",
 		"lint": "concurrently \"npm:lint:*\"",

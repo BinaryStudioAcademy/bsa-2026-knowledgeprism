@@ -206,6 +206,28 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		};
 	}
 
+	public async touchProcessingAttempt({
+		expectedStatus,
+		id,
+		processingAttempt,
+	}: {
+		expectedStatus: ValueOf<typeof DocumentStatus>;
+		id: number;
+		processingAttempt: number;
+	}): Promise<boolean> {
+		const updatedCount = await this.documentModel
+			.query()
+			.patch({ updatedAt: new Date() })
+			.where({
+				id,
+				processingAttempt,
+				status: expectedStatus,
+			})
+			.execute();
+
+		return Boolean(updatedCount);
+	}
+
 	public async updateStatus(
 		{ id, status }: { id: number; status: ValueOf<typeof DocumentStatus> },
 		transaction?: Transaction,
