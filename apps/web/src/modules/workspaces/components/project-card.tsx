@@ -16,6 +16,7 @@ interface ProjectCardProperties {
 }
 
 const DAYS_PER_WEEK = 7;
+const DAYS_PER_YEAR = 365;
 const HOURS_PER_DAY = 24;
 const MINUTES_PER_HOUR = 60;
 const MS_PER_SECOND = 1000;
@@ -109,6 +110,10 @@ const roleConfig: Record<
 	},
 };
 
+const formatTimeUnit = (value: number, unit: string): string => {
+	return `Updated ${String(value)} ${value === SINGLE_UNIT ? unit : unit + "s"} ago`;
+};
+
 const formatRelativeTime = (dateString: string): string => {
 	if (!dateString) {
 		return "";
@@ -121,25 +126,33 @@ const formatRelativeTime = (dateString: string): string => {
 	}
 
 	const now = new Date();
-	const diffHours = Math.floor(
-		(now.getTime() - date.getTime()) /
-			(MS_PER_SECOND * SECONDS_PER_MINUTE * MINUTES_PER_HOUR),
+	const diffMinutes = Math.floor(
+		(now.getTime() - date.getTime()) / (MS_PER_SECOND * SECONDS_PER_MINUTE),
 	);
 
+	if (diffMinutes < MINUTES_PER_HOUR) {
+		return formatTimeUnit(Math.max(SINGLE_UNIT, diffMinutes), "minute");
+	}
+
+	const diffHours = Math.floor(diffMinutes / MINUTES_PER_HOUR);
+
 	if (diffHours < HOURS_PER_DAY) {
-		const hours = Math.max(SINGLE_UNIT, diffHours);
-		return `Updated ${String(hours)} ${hours === SINGLE_UNIT ? "hour" : "hours"} ago`;
+		return formatTimeUnit(diffHours, "hour");
 	}
 
 	const diffDays = Math.floor(diffHours / HOURS_PER_DAY);
 
 	if (diffDays < DAYS_PER_WEEK) {
-		return `Updated ${String(diffDays)} ${diffDays === SINGLE_UNIT ? "day" : "days"} ago`;
+		return formatTimeUnit(diffDays, "day");
 	}
 
-	const diffWeeks = Math.floor(diffDays / DAYS_PER_WEEK);
+	if (diffDays < DAYS_PER_YEAR) {
+		const diffWeeks = Math.floor(diffDays / DAYS_PER_WEEK);
+		return formatTimeUnit(diffWeeks, "week");
+	}
 
-	return `Updated ${String(diffWeeks)} ${diffWeeks === SINGLE_UNIT ? "week" : "weeks"} ago`;
+	const diffYears = Math.floor(diffDays / DAYS_PER_YEAR);
+	return `Updated more than ${String(diffYears)} ${diffYears === SINGLE_UNIT ? "year" : "years"} ago`;
 };
 
 const ProjectCard: React.FC<ProjectCardProperties> = ({

@@ -32,7 +32,6 @@ type ProjectRole = "EDITOR" | "VIEWER";
 type Properties<T extends FieldValues> = {
 	availableProjects?: AvailableProject[];
 	control: Control<T, null>;
-	errorMessage?: string | undefined;
 	isAdmin?: boolean;
 	isEditMode?: boolean;
 	isLoading?: boolean;
@@ -63,7 +62,6 @@ const ROLE_OPTIONS = [
 const UserForm = <T extends FieldValues>({
 	availableProjects = [],
 	control,
-	errorMessage,
 	isAdmin = false,
 	isEditMode = false,
 	isLoading = false,
@@ -242,7 +240,7 @@ const UserForm = <T extends FieldValues>({
 					label={isEditMode ? "Password (Optional)" : "Password"}
 					maxLength={32}
 					name={"password" as Path<T>}
-					placeholder="At least 8 characters"
+					placeholder="Enter password"
 					type="password"
 				/>
 
@@ -291,10 +289,6 @@ const UserForm = <T extends FieldValues>({
 					</div>
 				)}
 			</div>
-
-			{errorMessage && (
-				<div className="text-sm font-medium text-error">{errorMessage}</div>
-			)}
 
 			<div className="flex justify-end gap-3 border-t border-border pt-6 pb-2">
 				<Button
