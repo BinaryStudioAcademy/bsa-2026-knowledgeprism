@@ -252,7 +252,10 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 
 												{isAdmin && (
 													<button
-														className="w-full cursor-pointer rounded-md px-3 py-2 text-left text-xs font-medium text-text-muted transition-colors hover:bg-secondary hover:text-text focus:outline-none sm:py-2"
+														className={getValidClassNames(
+															ACCOUNT_MENU_ITEM_CLASS,
+															"text-text-muted hover:bg-secondary hover:text-text",
+														)}
 														onClick={handleOpenUserManagement}
 														type="button"
 													>

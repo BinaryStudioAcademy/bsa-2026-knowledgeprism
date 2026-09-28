@@ -67,7 +67,8 @@ const SidebarLayout: React.FC = () => {
 		shouldRenderSidebar && (!isPhone || shell.isOverlayOpen);
 	const shouldShowPhoneLauncher =
 		shouldRenderSidebar && isPhone && !shell.isOverlayOpen;
-	const shouldShowMobileNav = shouldRenderSidebar && isPhone;
+	const shouldShowMobileNav =
+		shouldRenderSidebar && isPhone && Boolean(urlProjectId);
 	const overlayContextValue = useMemo(
 		() => ({
 			closeOverlay: shell.closeOverlay,

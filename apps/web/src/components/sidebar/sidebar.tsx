@@ -1,7 +1,7 @@
 import { ProjectMemberRole } from "@knowledgeprism/constants";
 import { useFocusReturn, useFocusTrap, useMergedRef } from "@mantine/hooks";
 import React, { useCallback, useEffect, useRef } from "react";
-import { generatePath, Link } from "react-router-dom";
+import { generatePath, Link, useParams } from "react-router-dom";
 
 import { Icon } from "~/components/icon/icon.js";
 import {
@@ -113,6 +113,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	role,
 	shell,
 }: SidebarProperties) => {
+	const { projectId: routeProjectId } = useParams<{ projectId?: string }>();
 	const projectId = useOptionalCurrentProjectId();
 	const { hideModal, isOpen, showModal } = useModal();
 	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
@@ -125,7 +126,9 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	useFocusReturn({ opened: isOverlayOpen });
 
 	const primaryNavItems =
-		shell.mode === "phone" ? [] : buildPrimaryNavItems(projectId);
+		shell.mode === "phone" || !routeProjectId
+			? []
+			: buildPrimaryNavItems(routeProjectId);
 	const utilityNavItems = buildUtilityNavItems(role, isAdmin);
 
 	const handleAddClick = useCallback((): void => {
