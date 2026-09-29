@@ -67,6 +67,7 @@ interface ProjectItemCardProperties {
 	isOrgAdmin: boolean;
 	onDelete: (id: string) => void;
 	onEdit: (project: ProjectItem) => void;
+	onManageMembers: (id: string) => void;
 	onSelect: (id: string) => void;
 	project: ProjectItem;
 	totalCount: number;
@@ -237,6 +238,7 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	isOrgAdmin,
 	onDelete,
 	onEdit,
+	onManageMembers,
 	onSelect,
 	project,
 	totalCount,
@@ -251,6 +253,10 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	const handleEdit = useCallback((): void => {
 		onEdit(project);
 	}, [onEdit, project]);
+
+	const handleManageMembers = useCallback((): void => {
+		onManageMembers(project.id);
+	}, [onManageMembers, project.id]);
 
 	const isLastOdd =
 		index === totalCount - INDEX_OFFSET &&
@@ -269,6 +275,7 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 				updatedAt={project.lastActivityAt ?? project.updatedAt}
 				{...(canDelete ? { onDelete: handleDelete } : {})}
 				{...(canEdit ? { onEdit: handleEdit } : {})}
+				{...(isOrgAdmin ? { onManageMembers: handleManageMembers } : {})}
 			/>
 		</div>
 	);
@@ -427,6 +434,13 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		void navigate(buildUserManagementPath(null));
 	}, [navigate]);
 
+	const handleManageProjectMembers = useCallback(
+		(projectId: string): void => {
+			void navigate(buildUserManagementPath(projectId));
+		},
+		[navigate],
+	);
+
 	const hasProjects = localProjects.length > EMPTY_LENGTH;
 
 	return (
@@ -510,6 +524,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 								key={project.id}
 								onDelete={handleSetDeletingProjectId}
 								onEdit={handleSetEditingProject}
+								onManageMembers={handleManageProjectMembers}
 								onSelect={onSelectProject}
 								project={project}
 								totalCount={filteredProjects.length}
