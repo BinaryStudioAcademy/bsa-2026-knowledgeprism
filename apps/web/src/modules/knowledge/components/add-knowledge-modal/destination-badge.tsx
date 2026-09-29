@@ -2,13 +2,15 @@ import { type JSX } from "react";
 
 import { Icon } from "~/components/components.js";
 
+import { DEFAULT_DESTINATION_BRANCH_NAME } from "../../libs/constants/constants.js";
+
 type Properties = {
 	branchName?: string;
 	projectName: string;
 };
 
 const DestinationBadge = ({
-	branchName = "Main",
+	branchName = DEFAULT_DESTINATION_BRANCH_NAME,
 	projectName,
 }: Properties): JSX.Element => (
 	<div className="flex items-center gap-2 text-xs text-text-muted">

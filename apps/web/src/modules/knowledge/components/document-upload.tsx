@@ -53,7 +53,7 @@ const DocumentUpload = ({
 				return;
 			}
 
-			for (const file of files) {
+			for (const [index, file] of files.entries()) {
 				const validationResult = validateFile(file);
 
 				if (!validationResult.isValid) {
@@ -64,7 +64,7 @@ const DocumentUpload = ({
 				}
 
 				dispatch(actions.clearUploadError());
-				const id = `${file.name}-${String(file.lastModified)}-${String(Date.now())}`;
+				const id = `${file.name}-${String(file.lastModified)}-${String(Date.now())}-${String(index)}`;
 				filesMapReference.current.set(id, file);
 
 				dispatch(
@@ -149,9 +149,7 @@ const DocumentUpload = ({
 			)}
 
 			<FileDropzone
-				disabled={
-					isInteractionDisabled || selectedFiles.length > EMPTY_FILES_COUNT
-				}
+				disabled={isInteractionDisabled}
 				onFilesSelected={handleFilesSelect}
 			/>
 
