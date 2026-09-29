@@ -2,7 +2,6 @@ import { APIPath, KnowledgeApiPath } from "@knowledgeprism/constants";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
-	type KnowledgeSearchResponseDto,
 	type KnowledgeTreeResponseDto,
 } from "@knowledgeprism/types";
 
@@ -65,27 +64,6 @@ class KnowledgeApi extends BaseHTTPApi {
 		);
 
 		return await response.json<KnowledgeTreeResponseDto>();
-	}
-
-	public async search({
-		projectId,
-		query,
-		signal,
-	}: {
-		projectId: string;
-		query: string;
-		signal?: AbortSignal | undefined;
-	}): Promise<KnowledgeSearchResponseDto> {
-		const endpoint = `${this.getFullEndpoint(KnowledgeApiPath.SEARCH, { projectId })}?q=${encodeURIComponent(query)}`;
-
-		const response = await this.load(endpoint, {
-			contentType: ContentType.JSON,
-			hasAuth: true,
-			method: "GET",
-			signal,
-		});
-
-		return await response.json<KnowledgeSearchResponseDto>();
 	}
 
 	public async updateKnowledgeEntry({

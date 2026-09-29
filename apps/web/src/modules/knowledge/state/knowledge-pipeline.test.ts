@@ -31,7 +31,6 @@ import {
 	pollDocumentStatus,
 	resumeNextPendingReview,
 	retryDocumentProcessing,
-	searchKnowledge,
 	submitExtractionReview,
 	submitManualText,
 	switchActiveDocument,
@@ -191,6 +190,36 @@ describe("knowledge pipeline lifecycle", () => {
 		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
 	});
 
+	it("clears loading flags when request ownership is invalidated", () => {
+		const startRequests = (): void => {
+			store.instance.dispatch(
+				fetchKnowledgeTree.pending("tree", { projectId: PROJECT_ID }),
+			);
+			store.instance.dispatch(
+				fetchKnowledgeEntry.pending("entry", {
+					entryId: KNOWLEDGE_ENTRY_A_ID,
+					projectId: PROJECT_ID,
+				}),
+			);
+		};
+		const expectRequestsReleased = (): void => {
+			const state = store.instance.getState().knowledge;
+
+			expect(state.isEntryLoading).toBe(false);
+			expect(state.isTreeLoading).toBe(false);
+			expect(state.entryRequestId).toBeNull();
+			expect(state.treeRequestId).toBeNull();
+		};
+
+		startRequests();
+		store.instance.dispatch(actions.releasePipeline());
+		expectRequestsReleased();
+
+		startRequests();
+		store.instance.dispatch(actions.resetState(SECOND_PROJECT_ID));
+		expectRequestsReleased();
+	});
+
 	it("keeps an active document error while a background document polls", () => {
 		trackDocumentWithStatus(
 			DOCUMENT_A_ID,
@@ -295,50 +324,6 @@ describe("knowledge pipeline lifecycle", () => {
 		const state = store.instance.getState().knowledge;
 		expect(state.knowledgeErrorMessage).toBeNull();
 		expect(notificationListener).not.toHaveBeenCalled();
-	});
-
-	it("keeps search results from the latest project request", async () => {
-		const firstSearch = createDeferred<{
-			items: { content: never[]; id: number; title: string }[];
-		}>();
-		const secondSearch = createDeferred<{
-			items: { content: never[]; id: number; title: string }[];
-		}>();
-		vi.spyOn(knowledgeApi, "search").mockImplementation(({ projectId }) =>
-			projectId === PROJECT_ID ? firstSearch.promise : secondSearch.promise,
-		);
-
-		const firstRequest = store.instance.dispatch(
-			searchKnowledge({ projectId: PROJECT_ID, query: "auth" }),
-		);
-		const secondRequest = store.instance.dispatch(
-			searchKnowledge({ projectId: SECOND_PROJECT_ID, query: "auth" }),
-		);
-
-		secondSearch.resolve({
-			items: [
-				{
-					content: [],
-					id: KNOWLEDGE_ENTRY_B_ID,
-					title: "Project B result",
-				},
-			],
-		});
-		await secondRequest;
-		firstSearch.resolve({
-			items: [
-				{
-					content: [],
-					id: KNOWLEDGE_ENTRY_A_ID,
-					title: "Project A result",
-				},
-			],
-		});
-		await firstRequest;
-
-		expect(store.instance.getState().knowledge.searchResults).toEqual([
-			expect.objectContaining({ id: KNOWLEDGE_ENTRY_B_ID }),
-		]);
 	});
 
 	it("reconciles a pending-review omission to INTEGRATING without untracking", async () => {

@@ -9,6 +9,7 @@ import {
 	documentController,
 	documentReviewController,
 } from "~/modules/documents/documents.js";
+import { glossaryController } from "~/modules/glossary/glossary.js";
 import {
 	knowledgeController,
 	recentKnowledgeController,
@@ -27,6 +28,7 @@ const apiV1 = new BaseServerApplicationApi(
 	...authController.routes,
 	...projectController.routes,
 	...knowledgeController.routes,
+	...glossaryController.routes,
 	...recentKnowledgeController.routes,
 	...userController.routes,
 	...askPrismController.routes,

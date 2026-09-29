@@ -10,7 +10,6 @@ import {
 	type IntegrationChangesResponseDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
-	type KnowledgeSearchResponseDto,
 	type KnowledgeTreeResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
@@ -218,17 +217,6 @@ const confirmDocumentUpload = createAppAsyncThunk<
 		}
 
 		return response;
-	},
-);
-
-const searchKnowledge = createAsyncThunk<
-	KnowledgeSearchResponseDto,
-	{ projectId: string; query: string },
-	AsyncThunkConfig
->(
-	`${sliceName}/search-knowledge`,
-	async ({ projectId, query }, { extra, signal }) => {
-		return await extra.knowledgeApi.search({ projectId, query, signal });
 	},
 );
 
@@ -1024,7 +1012,6 @@ export {
 	processDocument,
 	resumeNextPendingReview,
 	retryDocumentProcessing,
-	searchKnowledge,
 	submitExtractionReview,
 	submitManualText,
 	switchActiveDocument,

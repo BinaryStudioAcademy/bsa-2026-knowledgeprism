@@ -5,7 +5,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { DocumentValidationMessage } from "../libs/constants/constants.js";
-import { DocumentProcessingStatus, SearchStatus } from "../libs/enums/enums.js";
+import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import {
 	formatFileSize,
 	isMatchingPipelineSession,
@@ -27,7 +27,6 @@ import {
 	pollDocumentStatus,
 	processDocument,
 	retryDocumentProcessing,
-	searchKnowledge,
 	submitExtractionReview,
 	submitManualText,
 	switchActiveDocument,
@@ -45,6 +44,7 @@ const IN_PROGRESS_PERCENTAGE = 50;
 const EMPTY_FILES_COUNT = 0;
 const FIRST_TRACKED_DOCUMENT_INDEX = 0;
 const SESSION_COUNTER_STEP = 1;
+const TREE_REVISION_STEP = 1;
 
 const initialState: State = {
 	activeDocumentId: null,
@@ -67,17 +67,13 @@ const initialState: State = {
 	pipelineProjectId: null,
 	pipelineSessionId: 0,
 	processingStatus: DocumentProcessingStatus.IDLE,
-	searchErrorMessage: null,
-	searchQuery: "",
-	searchRequestId: null,
-	searchResults: [],
-	searchStatus: SearchStatus.IDLE,
 	selectedEntry: null,
 	selectedFiles: [],
 	statusRequestIds: {},
 	trackedDocuments: [],
 	tree: [],
 	treeRequestId: null,
+	treeRevision: 0,
 	updateEntryRequestIds: {},
 	uploadErrorMessage: null,
 	uploadSession: null,
@@ -437,6 +433,7 @@ const { actions, name, reducer } = createSlice({
 			state.isTreeLoading = false;
 			state.tree = action.payload.items;
 			state.treeRequestId = null;
+			state.treeRevision += TREE_REVISION_STEP;
 		});
 		builder.addCase(fetchKnowledgeTree.rejected, (state, action) => {
 			if (state.treeRequestId !== action.meta.requestId) {
@@ -519,38 +516,6 @@ const { actions, name, reducer } = createSlice({
 				state.knowledgeErrorMessage =
 					action.error.message ?? "Failed to update knowledge entry";
 			}
-		});
-		builder.addCase(searchKnowledge.pending, (state, action) => {
-			state.searchErrorMessage = null;
-			state.searchQuery = action.meta.arg.query;
-			state.searchRequestId = action.meta.requestId;
-			state.searchStatus = SearchStatus.LOADING;
-		});
-		builder.addCase(searchKnowledge.fulfilled, (state, action) => {
-			if (state.searchRequestId !== action.meta.requestId) {
-				return;
-			}
-
-			state.searchErrorMessage = null;
-			state.searchRequestId = null;
-			state.searchResults = action.payload.items;
-			state.searchStatus = SearchStatus.SUCCEEDED;
-		});
-		builder.addCase(searchKnowledge.rejected, (state, action) => {
-			if (state.searchRequestId !== action.meta.requestId) {
-				return;
-			}
-
-			state.searchRequestId = null;
-			if (action.meta.aborted) {
-				state.searchStatus = SearchStatus.IDLE;
-
-				return;
-			}
-
-			state.searchErrorMessage =
-				action.error.message ?? "Failed to search knowledge base";
-			state.searchStatus = SearchStatus.FAILED;
 		});
 		builder.addCase(submitManualText.fulfilled, (state, action) => {
 			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
@@ -997,10 +962,11 @@ const { actions, name, reducer } = createSlice({
 			clearAllPollTimers();
 			state.activeDocumentSwitchRequestId = null;
 			state.entryRequestId = null;
+			state.isEntryLoading = false;
+			state.isTreeLoading = false;
 			state.pendingReviewRequestId = null;
 			state.pipelineProjectId = null;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
-			state.searchRequestId = null;
 			state.statusRequestIds = {};
 			state.treeRequestId = null;
 			state.updateEntryRequestIds = {};
@@ -1057,6 +1023,7 @@ const { actions, name, reducer } = createSlice({
 			state.integrationPreviewRequestId = null;
 			state.integrationPreviewSections = [];
 			state.isAddingKnowledge = false;
+			state.isEntryLoading = false;
 			state.isIntegrationPreviewLoading = false;
 			state.isTreeLoading = false;
 			state.knowledgeErrorMessage = null;
@@ -1065,17 +1032,13 @@ const { actions, name, reducer } = createSlice({
 			state.pipelineProjectId = action.payload;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
-			state.searchErrorMessage = null;
-			state.searchQuery = "";
-			state.searchRequestId = null;
-			state.searchResults = [];
-			state.searchStatus = SearchStatus.IDLE;
 			state.selectedFiles = [];
 			state.selectedEntry = null;
 			state.statusRequestIds = {};
 			state.trackedDocuments = [];
 			state.tree = [];
 			state.treeRequestId = null;
+			state.treeRevision = 0;
 			state.updateEntryRequestIds = {};
 		},
 		setUploadError(state, action: PayloadAction<string>) {
