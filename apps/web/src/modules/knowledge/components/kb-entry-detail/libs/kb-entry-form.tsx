@@ -329,9 +329,6 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 		[dismissGlossaryWarning],
 	);
 
-	// The panel list sits outside the hover tooltip, so its Accept can't use the tooltip's own
-	// `replace` action — it goes through the editor api lifted via `onReady` instead. Both
-	// paths end up calling the same extension method, so the form's onChange records either.
 	const handleAcceptGlossaryWarningFromList = useCallback(
 		(match: GlossaryConsistencyMatchDto): void => {
 			editorApiReference.current?.replace(

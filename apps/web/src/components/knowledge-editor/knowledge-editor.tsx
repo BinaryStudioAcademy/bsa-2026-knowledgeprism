@@ -114,9 +114,6 @@ const KnowledgeEditor: React.FC<Properties> = ({
 		highlightExtension.setHighlights(highlights ?? []);
 	}, [highlightExtension, highlights]);
 
-	// Exposes `replace` so a caller can accept a highlight from outside the hover tooltip too
-	// (e.g. a keyboard-accessible list under the editor), always going through the extension so
-	// the edit lands in the document and `onChange` records it, same as the tooltip's Accept.
 	useEffect(() => {
 		onReady?.({ replace: handleReplace });
 	}, [handleReplace, onReady]);

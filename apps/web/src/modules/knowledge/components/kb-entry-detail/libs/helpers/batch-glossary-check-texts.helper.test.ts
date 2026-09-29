@@ -31,7 +31,6 @@ describe("batchGlossaryCheckTexts", () => {
 	});
 
 	it("starts a new batch once the joined length would exceed the limit", () => {
-		// "aaaaa" + separator(2) + "bbbbb" = 12 chars, over a limit of 10.
 		const batches = batchGlossaryCheckTexts(
 			["aaaaa", "bbbbb"],
 			TIGHT_LIMIT,
@@ -50,7 +49,6 @@ describe("batchGlossaryCheckTexts", () => {
 			JOIN_SEPARATOR,
 		);
 
-		// "short" (5) + sep(2) + "also short" (10) = 17, within a limit of 25.
 		expect(batches).toHaveLength(ONE_BATCH);
 		expect(batches[FIRST_INDEX]).toStrictEqual(["short", "also short"]);
 	});
@@ -62,8 +60,6 @@ describe("batchGlossaryCheckTexts", () => {
 			JOIN_SEPARATOR,
 		);
 
-		// "12345" (5) + sep(2) + "12345" (5) = 12, fits exactly; the third "12345" would push
-		// it to 19, over the limit, so it starts its own batch.
 		expect(batches).toHaveLength(TWO_BATCHES);
 		expect(batches[FIRST_INDEX]).toStrictEqual(["12345", "12345"]);
 		expect(batches[SECOND_INDEX]).toStrictEqual(["12345"]);

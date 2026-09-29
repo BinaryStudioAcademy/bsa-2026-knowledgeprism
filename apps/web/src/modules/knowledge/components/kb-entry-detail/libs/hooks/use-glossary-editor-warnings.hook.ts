@@ -26,17 +26,9 @@ const INITIAL_CACHE_VERSION = 0;
 const NO_CHECKS_IN_FLIGHT = 0;
 const COUNTER_STEP = 1;
 const EMPTY_MATCHES: GlossaryConsistencyMatchDto[] = [];
-// A block's flattened text can't contain this character, so it's safe as a join separator
-// for turning the debounced block-texts array into one primitive `useDebouncedValue` can
-// compare, without pulling in a deep-equality dependency.
 const BLOCK_TEXT_JOIN_SEPARATOR = "\u{0}";
 const BATCH_JOIN_SEPARATOR = "\n\n";
 
-// Module-level, like Integration Preview's glossary check cache: keyed by the exact flattened
-// text of a top-level block, so unrelated blocks never share a cache entry and an unchanged
-// block is never re-sent. Cleared only on a full page reload — a term added to the glossary
-// mid-session won't retroactively clear an already-cached warning until then (documented
-// limitation, see the PR).
 const glossaryEditorCheckCache = new Map<
 	string,
 	GlossaryConsistencyMatchDto[]
@@ -60,11 +52,7 @@ const useGlossaryEditorWarnings = ({
 	const projectId = useCurrentProjectId();
 	const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 	const [isChecking, setIsChecking] = useState(false);
-	// Bumped after every cache write so `matches` below recomputes; the cache is a plain
-	// module-level Map, and mutating it doesn't trigger a re-render on its own.
 	const [cacheVersion, setCacheVersion] = useState(INITIAL_CACHE_VERSION);
-	// Counts overlapping check runs, so `isChecking` only turns off when the last one settles;
-	// a run superseded by a newer edit still finishes and still fills the cache.
 	const inFlightChecksReference = useRef(NO_CHECKS_IN_FLIGHT);
 
 	const blockTexts = useMemo(() => getTopLevelBlockTexts(blocks), [blocks]);
@@ -94,8 +82,6 @@ const useGlossaryEditorWarnings = ({
 		);
 		const batchedTexts = new Set(batches.flat());
 
-		// A text too long to fit any batch on its own is dropped by the batcher; cache it as
-		// "checked, nothing found" so it isn't retried on every keystroke in that block.
 		for (const text of uncachedTexts) {
 			if (!batchedTexts.has(text)) {
 				glossaryEditorCheckCache.set(text, EMPTY_MATCHES);
@@ -133,10 +119,6 @@ const useGlossaryEditorWarnings = ({
 								);
 							}
 						} catch {
-							// Fail open: warnings never block editing or saving. An unauthorized
-							// error still reaches the global session-expiry handling through the
-							// dispatched thunk itself; this only stops the batch being retried
-							// forever.
 							for (const text of batchTexts) {
 								glossaryEditorCheckCache.set(text, EMPTY_MATCHES);
 							}
@@ -169,8 +151,6 @@ const useGlossaryEditorWarnings = ({
 		}
 
 		return matchById.values().toArray();
-		// `cacheVersion` isn't read above; it's a dependency only so this memo recomputes when
-		// the module-level cache (mutated outside React state) has new entries.
 	}, [blockTexts, cacheVersion, dismissedIds]);
 
 	const dismiss = useCallback((highlightId: string): void => {

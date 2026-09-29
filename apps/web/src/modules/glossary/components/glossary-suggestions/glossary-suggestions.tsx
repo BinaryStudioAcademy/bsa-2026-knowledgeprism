@@ -15,8 +15,6 @@ import { GlossarySuggestionActions } from "./glossary-suggestion-actions.js";
 const GLOSSARY_ICON_SIZE = 14;
 const EMPTY_LENGTH = 0;
 
-// The same panel lists AI suggestions on proposed content (Integration Preview) and live
-// warnings while editing a saved KB entry; only the heading differs between the two.
 const GLOSSARY_SUGGESTIONS_HEADING: Record<
 	ValueOf<typeof TextHighlightVariant>,
 	string

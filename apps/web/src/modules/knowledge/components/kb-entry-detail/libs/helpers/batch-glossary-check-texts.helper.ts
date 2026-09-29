@@ -1,9 +1,5 @@
 const EMPTY_LENGTH = 0;
 
-// Groups block texts into as few batches as possible, each batch's joined length staying
-// within `maxLength`, so the caller sends the fewest possible check-consistency requests. A
-// text longer than `maxLength` on its own can never fit any batch and is silently dropped;
-// the caller is responsible for treating a dropped text as "checked, no matches".
 const batchGlossaryCheckTexts = (
 	texts: readonly string[],
 	maxLength: number,

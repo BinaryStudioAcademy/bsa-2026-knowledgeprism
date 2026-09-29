@@ -7,11 +7,6 @@ import { type ValueOf } from "~/lib/types/types.js";
 const toGlossaryHighlightId = (match: GlossaryConsistencyMatchDto): string =>
 	`${match.matchedTermId.toString()}:${match.sourceExcerpt}`;
 
-// Maps glossary consistency matches to inline text highlights for KnowledgeEditor. The id
-// is looked up against the matches when a highlight's tooltip or panel row fires an action.
-// `variant` is explicit rather than defaulted: Integration Preview highlights are
-// suggestions on proposed content, the KB editor's are live warnings, and picking the wrong
-// one silently would just look like a styling bug.
 const toGlossaryHighlights = (
 	matches: readonly GlossaryConsistencyMatchDto[],
 	variant: ValueOf<typeof TextHighlightVariant>,
