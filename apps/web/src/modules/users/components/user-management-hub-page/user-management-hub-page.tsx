@@ -15,9 +15,13 @@ import {
 	useEffect,
 	useLocation,
 	useNavigate,
+	useState,
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
+import { UsernameSearchInput } from "~/modules/users/components/user-name-search-input/user-name-search-input.js";
 import { getUserManagementCopy } from "~/modules/users/libs/constants/user-management-copy.constant.js";
+import { UsernameSearchCopy } from "~/modules/users/libs/constants/user-name-search.constant.js";
+import { isMatchingUsernameQuery } from "~/modules/users/libs/helpers/is-matching-username-query.helper.js";
 import { getUserManagementProjectId } from "~/modules/users/libs/helpers/user-management-project.helper.js";
 import { actions as userActions } from "~/modules/users/users.js";
 import { fetchProjects } from "~/modules/workspaces/state/workspaces.slice.js";
@@ -30,6 +34,8 @@ const UserManagementHubPage: React.FC = () => {
 	const { search } = useLocation();
 	const selectedProjectId = getUserManagementProjectId(search);
 	const pageCopy = getUserManagementCopy(selectedProjectId !== null);
+	const [nameQuery, setNameQuery] = useState("");
+	const isOrganisationUserManagement = selectedProjectId === null;
 
 	const currentUser = useAppSelector(({ auth }) => auth.user);
 	const dataStatus = useAppSelector(({ users }) => users.dataStatus);
@@ -50,6 +56,17 @@ const UserManagementHubPage: React.FC = () => {
 			void dispatch(fetchProjects(workspacesApi));
 		}
 	}, [dispatch, projects.length]);
+
+	const visibleUsers = isOrganisationUserManagement
+		? users.filter((user) => {
+				return isMatchingUsernameQuery(user, nameQuery);
+			})
+		: users;
+	const hasNameQuery = nameQuery.trim().length > EMPTY_LENGTH;
+	const hasEmptyNameSearch =
+		isOrganisationUserManagement &&
+		hasNameQuery &&
+		visibleUsers.length === EMPTY_LENGTH;
 
 	const handleAddUserClick = useCallback((): void => {
 		void navigate(AppRoute.USERS_NEW);
@@ -100,7 +117,7 @@ const UserManagementHubPage: React.FC = () => {
 	return (
 		<div className="relative flex flex-1 justify-center overflow-auto p-4 tablet:p-7 desktop:px-11 desktop:py-10">
 			<div className="flex w-full max-w-5xl flex-col gap-3.5 tablet:gap-4.5 desktop:gap-6">
-				{selectedProjectId === null && (
+				{isOrganisationUserManagement && (
 					<div>
 						<Button onClick={handleGoBack} variant="ghost">
 							Go back
@@ -120,9 +137,22 @@ const UserManagementHubPage: React.FC = () => {
 					<Button onClick={handleAddUserClick}>{pageCopy.ADD_BUTTON}</Button>
 				</div>
 
+				{isOrganisationUserManagement && (
+					<UsernameSearchInput onChange={setNameQuery} value={nameQuery} />
+				)}
+
 				{dataStatus === DataStatus.PENDING && <Loader />}
 
-				{dataStatus === DataStatus.FULFILLED && (
+				{dataStatus === DataStatus.FULFILLED && hasEmptyNameSearch && (
+					<Paragraph
+						className="text-text-muted"
+						size={ParagraphSize.BODY_SMALL}
+					>
+						{UsernameSearchCopy.EMPTY_RESULTS}
+					</Paragraph>
+				)}
+
+				{dataStatus === DataStatus.FULFILLED && !hasEmptyNameSearch && (
 					<div className="overflow-x-auto rounded-lg border border-border bg-surface">
 						<table className="w-full table-fixed text-left font-sans text-sm">
 							<thead className="border-b border-border bg-bg-subtle text-text-muted">
@@ -137,7 +167,7 @@ const UserManagementHubPage: React.FC = () => {
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-border">
-								{users.map((user) => {
+								{visibleUsers.map((user) => {
 									return (
 										<tr
 											className="cursor-pointer transition-colors hover:bg-bg-subtle"
