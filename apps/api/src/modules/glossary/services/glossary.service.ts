@@ -162,7 +162,7 @@ class GlossaryService {
 		const { definition, id, name } = term.toObject();
 		const embedding = await embedGlossaryTerm({ definition, name });
 
-		await this.glossaryTermRepository.updateEmbedding({ embedding, id });
+		await this.glossaryTermRepository.backfillEmbedding({ embedding, id });
 
 		return embedding;
 	}

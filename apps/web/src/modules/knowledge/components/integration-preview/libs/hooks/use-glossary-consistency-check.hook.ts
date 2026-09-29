@@ -9,11 +9,19 @@ import { GLOSSARY_CHECK_DEBOUNCE_MS } from "~/modules/knowledge/libs/constants/c
 type GlossaryCheck = {
 	content: string;
 	matches: GlossaryConsistencyMatchDto[];
+	projectId: string;
 };
 
-const INITIAL_GLOSSARY_CHECK: GlossaryCheck = { content: "", matches: [] };
+const INITIAL_GLOSSARY_CHECK: GlossaryCheck = {
+	content: "",
+	matches: [],
+	projectId: "",
+};
 
 const glossaryCheckCache = new Map<string, GlossaryConsistencyMatchDto[]>();
+
+const getGlossaryCheckCacheKey = (projectId: string, content: string): string =>
+	JSON.stringify([projectId, content]);
 
 const useGlossaryConsistencyCheck = ({
 	content,
@@ -38,7 +46,10 @@ const useGlossaryConsistencyCheck = ({
 		GLOSSARY_CHECK_DEBOUNCE_MS,
 	);
 	const glossaryMatches =
-		glossaryCheck.content === debouncedContent ? glossaryCheck.matches : [];
+		glossaryCheck.content === debouncedContent &&
+		glossaryCheck.projectId === projectId
+			? glossaryCheck.matches
+			: [];
 
 	useEffect(() => {
 		let isCancelled = false;
@@ -49,10 +60,15 @@ const useGlossaryConsistencyCheck = ({
 				return;
 			}
 
-			const cachedMatches = glossaryCheckCache.get(debouncedContent);
+			const cacheKey = getGlossaryCheckCacheKey(projectId, debouncedContent);
+			const cachedMatches = glossaryCheckCache.get(cacheKey);
 
 			if (cachedMatches) {
-				setGlossaryCheck({ content: debouncedContent, matches: cachedMatches });
+				setGlossaryCheck({
+					content: debouncedContent,
+					matches: cachedMatches,
+					projectId,
+				});
 				return;
 			}
 
@@ -67,15 +83,20 @@ const useGlossaryConsistencyCheck = ({
 				).unwrap();
 
 				if (!isCancelled) {
-					glossaryCheckCache.set(debouncedContent, response.matches);
+					glossaryCheckCache.set(cacheKey, response.matches);
 					setGlossaryCheck({
 						content: debouncedContent,
 						matches: response.matches,
+						projectId,
 					});
 				}
 			} catch {
 				if (!isCancelled) {
-					setGlossaryCheck({ content: debouncedContent, matches: [] });
+					setGlossaryCheck({
+						content: debouncedContent,
+						matches: [],
+						projectId,
+					});
 				}
 			} finally {
 				if (!isCancelled) {
@@ -106,12 +127,18 @@ const useGlossaryConsistencyCheck = ({
 
 	const onKeepGlossarySuggestion = useCallback(
 		(match: GlossaryConsistencyMatchDto): void => {
-			setGlossaryCheck((previousCheck) => ({
-				...previousCheck,
-				matches: previousCheck.matches.filter((item) => item !== match),
-			}));
+			const matches = glossaryCheck.matches.filter((item) => item !== match);
+
+			glossaryCheckCache.set(
+				getGlossaryCheckCacheKey(
+					glossaryCheck.projectId,
+					glossaryCheck.content,
+				),
+				matches,
+			);
+			setGlossaryCheck({ ...glossaryCheck, matches });
 		},
-		[],
+		[glossaryCheck],
 	);
 
 	return {
