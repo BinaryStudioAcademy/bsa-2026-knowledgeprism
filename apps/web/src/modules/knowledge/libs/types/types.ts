@@ -56,6 +56,7 @@ type KnowledgeState = {
 	activeDocumentStatus: "IDLE" | ValueOf<typeof DocumentStatus>;
 	activeDocumentSwitchRequestId: null | string;
 	contentSearchRequestId: null | string;
+	documentStructureRequestId: null | string;
 	entryRequestId: null | string;
 	extractionItems: ExtractionItemResponseDto[];
 	extractionItemsDocumentId: null | number;
@@ -64,6 +65,7 @@ type KnowledgeState = {
 	integrationPreviewRequestId: null | string;
 	integrationPreviewSections: ProposedSection[];
 	isAddingKnowledge: boolean;
+	isDocumentStructurePending: boolean;
 	isEntryLoading: boolean;
 	isIntegrationPreviewLoading: boolean;
 	isSearchingContent: boolean;

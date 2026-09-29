@@ -288,6 +288,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		extractionItems,
 		extractionItemsDocumentId,
 		isAddingKnowledge,
+		isDocumentStructurePending,
 		isEntryLoading,
 		isTreeLoading,
 		knowledgeErrorMessage,
@@ -635,6 +636,51 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		[onSelectPage],
 	);
 
+	const handleCreateDocument = useCallback(
+		(title: string, parentId: null | number): void => {
+			if (!projectId) {
+				return;
+			}
+
+			void dispatch(
+				actions.createDocumentNode({
+					parentId,
+					projectId,
+					title,
+				}),
+			)
+				.unwrap()
+				.then((result) => {
+					handleSelectPage(result.entry.id);
+				})
+				.catch(() => {
+					// The error middleware shows the failure.
+				});
+		},
+		[dispatch, handleSelectPage, projectId],
+	);
+
+	const handleMoveDocument = useCallback(
+		(
+			documentId: number,
+			placement: { parentId: null | number; position: number },
+		): void => {
+			if (!projectId) {
+				return;
+			}
+
+			void dispatch(
+				actions.moveDocumentNode({
+					documentId,
+					parentId: placement.parentId,
+					position: placement.position,
+					projectId,
+				}),
+			);
+		},
+		[dispatch, projectId],
+	);
+
 	if (isPreviewVisible) {
 		return (
 			<KnowledgeTreePreviewLayer
@@ -674,18 +720,33 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			dismissedPreview.pipelineSessionId === pipelineSessionId;
 
 		return (
-			<div className="flex h-full w-full items-center justify-center bg-bg">
-				<KnowledgeTreeEmptyPipeline
-					activeDocumentStatus={activeDocumentStatus}
-					isPreviewDismissed={canResumePreview && isActivePreviewDismissed}
-					isShowDocumentPipelineUi={isShowDocumentPipelineUi}
-					knowledgeErrorMessage={knowledgeErrorMessage}
-					onCancel={handleResetState}
-					onFinish={handleFinishLoading}
-					onPreview={handleOpenPreview}
-					onRetry={handleRetry}
-					pipelineErrorMessage={activePipelineError}
-				/>
+			<div className="@container flex h-full w-full bg-bg">
+				{canEdit && !isShowDocumentPipelineUi && (
+					<KnowledgeTreeSidebar
+						canStructure={canEdit}
+						isOpen={true}
+						isStructurePending={isDocumentStructurePending}
+						items={items}
+						onClose={handleCloseSidebar}
+						onCreateDocument={handleCreateDocument}
+						onMoveDocument={handleMoveDocument}
+						onSelectPage={handleSelectPage}
+						selectedPageId={selectedPageId}
+					/>
+				)}
+				<div className="flex min-w-0 flex-1 items-center justify-center">
+					<KnowledgeTreeEmptyPipeline
+						activeDocumentStatus={activeDocumentStatus}
+						isPreviewDismissed={canResumePreview && isActivePreviewDismissed}
+						isShowDocumentPipelineUi={isShowDocumentPipelineUi}
+						knowledgeErrorMessage={knowledgeErrorMessage}
+						onCancel={handleResetState}
+						onFinish={handleFinishLoading}
+						onPreview={handleOpenPreview}
+						onRetry={handleRetry}
+						pipelineErrorMessage={activePipelineError}
+					/>
+				</div>
 				<AddKnowledgeModal
 					isOpen={isAddModalOpen}
 					onClose={handleCloseAddModal}
@@ -724,9 +785,13 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	return (
 		<div className="@container flex h-full w-full bg-bg">
 			<KnowledgeTreeSidebar
+				canStructure={canEdit}
 				isOpen={isSidebarOpen}
+				isStructurePending={isDocumentStructurePending}
 				items={items}
 				onClose={handleCloseSidebar}
+				onCreateDocument={handleCreateDocument}
+				onMoveDocument={handleMoveDocument}
 				onSelectPage={handleSelectPage}
 				selectedPageId={selectedPageId}
 			/>

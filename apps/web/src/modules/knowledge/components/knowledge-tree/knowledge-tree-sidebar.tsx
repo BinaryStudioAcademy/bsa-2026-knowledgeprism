@@ -25,6 +25,8 @@ import {
 	SEARCH_DEBOUNCE_MS,
 } from "../../libs/constants/constants.js";
 import { filterKnowledgeTree } from "../../libs/helpers/helpers.js";
+import { type DocumentPlacement } from "../../libs/helpers/helpers.js";
+import { KnowledgeTreeDocumentForm } from "./knowledge-tree-document-form.js";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
 import { KnowledgeTreeSearchBar } from "./knowledge-tree-search-bar.js";
 
@@ -39,17 +41,27 @@ const sidebarDrawerStyles = tv({
 });
 
 type Properties = {
+	canStructure?: boolean | undefined;
 	isOpen: boolean;
+	isStructurePending?: boolean | undefined;
 	items: KnowledgeTreeItemResponseDto[];
 	onClose: () => void;
+	onCreateDocument?:
+		((title: string, parentId: null | number) => void) | undefined;
+	onMoveDocument?:
+		((id: number, placement: DocumentPlacement) => void) | undefined;
 	onSelectPage: (id: number) => void;
 	selectedPageId?: number | undefined;
 };
 
 const KnowledgeTreeSidebar: React.FC<Properties> = ({
+	canStructure = false,
 	isOpen,
+	isStructurePending = false,
 	items,
 	onClose,
+	onCreateDocument,
+	onMoveDocument,
 	onSelectPage,
 	selectedPageId,
 }: Properties) => {
@@ -148,6 +160,24 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 		setSearchQuery("");
 	}, []);
 
+	const handleCreateRootDocument = useCallback(
+		(title: string): void => {
+			if (onCreateDocument) {
+				onCreateDocument(title, null);
+			}
+		},
+		[onCreateDocument],
+	);
+
+	const handleCreateDocument = useCallback(
+		(title: string, parentId: number): void => {
+			if (onCreateDocument) {
+				onCreateDocument(title, parentId);
+			}
+		},
+		[onCreateDocument],
+	);
+
 	const handleSelectPage = useCallback(
 		(id: number) => {
 			onSelectPage(id);
@@ -228,6 +258,16 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 					value={searchQuery}
 				/>
 
+				{canStructure && onCreateDocument && (
+					<div className="px-3 pb-3">
+						<KnowledgeTreeDocumentForm
+							isPending={isStructurePending}
+							onSubmit={handleCreateRootDocument}
+							submitLabel="Create document"
+						/>
+					</div>
+				)}
+
 				<div
 					aria-label="Knowledge Tree"
 					className="flex flex-1 min-h-0 flex-col gap-0.5 overflow-y-auto px-3 pb-4"
@@ -237,19 +277,26 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 					{rootItems.length > EMPTY_LENGTH ? (
 						rootItems.map((item) => (
 							<KnowledgeTreeItem
+								canStructure={canStructure}
 								focusedNodeId={currentFocusId}
+								isStructurePending={isStructurePending}
 								item={item}
 								itemsByParentId={itemsByParentId}
 								key={item.id}
+								onCreateDocument={handleCreateDocument}
 								onFocus={setFocusedNodeId}
+								onMoveDocument={onMoveDocument}
 								onSelect={handleSelectPage}
 								searchQuery={searchQuery}
 								selectedId={selectedPageId}
+								treeItems={items}
 							/>
 						))
 					) : (
 						<div className="px-2.5 py-4 text-center text-sm text-text-faint">
-							No results found
+							{searchQuery.trim() === ""
+								? "No documents yet"
+								: "No results found"}
 						</div>
 					)}
 				</div>

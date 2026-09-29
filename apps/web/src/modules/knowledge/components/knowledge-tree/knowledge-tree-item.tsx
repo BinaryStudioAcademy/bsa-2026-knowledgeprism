@@ -9,7 +9,12 @@ import {
 	EMPTY_LENGTH,
 	KNOWLEDGE_TREE_ITEM_CONFIG,
 } from "../../libs/constants/constants.js";
+import {
+	type DocumentPlacement,
+	isDocumentNode,
+} from "../../libs/helpers/helpers.js";
 import { HighlightedText } from "./highlighted-text.js";
+import { KnowledgeTreeDocumentActions } from "./knowledge-tree-document-actions.js";
 import {
 	handleHorizontalNavigation,
 	handleVerticalNavigation,
@@ -17,6 +22,7 @@ import {
 
 const {
 	BASE_PADDING,
+	CHEVRON_ICON_SIZE,
 	DEFAULT_LEVEL,
 	LEVEL_INCREMENT,
 	LEVEL_MULTIPLIER,
@@ -25,18 +31,24 @@ const {
 } = KNOWLEDGE_TREE_ITEM_CONFIG;
 
 type Properties = {
+	canStructure?: boolean | undefined;
 	focusedNodeId?: number | undefined;
+	isStructurePending?: boolean | undefined;
 	item: KnowledgeTreeItemResponseDto;
 	itemsByParentId: Map<null | number, KnowledgeTreeItemResponseDto[]>;
 	level?: number | undefined;
+	onCreateDocument?: ((title: string, parentId: number) => void) | undefined;
 	onFocus: (id: number) => void;
+	onMoveDocument?:
+		((id: number, placement: DocumentPlacement) => void) | undefined;
 	onSelect: (id: number) => void;
 	searchQuery?: string | undefined;
 	selectedId?: number | undefined;
+	treeItems?: KnowledgeTreeItemResponseDto[] | undefined;
 };
 
 const treeItemVariants = tv({
-	base: "flex w-full cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-2 text-sm transition-colors",
+	base: "flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-sm transition-colors",
 	variants: {
 		isSelected: {
 			false: "text-text-muted hover:bg-secondary",
@@ -46,14 +58,19 @@ const treeItemVariants = tv({
 });
 
 const KnowledgeTreeItem: React.FC<Properties> = ({
+	canStructure = false,
 	focusedNodeId,
+	isStructurePending = false,
 	item,
 	itemsByParentId,
 	level = DEFAULT_LEVEL,
+	onCreateDocument,
 	onFocus,
+	onMoveDocument,
 	onSelect,
 	searchQuery = "",
 	selectedId,
+	treeItems = [],
 }: Properties) => {
 	const children = useMemo(
 		() => itemsByParentId.get(item.id) ?? [],
@@ -61,27 +78,29 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 	);
 
 	const hasChildren = children.length > EMPTY_LENGTH;
-	const isFolder = item.type === KnowledgeNodeType.SECTION || hasChildren;
 	const isSelected = selectedId === item.id;
 	const isFocused = focusedNodeId === item.id;
 	const isSearching = searchQuery.trim() !== "";
 	const [isManuallyExpanded, setIsManuallyExpanded] = useState(true);
-
 	const isExpanded = isSearching || isManuallyExpanded;
 
-	const handleToggle = useCallback(
-		(event_: React.MouseEvent) => {
+	const handleSelect = useCallback((): void => {
+		onSelect(item.id);
+		onFocus(item.id);
+	}, [item.id, onFocus, onSelect]);
+
+	const handleExpand = useCallback(
+		(event_: React.MouseEvent<HTMLButtonElement>): void => {
+			event_.preventDefault();
 			event_.stopPropagation();
-			if (isFolder) {
-				if (!isSearching) {
-					setIsManuallyExpanded((previous) => !previous);
-				}
-			} else {
-				onSelect(item.id);
+
+			if (!isSearching) {
+				setIsManuallyExpanded((previous) => !previous);
 			}
+
 			onFocus(item.id);
 		},
-		[isFolder, item.id, onSelect, onFocus, isSearching],
+		[isSearching, item.id, onFocus],
 	);
 
 	const handleKeyDown = useCallback(
@@ -92,7 +111,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 					event_,
 					isExpanded,
 					isSearching,
-					isSection: isFolder,
+					isSection: hasChildren,
 					item,
 					onFocus,
 					setIsExpanded: setIsManuallyExpanded,
@@ -105,41 +124,83 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 				handleVerticalNavigation(item.id, event_.key, onFocus);
 			}
 		},
-		[isFolder, isExpanded, isSearching, children, item, onFocus],
+		[hasChildren, isExpanded, isSearching, children, item, onFocus],
 	);
 
 	const paddingValue = level * LEVEL_MULTIPLIER + BASE_PADDING;
 	const paddingLeftString = `${String(paddingValue)}px`;
+	const expandLabel = isExpanded
+		? `Collapse ${item.title}`
+		: `Expand ${item.title}`;
+	const documentActions =
+		onCreateDocument &&
+		onMoveDocument &&
+		canStructure &&
+		isSelected &&
+		!isSearching &&
+		isDocumentNode(item.type) ? (
+			<KnowledgeTreeDocumentActions
+				isPending={isStructurePending}
+				itemId={item.id}
+				items={treeItems}
+				onCreateDocument={onCreateDocument}
+				onMoveDocument={onMoveDocument}
+			/>
+		) : null;
 
 	return (
 		<div className="flex flex-col gap-0.5" role="none">
-			<button
-				aria-expanded={isFolder && hasChildren ? isExpanded : undefined}
-				aria-level={level + LEVEL_INCREMENT}
-				aria-owns={
-					isFolder && isExpanded && hasChildren
-						? `group-${String(item.id)}`
-						: undefined
-				}
-				aria-selected={isFolder ? undefined : isSelected}
-				className={treeItemVariants({ isSelected })}
-				data-id={item.id}
-				onClick={handleToggle}
-				onKeyDown={handleKeyDown}
-				role="treeitem"
+			<div
+				className="flex items-center gap-0.5"
 				style={{ paddingLeft: paddingLeftString }}
-				tabIndex={isFocused ? TAB_INDEX_FOCUSABLE : TAB_INDEX_UNFOCUSABLE}
-				type="button"
 			>
-				{isFolder ? (
-					<Icon aria-hidden="true" name="folder" size={13} />
+				{hasChildren ? (
+					<button
+						aria-label={expandLabel}
+						className="flex size-6 shrink-0 items-center justify-center rounded text-text-muted hover:bg-secondary"
+						onClick={handleExpand}
+						type="button"
+					>
+						<span
+							className={isExpanded ? "inline-flex rotate-90" : "inline-flex"}
+						>
+							<Icon
+								aria-hidden="true"
+								name="chevron-filled-right"
+								size={CHEVRON_ICON_SIZE}
+							/>
+						</span>
+					</button>
 				) : (
-					<Icon aria-hidden="true" name="file-rounded" size={12} />
+					<span aria-hidden="true" className="size-6 shrink-0" />
 				)}
-				<HighlightedText highlight={searchQuery} text={item.title} />
-			</button>
+				<button
+					aria-expanded={hasChildren ? isExpanded : undefined}
+					aria-level={level + LEVEL_INCREMENT}
+					aria-owns={
+						hasChildren && isExpanded ? `group-${String(item.id)}` : undefined
+					}
+					aria-selected={isSelected}
+					className={treeItemVariants({ isSelected })}
+					data-id={item.id}
+					onClick={handleSelect}
+					onKeyDown={handleKeyDown}
+					role="treeitem"
+					tabIndex={isFocused ? TAB_INDEX_FOCUSABLE : TAB_INDEX_UNFOCUSABLE}
+					type="button"
+				>
+					{item.type === KnowledgeNodeType.SECTION ? (
+						<Icon aria-hidden="true" name="folder" size={13} />
+					) : (
+						<Icon aria-hidden="true" name="file-rounded" size={12} />
+					)}
+					<HighlightedText highlight={searchQuery} text={item.title} />
+				</button>
+			</div>
 
-			{isFolder && isExpanded && hasChildren && (
+			{documentActions}
+
+			{hasChildren && isExpanded && (
 				<div
 					className="flex flex-col gap-0.5"
 					id={`group-${String(item.id)}`}
@@ -147,15 +208,20 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 				>
 					{children.map((child) => (
 						<KnowledgeTreeItem
+							canStructure={canStructure}
 							focusedNodeId={focusedNodeId}
+							isStructurePending={isStructurePending}
 							item={child}
 							itemsByParentId={itemsByParentId}
 							key={child.id}
 							level={level + LEVEL_INCREMENT}
+							onCreateDocument={onCreateDocument}
 							onFocus={onFocus}
+							onMoveDocument={onMoveDocument}
 							onSelect={onSelect}
 							searchQuery={searchQuery}
 							selectedId={selectedId}
+							treeItems={treeItems}
 						/>
 					))}
 				</div>

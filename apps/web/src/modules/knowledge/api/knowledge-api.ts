@@ -1,5 +1,7 @@
 import { APIPath, KnowledgeApiPath } from "@knowledgeprism/constants";
 import {
+	type KnowledgeDocumentCreateRequestDto,
+	type KnowledgeDocumentMoveRequestDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeSearchResponseDto,
@@ -20,6 +22,32 @@ type Constructor = {
 class KnowledgeApi extends BaseHTTPApi {
 	public constructor({ baseUrl, http, storage }: Constructor) {
 		super({ baseUrl, http, path: APIPath.PROJECTS, storage });
+	}
+
+	public async createDocumentNode({
+		parentId,
+		projectId,
+		signal,
+		title,
+	}: {
+		parentId: null | number;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+		title: string;
+	}): Promise<KnowledgeEntryResponseDto> {
+		const payload: KnowledgeDocumentCreateRequestDto = { parentId, title };
+		const response = await this.load(
+			this.getFullEndpoint(KnowledgeApiPath.ROOT, { projectId }),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify(payload),
+				signal,
+			},
+		);
+
+		return await response.json<KnowledgeEntryResponseDto>();
 	}
 
 	public async getKnowledgeEntry({
@@ -65,6 +93,37 @@ class KnowledgeApi extends BaseHTTPApi {
 		);
 
 		return await response.json<KnowledgeTreeResponseDto>();
+	}
+
+	public async moveDocumentNode({
+		documentId,
+		parentId,
+		position,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		parentId: null | number;
+		position: number;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<KnowledgeEntryResponseDto> {
+		const payload: KnowledgeDocumentMoveRequestDto = { parentId, position };
+		const response = await this.load(
+			this.getFullEndpoint(KnowledgeApiPath.PLACEMENT_$ID, {
+				id: String(documentId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "PATCH",
+				payload: JSON.stringify(payload),
+				signal,
+			},
+		);
+
+		return await response.json<KnowledgeEntryResponseDto>();
 	}
 
 	public async search({

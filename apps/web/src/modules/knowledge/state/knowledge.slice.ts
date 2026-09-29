@@ -19,11 +19,13 @@ import {
 import {
 	applyIntegrationChanges,
 	confirmDocumentUpload,
+	createDocumentNode,
 	fetchExtractionItems,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	fetchPendingReviewDocuments,
+	moveDocumentNode,
 	pollDocumentStatus,
 	processDocument,
 	retryDocumentProcessing,
@@ -52,6 +54,7 @@ const initialState: State = {
 	activeDocumentStatus: IDLE_DOCUMENT_STATUS,
 	activeDocumentSwitchRequestId: null,
 	contentSearchRequestId: null,
+	documentStructureRequestId: null,
 	entryRequestId: null,
 	extractionItems: [],
 	extractionItemsDocumentId: null,
@@ -60,6 +63,7 @@ const initialState: State = {
 	integrationPreviewRequestId: null,
 	integrationPreviewSections: [],
 	isAddingKnowledge: false,
+	isDocumentStructurePending: false,
 	isEntryLoading: false,
 	isIntegrationPreviewLoading: false,
 	isSearchingContent: false,
@@ -523,6 +527,54 @@ const { actions, name, reducer } = createSlice({
 				state.knowledgeErrorMessage =
 					action.error.message ?? "Failed to update knowledge entry";
 			}
+		});
+		builder.addCase(createDocumentNode.pending, (state, action) => {
+			state.documentStructureRequestId = action.meta.requestId;
+			state.isDocumentStructurePending = true;
+		});
+		builder.addCase(createDocumentNode.fulfilled, (state, action) => {
+			if (state.documentStructureRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.documentStructureRequestId = null;
+			state.isDocumentStructurePending = false;
+
+			if (state.pipelineProjectId === action.meta.arg.projectId) {
+				state.tree = action.payload.tree.items;
+			}
+		});
+		builder.addCase(createDocumentNode.rejected, (state, action) => {
+			if (state.documentStructureRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.documentStructureRequestId = null;
+			state.isDocumentStructurePending = false;
+		});
+		builder.addCase(moveDocumentNode.pending, (state, action) => {
+			state.documentStructureRequestId = action.meta.requestId;
+			state.isDocumentStructurePending = true;
+		});
+		builder.addCase(moveDocumentNode.fulfilled, (state, action) => {
+			if (state.documentStructureRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.documentStructureRequestId = null;
+			state.isDocumentStructurePending = false;
+
+			if (state.pipelineProjectId === action.meta.arg.projectId) {
+				state.tree = action.payload.tree.items;
+			}
+		});
+		builder.addCase(moveDocumentNode.rejected, (state, action) => {
+			if (state.documentStructureRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.documentStructureRequestId = null;
+			state.isDocumentStructurePending = false;
 		});
 		builder.addCase(submitManualText.fulfilled, (state, action) => {
 			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
@@ -1053,7 +1105,9 @@ const { actions, name, reducer } = createSlice({
 			state.integrationPreviewError = null;
 			state.integrationPreviewRequestId = null;
 			state.integrationPreviewSections = [];
+			state.documentStructureRequestId = null;
 			state.isAddingKnowledge = false;
+			state.isDocumentStructurePending = false;
 			state.isEntryLoading = false;
 			state.isIntegrationPreviewLoading = false;
 			state.isTreeLoading = false;

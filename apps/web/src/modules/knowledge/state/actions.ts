@@ -446,6 +446,90 @@ const updateKnowledgeEntry = createAsyncThunk<
 	},
 );
 
+type DocumentStructureResult = {
+	entry: KnowledgeEntryResponseDto;
+	tree: KnowledgeTreeResponseDto;
+};
+
+const isCurrentDocumentStructureRequest = (
+	requestId: string,
+	state: AsyncThunkConfig["state"],
+): boolean => {
+	return state.knowledge.documentStructureRequestId === requestId;
+};
+
+const createDocumentNode = createAsyncThunk<
+	DocumentStructureResult,
+	{ parentId: null | number; projectId: string; title: string },
+	AsyncThunkConfig
+>(
+	`${sliceName}/create-document-node`,
+	async (payload, { extra, getState, requestId, signal }) => {
+		const entry = await extra.knowledgeApi.createDocumentNode({
+			parentId: payload.parentId,
+			projectId: payload.projectId,
+			signal,
+			title: payload.title,
+		});
+		const tree = await extra.knowledgeApi.getKnowledgeTree({
+			projectId: payload.projectId,
+			signal,
+		});
+
+		if (isCurrentDocumentStructureRequest(requestId, getState())) {
+			notificationService.notify({
+				message: KnowledgeNotificationMessage.DOCUMENT_CREATED,
+				variant: NotificationVariant.SUCCESS,
+			});
+		}
+
+		return { entry, tree };
+	},
+	{
+		condition: (_payload, { getState }) =>
+			!getState().knowledge.isDocumentStructurePending,
+	},
+);
+
+const moveDocumentNode = createAsyncThunk<
+	DocumentStructureResult,
+	{
+		documentId: number;
+		parentId: null | number;
+		position: number;
+		projectId: string;
+	},
+	AsyncThunkConfig
+>(
+	`${sliceName}/move-document-node`,
+	async (payload, { extra, getState, requestId, signal }) => {
+		const entry = await extra.knowledgeApi.moveDocumentNode({
+			documentId: payload.documentId,
+			parentId: payload.parentId,
+			position: payload.position,
+			projectId: payload.projectId,
+			signal,
+		});
+		const tree = await extra.knowledgeApi.getKnowledgeTree({
+			projectId: payload.projectId,
+			signal,
+		});
+
+		if (isCurrentDocumentStructureRequest(requestId, getState())) {
+			notificationService.notify({
+				message: KnowledgeNotificationMessage.DOCUMENT_MOVED,
+				variant: NotificationVariant.SUCCESS,
+			});
+		}
+
+		return { entry, tree };
+	},
+	{
+		condition: (_payload, { getState }) =>
+			!getState().knowledge.isDocumentStructurePending,
+	},
+);
+
 const submitManualText = createAsyncThunk<
 	ManualTextResponseDto,
 	SubmitManualTextPayload,
@@ -1036,12 +1120,14 @@ const untrackDocument = createAppAsyncThunk<null, UntrackDocumentPayload>(
 export {
 	applyIntegrationChanges,
 	confirmDocumentUpload,
+	createDocumentNode,
 	fetchExtractionItems,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	fetchPendingReviewDocuments,
 	initializeProjectKnowledgePipeline,
+	moveDocumentNode,
 	pollDocumentStatus,
 	processDocument,
 	resumeNextPendingReview,
