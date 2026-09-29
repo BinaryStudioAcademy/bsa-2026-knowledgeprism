@@ -5,18 +5,23 @@ import { EMPTY_LENGTH } from "../constants/constants.js";
 const filterKnowledgeTree = (
 	items: KnowledgeTreeItemResponseDto[],
 	searchQuery: string,
+	contentMatchEntryIds: number[] = [],
 ): KnowledgeTreeItemResponseDto[] => {
 	if (!searchQuery.trim()) {
 		return items;
 	}
 
 	const lowerQuery = searchQuery.trim().toLowerCase();
+	const contentMatchIds = new Set(contentMatchEntryIds);
 
 	const matchingIds = new Set<number>();
 	const directMatches = new Set<number>();
 
 	for (const item of items) {
-		if (!item.title.toLowerCase().includes(lowerQuery)) {
+		const isTitleMatch = item.title.toLowerCase().includes(lowerQuery);
+		const isContentMatch = contentMatchIds.has(item.id);
+
+		if (!isTitleMatch && !isContentMatch) {
 			continue;
 		}
 		directMatches.add(item.id);

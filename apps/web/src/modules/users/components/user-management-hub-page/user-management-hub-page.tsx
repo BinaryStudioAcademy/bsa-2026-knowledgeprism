@@ -1,4 +1,4 @@
-import { OrganisationRole } from "@knowledgeprism/constants";
+import { OrganisationRole, UserStatus } from "@knowledgeprism/constants";
 
 import {
 	Avatar,
@@ -153,7 +153,7 @@ const UserManagementHubPage: React.FC = () => {
 															{user.email}
 														</div>
 														<div className="mt-1 flex items-center gap-2 sm:hidden">
-															{user.status === "active" ? (
+															{user.status === UserStatus.ACTIVE ? (
 																<span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-2xs font-medium leading-none text-green-800">
 																	Active
 																</span>
@@ -170,7 +170,7 @@ const UserManagementHubPage: React.FC = () => {
 												</div>
 											</td>
 											<td className="hidden px-4 py-3 sm:table-cell">
-												{user.status === "active" ? (
+												{user.status === UserStatus.ACTIVE ? (
 													<span className="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
 														Active
 													</span>

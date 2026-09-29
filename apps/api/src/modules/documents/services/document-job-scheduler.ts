@@ -5,6 +5,7 @@ import {
 import { type ValueOf } from "@knowledgeprism/types";
 
 import { type Logger } from "~/infrastructure/logger/logger.js";
+import { ProcessingSweep } from "~/modules/documents/libs/constants/processing-sweep.constant.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 
@@ -15,6 +16,7 @@ type Constructor = {
 	documentProcessor: DocumentProcessor;
 	documentRepository: DocumentRepository;
 	integrationAnalyzer: IntegrationAnalyzer;
+	intervalScheduler?: IntervalScheduler;
 	logger: Logger;
 };
 
@@ -24,6 +26,18 @@ type DocumentJob = {
 	status: ValueOf<typeof DocumentStatus>;
 };
 
+type IntervalScheduler = {
+	clear: (interval: ScheduledInterval) => void;
+	repeat: (callback: () => void, intervalMs: number) => ScheduledInterval;
+};
+
+type ScheduledInterval = ReturnType<typeof setInterval>;
+
+const DEFAULT_INTERVAL_SCHEDULER: IntervalScheduler = {
+	clear: clearInterval,
+	repeat: setInterval,
+};
+
 class DocumentJobScheduler {
 	private documentProcessor: DocumentProcessor;
 
@@ -31,17 +45,21 @@ class DocumentJobScheduler {
 
 	private integrationAnalyzer: IntegrationAnalyzer;
 
+	private intervalScheduler: IntervalScheduler;
+
 	private logger: Logger;
 
 	public constructor({
 		documentProcessor,
 		documentRepository,
 		integrationAnalyzer,
+		intervalScheduler = DEFAULT_INTERVAL_SCHEDULER,
 		logger,
 	}: Constructor) {
 		this.documentProcessor = documentProcessor;
 		this.documentRepository = documentRepository;
 		this.integrationAnalyzer = integrationAnalyzer;
+		this.intervalScheduler = intervalScheduler;
 		this.logger = logger;
 	}
 
@@ -69,6 +87,8 @@ class DocumentJobScheduler {
 		job: DocumentJob,
 		processingAttempt: ProcessingAttempt,
 	): Promise<void> {
+		const heartbeatInterval = this.startHeartbeat(job, processingAttempt);
+
 		try {
 			const isCompleted = await job.run(processingAttempt);
 
@@ -86,6 +106,8 @@ class DocumentJobScheduler {
 			});
 
 			await this.fail(job, processingAttempt);
+		} finally {
+			this.intervalScheduler.clear(heartbeatInterval);
 		}
 	}
 
@@ -96,6 +118,53 @@ class DocumentJobScheduler {
 		setImmediate(() => {
 			void this.run(job, processingAttempt);
 		});
+	}
+
+	private startHeartbeat(
+		job: DocumentJob,
+		processingAttempt: ProcessingAttempt,
+	): ScheduledInterval {
+		let isHeartbeatPending = false;
+		const heartbeatInterval = this.intervalScheduler.repeat(() => {
+			if (isHeartbeatPending) {
+				return;
+			}
+
+			isHeartbeatPending = true;
+			void this.updateHeartbeat(job, processingAttempt)
+				.then((isCurrentAttempt) => {
+					if (!isCurrentAttempt) {
+						this.intervalScheduler.clear(heartbeatInterval);
+					}
+				})
+				.finally(() => {
+					isHeartbeatPending = false;
+				});
+		}, ProcessingSweep.HEARTBEAT_INTERVAL_MS);
+
+		return heartbeatInterval;
+	}
+
+	private async updateHeartbeat(
+		{ status }: DocumentJob,
+		{ attempt, documentId }: ProcessingAttempt,
+	): Promise<boolean> {
+		try {
+			return await this.documentRepository.touchProcessingAttempt({
+				expectedStatus: status,
+				id: documentId,
+				processingAttempt: attempt,
+			});
+		} catch (error) {
+			this.logger.error("Failed to update document processing heartbeat.", {
+				attempt,
+				documentId,
+				error,
+				status,
+			});
+
+			return true;
+		}
 	}
 
 	public scheduleIntegration(processingAttempt: ProcessingAttempt): void {

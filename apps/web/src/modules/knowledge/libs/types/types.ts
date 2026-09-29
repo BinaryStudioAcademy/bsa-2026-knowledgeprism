@@ -7,16 +7,12 @@ import {
 	type ExtractionItemResponseDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeEntryResponseDto,
-	type KnowledgeSearchItemDto,
 	type KnowledgeTreeItemResponseDto,
 } from "@knowledgeprism/types";
 
 import { type ValueOf } from "~/lib/types/types.js";
 
-import {
-	type DocumentProcessingStatus,
-	type SearchStatus,
-} from "../enums/enums.js";
+import { type DocumentProcessingStatus } from "../enums/enums.js";
 
 type ChangeStatus = "conflict" | "created" | "duplicate" | "modified";
 
@@ -59,6 +55,7 @@ type KnowledgeState = {
 	activeDocumentId: null | number;
 	activeDocumentStatus: "IDLE" | ValueOf<typeof DocumentStatus>;
 	activeDocumentSwitchRequestId: null | string;
+	contentSearchRequestId: null | string;
 	entryRequestId: null | string;
 	extractionItems: ExtractionItemResponseDto[];
 	extractionItemsDocumentId: null | number;
@@ -69,18 +66,15 @@ type KnowledgeState = {
 	isAddingKnowledge: boolean;
 	isEntryLoading: boolean;
 	isIntegrationPreviewLoading: boolean;
+	isSearchingContent: boolean;
 	isTreeLoading: boolean;
 	knowledgeErrorMessage: null | string;
+	matchedContentEntryIds: number[];
 	pendingReviewRequestId: null | string;
 	pipelineErrors: Record<number, string>;
 	pipelineProjectId: null | string;
 	pipelineSessionId: number;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
-	searchErrorMessage: null | string;
-	searchQuery: string;
-	searchRequestId: null | string;
-	searchResults: KnowledgeSearchItemDto[];
-	searchStatus: ValueOf<typeof SearchStatus>;
 	selectedEntry: KnowledgeEntryResponseDto | null;
 	selectedFiles: UploadedDocumentItem[];
 	statusRequestIds: Record<number, string>;

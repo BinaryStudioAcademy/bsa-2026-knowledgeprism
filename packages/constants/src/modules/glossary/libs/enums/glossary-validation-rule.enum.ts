@@ -1,0 +1,9 @@
+const GlossaryValidationRule = {
+	DEFINITION_MAXIMUM_LENGTH: 1000,
+	NAME_MAXIMUM_LENGTH: 100,
+	QUERY_MAXIMUM_LENGTH: 100,
+	RELATED_TERMS_MAXIMUM_COUNT: 20,
+	REQUIRED_MINIMUM_LENGTH: 1,
+} as const;
+
+export { GlossaryValidationRule };

@@ -8,6 +8,7 @@ import {
 } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
+import { isMatchingSearchQuery } from "../libs/helpers/helpers.js";
 import { KnowledgeNodeEntity } from "../models/knowledge-node.entity.js";
 import { type KnowledgeNodeModel } from "../models/knowledge-node.model.js";
 
@@ -30,6 +31,7 @@ type TreeKnowledgeDatabaseRow = {
 const EMPTY_LENGTH = 0;
 const FIRST_POSITION = 0;
 const POSITION_STEP = 1;
+const SLICE_START_INDEX = 0;
 
 class KnowledgeNodeRepository {
 	private knowledgeNodeModel: typeof KnowledgeNodeModel;
@@ -199,22 +201,25 @@ class KnowledgeNodeRepository {
 		projectId: number;
 		query: string;
 	}): Promise<KnowledgeNodeEntity[]> {
-		const escapedQuery = query
-			.replaceAll("%", String.raw`\%`)
-			.replaceAll("_", String.raw`\_`);
-		const pattern = `%${escapedQuery}%`;
+		const lowerCaseQuery = query.trim().toLowerCase();
 
-		const nodes = await this.knowledgeNodeModel
+		const allNodes = await this.knowledgeNodeModel
 			.query()
 			.where({ projectId, type: KnowledgeNodeType.ENTRY })
-			.andWhere((builder) => {
-				void builder
-					.where("title", "ilike", pattern)
-					.orWhereRaw("content_json::text ILIKE ?", [pattern]);
-			})
 			.orderBy("title", "asc")
-			.limit(KnowledgeValidationRule.SEARCH_RESULTS_MAXIMUM_COUNT)
 			.execute();
+
+		// Matching happens in JS, not SQL (e.g. `content_json::text ILIKE`), because the
+		// content is BlockNote's block tree: a raw JSON-text match would also match the
+		// block structure's own keys ("text", "type", ...), returning nearly every entry.
+		const matchingNodes = lowerCaseQuery
+			? allNodes.filter((node) => isMatchingSearchQuery(node, lowerCaseQuery))
+			: allNodes;
+
+		const nodes = matchingNodes.slice(
+			SLICE_START_INDEX,
+			KnowledgeValidationRule.SEARCH_RESULTS_MAXIMUM_COUNT,
+		);
 
 		return nodes.map((node) =>
 			KnowledgeNodeEntity.initialize({

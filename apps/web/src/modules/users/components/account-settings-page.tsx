@@ -1,3 +1,4 @@
+import { UserStatus } from "@knowledgeprism/constants";
 import {
 	type ProjectAssignmentDto,
 	type UserDetailsResponseDto,
@@ -41,7 +42,7 @@ const getFormValues = (
 	confirmPassword: "",
 	email: user.email,
 	firstName: user.firstName ?? "",
-	isActive: user.status === "active",
+	isActive: user.status === UserStatus.ACTIVE,
 	lastName: user.lastName ?? "",
 	password: "",
 });

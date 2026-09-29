@@ -1,3 +1,4 @@
+import { UserStatus } from "@knowledgeprism/constants";
 import { useParams } from "react-router-dom";
 
 import {
@@ -79,7 +80,7 @@ const UserEditPage: React.FC = () => {
 				confirmPassword: "",
 				email: selectedUser.email,
 				firstName: selectedUser.firstName ?? "",
-				isActive: selectedUser.status === "active",
+				isActive: selectedUser.status === UserStatus.ACTIVE,
 				lastName: selectedUser.lastName ?? "",
 				password: "",
 			});
@@ -101,9 +102,9 @@ const UserEditPage: React.FC = () => {
 						firstName: values.firstName,
 						lastName: values.lastName,
 						status:
-							(values.isActive ?? selectedUser?.status === "active")
-								? "active"
-								: "inactive",
+							(values.isActive ?? selectedUser?.status === UserStatus.ACTIVE)
+								? UserStatus.ACTIVE
+								: UserStatus.INACTIVE,
 						...(values.password && { password: values.password }),
 					},
 				}),

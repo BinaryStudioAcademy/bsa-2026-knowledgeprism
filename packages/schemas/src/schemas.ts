@@ -14,7 +14,12 @@ export {
 	manualTextCreateValidationSchema,
 	manualTextRouteParametersValidationSchema,
 } from "./modules/documents/documents.js";
-
+export {
+	glossaryRouteParametersValidationSchema,
+	glossarySearchQueryValidationSchema,
+	glossaryTermRequestValidationSchema,
+	glossaryTermRouteParametersValidationSchema,
+} from "./modules/glossary/glossary.js";
 export {
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
