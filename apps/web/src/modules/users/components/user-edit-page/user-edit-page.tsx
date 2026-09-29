@@ -56,18 +56,19 @@ const UserEditPage: React.FC = () => {
 		void dispatch(projectsActions.loadAllProjects());
 	}, [dispatch, userId]);
 
-	const { control, handleSubmit, reset } = useAppForm<UserEditFormValues>({
-		defaultValues: {
-			assignedProjects: [],
-			confirmPassword: "",
-			email: "",
-			firstName: "",
-			isActive: true,
-			lastName: "",
-			password: "",
-		},
-		validationSchema: userUpdateFrontendValidationSchema,
-	});
+	const { control, handleSubmit, isDirty, reset } =
+		useAppForm<UserEditFormValues>({
+			defaultValues: {
+				assignedProjects: [],
+				confirmPassword: "",
+				email: "",
+				firstName: "",
+				isActive: true,
+				lastName: "",
+				password: "",
+			},
+			validationSchema: userUpdateFrontendValidationSchema,
+		});
 
 	useEffect(() => {
 		if (selectedUser) {
@@ -149,6 +150,7 @@ const UserEditPage: React.FC = () => {
 						control={control}
 						isAdmin={isAdminEditingSelf}
 						isEditMode={true}
+						isSubmitDisabled={!isDirty}
 						onCancel={handleCancel}
 						onSubmit={handleFormSubmit}
 					/>

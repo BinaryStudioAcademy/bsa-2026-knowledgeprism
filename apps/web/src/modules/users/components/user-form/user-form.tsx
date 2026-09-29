@@ -36,6 +36,7 @@ type Properties<T extends FieldValues> = {
 	isEditMode?: boolean;
 	isLoading?: boolean;
 	isReadOnly?: boolean;
+	isSubmitDisabled?: boolean;
 	onCancel: () => void;
 	onSubmit: (event_: React.BaseSyntheticEvent) => void;
 };
@@ -66,6 +67,7 @@ const UserForm = <T extends FieldValues>({
 	isEditMode = false,
 	isLoading = false,
 	isReadOnly = false,
+	isSubmitDisabled = false,
 	onCancel,
 	onSubmit,
 }: Properties<T>): React.JSX.Element => {
@@ -234,6 +236,7 @@ const UserForm = <T extends FieldValues>({
 				/>
 
 				<Input
+					autoComplete="new-password"
 					control={control}
 					hasPasswordToggle={true}
 					hintInfo={UserValidationMessage.PASSWORD_HINT}
@@ -245,6 +248,7 @@ const UserForm = <T extends FieldValues>({
 				/>
 
 				<Input
+					autoComplete="new-password"
 					control={control}
 					hasPasswordToggle={true}
 					label="Confirm password"
@@ -299,7 +303,7 @@ const UserForm = <T extends FieldValues>({
 				>
 					Cancel
 				</Button>
-				<Button disabled={isLoading} type="submit">
+				<Button disabled={isLoading || isSubmitDisabled} type="submit">
 					{isEditMode ? "Save Changes" : "Create User"}
 				</Button>
 			</div>

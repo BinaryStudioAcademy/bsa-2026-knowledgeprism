@@ -15,6 +15,8 @@ import { useForm } from "react-hook-form";
 
 import { type ValidationSchema } from "~/lib/types/types.js";
 
+const NO_DIRTY_FIELDS = 0;
+
 type Parameters<T extends FieldValues = FieldValues> = {
 	defaultValues: DefaultValues<T>;
 	mode?: keyof ValidationMode;
@@ -26,6 +28,7 @@ type ReturnValue<T extends FieldValues = FieldValues> = {
 	control: Control<T, null>;
 	errors: FieldErrors<T>;
 	handleSubmit: UseFormHandleSubmit<T>;
+	isDirty: boolean;
 	reset: UseFormReset<T>;
 	setError: UseFormSetError<T>;
 };
@@ -50,7 +53,7 @@ const useAppForm = <T extends FieldValues = FieldValues>({
 	const {
 		clearErrors,
 		control,
-		formState: { errors },
+		formState: { dirtyFields, errors },
 		handleSubmit,
 		reset,
 		setError,
@@ -61,6 +64,7 @@ const useAppForm = <T extends FieldValues = FieldValues>({
 		control,
 		errors,
 		handleSubmit,
+		isDirty: Object.keys(dirtyFields).length > NO_DIRTY_FIELDS,
 		reset,
 		setError,
 	};
