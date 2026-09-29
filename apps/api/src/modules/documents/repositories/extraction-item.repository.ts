@@ -71,7 +71,7 @@ class ExtractionItemRepository {
 				"extraction_items.extraction_section_id",
 				"extraction_sections.id",
 			)
-			.where({ documentId })
+			.where("extraction_items.document_id", documentId)
 			.orderByRaw("extraction_sections.position asc nulls last")
 			.orderBy("extraction_items.position", "asc")
 			.orderBy("extraction_items.sourcePageNumber", "asc")
