@@ -1,3 +1,4 @@
+import { UserStatus } from "@knowledgeprism/constants";
 import { type ProjectAssignmentDto } from "@knowledgeprism/types";
 
 import {
@@ -68,7 +69,7 @@ const AccountSettingsPage: React.FC = () => {
 				assignedProjects: selectedUser.assignedProjects,
 				email: selectedUser.email,
 				firstName: selectedUser.firstName ?? "",
-				isActive: selectedUser.status === "active",
+				isActive: selectedUser.status === UserStatus.ACTIVE,
 				lastName: selectedUser.lastName ?? "",
 				password: "",
 			});
