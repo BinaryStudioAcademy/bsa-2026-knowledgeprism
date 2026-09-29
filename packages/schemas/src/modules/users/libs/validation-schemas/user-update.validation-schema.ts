@@ -6,13 +6,7 @@ import { z } from "zod";
 
 import { email } from "./email.validation-schema.js";
 import { password } from "./password.validation-schema.js";
-
-const projectAssignment = z.object({
-	projectId: z.number().int().positive(),
-	role: z.enum(["EDITOR", "VIEWER"], {
-		error: UserValidationMessage.PROJECT_ROLE_WRONG,
-	}),
-});
+import { projectAssignment } from "./project-assignment.validation-schema.js";
 
 const userUpdate = z.object({
 	assignedProjects: z.array(projectAssignment).optional(),
