@@ -42,6 +42,16 @@ export {
 	type ManualTextRouteParametersDto,
 	type PendingReviewDocumentsResponseDto,
 } from "./modules/documents/documents.js";
+export {
+	type GlossaryRelatedTermDto,
+	type GlossaryRouteParametersDto,
+	type GlossarySearchQueryDto,
+	type GlossaryTermItemDto,
+	type GlossaryTermRequestDto,
+	type GlossaryTermResponseDto,
+	type GlossaryTermRouteParametersDto,
+	type GlossaryTermsResponseDto,
+} from "./modules/glossary/glossary.js";
 
 export {
 	type KnowledgeEntryResponseDto,
@@ -49,7 +59,6 @@ export {
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeNodeContentDto,
 	type KnowledgeRecentResponseDto,
-	type KnowledgeSearchItemDto,
 	type KnowledgeSearchQueryDto,
 	type KnowledgeSearchResponseDto,
 	type KnowledgeSearchRouteParametersDto,

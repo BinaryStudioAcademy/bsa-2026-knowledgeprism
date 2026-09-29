@@ -11,7 +11,7 @@ import { store } from "~/lib/store/store.js";
 import { AskPrismView } from "~/modules/ask-prism/ask-prism.js";
 import { actions as authActions } from "~/modules/auth/auth.js";
 import { AuthPage } from "~/modules/auth/components/auth-page.js";
-import { KnowledgeSearchPage } from "~/modules/knowledge/components/components.js";
+import { GlossaryPage } from "~/modules/glossary/glossary.js";
 import { KnowledgeTreePage } from "~/modules/knowledge/components/knowledge-tree-page.js";
 import { LandingPage } from "~/modules/landing/components/landing-page.js";
 import { NotFoundPage } from "~/modules/not-found/components/not-found-page.js";
@@ -81,7 +81,7 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 												path: AppRoute.PROJECT_KNOWLEDGE_TREE,
 											},
 											{
-												element: <KnowledgeSearchPage />,
+												element: <GlossaryPage />,
 												path: AppRoute.PROJECT_GLOSSARY,
 											},
 										],

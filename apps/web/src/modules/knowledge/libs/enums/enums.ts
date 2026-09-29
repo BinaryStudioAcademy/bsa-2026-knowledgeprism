@@ -5,11 +5,4 @@ const DocumentProcessingStatus = {
 	READY: "ready",
 } as const;
 
-const SearchStatus = {
-	FAILED: "failed",
-	IDLE: "idle",
-	LOADING: "loading",
-	SUCCEEDED: "succeeded",
-} as const;
-
-export { DocumentProcessingStatus, SearchStatus };
+export { DocumentProcessingStatus };

@@ -5,7 +5,7 @@ import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { DocumentValidationMessage } from "../libs/constants/constants.js";
-import { DocumentProcessingStatus, SearchStatus } from "../libs/enums/enums.js";
+import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import {
 	formatFileSize,
 	isMatchingPipelineSession,
@@ -27,7 +27,6 @@ import {
 	pollDocumentStatus,
 	processDocument,
 	retryDocumentProcessing,
-	searchKnowledge,
 	submitExtractionReview,
 	submitManualText,
 	switchActiveDocument,
@@ -69,11 +68,6 @@ const initialState: State = {
 	pipelineProjectId: null,
 	pipelineSessionId: 0,
 	processingStatus: DocumentProcessingStatus.IDLE,
-	searchErrorMessage: null,
-	searchQuery: "",
-	searchRequestId: null,
-	searchResults: [],
-	searchStatus: SearchStatus.IDLE,
 	selectedEntry: null,
 	selectedFiles: [],
 	statusRequestIds: {},
@@ -526,38 +520,6 @@ const { actions, name, reducer } = createSlice({
 				state.knowledgeErrorMessage =
 					action.error.message ?? "Failed to update knowledge entry";
 			}
-		});
-		builder.addCase(searchKnowledge.pending, (state, action) => {
-			state.searchErrorMessage = null;
-			state.searchQuery = action.meta.arg.query;
-			state.searchRequestId = action.meta.requestId;
-			state.searchStatus = SearchStatus.LOADING;
-		});
-		builder.addCase(searchKnowledge.fulfilled, (state, action) => {
-			if (state.searchRequestId !== action.meta.requestId) {
-				return;
-			}
-
-			state.searchErrorMessage = null;
-			state.searchRequestId = null;
-			state.searchResults = action.payload.items;
-			state.searchStatus = SearchStatus.SUCCEEDED;
-		});
-		builder.addCase(searchKnowledge.rejected, (state, action) => {
-			if (state.searchRequestId !== action.meta.requestId) {
-				return;
-			}
-
-			state.searchRequestId = null;
-			if (action.meta.aborted) {
-				state.searchStatus = SearchStatus.IDLE;
-
-				return;
-			}
-
-			state.searchErrorMessage =
-				action.error.message ?? "Failed to search knowledge base";
-			state.searchStatus = SearchStatus.FAILED;
 		});
 		builder.addCase(submitManualText.fulfilled, (state, action) => {
 			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
@@ -1022,7 +984,6 @@ const { actions, name, reducer } = createSlice({
 			state.pendingReviewRequestId = null;
 			state.pipelineProjectId = null;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
-			state.searchRequestId = null;
 			state.statusRequestIds = {};
 			state.treeRequestId = null;
 			state.updateEntryRequestIds = {};
@@ -1089,11 +1050,6 @@ const { actions, name, reducer } = createSlice({
 			state.pipelineProjectId = action.payload;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
-			state.searchErrorMessage = null;
-			state.searchQuery = "";
-			state.searchRequestId = null;
-			state.searchResults = [];
-			state.searchStatus = SearchStatus.IDLE;
 			state.selectedFiles = [];
 			state.selectedEntry = null;
 			state.statusRequestIds = {};

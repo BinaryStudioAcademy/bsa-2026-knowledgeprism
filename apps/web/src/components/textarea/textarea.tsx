@@ -51,6 +51,7 @@ type Properties<T extends FieldValues = FieldValues> = {
 	disabled?: boolean;
 	id?: string;
 	label: string;
+	maxLength?: number | undefined;
 	name: FieldPath<T>;
 	placeholder?: string;
 	rows?: number;
@@ -62,6 +63,7 @@ const Textarea = <T extends FieldValues = FieldValues>({
 	disabled = false,
 	id,
 	label,
+	maxLength,
 	name,
 	placeholder = "",
 	rows = DEFAULT_TEXTAREA_ROWS,
@@ -97,6 +99,7 @@ const Textarea = <T extends FieldValues = FieldValues>({
 				className={textarea({ className })}
 				disabled={isDisabled}
 				id={textareaId}
+				maxLength={maxLength}
 				placeholder={placeholder}
 				rows={rows}
 			/>

@@ -1,0 +1,10 @@
+process.env["NODE_ENV"] ??= "development";
+process.env["HOST"] ??= "localhost";
+process.env["PORT"] ??= "3001";
+process.env["DB_CONNECTION_STRING"] ??= "postgres://localhost/db";
+process.env["DB_DIALECT"] ??= "pg";
+process.env["DB_POOL_MIN"] ??= "1";
+process.env["DB_POOL_MAX"] ??= "2";
+process.env["SESSION_SECRET"] ??= "12345678901234567890123456789012";
+process.env["AWS_REGION"] ??= "eu-central-1";
+process.env["AWS_S3_BUCKET_NAME"] ??= "bucket";
