@@ -133,6 +133,8 @@ const unicornConfig = {
 				},
 			},
 		],
+		// Quality criterion A17 prefers collection iterators for arrays.
+		"unicorn/no-for-each": ["off"],
 		"unicorn/no-null": ["off"],
 	},
 };
