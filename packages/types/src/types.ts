@@ -40,6 +40,8 @@ export {
 	type PendingReviewDocumentsResponseDto,
 } from "./modules/documents/documents.js";
 export {
+	type GlossaryConsistencyCheckRequestDto,
+	type GlossaryConsistencyCheckResponseDto,
 	type GlossaryRelatedTermDto,
 	type GlossaryRouteParametersDto,
 	type GlossarySearchQueryDto,

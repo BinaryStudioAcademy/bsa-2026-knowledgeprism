@@ -13,6 +13,12 @@ export {
 	embed,
 	search,
 } from "./modules/embeddings/services/embedding.service.js";
+export { embedGlossaryTerm } from "./modules/glossary-consistency/libs/helpers/embed-glossary-term.helper.js";
+export {
+	type GlossaryConsistencyMatch,
+	type GlossaryConsistencyTerm,
+} from "./modules/glossary-consistency/libs/types/types.js";
+export { checkGlossaryConsistency } from "./modules/glossary-consistency/services/glossary-consistency.service.js";
 export { type IntegrationAnalysisParameters } from "./modules/integration-analysis/libs/types/integration-analysis-parameters.type.js";
 export { type IntegrationAnalysisResult } from "./modules/integration-analysis/libs/types/integration-analysis-result.type.js";
 export { type IntegrationChangeTypeValue } from "./modules/integration-analysis/libs/types/integration-change-type-value.type.js";
