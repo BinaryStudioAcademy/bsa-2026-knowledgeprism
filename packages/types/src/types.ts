@@ -30,7 +30,6 @@ export {
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
 	type ExtractionItemUpdateRequestDto,
-	type IntegrationChangeContentOverrideDto,
 	type IntegrationChangeResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
@@ -43,7 +42,6 @@ export {
 export {
 	type GlossaryConsistencyCheckRequestDto,
 	type GlossaryConsistencyCheckResponseDto,
-	type GlossaryConsistencyMatchDto,
 	type GlossaryRelatedTermDto,
 	type GlossaryRouteParametersDto,
 	type GlossarySearchQueryDto,

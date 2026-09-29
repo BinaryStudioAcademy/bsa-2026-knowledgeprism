@@ -10,40 +10,14 @@ import {
 	render,
 	screen,
 	waitFor,
-	within,
 } from "@testing-library/react";
-import { type JSX, type ReactElement } from "react";
-import { Provider } from "react-redux";
-import { MemoryRouter } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
-import { store } from "~/lib/store/store.js";
-import { workspacesActions } from "~/modules/workspaces/state/workspaces.slice.js";
+import { type JSX } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { mapExtractionItemsToProposedStructure } from "../../libs/helpers/helpers.js";
 import { type ProposedSection } from "../../libs/types/types.js";
-import { actions } from "../../state/knowledge.slice.js";
 import { LoadingState } from "../loading-state/loading-state.js";
 import { IntegrationPreview } from "./integration-preview.js";
-import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consistency-check.hook.js";
-
-vi.mock("./libs/hooks/use-glossary-consistency-check.hook.js", () => ({
-	useGlossaryConsistencyCheck: vi.fn(() => ({
-		glossaryMatches: [],
-		isCheckingGlossary: false,
-		onAcceptGlossarySuggestion: vi.fn(),
-		onKeepGlossarySuggestion: vi.fn(),
-	})),
-}));
-
-const TEST_PROJECT_ID = "project-a";
-
-const renderPreview = (ui: ReactElement): ReturnType<typeof render> =>
-	render(
-		<Provider store={store.instance}>
-			<MemoryRouter>{ui}</MemoryRouter>
-		</Provider>,
-	);
 
 vi.mock("~/components/knowledge-editor/knowledge-editor.js", () => ({
 	KnowledgeEditor: (): JSX.Element => <div data-testid="knowledge-editor" />,
@@ -64,25 +38,12 @@ const createDeferred = (): PromiseWithResolvers<boolean> =>
 	Promise.withResolvers<boolean>();
 
 describe("IntegrationPreview extraction review", () => {
-	beforeEach(() => {
-		store.instance.dispatch(actions.resetState(null));
-		store.instance.dispatch(
-			workspacesActions.setLastActiveProject(TEST_PROJECT_ID),
-		);
-		vi.mocked(useGlossaryConsistencyCheck).mockReturnValue({
-			glossaryMatches: [],
-			isCheckingGlossary: false,
-			onAcceptGlossarySuggestion: vi.fn(),
-			onKeepGlossarySuggestion: vi.fn(),
-		});
-	});
-
 	afterEach(() => {
 		vi.useRealTimers();
 	});
 
 	it("shows each extraction item's source page and excerpt", () => {
-		renderPreview(
+		render(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
 				onApproveExtraction={vi.fn().mockResolvedValue(false)}
@@ -103,7 +64,7 @@ describe("IntegrationPreview extraction review", () => {
 	});
 
 	it("does not allow editing a synthetic source-page group title", () => {
-		renderPreview(
+		render(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
 				onApproveExtraction={vi.fn().mockResolvedValue(false)}
@@ -122,55 +83,11 @@ describe("IntegrationPreview extraction review", () => {
 		expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
 	});
 
-	it("dismisses a glossary suggestion and enters edit mode when its Edit action is used", () => {
-		const handleKeep = vi.fn();
-		const match = {
-			canonicalName: "API",
-			explanation: "Spells out the canonical term instead of using it.",
-			matchedTermId: 1,
-			sourceExcerpt: "application programming interface",
-			suggestedText: "API",
-		};
-		vi.mocked(useGlossaryConsistencyCheck).mockReturnValue({
-			glossaryMatches: [match],
-			isCheckingGlossary: false,
-			onAcceptGlossarySuggestion: vi.fn(),
-			onKeepGlossarySuggestion: handleKeep,
-		});
-
-		renderPreview(
-			<IntegrationPreview
-				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
-				onClose={vi.fn()}
-				proposedStructure={mapExtractionItemsToProposedStructure([
-					createExtractionItem(),
-				])}
-				variant="extraction-validation"
-			/>,
-		);
-
-		const suggestionPanel = screen
-			.getByText("Glossary suggestions (1)")
-			.closest("div")?.parentElement;
-
-		if (!suggestionPanel) {
-			throw new Error("Glossary suggestions panel not found");
-		}
-
-		fireEvent.click(
-			within(suggestionPanel).getByRole("button", { name: "Edit" }),
-		);
-
-		expect(handleKeep).toHaveBeenCalledWith(match);
-		expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
-	});
-
 	it("disables Back, Edit, and structure navigation while approval is applying", async () => {
 		const deferred = createDeferred();
 		const approve = vi.fn(() => deferred.promise);
 		const handleApplyingChange = vi.fn();
-		renderPreview(
+		render(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
 				onApplyingChange={handleApplyingChange}
@@ -203,7 +120,7 @@ describe("IntegrationPreview extraction review", () => {
 	});
 
 	it("shows a document-scoped extraction review error", () => {
-		renderPreview(
+		render(
 			<IntegrationPreview
 				errorMessage="Extraction update failed"
 				onAddMore={vi.fn()}
@@ -244,7 +161,7 @@ describe("IntegrationPreview extraction review", () => {
 				type: KnowledgeNodeType.SECTION,
 			},
 		];
-		renderPreview(
+		render(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
 				onApprove={approve}
@@ -267,75 +184,6 @@ describe("IntegrationPreview extraction review", () => {
 		await act(async () => {
 			deferred.resolve(false);
 			await deferred.promise;
-		});
-	});
-
-	it("keeps an accepted glossary suggestion on a conflict resolvable as incoming", async () => {
-		const approve = vi.fn().mockResolvedValue(false);
-		const match = {
-			canonicalName: "API",
-			explanation: "Spells out the canonical term instead of using it.",
-			matchedTermId: 1,
-			sourceExcerpt: "application programming interface",
-			suggestedText: "API",
-		};
-		vi.mocked(useGlossaryConsistencyCheck).mockImplementation(
-			({ content, onContentChange }) => ({
-				glossaryMatches: content.includes(match.sourceExcerpt) ? [match] : [],
-				isCheckingGlossary: false,
-				onAcceptGlossarySuggestion: (acceptedMatch): void => {
-					onContentChange(
-						content.replace(
-							acceptedMatch.sourceExcerpt,
-							() => acceptedMatch.suggestedText,
-						),
-					);
-				},
-				onKeepGlossarySuggestion: vi.fn(),
-			}),
-		);
-		const structure: ProposedSection[] = [
-			{
-				id: "section",
-				pages: [
-					{
-						content: "Use the application programming interface.",
-						id: "page",
-						integrationChangeId: 9,
-						matchedNodeId: 3,
-						originalContent: "Live content",
-						originalTitle: "Title",
-						status: "conflict",
-						title: "Title",
-						type: KnowledgeNodeType.PAGE,
-					},
-				],
-				status: "conflict",
-				title: "Section",
-				type: KnowledgeNodeType.SECTION,
-			},
-		];
-		renderPreview(
-			<IntegrationPreview
-				onAddMore={vi.fn()}
-				onApprove={approve}
-				onClose={vi.fn()}
-				proposedStructure={structure}
-			/>,
-		);
-
-		fireEvent.click(screen.getByRole("button", { name: "Accept" }));
-		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
-		fireEvent.click(
-			screen.getByRole("button", { name: "Use Incoming Version" }),
-		);
-		fireEvent.click(screen.getByRole("button", { name: "Publish resolution" }));
-
-		await waitFor(() => {
-			expect(approve).toHaveBeenCalledWith(
-				[{ changeId: 9, content: "use-new", title: "keep" }],
-				[{ changeId: 9, content: "Use the API.", title: "Title" }],
-			);
 		});
 	});
 

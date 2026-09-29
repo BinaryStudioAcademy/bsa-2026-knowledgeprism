@@ -5,7 +5,6 @@ import {
 } from "@knowledgeprism/constants";
 import {
 	type ExtractionItemResponseDto,
-	type IntegrationChangeContentOverrideDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
@@ -35,7 +34,6 @@ type IntegrationPreviewProperties = {
 	onApplyingChange?: (isApplying: boolean) => void;
 	onApprove?: (
 		resolutions: IntegrationConflictResolutionDto[],
-		contentOverrides: IntegrationChangeContentOverrideDto[],
 	) => Promise<boolean>;
 	onApproveExtraction?: (pages: ProposedSection[]) => Promise<boolean>;
 	onClose: () => void;

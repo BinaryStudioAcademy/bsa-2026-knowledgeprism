@@ -9,7 +9,6 @@ export { getFileContentType } from "./get-file-content-type.helper.js";
 export { mapIntegrationChangesToProposedStructure } from "./map-integration-changes-to-proposed-structure.helper.js";
 export { isMatchingPipelineSession } from "./pipeline-session.helper.js";
 export { toConflictResolutions } from "./to-conflict-resolutions.helper.js";
-export { toContentOverrides } from "./to-content-overrides.helper.js";
 export {
 	addTrackedDocumentId,
 	readTrackedDocumentIds,

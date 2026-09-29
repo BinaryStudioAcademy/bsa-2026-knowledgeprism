@@ -5,7 +5,6 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
-import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
 import {
 	type ChangeEvent,
 	type JSX,
@@ -24,10 +23,7 @@ import {
 	ParagraphSize,
 } from "~/components/components.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import {
-	toConflictResolutions,
-	toContentOverrides,
-} from "~/modules/knowledge/libs/helpers/helpers.js";
+import { toConflictResolutions } from "~/modules/knowledge/libs/helpers/helpers.js";
 import {
 	type ChangeStatus,
 	type FieldConflict,
@@ -36,11 +32,9 @@ import {
 	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
 
-import { GlossarySuggestions } from "./libs/components/glossary-suggestions.js";
 import { MergeScreen } from "./libs/components/merge-screen.js";
 import { ProposedStructureSuccessModal } from "./libs/components/proposed-structure-success-modal.js";
 import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
-import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consistency-check.hook.js";
 
 const EMPTY_LENGTH = 0;
 const LAST_INDEX_OFFSET = 1;
@@ -85,7 +79,6 @@ type SectionDetailsProperties = {
 	isInteractionDisabled: boolean;
 	isTitleEmpty: boolean;
 	onContentChange: (content: string) => void;
-	onEnterEdit: () => void;
 	onPageTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
 	onRejectItem?: (() => void) | undefined;
 	onTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -304,9 +297,6 @@ const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
 	return conflicts;
 };
 
-const getEditedStatus = (status: ChangeStatus): ChangeStatus =>
-	status === "created" || status === "conflict" ? status : "modified";
-
 const getAllIntegrationConflicts = (
 	pages: ProposedSection[],
 ): FieldConflict[] => {
@@ -344,13 +334,14 @@ const updateSectionInPages = ({
 	updatedSections[sectionIndex] = {
 		...targetSection,
 		...partialSection,
-		status: getEditedStatus(targetSection.status),
+		status:
+			targetSection.status === "created" ? targetSection.status : "modified",
 	};
 
 	updatedPages[pageIndex] = {
 		...targetPage,
 		pages: updatedSections,
-		status: getEditedStatus(targetPage.status),
+		status: targetPage.status === "created" ? targetPage.status : "modified",
 	};
 
 	return updatedPages;
@@ -437,7 +428,7 @@ const updatePageInPages = ({
 	updatedPages[pageIndex] = {
 		...targetPage,
 		...partialPage,
-		status: getEditedStatus(targetPage.status),
+		status: targetPage.status === "created" ? targetPage.status : "modified",
 	};
 
 	return updatedPages;
@@ -581,7 +572,6 @@ const SectionDetails = ({
 	isInteractionDisabled,
 	isTitleEmpty,
 	onContentChange,
-	onEnterEdit,
 	onPageTitleChange,
 	onRejectItem,
 	onTitleChange,
@@ -589,24 +579,6 @@ const SectionDetails = ({
 }: SectionDetailsProperties): JSX.Element => {
 	const isParentSelected = activeNodeType === "parent";
 	const selectedNode = isParentSelected ? activePage : activeSection;
-
-	const {
-		glossaryMatches,
-		isCheckingGlossary,
-		onAcceptGlossarySuggestion: handleAcceptGlossarySuggestion,
-		onKeepGlossarySuggestion: handleKeepGlossarySuggestion,
-	} = useGlossaryConsistencyCheck({
-		content: isParentSelected ? "" : (activeSection?.content ?? ""),
-		onContentChange,
-	});
-
-	const handleEditGlossarySuggestion = useCallback(
-		(match: GlossaryConsistencyMatchDto): void => {
-			handleKeepGlossarySuggestion(match);
-			onEnterEdit();
-		},
-		[handleKeepGlossarySuggestion, onEnterEdit],
-	);
 
 	if (!selectedNode) {
 		return (
@@ -628,7 +600,6 @@ const SectionDetails = ({
 			: `${activePage.title} > ${currentTitle}`;
 	const selectedTitleLabel = getNodeTitleLabel(selectedNode.type, "Node");
 	const editorKey = `${selectedNode.id}-${isEditMode ? "edit" : "view"}`;
-	const readOnlyEditorKey = `${editorKey}-${activeSection?.content ?? ""}`;
 	const handleTitleChange = isParentSelected
 		? onPageTitleChange
 		: onTitleChange;
@@ -754,18 +725,10 @@ const SectionDetails = ({
 							<SectionContentEditor
 								content={activeSection.content}
 								isEditable={false}
-								key={readOnlyEditorKey}
+								key={editorKey}
 							/>
 						</div>
 					)}
-
-					<GlossarySuggestions
-						isChecking={isCheckingGlossary}
-						matches={glossaryMatches}
-						onAccept={handleAcceptGlossarySuggestion}
-						onEdit={handleEditGlossarySuggestion}
-						onKeep={handleKeepGlossarySuggestion}
-					/>
 				</div>
 			)}
 
@@ -903,10 +866,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, [onAddMore]);
 
 	const applyChanges = useCallback(
-		async (
-			conflicts: FieldConflict[],
-			sections: ProposedSection[],
-		): Promise<void> => {
+		async (conflicts: FieldConflict[]): Promise<void> => {
 			if (isApplying) {
 				return;
 			}
@@ -924,7 +884,6 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			try {
 				isApplied = await onApprove(
 					toConflictResolutions({ conflicts, sections: proposedStructure }),
-					toContentOverrides(sections),
 				);
 			} catch {
 				return;
@@ -976,7 +935,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		const integrationConflicts = getAllIntegrationConflicts(pages);
 
 		if (integrationConflicts.length === EMPTY_LENGTH) {
-			void applyChanges([], pages);
+			void applyChanges([]);
 
 			return;
 		}
@@ -1021,7 +980,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			resolvedConflicts: FieldConflict[],
 		): void => {
 			setPages(resolvedPages);
-			void applyChanges(resolvedConflicts, resolvedPages);
+			void applyChanges(resolvedConflicts);
 		},
 		[applyChanges],
 	);
@@ -1180,7 +1139,6 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					isInteractionDisabled={isApplying}
 					isTitleEmpty={isTitleEmpty}
 					onContentChange={handleSectionContentChange}
-					onEnterEdit={handleEnterEdit}
 					onPageTitleChange={handlePageTitleChange}
 					onRejectItem={handleRejectItem}
 					onTitleChange={handleSectionTitleChange}
