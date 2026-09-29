@@ -5,6 +5,7 @@ import {
 } from "@knowledgeprism/types";
 import React, { type MouseEvent, useCallback, useMemo, useState } from "react";
 
+import { useAppSidebarOverlay } from "~/app/layouts/app-sidebar-overlay-context.js";
 import { Loader } from "~/components/components.js";
 import {
 	useAppDispatch,
@@ -322,6 +323,16 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		pipelineSessionId: number;
 	}>(null);
 	const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
+	const { closeOverlay, isOverlayOpen } = useAppSidebarOverlay();
+	const [wasOverlayOpen, setWasOverlayOpen] = useState(isOverlayOpen);
+
+	if (wasOverlayOpen !== isOverlayOpen) {
+		setWasOverlayOpen(isOverlayOpen);
+
+		if (isOverlayOpen) {
+			setIsSidebarOpen(false);
+		}
+	}
 
 	const setIsPreviewOpen = useCallback(
 		(isOpen: boolean): void => {
@@ -430,8 +441,9 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	}, [openNextPendingReview]);
 
 	const handleOpenSidebar = useCallback((): void => {
+		closeOverlay();
 		setIsSidebarOpen(true);
-	}, []);
+	}, [closeOverlay]);
 
 	const handleResetState = useCallback((): void => {
 		if (projectId && activeDocumentId) {
