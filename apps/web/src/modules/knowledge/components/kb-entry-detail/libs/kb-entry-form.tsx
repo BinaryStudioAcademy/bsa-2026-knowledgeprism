@@ -1,15 +1,45 @@
-import { type PartialBlock } from "@blocknote/core";
-import { type SyntheticEvent, useCallback, useMemo, useState } from "react";
+import {
+	type Block,
+	type BlockSchemaFromSpecs,
+	type BlockSpecs,
+	type PartialBlock,
+} from "@blocknote/core";
+import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
+import {
+	type JSX,
+	type ReactNode,
+	type SyntheticEvent,
+	useCallback,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { useController, useWatch } from "react-hook-form";
 
-import { Input, KnowledgeEditor } from "~/components/components.js";
+import {
+	Input,
+	KnowledgeEditor,
+	type KnowledgeEditorApi,
+	Paragraph,
+	ParagraphSize,
+} from "~/components/components.js";
+import { TextHighlightVariant } from "~/components/knowledge-editor/libs/enums/enums.js";
 import { useAppForm } from "~/hooks/hooks.js";
+import { GlossarySuggestionActions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestion-actions.js";
+import { GlossarySuggestions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestions.js";
+import {
+	toGlossaryHighlightId,
+	toGlossaryHighlights,
+} from "~/modules/glossary/libs/helpers/helpers.js";
 import {
 	type KbEntry,
 	type KnowledgeEntryUpdateRequestDto,
 } from "~/modules/knowledge/libs/types/types.js";
 
+import { useGlossaryEditorWarnings } from "./hooks/use-glossary-editor-warnings.hook.js";
 import { kbEntryValidationSchema } from "./validation-schema.js";
+
+type EditorBlock = Block<BlockSchemaFromSpecs<BlockSpecs>>;
 
 const EMPTY_COUNT = 0;
 
@@ -169,6 +199,45 @@ const parseInitialContent = (content?: unknown): PartialBlock[] => {
 	return DEFAULT_BLOCKS;
 };
 
+type GlossaryWarningTooltipContentProperties = {
+	match: GlossaryConsistencyMatchDto;
+	onKeep: (match: GlossaryConsistencyMatchDto) => void;
+	onReplace: (replacement: string) => void;
+};
+
+const GlossaryWarningTooltipContent = ({
+	match,
+	onKeep,
+	onReplace,
+}: GlossaryWarningTooltipContentProperties): JSX.Element => {
+	const handleAccept = useCallback(
+		(acceptedMatch: GlossaryConsistencyMatchDto): void => {
+			onReplace(acceptedMatch.suggestedText);
+		},
+		[onReplace],
+	);
+
+	return (
+		<div className="flex flex-col gap-1.5">
+			<Paragraph className="text-xs text-text" size={ParagraphSize.BODY_SMALL}>
+				Glossary term:{" "}
+				<span className="font-medium">{match.canonicalName}</span>
+			</Paragraph>
+			<Paragraph
+				className="text-2xs text-text-faint"
+				size={ParagraphSize.BODY_SMALL}
+			>
+				{match.explanation}
+			</Paragraph>
+			<GlossarySuggestionActions
+				match={match}
+				onAccept={handleAccept}
+				onKeep={onKeep}
+			/>
+		</div>
+	);
+};
+
 interface KbEntryFormProperties {
 	entry: KbEntry;
 	onCancel: () => void;
@@ -178,6 +247,7 @@ interface KbEntryFormProperties {
 const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isMaxTitleReached, setIsMaxTitleReached] = useState(false);
+	const editorApiReference = useRef<KnowledgeEditorApi | null>(null);
 
 	const initialContent = useMemo(
 		() => parseInitialContent(entry.contentJson),
@@ -211,10 +281,84 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 	} = useController({ control, name: "contentJson" });
 
 	const handleEditorChange = useCallback(
-		(blocks: unknown): void => {
+		(blocks: EditorBlock[]): void => {
 			contentField.onChange(blocks);
 		},
 		[contentField],
+	);
+
+	const handleEditorReady = useCallback((api: KnowledgeEditorApi): void => {
+		editorApiReference.current = api;
+	}, []);
+
+	const editorBlocks = useMemo(
+		() => currentContentJson as unknown as EditorBlock[],
+		[currentContentJson],
+	);
+
+	const {
+		dismiss: dismissGlossaryWarning,
+		isChecking: isCheckingGlossaryWarnings,
+		matches: glossaryWarningMatches,
+	} = useGlossaryEditorWarnings({ blocks: editorBlocks });
+
+	const glossaryHighlights = useMemo(
+		() =>
+			toGlossaryHighlights(
+				glossaryWarningMatches,
+				TextHighlightVariant.WARNING,
+			),
+		[glossaryWarningMatches],
+	);
+
+	const glossaryMatchesById = useMemo(
+		() =>
+			new Map(
+				glossaryWarningMatches.map((match) => [
+					toGlossaryHighlightId(match),
+					match,
+				]),
+			),
+		[glossaryWarningMatches],
+	);
+
+	const handleKeepGlossaryWarning = useCallback(
+		(match: GlossaryConsistencyMatchDto): void => {
+			dismissGlossaryWarning(toGlossaryHighlightId(match));
+		},
+		[dismissGlossaryWarning],
+	);
+
+	const handleAcceptGlossaryWarningFromList = useCallback(
+		(match: GlossaryConsistencyMatchDto): void => {
+			editorApiReference.current?.replace(
+				toGlossaryHighlightId(match),
+				match.suggestedText,
+			);
+		},
+		[],
+	);
+
+	const renderGlossaryWarningTooltip = useCallback(
+		(
+			highlightId: string,
+			tooltipActions: { replace: (replacement: string) => void },
+		): ReactNode => {
+			const match = glossaryMatchesById.get(highlightId);
+
+			if (!match) {
+				return null;
+			}
+
+			return (
+				<GlossaryWarningTooltipContent
+					match={match}
+					onKeep={handleKeepGlossaryWarning}
+					onReplace={tooltipActions.replace}
+				/>
+			);
+		},
+		[glossaryMatchesById, handleKeepGlossaryWarning],
 	);
 
 	const handleValidSubmit = useCallback(
@@ -306,9 +450,12 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 						}`}
 					>
 						<KnowledgeEditor
+							highlights={glossaryHighlights}
 							initialContent={initialContent}
 							isEditable={!isSubmitting}
 							onChange={handleEditorChange}
+							onReady={handleEditorReady}
+							renderHighlightTooltip={renderGlossaryWarningTooltip}
 						/>
 					</div>
 					{(contentError || isContentEmpty) && (
@@ -316,6 +463,14 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 							{contentError?.message || "Description cannot be empty"}
 						</span>
 					)}
+
+					<GlossarySuggestions
+						isChecking={isCheckingGlossaryWarnings}
+						matches={glossaryWarningMatches}
+						onAccept={handleAcceptGlossaryWarningFromList}
+						onKeep={handleKeepGlossaryWarning}
+						variant={TextHighlightVariant.WARNING}
+					/>
 				</div>
 			</div>
 		</form>

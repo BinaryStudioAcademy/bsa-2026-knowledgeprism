@@ -25,12 +25,17 @@ const createMatch = (
 
 describe("toGlossaryHighlights", () => {
 	it("returns an empty array for no matches", () => {
-		expect(toGlossaryHighlights([])).toHaveLength(NO_HIGHLIGHTS);
+		expect(
+			toGlossaryHighlights([], TextHighlightVariant.SUGGESTION),
+		).toHaveLength(NO_HIGHLIGHTS);
 	});
 
 	it("maps a match to a suggestion highlight keyed by sourceExcerpt", () => {
 		const match = createMatch();
-		const highlights = toGlossaryHighlights([match]);
+		const highlights = toGlossaryHighlights(
+			[match],
+			TextHighlightVariant.SUGGESTION,
+		);
 
 		expect(highlights).toHaveLength(ONE_HIGHLIGHT);
 		expect(highlights[FIRST_INDEX]).toStrictEqual({
@@ -38,6 +43,16 @@ describe("toGlossaryHighlights", () => {
 			text: match.sourceExcerpt,
 			variant: TextHighlightVariant.SUGGESTION,
 		});
+	});
+
+	it("maps a match to a warning highlight when asked", () => {
+		const match = createMatch();
+		const highlights = toGlossaryHighlights(
+			[match],
+			TextHighlightVariant.WARNING,
+		);
+
+		expect(highlights[FIRST_INDEX]?.variant).toBe(TextHighlightVariant.WARNING);
 	});
 
 	it("builds a stable id from matchedTermId and sourceExcerpt", () => {
@@ -52,7 +67,10 @@ describe("toGlossaryHighlights", () => {
 			matchedTermId: 2,
 			sourceExcerpt: "programming interface",
 		});
-		const highlights = toGlossaryHighlights([firstMatch, secondMatch]);
+		const highlights = toGlossaryHighlights(
+			[firstMatch, secondMatch],
+			TextHighlightVariant.SUGGESTION,
+		);
 
 		expect(highlights.map((highlight) => highlight.text)).toStrictEqual([
 			"app",

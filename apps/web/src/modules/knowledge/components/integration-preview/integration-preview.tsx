@@ -25,8 +25,15 @@ import {
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
+import { TextHighlightVariant } from "~/components/knowledge-editor/libs/enums/enums.js";
 import { type TextHighlight } from "~/components/knowledge-editor/libs/types/types.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { GlossarySuggestionActions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestion-actions.js";
+import { GlossarySuggestions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestions.js";
+import {
+	toGlossaryHighlightId,
+	toGlossaryHighlights,
+} from "~/modules/glossary/libs/helpers/helpers.js";
 import {
 	toConflictResolutions,
 	toContentOverrides,
@@ -39,15 +46,9 @@ import {
 	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
 
-import { GlossarySuggestionActions } from "./libs/components/glossary-suggestion-actions.js";
-import { GlossarySuggestions } from "./libs/components/glossary-suggestions.js";
 import { MergeScreen } from "./libs/components/merge-screen.js";
 import { ProposedStructureSuccessModal } from "./libs/components/proposed-structure-success-modal.js";
 import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
-import {
-	toGlossaryHighlightId,
-	toGlossaryHighlights,
-} from "./libs/helpers/helpers.js";
 import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consistency-check.hook.js";
 
 const EMPTY_LENGTH = 0;
@@ -662,7 +663,8 @@ const SectionDetails = ({
 	);
 
 	const glossaryHighlights = useMemo(
-		() => toGlossaryHighlights(glossaryMatches),
+		() =>
+			toGlossaryHighlights(glossaryMatches, TextHighlightVariant.SUGGESTION),
 		[glossaryMatches],
 	);
 	const glossaryMatchesById = useMemo(
@@ -857,6 +859,7 @@ const SectionDetails = ({
 						onAccept={handleAcceptGlossarySuggestion}
 						onEdit={handleEditGlossarySuggestion}
 						onKeep={handleKeepGlossarySuggestion}
+						variant={TextHighlightVariant.SUGGESTION}
 					/>
 				</div>
 			)}

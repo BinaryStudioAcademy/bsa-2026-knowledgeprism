@@ -24,12 +24,17 @@ type EditorBlockType = Exclude<keyof typeof defaultBlockSpecs, "paragraph">;
 
 type EditorTheme = "dark" | "light";
 
+type KnowledgeEditorApi = {
+	replace: (highlightId: string, replacement: string) => void;
+};
+
 type Properties = {
 	disabledBlocks?: EditorBlockType[];
 	highlights?: TextHighlight[];
 	initialContent?: PartialBlock[];
 	isEditable?: boolean;
 	onChange?: (blocks: EditorBlock[]) => void;
+	onReady?: (api: KnowledgeEditorApi) => void;
 	renderHighlightTooltip?: (
 		highlightId: string,
 		actions: { replace: (replacement: string) => void },
@@ -67,6 +72,7 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	initialContent,
 	isEditable = true,
 	onChange,
+	onReady,
 	renderHighlightTooltip,
 	theme = "light",
 }: Properties) => {
@@ -110,6 +116,10 @@ const KnowledgeEditor: React.FC<Properties> = ({
 		highlightExtension.setHighlights(highlights ?? []);
 	}, [highlightExtension, highlights]);
 
+	useEffect(() => {
+		onReady?.({ replace: handleReplace });
+	}, [handleReplace, onReady]);
+
 	const editorView = (
 		<TypedBlockNoteView
 			editable={isEditable}
@@ -135,4 +145,4 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	);
 };
 
-export { KnowledgeEditor };
+export { type KnowledgeEditorApi, KnowledgeEditor };
