@@ -1,4 +1,4 @@
-import { HTTPCode } from "@knowledgeprism/constants";
+import { HTTPCode, UserValidationMessage } from "@knowledgeprism/constants";
 
 import { type AppError } from "../types/app-error.type.js";
 
@@ -16,19 +16,23 @@ const isClientError = (status: number): boolean => {
 };
 
 const getNotificationMessage = (error: AppError): string => {
-	const hasMessage = Boolean(error.message.trim());
+	const isInactiveUser = error.message === UserValidationMessage.USER_INACTIVE;
 
-	if (typeof error.status === "number") {
-		if (hasMessage && isClientError(error.status)) {
+	if (error.status === undefined) {
+		if (isInactiveUser) {
 			return error.message;
 		}
 
-		if (error.status >= HTTPCode.INTERNAL_SERVER_ERROR) {
-			return NotificationFallbackMessage.SERVER_ERROR;
-		}
+		return NotificationFallbackMessage.CONNECTION_FAILED;
 	}
 
-	if (hasMessage) {
+	if (error.status >= HTTPCode.INTERNAL_SERVER_ERROR) {
+		return NotificationFallbackMessage.SERVER_ERROR;
+	}
+
+	const hasMessage = Boolean(error.message.trim());
+
+	if (hasMessage && isClientError(error.status)) {
 		return error.message;
 	}
 
