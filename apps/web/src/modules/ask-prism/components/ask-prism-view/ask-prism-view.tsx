@@ -6,6 +6,7 @@ import {
 	type KeyboardEvent,
 	useCallback,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
@@ -15,6 +16,7 @@ import { Heading, Icon, Paragraph } from "~/components/components.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 
+import { DEFAULT_SUGGESTED_QUESTIONS } from "../../libs/constants.js";
 import {
 	actions as askPrismActions,
 	type AskPrismMessage,
@@ -34,12 +36,22 @@ const AskPrismView = (): JSX.Element => {
 	const [query, setQuery] = useState("");
 	const messagesEndReference = useRef<HTMLDivElement>(null);
 
-	const { conversationsByProject, isSuggestionsLoading, suggestedQuestions } =
-		useAppSelector(({ askPrism }) => askPrism);
+	const {
+		conversationsByProject,
+		currentProjectId,
+		isSuggestionsLoading,
+		suggestedQuestions,
+	} = useAppSelector(({ askPrism }) => askPrism);
 
-	const messages = numericProjectId
-		? (conversationsByProject[numericProjectId] ?? [])
-		: [];
+	const isCurrentProject = currentProjectId === numericProjectId;
+	const isSuggestionsActuallyLoading =
+		!isCurrentProject || isSuggestionsLoading;
+
+	const messages = useMemo(() => {
+		return numericProjectId
+			? (conversationsByProject[numericProjectId] ?? [])
+			: [];
+	}, [conversationsByProject, numericProjectId]);
 
 	const isLoading = messages.some(
 		(message) => message.dataStatus === DataStatus.PENDING,
@@ -113,13 +125,13 @@ const AskPrismView = (): JSX.Element => {
 				return;
 			}
 
-			setQuery("");
 			void dispatch(
 				askPrismActions.askQuestion({
 					projectId: numericProjectId,
 					query: prompt,
 				}),
 			);
+			setQuery("");
 		},
 		[dispatch, isLoading, numericProjectId],
 	);
@@ -159,6 +171,24 @@ const AskPrismView = (): JSX.Element => {
 		},
 		[navigate, projectId],
 	);
+
+	const visibleSuggestedQuestions = useMemo(() => {
+		const normalizedAskedQueries = new Set(
+			messages.map((item) => item.query.trim().toLowerCase()).filter(Boolean),
+		);
+
+		const remainingCustomSuggestions = suggestedQuestions.filter(
+			(prompt) => !normalizedAskedQueries.has(prompt.trim().toLowerCase()),
+		);
+
+		if (remainingCustomSuggestions.length > EMPTY_COUNT) {
+			return remainingCustomSuggestions;
+		}
+
+		return DEFAULT_SUGGESTED_QUESTIONS.filter(
+			(prompt) => !normalizedAskedQueries.has(prompt.trim().toLowerCase()),
+		);
+	}, [messages, suggestedQuestions]);
 
 	return (
 		<div className="mx-auto flex h-full w-full max-w-[680px] min-h-0 flex-col px-4 pt-6 tablet:pt-8 desktop:max-w-4xl desktop:px-6">
@@ -225,26 +255,29 @@ const AskPrismView = (): JSX.Element => {
 
 			<div className="shrink-0 bg-bg pt-2 pb-6">
 				<div className="flex flex-col gap-2">
-					<div className="flex flex-wrap items-center gap-1.5">
-						<span className="font-sans text-xs text-text-faint">
-							Suggested questions:
-						</span>
-						{isSuggestionsLoading ? (
-							<div className="flex animate-pulse gap-2">
-								<span className="h-6 w-28 rounded-md bg-surface" />
-								<span className="h-6 w-36 rounded-md bg-surface" />
-							</div>
-						) : (
-							suggestedQuestions.map((prompt) => (
-								<PromptButton
-									isDisabled={isLoading}
-									key={prompt}
-									onClick={handlePromptClick}
-									prompt={prompt}
-								/>
-							))
-						)}
-					</div>
+					{(isSuggestionsActuallyLoading ||
+						visibleSuggestedQuestions.length > EMPTY_COUNT) && (
+						<div className="flex flex-wrap items-center gap-1.5">
+							<span className="font-sans text-xs text-text-faint">
+								Suggested questions:
+							</span>
+							{isSuggestionsActuallyLoading ? (
+								<div className="flex animate-pulse gap-2">
+									<span className="h-6 w-28 rounded-md bg-surface" />
+									<span className="h-6 w-36 rounded-md bg-surface" />
+								</div>
+							) : (
+								visibleSuggestedQuestions.map((prompt) => (
+									<PromptButton
+										isDisabled={isLoading}
+										key={prompt}
+										onClick={handlePromptClick}
+										prompt={prompt}
+									/>
+								))
+							)}
+						</div>
+					)}
 
 					<form
 						className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface p-2 shadow-xs transition-all duration-200 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15"

@@ -4,7 +4,6 @@ const APIPath = {
 	KNOWLEDGE: "/knowledge",
 	PROJECTS: "/projects",
 	USERS: "/users",
-	WORKSPACES: "/workspaces",
 } as const;
 
 export { APIPath };

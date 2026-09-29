@@ -1,7 +1,7 @@
 const DEFAULT_SUGGESTED_QUESTIONS = [
-	"What are the validation rules for user password?",
-	"How does knowledge base integration work?",
-	"What are the roles and permissions in a project?",
+	"What are the main features of this project?",
+	"What are the coding guidelines?",
+	"How do I get started?",
 ];
 
 const SLICE_NAME = "askPrism";

@@ -1,11 +1,13 @@
 import { APIPath, GlossaryApiPath, HTTPCode } from "@knowledgeprism/constants";
 import {
+	glossaryConsistencyCheckRequestValidationSchema,
 	glossaryRouteParametersValidationSchema,
 	glossarySearchQueryValidationSchema,
 	glossaryTermRequestValidationSchema,
 	glossaryTermRouteParametersValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
+	type GlossaryConsistencyCheckRequestDto,
 	type GlossaryRouteParametersDto,
 	type GlossarySearchQueryDto,
 	type GlossaryTermRequestDto,
@@ -88,6 +90,34 @@ import { type GlossaryService } from "../services/glossary.service.js";
  *          updatedAt:
  *            type: string
  *            format: date-time
+ *      GlossaryConsistencyCheckRequest:
+ *        type: object
+ *        required:
+ *          - content
+ *        properties:
+ *          content:
+ *            type: string
+ *            maxLength: 20000
+ *      GlossaryConsistencyMatch:
+ *        type: object
+ *        properties:
+ *          sourceExcerpt:
+ *            type: string
+ *          matchedTermId:
+ *            type: integer
+ *          canonicalName:
+ *            type: string
+ *          suggestedText:
+ *            type: string
+ *          explanation:
+ *            type: string
+ *      GlossaryConsistencyCheckResponse:
+ *        type: object
+ *        properties:
+ *          matches:
+ *            type: array
+ *            items:
+ *              $ref: "#/components/schemas/GlossaryConsistencyMatch"
  */
 class GlossaryController extends BaseController {
 	private glossaryService: GlossaryService;
@@ -125,6 +155,22 @@ class GlossaryController extends BaseController {
 			path: GlossaryApiPath.ROOT,
 			validation: {
 				body: glossaryTermRequestValidationSchema,
+				params: glossaryRouteParametersValidationSchema,
+			},
+		});
+
+		this.addRoute({
+			handler: (options) =>
+				this.checkConsistency(
+					options as APIHandlerOptions<{
+						body: GlossaryConsistencyCheckRequestDto;
+						params: GlossaryRouteParametersDto;
+					}>,
+				),
+			method: "POST",
+			path: GlossaryApiPath.CHECK_CONSISTENCY,
+			validation: {
+				body: glossaryConsistencyCheckRequestValidationSchema,
 				params: glossaryRouteParametersValidationSchema,
 			},
 		});
@@ -172,6 +218,51 @@ class GlossaryController extends BaseController {
 				params: glossaryTermRouteParametersValidationSchema,
 			},
 		});
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/glossary/check-consistency:
+	 *    post:
+	 *      description: Check a piece of content against the project glossary and suggest canonical replacements for non-canonical term usage
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      requestBody:
+	 *        required: true
+	 *        content:
+	 *          application/json:
+	 *            schema:
+	 *              $ref: "#/components/schemas/GlossaryConsistencyCheckRequest"
+	 *      responses:
+	 *        200:
+	 *          description: Consistency matches
+	 *          content:
+	 *            application/json:
+	 *              schema:
+	 *                $ref: "#/components/schemas/GlossaryConsistencyCheckResponse"
+	 *        403:
+	 *          description: Forbidden (non-member)
+	 *        422:
+	 *          description: Validation error
+	 */
+	private async checkConsistency(
+		options: APIHandlerOptions<{
+			body: GlossaryConsistencyCheckRequestDto;
+			params: GlossaryRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.glossaryService.checkConsistency({
+				content: options.body.content,
+				context: this.getAuthenticatedSessionContext(options),
+				projectId: Number(options.params.projectId),
+			}),
+			status: HTTPCode.OK,
+		};
 	}
 
 	/**
