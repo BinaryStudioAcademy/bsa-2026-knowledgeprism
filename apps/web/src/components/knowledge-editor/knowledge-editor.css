@@ -1,0 +1,22 @@
+.knowledge-editor.knowledge-editor
+	.bn-block-outer
+	.bn-block
+	> .bn-block-content[data-content-type="heading"] {
+	--level: clamp(22px, 5vw, 40px);
+
+	font-size: clamp(22px, 5vw, 40px);
+}
+
+.knowledge-editor.knowledge-editor
+	.bn-block-outer
+	.bn-block
+	> .bn-block-content[data-content-type="heading"][data-level="2"] {
+	--level: clamp(20px, 4vw, 30px);
+
+	font-size: clamp(20px, 4vw, 30px);
+}
+
+.knowledge-editor.knowledge-editor .bn-inline-content {
+	word-break: normal;
+	overflow-wrap: break-word;
+}

@@ -54,9 +54,9 @@ const FileDropzone = ({
 				return;
 			}
 
-			const droppedFile = event.dataTransfer.files.item(EMPTY_FILES_COUNT);
-			if (droppedFile) {
-				onFilesSelected([droppedFile]);
+			const droppedFiles = [...event.dataTransfer.files];
+			if (droppedFiles.length > EMPTY_FILES_COUNT) {
+				onFilesSelected(droppedFiles);
 			}
 		},
 		[disabled, onFilesSelected],
@@ -68,10 +68,10 @@ const FileDropzone = ({
 
 	const handleInputChange = useCallback(
 		(event: ChangeEvent<HTMLInputElement>): void => {
-			const selectedFile = event.target.files?.item(EMPTY_FILES_COUNT);
+			const selectedFiles = event.target.files ? [...event.target.files] : [];
 
-			if (selectedFile) {
-				onFilesSelected([selectedFile]);
+			if (selectedFiles.length > EMPTY_FILES_COUNT) {
+				onFilesSelected(selectedFiles);
 			}
 			event.target.value = "";
 		},
@@ -97,7 +97,7 @@ const FileDropzone = ({
 			</div>
 
 			<div className="text-[13.5px] font-medium text-text">
-				Drag a file here, or{" "}
+				Drag files here, or{" "}
 				<button
 					className="cursor-pointer font-medium text-accent underline hover:text-accent-hover disabled:cursor-not-allowed disabled:text-text-faint"
 					disabled={disabled}
@@ -112,13 +112,14 @@ const FileDropzone = ({
 				{SUPPORTED_FILE_EXTENSIONS.map((extension) =>
 					extension.replace(".", "").toUpperCase(),
 				).join(", ")}{" "}
-				• up to {FileValidationRule.MAXIMUM_FILE_SIZE_IN_MB}MB
+				• up to {FileValidationRule.MAXIMUM_FILE_SIZE_IN_MB}MB each
 			</div>
 
 			<input
 				accept={SUPPORTED_FILE_EXTENSIONS.join(",")}
 				className="hidden"
 				disabled={disabled}
+				multiple
 				onChange={handleInputChange}
 				ref={fileInputReference}
 				type="file"

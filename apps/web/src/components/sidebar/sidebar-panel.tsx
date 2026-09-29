@@ -83,10 +83,14 @@ const ProjectHeading = ({
 	role: string;
 }): React.JSX.Element => {
 	return (
-		<div className="flex items-center gap-2.5 p-2 text-accent">
-			<Icon name="project" size={PROJECT_ICON_SIZE} />
-			<div>
-				<div className="text-sm font-medium">{projectName}</div>
+		<div className="flex min-w-0 items-center gap-2.5 p-2 text-accent">
+			<span className="shrink-0">
+				<Icon name="project" size={PROJECT_ICON_SIZE} />
+			</span>
+			<div className="min-w-0 flex-1">
+				<div className="truncate text-sm font-medium" title={projectName}>
+					{projectName}
+				</div>
 				<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
 			</div>
 		</div>

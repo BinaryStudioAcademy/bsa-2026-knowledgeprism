@@ -32,11 +32,7 @@ const deleteProject = createAsyncThunk<string, string, AsyncThunkConfig>(
 	"workspace/delete-project",
 	async (id, { extra }) => {
 		const { workspacesApi } = extra;
-		const wasDeleted = await workspacesApi.deleteProject(id);
-
-		if (!wasDeleted) {
-			throw new Error("Failed to delete project");
-		}
+		await workspacesApi.deleteProject(id);
 
 		notificationService.notify({
 			message: ProjectNotificationMessage.DELETED,

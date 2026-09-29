@@ -28,11 +28,6 @@ class ProjectController extends BaseController {
 	 *   - name: Projects
 	 *     description: Organisation-scoped project management
 	 * components:
-	 *   securitySchemes:
-	 *     sessionAuth:
-	 *       type: apiKey
-	 *       in: cookie
-	 *       name: sessionId
 	 *   parameters:
 	 *     ProjectId:
 	 *       in: path
