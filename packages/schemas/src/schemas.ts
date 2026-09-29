@@ -12,7 +12,6 @@ export {
 	extractionItemUpdateValidationSchema,
 	integrationChangesApplyValidationSchema,
 	manualTextCreateValidationSchema,
-	manualTextRouteParametersValidationSchema,
 } from "./modules/documents/documents.js";
 export {
 	glossaryRouteParametersValidationSchema,

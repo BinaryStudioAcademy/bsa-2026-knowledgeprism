@@ -11,6 +11,8 @@ import {
 } from "@knowledgeprism/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ServerErrorType } from "~/lib/enums/enums.js";
+import { HTTPCode, HTTPError } from "~/lib/http/http.js";
 import { notificationService } from "~/lib/notifications/notification.service.js";
 import { store } from "~/lib/store/store.js";
 import { type AppNotification } from "~/lib/types/types.js";
@@ -22,6 +24,7 @@ import {
 } from "../libs/helpers/helpers.js";
 import {
 	applyIntegrationChanges,
+	cancelDocument,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchKnowledgeEntry,
@@ -575,6 +578,66 @@ describe("knowledge pipeline lifecycle", () => {
 				documentId: DOCUMENT_A_ID,
 				status: DocumentStatus.INTEGRATING,
 			}),
+		);
+	});
+
+	it("cancels the document on the server and stops tracking it", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.FAILED);
+		const cancel = vi
+			.spyOn(documentsApi, "cancelProcessing")
+			.mockResolvedValue(
+				createStatusResponse(DOCUMENT_A_ID, DocumentStatus.CANCELLED),
+			);
+
+		await store.instance.dispatch(
+			cancelDocument({ documentId: DOCUMENT_A_ID, projectId: PROJECT_ID }),
+		);
+
+		expect(cancel).toHaveBeenCalledWith(
+			expect.objectContaining({
+				documentId: DOCUMENT_A_ID,
+				projectId: PROJECT_ID,
+			}),
+		);
+		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
+	});
+
+	it("still stops tracking a document the server refuses to cancel", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.FAILED);
+		vi.spyOn(documentsApi, "cancelProcessing").mockRejectedValue(
+			new HTTPError({
+				details: [],
+				errorType: ServerErrorType.COMMON,
+				message: "Document cannot be cancelled in its current state",
+				status: HTTPCode.CONFLICT,
+			}),
+		);
+
+		await store.instance.dispatch(
+			cancelDocument({ documentId: DOCUMENT_A_ID, projectId: PROJECT_ID }),
+		);
+
+		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
+	});
+
+	it("keeps tracking the document when the session has expired", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.FAILED);
+		vi.spyOn(documentsApi, "cancelProcessing").mockRejectedValue(
+			new HTTPError({
+				details: [],
+				errorType: ServerErrorType.COMMON,
+				message: "Unauthorized",
+				status: HTTPCode.UNAUTHORIZED,
+			}),
+		);
+
+		const result = await store.instance.dispatch(
+			cancelDocument({ documentId: DOCUMENT_A_ID, projectId: PROJECT_ID }),
+		);
+
+		expect(cancelDocument.rejected.match(result)).toBe(true);
+		expect(store.instance.getState().knowledge.trackedDocuments).not.toEqual(
+			[],
 		);
 	});
 
