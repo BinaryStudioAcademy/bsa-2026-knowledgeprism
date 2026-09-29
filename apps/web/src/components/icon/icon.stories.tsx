@@ -17,6 +17,7 @@ const ICON_NAMES = [
 	"chevron-filled-up",
 	"close",
 	"desktop",
+	"drag-handle",
 	"eye",
 	"eye-off",
 	"file",

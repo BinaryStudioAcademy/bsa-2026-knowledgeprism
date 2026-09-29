@@ -1,4 +1,5 @@
 import { type GlossaryRelatedTermDto } from "@knowledgeprism/types";
+import { type EmbeddingVector } from "@knowledgeprism/worker";
 import { type Transaction } from "objection";
 
 import { DatabaseTableName } from "~/infrastructure/database/database.js";
@@ -21,6 +22,7 @@ const toEntity = (term: GlossaryTermModel): GlossaryTermEntity =>
 	GlossaryTermEntity.initialize({
 		createdAt: term.createdAt,
 		definition: term.definition,
+		embedding: term.embedding,
 		id: term.id,
 		name: term.name,
 		projectId: term.projectId,
@@ -32,6 +34,21 @@ class GlossaryTermRepository {
 
 	public constructor(glossaryTermModel: typeof GlossaryTermModel) {
 		this.glossaryTermModel = glossaryTermModel;
+	}
+
+	public async backfillEmbedding({
+		embedding,
+		id,
+	}: {
+		embedding: EmbeddingVector;
+		id: number;
+	}): Promise<void> {
+		await this.glossaryTermModel
+			.query()
+			.patch({ embedding })
+			.where({ id })
+			.whereNull("embedding")
+			.execute();
 	}
 
 	public async countByIdsAndProjectId(
@@ -171,11 +188,13 @@ class GlossaryTermRepository {
 	public async update(
 		{
 			definition,
+			embedding,
 			id,
 			name,
 			updatedBy,
 		}: {
 			definition: string;
+			embedding: EmbeddingVector;
 			id: number;
 			name: string;
 			updatedBy: number;
@@ -184,7 +203,7 @@ class GlossaryTermRepository {
 	): Promise<GlossaryTermEntity> {
 		const term = await this.glossaryTermModel
 			.query(transaction)
-			.patchAndFetchById(id, { definition, name, updatedBy })
+			.patchAndFetchById(id, { definition, embedding, name, updatedBy })
 			.execute();
 
 		return toEntity(term);

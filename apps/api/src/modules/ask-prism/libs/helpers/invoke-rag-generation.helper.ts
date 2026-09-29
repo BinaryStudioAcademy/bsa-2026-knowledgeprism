@@ -1,5 +1,6 @@
 import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { BedrockRequest, ClaudeModelId } from "@knowledgeprism/constants";
+import { toResponseText } from "@knowledgeprism/worker";
 
 import { bedrockRuntimeClient } from "~/infrastructure/bedrock/bedrock.js";
 
@@ -29,15 +30,7 @@ const invokeRagGeneration = async (
 	});
 
 	const response = await bedrockRuntimeClient.send(command);
-	const responseText = response.body.transformToString();
-
-	const responseJson = JSON.parse(responseText) as {
-		content?: { text?: string; type?: string }[];
-	};
-
-	const FIRST_ELEMENT_INDEX = 0;
-	const firstElement = responseJson.content?.[FIRST_ELEMENT_INDEX];
-	const textResponse = firstElement ? firstElement.text : undefined;
+	const textResponse = toResponseText(response.body.transformToString());
 
 	if (!textResponse) {
 		throw new Error("Invalid response from Claude: Missing content text");
