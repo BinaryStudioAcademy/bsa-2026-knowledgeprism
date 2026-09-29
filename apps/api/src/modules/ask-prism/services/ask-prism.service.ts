@@ -19,7 +19,9 @@ type Constructor = {
 };
 
 const EMPTY_LENGTH = 0;
+const MAX_SIMILAR_NODES = 3;
 const MAX_SUGGESTIONS = 3;
+const SCORE_THRESHOLD = 0.3;
 
 class AskPrismService {
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
@@ -135,15 +137,11 @@ class AskPrismService {
 			};
 		});
 
-		// 3. Execute Search
 		const matches = search({
 			candidates,
 			queryVector,
-			topK: 10,
+			topK: MAX_SIMILAR_NODES,
 		});
-
-		// 4. Handle Missing Context
-		const SCORE_THRESHOLD = 0.3; // Lowered to 0.3 to safely catch partially relevant data
 
 		const relevantMatches = matches.filter(
 			(match) => match.score >= SCORE_THRESHOLD,
@@ -156,7 +154,6 @@ class AskPrismService {
 			};
 		}
 
-		// 5. Construct Prompt & Generate Answer
 		const contextChunks = relevantMatches.map((match) => match.item.content);
 		const answer = await invokeRagGeneration(question, contextChunks);
 
@@ -167,11 +164,6 @@ class AskPrismService {
 			};
 		}
 
-		// 6. Format Response
-		// TODO (Issue #162): Implement proper LLM-grounded citations.
-		// Currently returning all retrieved matches as "sources". Future iterations
-		// should prompt the LLM to return specific chunk IDs it used and include
-		// document/page/version metadata from knowledge_sources.
 		return {
 			answer,
 			sources: relevantMatches.map((match) => ({
@@ -207,4 +199,4 @@ class AskPrismService {
 	}
 }
 
-export { AskPrismService };
+export { AskPrismService, MAX_SIMILAR_NODES };
