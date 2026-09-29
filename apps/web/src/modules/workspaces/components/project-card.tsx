@@ -239,13 +239,13 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 
 	return (
 		<div
-			className="group relative flex w-full cursor-pointer flex-col justify-between rounded-lg border border-border bg-(--color-surface) p-5 text-left shadow-(--shadow-sm) transition-all hover:border-(--color-control-inactive) hover:shadow-(--shadow-md)"
+			className="group relative flex w-full min-w-0 cursor-pointer flex-col justify-between rounded-lg border border-border bg-(--color-surface) p-5 text-left shadow-(--shadow-sm) transition-all hover:border-(--color-control-inactive) hover:shadow-(--shadow-md)"
 			onClick={handleClick}
 			onKeyDown={handleKeyDown}
 			role="button"
 			tabIndex={0}
 		>
-			<div>
+			<div className="min-w-0">
 				<div className="mb-4 flex items-center justify-between gap-2">
 					<div
 						className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-(length:--text-sm) font-semibold ${avatarColor.bg} ${avatarColor.text}`}
@@ -305,12 +305,12 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 					</div>
 				</div>
 
-				<h3 className="mb-1 font-serif text-h4 font-normal text-text wrap-break-words">
+				<h3 className="mb-1 min-w-0 font-serif text-h4 font-normal wrap-break-word text-text">
 					{name}
 				</h3>
-				<div className="h-11 overflow-y-auto">
+				<div className="h-11 min-w-0 overflow-x-hidden overflow-y-auto">
 					{description && (
-						<p className="whitespace-normal break-words text-control leading-relaxed text-text-muted">
+						<p className="wrap-break-word text-control leading-relaxed text-text-muted">
 							{description}
 						</p>
 					)}
