@@ -1,4 +1,6 @@
-import { useAppDispatch, useEffect } from "~/hooks/hooks.js";
+import { useEffect, useLayoutEffect } from "react";
+
+import { useAppDispatch } from "~/hooks/hooks.js";
 
 import { actions } from "../../knowledge.js";
 
@@ -11,19 +13,18 @@ const useProjectKnowledgePipeline = ({
 }): void => {
 	const dispatch = useAppDispatch();
 
-	useEffect(() => {
-		if (!canEdit || !projectId) {
-			dispatch(actions.resetState(null));
-
-			return;
-		}
-
-		dispatch(actions.resetState(projectId));
-		void dispatch(actions.initializeProjectKnowledgePipeline({ projectId }));
+	useLayoutEffect(() => {
+		dispatch(actions.resetState(projectId ?? null));
 
 		return () => {
 			dispatch(actions.releasePipeline());
 		};
+	}, [dispatch, projectId]);
+
+	useEffect(() => {
+		if (canEdit && projectId) {
+			void dispatch(actions.initializeProjectKnowledgePipeline({ projectId }));
+		}
 	}, [canEdit, dispatch, projectId]);
 };
 

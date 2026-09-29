@@ -190,6 +190,36 @@ describe("knowledge pipeline lifecycle", () => {
 		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
 	});
 
+	it("clears loading flags when request ownership is invalidated", () => {
+		const startRequests = (): void => {
+			store.instance.dispatch(
+				fetchKnowledgeTree.pending("tree", { projectId: PROJECT_ID }),
+			);
+			store.instance.dispatch(
+				fetchKnowledgeEntry.pending("entry", {
+					entryId: KNOWLEDGE_ENTRY_A_ID,
+					projectId: PROJECT_ID,
+				}),
+			);
+		};
+		const expectRequestsReleased = (): void => {
+			const state = store.instance.getState().knowledge;
+
+			expect(state.isEntryLoading).toBe(false);
+			expect(state.isTreeLoading).toBe(false);
+			expect(state.entryRequestId).toBeNull();
+			expect(state.treeRequestId).toBeNull();
+		};
+
+		startRequests();
+		store.instance.dispatch(actions.releasePipeline());
+		expectRequestsReleased();
+
+		startRequests();
+		store.instance.dispatch(actions.resetState(SECOND_PROJECT_ID));
+		expectRequestsReleased();
+	});
+
 	it("keeps an active document error while a background document polls", () => {
 		trackDocumentWithStatus(
 			DOCUMENT_A_ID,

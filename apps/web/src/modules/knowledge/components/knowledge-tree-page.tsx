@@ -22,9 +22,8 @@ const KnowledgeTreePage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const [searchParameters] = useSearchParams();
 	const canWriteKnowledge = useCanWriteKnowledge();
-	const { pipelineSessionId, selectedEntry, tree } = useAppSelector(
-		(state) => state.knowledge,
-	);
+	const { pipelineProjectId, selectedEntry, tree, treeRevision } =
+		useAppSelector((state) => state.knowledge);
 
 	const [manualSelection, setManualSelection] =
 		useState<ManualSelection | null>(null);
@@ -38,7 +37,7 @@ const KnowledgeTreePage: React.FC = () => {
 			: undefined;
 
 	useEffect(() => {
-		if (!projectId) {
+		if (!projectId || pipelineProjectId !== projectId) {
 			return;
 		}
 
@@ -60,11 +59,7 @@ const KnowledgeTreePage: React.FC = () => {
 			isCurrentRequest = false;
 			request.abort();
 		};
-		// Re-fetches whenever the pipeline session changes (resetState/releasePipeline
-		// bump it), since those reducers also clear treeRequestId/tree — without this
-		// dependency, a pipeline reset racing this effect's own in-flight request
-		// permanently wipes its request-id guard and the tree never leaves "loading".
-	}, [dispatch, pipelineSessionId, projectId]);
+	}, [dispatch, pipelineProjectId, projectId]);
 
 	const isTreeReady = fetchedProjectId === projectId;
 	const parentIds = new Set(tree.map((item) => item.parentId));
@@ -82,7 +77,8 @@ const KnowledgeTreePage: React.FC = () => {
 			: undefined;
 	const manualSelectedPageId =
 		manualSelection?.projectId === projectId &&
-		manualSelection.queryNodeId === queryNodeId
+		manualSelection.queryNodeId === queryNodeId &&
+		tree.some((item) => item.id === manualSelection.pageId)
 			? manualSelection.pageId
 			: undefined;
 
@@ -101,7 +97,7 @@ const KnowledgeTreePage: React.FC = () => {
 		return () => {
 			request.abort();
 		};
-	}, [dispatch, activePageId, projectId]);
+	}, [dispatch, activePageId, projectId, treeRevision]);
 
 	const handleSelectPage = useCallback(
 		(id: number) => {
