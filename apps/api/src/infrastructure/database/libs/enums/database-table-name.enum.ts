@@ -1,6 +1,7 @@
 const DatabaseTableName = {
 	DOCUMENTS: "documents",
 	EXTRACTION_ITEMS: "extraction_items",
+	EXTRACTION_SECTIONS: "extraction_sections",
 	INTEGRATION_CHANGES: "integration_changes",
 	KNOWLEDGE_NODES: "knowledge_nodes",
 	MIGRATIONS: "migrations",

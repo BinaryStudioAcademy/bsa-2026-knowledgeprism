@@ -2,6 +2,13 @@ import { type ExtractionItemResponseDto } from "./extraction-item-response-dto.t
 
 type ExtractionItemsResponseDto = {
 	items: ExtractionItemResponseDto[];
+	sections: ExtractionSectionResponseDto[];
 };
 
-export { type ExtractionItemsResponseDto };
+type ExtractionSectionResponseDto = {
+	id: number;
+	position: number;
+	title: string;
+};
+
+export { type ExtractionItemsResponseDto, type ExtractionSectionResponseDto };

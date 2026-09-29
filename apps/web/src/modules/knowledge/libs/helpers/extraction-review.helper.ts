@@ -1,47 +1,112 @@
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
-import { type ExtractionItemResponseDto } from "@knowledgeprism/types";
+import {
+	type ExtractionItemResponseDto,
+	type ExtractionItemsReviewRequestDto,
+	type ExtractionSectionResponseDto,
+} from "@knowledgeprism/types";
 
 import { type ProposedSection } from "../types/types.js";
 
-type ExtractionItemPatch = {
-	id: number;
-	text: string;
-	title: string;
-};
-
+const EMPTY_LENGTH = 0;
 const EXTRACTION_SECTION_ID_PREFIX = "source-page";
+
+const toProposedPage = (
+	item: ExtractionItemResponseDto,
+): ProposedSection["pages"][number] => ({
+	content: item.text,
+	id: String(item.id),
+	integrationChangeId: item.id,
+	sourceExcerpt: item.sourceExcerpt,
+	sourcePageNumber: item.sourcePageNumber,
+	status: "created",
+	title: item.title,
+	type: KnowledgeNodeType.PAGE,
+});
+
+const sortPagesByItemPosition = (
+	pages: ProposedSection["pages"],
+	itemPositionById: Map<number, number>,
+): ProposedSection["pages"] =>
+	pages.toSorted((pageA, pageB) => {
+		const positionA = itemPositionById.get(Number(pageA.id)) ?? EMPTY_LENGTH;
+		const positionB = itemPositionById.get(Number(pageB.id)) ?? EMPTY_LENGTH;
+
+		return positionA - positionB;
+	});
 
 const mapExtractionItemsToProposedStructure = (
 	extractionItems: ExtractionItemResponseDto[],
+	extractionSections: ExtractionSectionResponseDto[] = [],
 ): ProposedSection[] => {
-	const sectionsByPage = new Map<number, ProposedSection["pages"]>();
+	const sectionsById = new Map<
+		number,
+		{
+			pages: ProposedSection["pages"];
+			position: number;
+			title: string;
+		}
+	>();
 
-	for (const item of extractionItems) {
-		const pages = sectionsByPage.get(item.sourcePageNumber) ?? [];
-
-		pages.push({
-			content: item.text,
-			id: String(item.id),
-			integrationChangeId: item.id,
-			sourceExcerpt: item.sourceExcerpt,
-			sourcePageNumber: item.sourcePageNumber,
-			status: "created",
-			title: item.title,
-			type: KnowledgeNodeType.PAGE,
+	for (const section of extractionSections) {
+		sectionsById.set(section.id, {
+			pages: [],
+			position: section.position,
+			title: section.title,
 		});
-
-		sectionsByPage.set(item.sourcePageNumber, pages);
 	}
 
-	return [...sectionsByPage]
+	const unsectionedItemsByPage = new Map<number, ProposedSection["pages"]>();
+
+	for (const item of extractionItems) {
+		const sectionId = item.extractionSectionId;
+
+		if (sectionId === null) {
+			const pages = unsectionedItemsByPage.get(item.sourcePageNumber) ?? [];
+
+			pages.push(toProposedPage(item));
+			unsectionedItemsByPage.set(item.sourcePageNumber, pages);
+			continue;
+		}
+
+		const section = sectionsById.get(sectionId) ?? {
+			pages: [],
+			position: item.sectionPosition ?? item.sourcePageNumber,
+			title:
+				item.sectionTitle ??
+				`Extracted from Page ${String(item.sourcePageNumber)}`,
+		};
+
+		section.pages.push(toProposedPage(item));
+		sectionsById.set(sectionId, section);
+	}
+
+	const itemPositionById = new Map(
+		extractionItems.map((item) => [item.id, item.position]),
+	);
+
+	const savedSections = [...sectionsById]
+		.toSorted(
+			([, sectionA], [, sectionB]) => sectionA.position - sectionB.position,
+		)
+		.map(([sectionId, section]) => ({
+			id: String(sectionId),
+			pages: sortPagesByItemPosition(section.pages, itemPositionById),
+			status: "created" as const,
+			title: section.title,
+			type: KnowledgeNodeType.SECTION,
+		}));
+
+	const unsectionedGroups = [...unsectionedItemsByPage]
 		.toSorted(([pageA], [pageB]) => pageA - pageB)
 		.map(([pageNumber, pages]) => ({
 			id: `${EXTRACTION_SECTION_ID_PREFIX}-${String(pageNumber)}`,
-			pages,
+			pages: sortPagesByItemPosition(pages, itemPositionById),
 			status: "created" as const,
 			title: `Extracted from Page ${String(pageNumber)}`,
 			type: KnowledgeNodeType.SECTION,
 		}));
+
+	return [...savedSections, ...unsectionedGroups];
 };
 
 const parseExtractionItemId = (pageId: string): null | number => {
@@ -68,52 +133,6 @@ const collectApprovedExtractionItemIds = (
 	return ids;
 };
 
-const findExtractionItemPatch = (
-	page: ProposedSection["pages"][number],
-	itemsById: Map<number, ExtractionItemResponseDto>,
-): ExtractionItemPatch | null => {
-	const id = parseExtractionItemId(page.id);
-
-	if (id === null) {
-		return null;
-	}
-
-	const original = itemsById.get(id);
-
-	if (!original) {
-		return null;
-	}
-
-	const title = page.title.trim();
-	const text = page.content.trim();
-
-	if (title === original.title.trim() && text === original.text.trim()) {
-		return null;
-	}
-
-	return { id, text, title };
-};
-
-const collectExtractionItemPatches = (
-	pages: ProposedSection[],
-	extractionItems: ExtractionItemResponseDto[],
-): ExtractionItemPatch[] => {
-	const itemsById = new Map(extractionItems.map((item) => [item.id, item]));
-	const patches: ExtractionItemPatch[] = [];
-
-	for (const section of pages) {
-		for (const page of section.pages) {
-			const patch = findExtractionItemPatch(page, itemsById);
-
-			if (patch) {
-				patches.push(patch);
-			}
-		}
-	}
-
-	return patches;
-};
-
 const deriveExtractionReviewIds = (
 	pages: ProposedSection[],
 	extractionItems: ExtractionItemResponseDto[],
@@ -125,8 +144,34 @@ const deriveExtractionReviewIds = (
 	return { approvedIds, rejectedIds };
 };
 
-export {
-	collectExtractionItemPatches,
-	deriveExtractionReviewIds,
-	mapExtractionItemsToProposedStructure,
+const toExtractionReviewPayload = (
+	pages: ProposedSection[],
+	extractionItems: ExtractionItemResponseDto[],
+): ExtractionItemsReviewRequestDto => {
+	const { approvedIds, rejectedIds } = deriveExtractionReviewIds(
+		pages,
+		extractionItems,
+	);
+	const nonEmptySections = pages.filter(
+		(section) => section.pages.length > EMPTY_LENGTH,
+	);
+
+	return {
+		approvedIds,
+		rejectedIds,
+		sections: nonEmptySections.map((section) => ({
+			items: section.pages.map((page) => {
+				const id = parseExtractionItemId(page.id);
+
+				return {
+					...(id !== null && { id }),
+					text: page.content,
+					title: page.title,
+				};
+			}),
+			title: section.title,
+		})),
+	};
 };
+
+export { mapExtractionItemsToProposedStructure, toExtractionReviewPayload };
