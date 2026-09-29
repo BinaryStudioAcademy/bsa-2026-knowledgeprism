@@ -297,7 +297,7 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 
 										{onDelete && (
 											<button
-												className="w-full cursor-pointer rounded-md px-2.5 py-1 text-left text-(length:--text-xs) font-normal text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
+												className="w-full cursor-pointer rounded-md px-2.5 py-1 text-left text-(length:--text-xs) font-normal text-error transition-colors hover:bg-error-bg hover:text-error-hover"
 												onClick={handleDelete}
 												type="button"
 											>

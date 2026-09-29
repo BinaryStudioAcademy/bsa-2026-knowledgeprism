@@ -134,6 +134,11 @@ const Modal = ({
 
 	const handleCancel = useCallback(
 		(event: SyntheticEvent<HTMLDialogElement>): void => {
+			if (event.target !== event.currentTarget) {
+				event.stopPropagation();
+				return;
+			}
+
 			event.preventDefault();
 			onClose();
 		},

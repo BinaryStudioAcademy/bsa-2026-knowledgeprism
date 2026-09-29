@@ -1,3 +1,5 @@
+import { type EmbeddingVector } from "@knowledgeprism/worker";
+
 import { type Entity } from "~/shared/types/types.js";
 
 type GlossaryTermDetails = {
@@ -12,6 +14,7 @@ type GlossaryTermDetails = {
 class GlossaryTermEntity implements Entity {
 	private createdAt: Date;
 	private definition: string;
+	private embedding: EmbeddingVector | null;
 	private id: null | number;
 	private name: string;
 	private projectId: number;
@@ -20,6 +23,7 @@ class GlossaryTermEntity implements Entity {
 	private constructor({
 		createdAt,
 		definition,
+		embedding,
 		id,
 		name,
 		projectId,
@@ -27,6 +31,7 @@ class GlossaryTermEntity implements Entity {
 	}: {
 		createdAt?: Date;
 		definition: string;
+		embedding: EmbeddingVector | null;
 		id: null | number;
 		name: string;
 		projectId: number;
@@ -36,6 +41,7 @@ class GlossaryTermEntity implements Entity {
 		this.projectId = projectId;
 		this.name = name;
 		this.definition = definition;
+		this.embedding = embedding;
 		this.createdAt = createdAt ?? new Date();
 		this.updatedAt = updatedAt ?? new Date();
 	}
@@ -43,6 +49,7 @@ class GlossaryTermEntity implements Entity {
 	public static initialize(data: {
 		createdAt: Date;
 		definition: string;
+		embedding: EmbeddingVector | null;
 		id: number;
 		name: string;
 		projectId: number;
@@ -53,28 +60,37 @@ class GlossaryTermEntity implements Entity {
 
 	public static initializeNew({
 		definition,
+		embedding,
 		name,
 		projectId,
 	}: {
 		definition: string;
+		embedding: EmbeddingVector;
 		name: string;
 		projectId: number;
 	}): GlossaryTermEntity {
 		return new GlossaryTermEntity({
 			definition,
+			embedding,
 			id: null,
 			name,
 			projectId,
 		});
 	}
 
+	public getEmbedding(): EmbeddingVector | null {
+		return this.embedding;
+	}
+
 	public toNewObject(): {
 		definition: string;
+		embedding: EmbeddingVector;
 		name: string;
 		projectId: number;
 	} {
 		return {
 			definition: this.definition,
+			embedding: this.embedding as EmbeddingVector,
 			name: this.name,
 			projectId: this.projectId,
 		};

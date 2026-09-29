@@ -7,6 +7,8 @@ import { type ExtractionItemModel } from "~/modules/documents/models/extraction-
 
 type NewExtractionItem = {
 	confidence: number;
+	extractionSectionId?: null | number;
+	position?: number;
 	rationale: string;
 	sourceExcerpt: string;
 	sourcePageNumber: number;
@@ -20,8 +22,10 @@ const toEntity = (item: ExtractionItemModel): ExtractionItemEntity =>
 	ExtractionItemEntity.initialize({
 		confidence: item.confidence,
 		documentId: item.documentId,
+		extractionSectionId: item.extractionSectionId,
 		id: item.id,
 		knowledgeNodeId: item.knowledgeNodeId,
+		position: item.position,
 		rationale: item.rationale,
 		sourceExcerpt: item.sourceExcerpt,
 		sourcePageNumber: item.sourcePageNumber,
@@ -61,9 +65,17 @@ class ExtractionItemRepository {
 	): Promise<ExtractionItemEntity[]> {
 		const items = await this.extractionItemModel
 			.query(transaction)
+			.select("extraction_items.*")
+			.leftJoin(
+				"extraction_sections",
+				"extraction_items.extraction_section_id",
+				"extraction_sections.id",
+			)
 			.where({ documentId })
-			.orderBy("sourcePageNumber", "asc")
-			.orderBy("id", "asc")
+			.orderByRaw("extraction_sections.position asc nulls last")
+			.orderBy("extraction_items.position", "asc")
+			.orderBy("extraction_items.sourcePageNumber", "asc")
+			.orderBy("extraction_items.id", "asc")
 			.execute();
 
 		return items.map((item) => toEntity(item));
@@ -79,6 +91,29 @@ class ExtractionItemRepository {
 			.execute();
 
 		return item ? toEntity(item) : null;
+	}
+
+	public async insertManyPending(
+		{ documentId, items }: { documentId: number; items: NewExtractionItem[] },
+		transaction: Transaction,
+	): Promise<ExtractionItemEntity[]> {
+		if (items.length === EMPTY_LENGTH) {
+			return [];
+		}
+
+		const inserted = await this.extractionItemModel
+			.query(transaction)
+			.insert(
+				items.map((item) => ({
+					...item,
+					documentId,
+					status: ExtractionItemStatus.PENDING,
+				})),
+			)
+			.returning("*")
+			.execute();
+
+		return inserted.map((item) => toEntity(item));
 	}
 
 	public async linkKnowledgeNode(
@@ -153,6 +188,39 @@ class ExtractionItemRepository {
 		const updated = await this.extractionItemModel
 			.query(transaction)
 			.patch(payload)
+			.where({ documentId, id, status: ExtractionItemStatus.PENDING })
+			.returning("*")
+			.first();
+
+		return updated ? toEntity(updated) : null;
+	}
+
+	public async updatePendingReviewPlacement(
+		{
+			documentId,
+			extractionSectionId,
+			id,
+			position,
+			text,
+			title,
+		}: {
+			documentId: number;
+			extractionSectionId: number;
+			id: number;
+			position: number;
+			text: string;
+			title: string;
+		},
+		transaction: Transaction,
+	): Promise<ExtractionItemEntity | null> {
+		const updated = await this.extractionItemModel
+			.query(transaction)
+			.patch({
+				extractionSectionId,
+				position,
+				text,
+				title,
+			})
 			.where({ documentId, id, status: ExtractionItemStatus.PENDING })
 			.returning("*")
 			.first();

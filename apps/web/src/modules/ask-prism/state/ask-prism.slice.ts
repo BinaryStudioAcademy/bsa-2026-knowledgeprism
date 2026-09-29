@@ -11,6 +11,7 @@ type AskPrismErrorType = "connection" | "not_found" | null;
 
 type State = {
 	answer: null | string;
+	askedQueries: string[];
 	currentAskRequestId: null | string;
 	currentProjectId: null | number;
 	currentSuggestionsRequestId: null | string;
@@ -26,6 +27,7 @@ const EMPTY_COUNT = 0;
 
 const initialState: State = {
 	answer: null,
+	askedQueries: [],
 	currentAskRequestId: null,
 	currentProjectId: null,
 	currentSuggestionsRequestId: null,
@@ -43,6 +45,7 @@ const { actions, name, reducer } = createSlice({
 			state.currentAskRequestId = action.meta.requestId;
 			state.currentProjectId = Number(action.meta.arg.projectId);
 			state.answer = null;
+			state.askedQueries.push(action.meta.arg.query);
 			state.dataStatus = DataStatus.PENDING;
 			state.errorType = null;
 			state.query = action.meta.arg.query;
@@ -102,6 +105,7 @@ const { actions, name, reducer } = createSlice({
 	reducers: {
 		reset(state) {
 			state.answer = null;
+			state.askedQueries = [];
 			state.currentAskRequestId = null;
 			state.currentProjectId = null;
 			state.currentSuggestionsRequestId = null;
