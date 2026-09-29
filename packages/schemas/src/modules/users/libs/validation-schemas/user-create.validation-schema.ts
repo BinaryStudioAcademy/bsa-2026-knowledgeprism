@@ -24,7 +24,7 @@ const userCreate = z.object({
 			error: UserValidationMessage.FIRST_NAME_REQUIRE,
 		})
 		.max(UserValidationRule.NAME_MAXIMUM_LENGTH, {
-			error: UserValidationMessage.FIRST_NAME_REQUIRE,
+			error: UserValidationMessage.FIRST_NAME_MAXIMUM_LENGTH,
 		}),
 	lastName: z
 		.string()
@@ -33,7 +33,7 @@ const userCreate = z.object({
 			error: UserValidationMessage.LAST_NAME_REQUIRE,
 		})
 		.max(UserValidationRule.NAME_MAXIMUM_LENGTH, {
-			error: UserValidationMessage.LAST_NAME_REQUIRE,
+			error: UserValidationMessage.LAST_NAME_MAXIMUM_LENGTH,
 		}),
 	password,
 });
