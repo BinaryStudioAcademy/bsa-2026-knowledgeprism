@@ -16,6 +16,7 @@ import { type Transaction, UniqueViolationError } from "objection";
 
 import { HTTPError } from "~/infrastructure/http/http.js";
 import { type EncryptService } from "~/libs/services/encrypt/encrypt.service.js";
+import { compareManagedUsers } from "~/modules/users/libs/helpers/compare-managed-users.helper.js";
 import { normalizeEmail } from "~/modules/users/libs/helpers/helpers.js";
 import { UserEntity } from "~/modules/users/models/user.entity.js";
 import { type UserRepository } from "~/modules/users/repositories/user.repository.js";
@@ -83,6 +84,32 @@ class UserService implements Service {
 				status: HTTPCode.BAD_REQUEST,
 			});
 		}
+	}
+
+	private toListItem(item: UserEntity): UserGetAllItemResponseDto {
+		return {
+			...item.toObject(),
+			updatedAt: item.getUpdatedAt().toISOString(),
+		};
+	}
+
+	private toSortedListItems(items: UserEntity[]): UserGetAllItemResponseDto[] {
+		return items
+			.toSorted((left, right) => {
+				return compareManagedUsers(
+					{
+						isOrganisationAdmin: left.isOrganisationAdmin(),
+						updatedAt: left.getUpdatedAt().toISOString(),
+					},
+					{
+						isOrganisationAdmin: right.isOrganisationAdmin(),
+						updatedAt: right.getUpdatedAt().toISOString(),
+					},
+				);
+			})
+			.map((item) => {
+				return this.toListItem(item);
+			});
 	}
 
 	public create(): ReturnType<Service["create"]> {
@@ -182,7 +209,7 @@ class UserService implements Service {
 		const items = await this.userRepository.findAll();
 
 		return {
-			items: items.map((item) => item.toObject()),
+			items: this.toSortedListItems(items),
 		};
 	}
 
@@ -192,7 +219,7 @@ class UserService implements Service {
 		const items = await this.userRepository.findAllByOrgId(organisationId);
 
 		return {
-			items: items.map((item) => item.toObject()),
+			items: this.toSortedListItems(items),
 		};
 	}
 

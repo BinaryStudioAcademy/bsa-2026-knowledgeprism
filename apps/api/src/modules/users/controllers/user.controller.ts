@@ -75,6 +75,9 @@ import { type UserService } from "~/modules/users/services/user.service.js";
  *                  type: number
  *                role:
  *                  type: string
+ *          updatedAt:
+ *            type: string
+ *            format: date-time
  */
 class UserController extends BaseController {
 	private userService: UserService;

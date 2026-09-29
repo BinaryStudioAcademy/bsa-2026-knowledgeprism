@@ -7,6 +7,7 @@ type UserGetAllItemResponseDto = {
 	id: number;
 	lastName: null | string;
 	status: "active" | "inactive";
+	updatedAt: string;
 };
 
 export { type UserGetAllItemResponseDto };
