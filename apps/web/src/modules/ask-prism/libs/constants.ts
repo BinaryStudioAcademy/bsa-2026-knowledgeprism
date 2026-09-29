@@ -4,4 +4,6 @@ const DEFAULT_SUGGESTED_QUESTIONS = [
 	"What are the roles and permissions in a project?",
 ];
 
-export { DEFAULT_SUGGESTED_QUESTIONS };
+const SLICE_NAME = "askPrism";
+
+export { DEFAULT_SUGGESTED_QUESTIONS, SLICE_NAME };
