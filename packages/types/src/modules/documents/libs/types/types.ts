@@ -11,6 +11,7 @@ export { type ExtractionItemUpdateRequestDto } from "./extraction-item-update-re
 export { type ExtractionItemsResponseDto } from "./extraction-items-response-dto.type.js";
 export { type ExtractionItemsReviewRequestDto } from "./extraction-items-review-request-dto.type.js";
 export { type ExtractionItemsReviewResponseDto } from "./extraction-items-review-response-dto.type.js";
+export { type IntegrationChangeContentOverrideDto } from "./integration-change-content-override-dto.type.js";
 export { type IntegrationChangeResponseDto } from "./integration-change-response-dto.type.js";
 export { type IntegrationChangesApplyRequestDto } from "./integration-changes-apply-request-dto.type.js";
 export { type IntegrationChangesResponseDto } from "./integration-changes-response-dto.type.js";
