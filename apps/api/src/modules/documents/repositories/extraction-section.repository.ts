@@ -65,13 +65,13 @@ class ExtractionSectionRepository {
 			transaction,
 		);
 		const preserveIdSet = new Set(preserveSectionIds);
-		const deletionQuery = this.extractionSectionModel
+		let deletionQuery = this.extractionSectionModel
 			.query(transaction)
 			.delete()
 			.where({ documentId });
 
 		if (preserveSectionIds.length > EMPTY_LENGTH) {
-			void deletionQuery.whereNotIn("id", preserveSectionIds);
+			deletionQuery = deletionQuery.whereNotIn("id", preserveSectionIds);
 		}
 
 		await deletionQuery.execute();
