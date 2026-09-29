@@ -134,6 +134,7 @@ type UploadedDocumentItem = {
 	sizeLabel: string;
 	status: ValueOf<typeof DocumentProcessingStatus>;
 	uploadUrl?: string | undefined;
+	uploadUrlExpiresAt?: number | undefined;
 };
 
 type UploadSession = {
