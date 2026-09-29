@@ -1,3 +1,4 @@
+import { OrganisationRole } from "@knowledgeprism/constants";
 import { useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -23,7 +24,8 @@ const AppLayout: React.FC = () => {
 
 	const userResponse = useSelector((state: RootState) => state.auth.user);
 	const userDetails = userResponse?.user as undefined | UserWithRole;
-	const isOrgAdmin = userResponse?.user.organisationRole === "ADMIN";
+	const isOrgAdmin =
+		userResponse?.user.organisationRole === OrganisationRole.ADMIN;
 
 	const handleLogOut = useCallback((): void => {
 		void dispatch(authActions.logout());

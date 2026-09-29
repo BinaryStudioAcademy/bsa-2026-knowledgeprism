@@ -130,8 +130,12 @@ const formatRelativeTime = (dateString: string): string => {
 		(now.getTime() - date.getTime()) / (MS_PER_SECOND * SECONDS_PER_MINUTE),
 	);
 
+	if (diffMinutes < SINGLE_UNIT) {
+		return "Updated just now";
+	}
+
 	if (diffMinutes < MINUTES_PER_HOUR) {
-		return formatTimeUnit(Math.max(SINGLE_UNIT, diffMinutes), "minute");
+		return formatTimeUnit(diffMinutes, "minute");
 	}
 
 	const diffHours = Math.floor(diffMinutes / MINUTES_PER_HOUR);

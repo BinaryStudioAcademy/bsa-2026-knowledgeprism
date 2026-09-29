@@ -1,13 +1,11 @@
 import { createRequire } from "node:module";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 
 import {
 	FIRST_PDF_PAGE_NUMBER,
 	PDF_PAGE_NUMBER_STEP,
 	PdfJsResourceDirectory,
-	URL_PATH_SEPARATOR,
 } from "../constants/pdfjs-resource.constant.js";
 import { DocumentParseFailedError } from "../exceptions/document-parse-failed.exception.js";
 import { type ParsedPageBlock } from "../types/parsed-page-block.type.js";
@@ -19,8 +17,10 @@ const PDFJS_PACKAGE_DIRECTORY = path.dirname(
 	require.resolve("pdfjs-dist/package.json"),
 );
 
+// In Node, pdfjs reads these with fs.readFile(`${base}${filename}`), so they must be
+// plain directory paths with a trailing separator — a file:// URL string fails with ENOENT.
 const buildPdfJsResourceUrl = (resourceDirectoryName: string): string => {
-	return `${pathToFileURL(path.join(PDFJS_PACKAGE_DIRECTORY, resourceDirectoryName)).href}${URL_PATH_SEPARATOR}`;
+	return `${path.join(PDFJS_PACKAGE_DIRECTORY, resourceDirectoryName)}${path.sep}`;
 };
 
 const CMAP_URL = buildPdfJsResourceUrl(PdfJsResourceDirectory.CMAPS);
