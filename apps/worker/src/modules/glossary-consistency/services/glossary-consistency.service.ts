@@ -2,6 +2,7 @@ import { EmbeddingInputType } from "../../embeddings/libs/constants/embedding-in
 import { type EmbeddingCandidate } from "../../embeddings/libs/types/types.js";
 import { embed, search } from "../../embeddings/services/embedding.service.js";
 import { filterRelevantTerms } from "../libs/helpers/filter-relevant-terms.helper.js";
+import { findSpelledOutTerms } from "../libs/helpers/find-spelled-out-terms.helper.js";
 import { invokeConsistencyCheck } from "../libs/helpers/invoke-consistency-check.helper.js";
 import { mapConsistencyOutput } from "../libs/helpers/map-consistency-output.helper.js";
 import { splitIntoSentences } from "../libs/helpers/split-into-sentences.helper.js";
@@ -12,17 +13,11 @@ import {
 
 const EMPTY_COUNT = 0;
 
-// Each term's vector is computed once, on create/update, and cached by the caller —
-// building candidates here is a pure in-memory reshape, no embedding call per check.
 const toTermCandidates = (
 	terms: GlossaryConsistencyTerm[],
 ): EmbeddingCandidate<GlossaryConsistencyTerm>[] =>
 	terms.map((term) => ({ item: term, vector: term.embedding }));
 
-// One embedding of the whole content dilutes the signal: a single unrelated sentence
-// elsewhere in the text pulls the score down below any real term match. Embedding
-// sentence-by-sentence instead, and keeping the union of terms any sentence matched,
-// keeps each comparison specific.
 const findRelevantTerms = async (
 	content: string,
 	candidates: EmbeddingCandidate<GlossaryConsistencyTerm>[],
@@ -67,7 +62,13 @@ const checkGlossaryConsistency = async ({
 	}
 
 	const candidates = toTermCandidates(terms);
-	const relevantTerms = await findRelevantTerms(content, candidates);
+	const relevantTermsById = new Map(
+		[
+			...findSpelledOutTerms(content, terms),
+			...(await findRelevantTerms(content, candidates)),
+		].map((term) => [term.id, term]),
+	);
+	const relevantTerms = relevantTermsById.values().toArray();
 
 	if (relevantTerms.length === EMPTY_COUNT) {
 		return [];

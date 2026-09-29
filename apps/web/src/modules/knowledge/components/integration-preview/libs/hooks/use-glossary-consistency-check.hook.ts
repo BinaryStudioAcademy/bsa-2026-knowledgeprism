@@ -13,15 +13,8 @@ type GlossaryCheck = {
 
 const INITIAL_GLOSSARY_CHECK: GlossaryCheck = { content: "", matches: [] };
 
-// Integration Preview remounts a fresh component instance between the extraction-review
-// screen and the post-integration preview screen (different `key`s, same content) — without
-// this cache, the same content gets re-sent to check-consistency on every remount even though
-// nothing changed. Keyed by content, cleared per browser session; never exported/mutated
-// outside this module.
 const glossaryCheckCache = new Map<string, GlossaryConsistencyMatchDto[]>();
 
-// Scans the proposed content against the project's glossary (Add Knowledge's Integration
-// Preview surface, kp-419) and returns suggestions the reviewer can accept, keep, or ignore.
 const useGlossaryConsistencyCheck = ({
 	content,
 	onContentChange,
@@ -36,8 +29,6 @@ const useGlossaryConsistencyCheck = ({
 } => {
 	const dispatch = useAppDispatch();
 	const projectId = useCurrentProjectId();
-	// Keyed by the content it was computed for, so the matches shown are always for the
-	// currently displayed content, without needing a separate reset call in the effect.
 	const [glossaryCheck, setGlossaryCheck] = useState<GlossaryCheck>(
 		INITIAL_GLOSSARY_CHECK,
 	);
@@ -103,9 +94,6 @@ const useGlossaryConsistencyCheck = ({
 	const onAcceptGlossarySuggestion = useCallback(
 		(match: GlossaryConsistencyMatchDto): void => {
 			onContentChange(
-				// A function replacer, not a string one: match.suggestedText is arbitrary
-				// LLM output, and a string replacer would treat "$&", "$1", etc. in it as
-				// special replacement patterns instead of literal text.
 				content.replace(match.sourceExcerpt, () => match.suggestedText),
 			);
 			setGlossaryCheck((previousCheck) => ({

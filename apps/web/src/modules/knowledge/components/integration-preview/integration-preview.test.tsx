@@ -38,8 +38,6 @@ vi.mock("./libs/hooks/use-glossary-consistency-check.hook.js", () => ({
 
 const TEST_PROJECT_ID = "project-a";
 
-// IntegrationPreview's section details dispatch a glossary consistency check
-// (kp-419), which needs a Redux store and a resolvable current project id.
 const renderPreview = (ui: ReactElement): ReturnType<typeof render> =>
 	render(
 		<Provider store={store.instance}>

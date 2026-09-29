@@ -2,16 +2,12 @@ import { type Node as ProseMirrorNode } from "prosemirror-model";
 
 import { type TextHighlight, type TextHighlightRange } from "../types/types.js";
 
-// A non-text inline node (hard break, mention, etc.) counts as one character in a
-// textblock's flattened text, so a highlight's text never silently matches across it.
 const NON_TEXT_NODE_PLACEHOLDER = "\u{FFFC}";
 const NOT_FOUND_INDEX = -1;
 const EMPTY_LENGTH = 0;
 const CHAR_INDEX_STEP = 1;
 
 type TextBlockIndex = {
-	// charPositions[i] is the document position of character i of `text`.
-	// The extra trailing entry is the position right after the block's last character.
 	charPositions: number[];
 	text: string;
 };
@@ -94,8 +90,6 @@ const areRangesOverlapping = (
 	second: { from: number; to: number },
 ): boolean => first.from < second.to && second.from < first.to;
 
-// First occurrence per highlight, matching the first-occurrence replace that Accept does;
-// when two ranges overlap, the one found first wins.
 const findTextHighlightRanges = (
 	document_: ProseMirrorNode,
 	highlights: readonly TextHighlight[],

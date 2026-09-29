@@ -55,8 +55,6 @@ const textHighlightExtension = createExtension((extensionContext) => {
 				textHighlightPluginKey.getState(state)?.decorations,
 		},
 		state: {
-			// Takes oldState/newState as a rest tuple, not two more named params, to stay
-			// under the repo's max-params lint rule while still reaching newState (index 1).
 			apply: (transaction, value, ...editorStates) => {
 				const [, newState] = editorStates;
 				const metaHighlights = transaction.getMeta(textHighlightPluginKey) as

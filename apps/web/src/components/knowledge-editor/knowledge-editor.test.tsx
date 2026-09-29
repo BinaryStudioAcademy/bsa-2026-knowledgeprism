@@ -68,8 +68,6 @@ const createNoopMediaQueryList = (query: string): MediaQueryList =>
 		removeListener: noop,
 	}) as MediaQueryList;
 
-// jsdom has no matchMedia; @blocknote/mantine's MantineProvider needs it to resolve the
-// color scheme. Only this suite renders BlockNoteView, so the stub is scoped here.
 beforeAll(() => {
 	vi.stubGlobal("matchMedia", createNoopMediaQueryList);
 });

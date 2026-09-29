@@ -115,8 +115,6 @@ const HighlightTooltip = ({
 		[handleHighlightLeave],
 	);
 
-	// Highlight spans can't take focus inside BlockNote, so these mostly no-op; they give
-	// keyboard focus the same enter/leave path as the mouse handlers (jsx-a11y requires it).
 	const handleFocus = useCallback(
 		(event: ReactFocusEvent<HTMLDivElement>): void => {
 			handleHighlightEnter(event.target);
