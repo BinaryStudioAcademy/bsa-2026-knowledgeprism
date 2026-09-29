@@ -1,4 +1,7 @@
-import { UserValidationMessage } from "@knowledgeprism/constants";
+import {
+	ProjectMemberRole,
+	UserValidationMessage,
+} from "@knowledgeprism/constants";
 import React, {
 	useCallback,
 	useEffect,
@@ -16,18 +19,17 @@ import {
 import { Button, Icon, Input, Toggle } from "~/components/components.js";
 import { useFormController } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { type AssignableProjectRole } from "~/modules/users/libs/types/assignable-project-role.type.js";
 
 type AssignedProject = {
 	projectId: number;
-	role: ProjectRole;
+	role: AssignableProjectRole;
 };
 
 type AvailableProject = {
 	id: number;
 	name: string;
 };
-
-type ProjectRole = "EDITOR" | "VIEWER";
 
 type Properties<T extends FieldValues> = {
 	availableProjects?: AvailableProject[];
@@ -55,9 +57,11 @@ const ESCAPE_KEY = "Escape";
 const SPACE_KEY = " ";
 const TAB_KEY = "Tab";
 
+const DEFAULT_PROJECT_ROLE: AssignableProjectRole = ProjectMemberRole.VIEWER;
+
 const ROLE_OPTIONS = [
-	{ label: "Viewer", value: "VIEWER" },
-	{ label: "Editor", value: "EDITOR" },
+	{ label: "Viewer", value: ProjectMemberRole.VIEWER },
+	{ label: "Editor", value: ProjectMemberRole.EDITOR },
 ] as const;
 
 const UserForm = <T extends FieldValues>({
@@ -90,7 +94,7 @@ const UserForm = <T extends FieldValues>({
 		(projectId: number) => {
 			assignedProjectsField.onChange([
 				...assignedProjects,
-				{ projectId, role: "VIEWER" },
+				{ projectId, role: DEFAULT_PROJECT_ROLE },
 			]);
 		},
 		[assignedProjects, assignedProjectsField],
@@ -110,7 +114,7 @@ const UserForm = <T extends FieldValues>({
 			assignedProjectsField.onChange(
 				assignedProjects.map((p) =>
 					p.projectId === projectId
-						? { ...p, role: newRole as ProjectRole }
+						? { ...p, role: newRole as AssignableProjectRole }
 						: p,
 				),
 			);
@@ -188,7 +192,7 @@ const UserForm = <T extends FieldValues>({
 								onRoleChange={handleRoleChange}
 								onUnassign={handleProjectUnassign}
 								project={project}
-								role={assignment?.role ?? "VIEWER"}
+								role={assignment?.role ?? DEFAULT_PROJECT_ROLE}
 							/>
 						);
 					})}
@@ -316,13 +320,13 @@ type RoleOptionItemProperties = {
 	isFocused: boolean;
 	isSelected: boolean;
 	label: string;
-	onSelect: (newRole: ProjectRole) => void;
-	value: ProjectRole;
+	onSelect: (newRole: AssignableProjectRole) => void;
+	value: AssignableProjectRole;
 };
 
 type RoleSelectProperties = {
-	onChange: (newRole: ProjectRole) => void;
-	value: ProjectRole;
+	onChange: (newRole: AssignableProjectRole) => void;
+	value: AssignableProjectRole;
 };
 
 const RoleOptionItem = ({
@@ -399,7 +403,7 @@ const RoleSelect = ({
 	}, [handleClose]);
 
 	const handleSelectOption = useCallback(
-		(newRole: ProjectRole): void => {
+		(newRole: AssignableProjectRole): void => {
 			onChange(newRole);
 			handleDismiss();
 		},
@@ -534,7 +538,7 @@ type ProjectListItemProperties = {
 	onRoleChange: (projectId: number, newRole: string) => void;
 	onUnassign: (projectId: number) => void;
 	project: AvailableProject;
-	role: ProjectRole;
+	role: AssignableProjectRole;
 };
 
 const ProjectListItem = ({

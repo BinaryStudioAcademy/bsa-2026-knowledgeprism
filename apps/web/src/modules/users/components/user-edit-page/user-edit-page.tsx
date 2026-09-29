@@ -17,15 +17,14 @@ import {
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 import { actions as projectsActions } from "~/modules/projects/projects.js";
+import { type AssignableProjectRole } from "~/modules/users/libs/types/assignable-project-role.type.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 import { UserForm } from "../user-form/user-form.js";
 import { userUpdateFrontendValidationSchema } from "./libs/validation-schemas.js";
 
-type ProjectRole = "EDITOR" | "VIEWER";
-
 type UserEditFormValues = {
-	assignedProjects: { projectId: number; role: ProjectRole }[];
+	assignedProjects: { projectId: number; role: AssignableProjectRole }[];
 	confirmPassword?: string;
 	email: string;
 	firstName: string;
@@ -75,7 +74,7 @@ const UserEditPage: React.FC = () => {
 			reset({
 				assignedProjects: selectedUser.assignedProjects as {
 					projectId: number;
-					role: ProjectRole;
+					role: AssignableProjectRole;
 				}[],
 				confirmPassword: "",
 				email: selectedUser.email,
