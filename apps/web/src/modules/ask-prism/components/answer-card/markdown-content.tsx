@@ -202,6 +202,7 @@ const tryReadLink = (text: string, index: number): LinkToken | null => {
 
 const renderInlineMarkdown = (text: string): ReactNode[] => {
 	const elements: ReactNode[] = [];
+	let elementKey = 0;
 	let index = 0;
 	let textBuffer = "";
 
@@ -221,11 +222,12 @@ const renderInlineMarkdown = (text: string): ReactNode[] => {
 			elements.push(
 				<code
 					className="rounded border border-border/60 bg-secondary px-1.5 py-0.5 font-mono text-[12px] text-accent"
-					key={`code-${String(index)}`}
+					key={`inline-${String(elementKey)}`}
 				>
 					{code.content}
 				</code>,
 			);
+			elementKey += INDEX_OFFSET_ONE;
 			index = code.nextIndex;
 			continue;
 		}
@@ -236,11 +238,12 @@ const renderInlineMarkdown = (text: string): ReactNode[] => {
 			elements.push(
 				<strong
 					className="font-semibold text-text"
-					key={`bold-${String(index)}`}
+					key={`inline-${String(elementKey)}`}
 				>
 					{renderInlineMarkdown(bold.content)}
 				</strong>,
 			);
+			elementKey += INDEX_OFFSET_ONE;
 			index = bold.nextIndex;
 			continue;
 		}
@@ -249,10 +252,11 @@ const renderInlineMarkdown = (text: string): ReactNode[] => {
 		if (italic) {
 			flushBuffer();
 			elements.push(
-				<em className="italic" key={`italic-${String(index)}`}>
+				<em className="italic" key={`inline-${String(elementKey)}`}>
 					{renderInlineMarkdown(italic.content)}
 				</em>,
 			);
+			elementKey += INDEX_OFFSET_ONE;
 			index = italic.nextIndex;
 			continue;
 		}
@@ -263,11 +267,12 @@ const renderInlineMarkdown = (text: string): ReactNode[] => {
 			elements.push(
 				<del
 					className="line-through opacity-75"
-					key={`strike-${String(index)}`}
+					key={`inline-${String(elementKey)}`}
 				>
 					{renderInlineMarkdown(strike.content)}
 				</del>,
 			);
+			elementKey += INDEX_OFFSET_ONE;
 			index = strike.nextIndex;
 			continue;
 		}
@@ -279,13 +284,14 @@ const renderInlineMarkdown = (text: string): ReactNode[] => {
 				<a
 					className="font-medium text-accent underline hover:text-accent-hover"
 					href={link.url}
-					key={`link-${String(index)}`}
+					key={`inline-${String(elementKey)}`}
 					rel="noopener noreferrer"
 					target="_blank"
 				>
 					{link.label}
 				</a>,
 			);
+			elementKey += INDEX_OFFSET_ONE;
 			index = link.nextIndex;
 			continue;
 		}
@@ -532,7 +538,9 @@ const MarkdownContent = ({ content }: Properties): JSX.Element => {
 								key={blockIndex}
 							>
 								{block.items.map((item, itemIndex) => (
-									<li key={itemIndex}>{renderInlineMarkdown(item)}</li>
+									<li key={`ordered-${String(itemIndex)}-${item}`}>
+										{renderInlineMarkdown(item)}
+									</li>
 								))}
 							</ol>
 						);
@@ -564,7 +572,9 @@ const MarkdownContent = ({ content }: Properties): JSX.Element => {
 								key={blockIndex}
 							>
 								{block.items.map((item, itemIndex) => (
-									<li key={itemIndex}>{renderInlineMarkdown(item)}</li>
+									<li key={`unordered-${String(itemIndex)}-${item}`}>
+										{renderInlineMarkdown(item)}
+									</li>
 								))}
 							</ul>
 						);
