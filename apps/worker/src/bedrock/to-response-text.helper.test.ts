@@ -24,7 +24,26 @@ void describe("toResponseText", () => {
 				toResponseText(
 					toEnvelope(BedrockStopReason.MAX_TOKENS, ["The answer is"]),
 				),
-			/truncated at the max_tokens limit/u,
+			/truncated/u,
+		);
+	});
+
+	void it("throws when the response was cut off by the context window", () => {
+		assert.throws(
+			() =>
+				toResponseText(
+					toEnvelope(BedrockStopReason.MODEL_CONTEXT_WINDOW_EXCEEDED, [
+						"The answer is",
+					]),
+				),
+			/truncated/u,
+		);
+	});
+
+	void it("throws when the model refused to answer", () => {
+		assert.throws(
+			() => toResponseText(toEnvelope(BedrockStopReason.REFUSAL, [])),
+			/declined to answer/u,
 		);
 	});
 
