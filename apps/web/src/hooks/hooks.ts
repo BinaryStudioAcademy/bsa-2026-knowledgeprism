@@ -7,6 +7,7 @@ export {
 	useOptionalCurrentProjectId,
 } from "./use-current-project-id/use-current-project-id.hook.js";
 export { useModal } from "./use-modal/use-modal.hook.js";
+export { usePageTitle } from "./use-page-title/use-page-title.hook.js";
 export { useCallback, useEffect, useRef, useState } from "react";
 export { useController as useFormController } from "react-hook-form";
 export type { Control, FieldPath, FieldValues } from "react-hook-form";
