@@ -101,7 +101,9 @@ const KbEntryDetail = ({
 				/>
 			) : (
 				<>
-					<h1 className="mb-2.5 font-serif text-h1 text-text">{entry.title}</h1>
+					<h1 className="mb-2.5 font-serif text-h1 wrap-break-word  text-text">
+						{entry.title}
+					</h1>
 					<div className="mb-7 font-mono text-xs text-text-faint">
 						<span>
 							Last updated:{" "}
