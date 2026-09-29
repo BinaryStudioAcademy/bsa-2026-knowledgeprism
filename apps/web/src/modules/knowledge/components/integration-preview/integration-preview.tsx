@@ -10,7 +10,9 @@ import {
 	type ChangeEvent,
 	type JSX,
 	type MouseEvent,
+	type ReactNode,
 	useCallback,
+	useMemo,
 	useState,
 } from "react";
 
@@ -23,6 +25,7 @@ import {
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
+import { type TextHighlight } from "~/components/knowledge-editor/libs/types/types.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import {
 	toConflictResolutions,
@@ -36,10 +39,15 @@ import {
 	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
 
+import { GlossarySuggestionActions } from "./libs/components/glossary-suggestion-actions.js";
 import { GlossarySuggestions } from "./libs/components/glossary-suggestions.js";
 import { MergeScreen } from "./libs/components/merge-screen.js";
 import { ProposedStructureSuccessModal } from "./libs/components/proposed-structure-success-modal.js";
 import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
+import {
+	toGlossaryHighlightId,
+	toGlossaryHighlights,
+} from "./libs/helpers/helpers.js";
 import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consistency-check.hook.js";
 
 const EMPTY_LENGTH = 0;
@@ -72,8 +80,13 @@ type ProposedNodeType = ProposedPage["type"] | ProposedSection["type"];
 
 type SectionContentEditorProperties = {
 	content: string;
+	highlights?: TextHighlight[];
 	isEditable?: boolean;
 	onContentChange?: (content: string) => void;
+	renderHighlightTooltip?: (
+		highlightId: string,
+		actions: { replace: (replacement: string) => void },
+	) => ReactNode;
 };
 
 type SectionDetailsProperties = {
@@ -443,8 +456,10 @@ const updatePageInPages = ({
 
 const SectionContentEditor = ({
 	content,
+	highlights = [],
 	isEditable = true,
 	onContentChange,
+	renderHighlightTooltip,
 }: SectionContentEditorProperties): JSX.Element => {
 	const [initialContent] = useState<PartialBlock[]>(() =>
 		textToBlocks(content),
@@ -459,10 +474,48 @@ const SectionContentEditor = ({
 
 	return (
 		<KnowledgeEditor
+			highlights={highlights}
 			initialContent={initialContent}
 			isEditable={isEditable}
 			onChange={handleChange}
+			{...(renderHighlightTooltip === undefined
+				? {}
+				: { renderHighlightTooltip })}
 		/>
+	);
+};
+
+type GlossaryHighlightTooltipContentProperties = {
+	match: GlossaryConsistencyMatchDto;
+	onAccept: (match: GlossaryConsistencyMatchDto) => void;
+	onEdit: (match: GlossaryConsistencyMatchDto) => void;
+	onKeep: (match: GlossaryConsistencyMatchDto) => void;
+};
+
+const GlossaryHighlightTooltipContent = ({
+	match,
+	onAccept,
+	onEdit,
+	onKeep,
+}: GlossaryHighlightTooltipContentProperties): JSX.Element => {
+	return (
+		<div className="flex flex-col gap-1.5">
+			<Paragraph className="text-xs text-text" size={ParagraphSize.BODY_SMALL}>
+				Use <span className="font-medium">{match.canonicalName}</span>
+			</Paragraph>
+			<Paragraph
+				className="text-2xs text-text-faint"
+				size={ParagraphSize.BODY_SMALL}
+			>
+				{match.explanation}
+			</Paragraph>
+			<GlossarySuggestionActions
+				match={match}
+				onAccept={onAccept}
+				onEdit={onEdit}
+				onKeep={onKeep}
+			/>
+		</div>
 	);
 };
 
@@ -607,6 +660,42 @@ const SectionDetails = ({
 			onEnterEdit();
 		},
 		[handleKeepGlossarySuggestion, onEnterEdit],
+	);
+
+	const glossaryHighlights = useMemo(
+		() => toGlossaryHighlights(glossaryMatches),
+		[glossaryMatches],
+	);
+	const glossaryMatchesById = useMemo(
+		() =>
+			new Map(
+				glossaryMatches.map((match) => [toGlossaryHighlightId(match), match]),
+			),
+		[glossaryMatches],
+	);
+	const renderGlossaryHighlightTooltip = useCallback(
+		(highlightId: string): ReactNode => {
+			const match = glossaryMatchesById.get(highlightId);
+
+			if (!match) {
+				return null;
+			}
+
+			return (
+				<GlossaryHighlightTooltipContent
+					match={match}
+					onAccept={handleAcceptGlossarySuggestion}
+					onEdit={handleEditGlossarySuggestion}
+					onKeep={handleKeepGlossarySuggestion}
+				/>
+			);
+		},
+		[
+			glossaryMatchesById,
+			handleAcceptGlossarySuggestion,
+			handleEditGlossarySuggestion,
+			handleKeepGlossarySuggestion,
+		],
 	);
 
 	if (!selectedNode) {
@@ -757,13 +846,16 @@ const SectionDetails = ({
 						<div className="min-h-48 tablet:min-h-80 flex-1 rounded-md border border-border-subtle bg-bg p-3.5 tablet:p-5">
 							<SectionContentEditor
 								content={activeSection.content}
+								highlights={glossaryHighlights}
 								isEditable={false}
 								key={readOnlyEditorKey}
+								renderHighlightTooltip={renderGlossaryHighlightTooltip}
 							/>
 						</div>
 					)}
 
 					<GlossarySuggestions
+						canAccept={!isEditMode}
 						isChecking={isCheckingGlossary}
 						matches={glossaryMatches}
 						onAccept={handleAcceptGlossarySuggestion}

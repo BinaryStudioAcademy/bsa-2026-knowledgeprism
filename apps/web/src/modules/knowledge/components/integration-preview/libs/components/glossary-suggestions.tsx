@@ -1,18 +1,20 @@
 import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
-import { type JSX, useCallback } from "react";
+import { type JSX } from "react";
 
 import {
-	Button,
 	Icon,
 	Loader,
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
 
+import { GlossarySuggestionActions } from "./glossary-suggestion-actions.js";
+
 const GLOSSARY_ICON_SIZE = 14;
 const EMPTY_LENGTH = 0;
 
 type GlossarySuggestionRowProperties = {
+	canAccept: boolean;
 	match: GlossaryConsistencyMatchDto;
 	onAccept: (match: GlossaryConsistencyMatchDto) => void;
 	onEdit: (match: GlossaryConsistencyMatchDto) => void;
@@ -20,23 +22,12 @@ type GlossarySuggestionRowProperties = {
 };
 
 const GlossarySuggestionRow = ({
+	canAccept,
 	match,
 	onAccept,
 	onEdit,
 	onKeep,
 }: GlossarySuggestionRowProperties): JSX.Element => {
-	const handleAccept = useCallback(() => {
-		onAccept(match);
-	}, [match, onAccept]);
-
-	const handleEdit = useCallback(() => {
-		onEdit(match);
-	}, [match, onEdit]);
-
-	const handleKeep = useCallback(() => {
-		onKeep(match);
-	}, [match, onKeep]);
-
 	return (
 		<div className="flex flex-col gap-1.5 rounded-md bg-surface p-2.5 tablet:flex-row tablet:items-center tablet:justify-between">
 			<div className="min-w-0 flex-1">
@@ -55,34 +46,19 @@ const GlossarySuggestionRow = ({
 				</Paragraph>
 			</div>
 
-			<div className="flex shrink-0 gap-2">
-				<Button
-					className="px-3 py-1 text-xs"
-					onClick={handleKeep}
-					variant="ghost"
-				>
-					Keep
-				</Button>
-				<Button
-					className="px-3 py-1 text-xs"
-					onClick={handleEdit}
-					variant="ghost"
-				>
-					Edit
-				</Button>
-				<Button
-					className="px-3 py-1 text-xs"
-					onClick={handleAccept}
-					variant="secondary"
-				>
-					Accept
-				</Button>
-			</div>
+			<GlossarySuggestionActions
+				canAccept={canAccept}
+				match={match}
+				onAccept={onAccept}
+				onEdit={onEdit}
+				onKeep={onKeep}
+			/>
 		</div>
 	);
 };
 
 type GlossarySuggestionsProperties = {
+	canAccept?: boolean;
 	isChecking: boolean;
 	matches: GlossaryConsistencyMatchDto[];
 	onAccept: (match: GlossaryConsistencyMatchDto) => void;
@@ -91,6 +67,7 @@ type GlossarySuggestionsProperties = {
 };
 
 const GlossarySuggestions = ({
+	canAccept = true,
 	isChecking,
 	matches,
 	onAccept,
@@ -119,6 +96,7 @@ const GlossarySuggestions = ({
 
 			{matches.map((match) => (
 				<GlossarySuggestionRow
+					canAccept={canAccept}
 					key={`${match.matchedTermId.toString()}-${match.sourceExcerpt}`}
 					match={match}
 					onAccept={onAccept}

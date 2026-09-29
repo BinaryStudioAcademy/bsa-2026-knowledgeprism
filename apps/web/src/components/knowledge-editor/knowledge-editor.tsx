@@ -9,8 +9,12 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
-import { useCreateBlockNote } from "@blocknote/react";
-import { useCallback, useMemo } from "react";
+import { useCreateBlockNote, useExtension } from "@blocknote/react";
+import { type ReactNode, useCallback, useEffect, useMemo } from "react";
+
+import { HighlightTooltip } from "./libs/components/components.js";
+import { textHighlightExtension } from "./libs/extensions/extensions.js";
+import { type TextHighlight } from "./libs/types/types.js";
 
 type EditorBlock = Block<BlockSchemaFromSpecs<BlockSpecs>>;
 
@@ -20,9 +24,14 @@ type EditorTheme = "dark" | "light";
 
 type Properties = {
 	disabledBlocks?: EditorBlockType[];
+	highlights?: TextHighlight[];
 	initialContent?: PartialBlock[];
 	isEditable?: boolean;
 	onChange?: (blocks: EditorBlock[]) => void;
+	renderHighlightTooltip?: (
+		highlightId: string,
+		actions: { replace: (replacement: string) => void },
+	) => ReactNode;
 	theme?: EditorTheme;
 };
 
@@ -52,9 +61,11 @@ const getEditorSchema = (blockSpecs: BlockSpecs) => {
 
 const KnowledgeEditor: React.FC<Properties> = ({
 	disabledBlocks,
+	highlights,
 	initialContent,
 	isEditable = true,
 	onChange,
+	renderHighlightTooltip,
 	theme = "light",
 }: Properties) => {
 	const disabledBlocksKey = disabledBlocks?.join(",") ?? "";
@@ -68,10 +79,15 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	}, [disabledBlocksKey]);
 	const editor = useCreateBlockNote(
 		initialContent === undefined
-			? { schema: editorSchema }
-			: { initialContent, schema: editorSchema },
+			? { extensions: [textHighlightExtension()], schema: editorSchema }
+			: {
+					extensions: [textHighlightExtension()],
+					initialContent,
+					schema: editorSchema,
+				},
 		[initialContent, editorSchema],
 	);
+	const highlightExtension = useExtension(textHighlightExtension, { editor });
 	const TypedBlockNoteView = BlockNoteView as unknown as React.FC<{
 		editable: boolean;
 		editor: typeof editor;
@@ -81,15 +97,38 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	const handleEditorChange = useCallback((): void => {
 		onChange?.(editor.document);
 	}, [editor, onChange]);
+	const handleReplace = useCallback(
+		(highlightId: string, replacement: string): void => {
+			highlightExtension.replaceHighlight(highlightId, replacement);
+		},
+		[highlightExtension],
+	);
+
+	useEffect(() => {
+		highlightExtension.setHighlights(highlights ?? []);
+	}, [highlightExtension, highlights]);
+
+	const editorView = (
+		<TypedBlockNoteView
+			editable={isEditable}
+			editor={editor}
+			onChange={handleEditorChange}
+			theme={theme}
+		/>
+	);
 
 	return (
 		<div className="w-full">
-			<TypedBlockNoteView
-				editable={isEditable}
-				editor={editor}
-				onChange={handleEditorChange}
-				theme={theme}
-			/>
+			{renderHighlightTooltip ? (
+				<HighlightTooltip
+					onReplace={handleReplace}
+					renderTooltip={renderHighlightTooltip}
+				>
+					{editorView}
+				</HighlightTooltip>
+			) : (
+				editorView
+			)}
 		</div>
 	);
 };
