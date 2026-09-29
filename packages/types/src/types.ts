@@ -30,7 +30,6 @@ export {
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
 	type ExtractionItemsReviewSectionDto,
-	type ExtractionItemsReviewSectionItemDto,
 	type ExtractionItemUpdateRequestDto,
 	type ExtractionSectionResponseDto,
 	type IntegrationChangeResponseDto,

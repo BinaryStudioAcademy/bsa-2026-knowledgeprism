@@ -15,7 +15,6 @@ export {
 export {
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewSectionDto,
-	type ExtractionItemsReviewSectionItemDto,
 } from "./extraction-items-review-request-dto.type.js";
 export { type ExtractionItemsReviewResponseDto } from "./extraction-items-review-response-dto.type.js";
 export { type IntegrationChangeResponseDto } from "./integration-change-response-dto.type.js";

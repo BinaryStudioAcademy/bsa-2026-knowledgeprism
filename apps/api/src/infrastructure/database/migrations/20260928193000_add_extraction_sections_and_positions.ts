@@ -64,7 +64,10 @@ async function up(knex: Knex): Promise<void> {
 			.nullable()
 			.onDelete("SET NULL")
 			.index();
-		table.integer(ColumnName.POSITION).notNullable().defaultTo(DEFAULT_POSITION);
+		table
+			.integer(ColumnName.POSITION)
+			.notNullable()
+			.defaultTo(DEFAULT_POSITION);
 	});
 }
 

@@ -877,8 +877,7 @@ const { actions, name, reducer } = createSlice({
 				extractionSections,
 				status,
 				switchRequestId,
-			} =
-				action.payload;
+			} = action.payload;
 
 			if (
 				!isCurrentPipelineSession(state, action.payload) ||

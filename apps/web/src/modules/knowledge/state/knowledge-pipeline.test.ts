@@ -774,7 +774,11 @@ describe("knowledge pipeline lifecycle", () => {
 		);
 		const request = createRequest(DOCUMENT_A_ID);
 		store.instance.dispatch(
-			fetchExtractionItems.fulfilled({ items: [], sections: [] }, "extraction", request),
+			fetchExtractionItems.fulfilled(
+				{ items: [], sections: [] },
+				"extraction",
+				request,
+			),
 		);
 		expect(store.instance.getState().knowledge.extractionItemsDocumentId).toBe(
 			DOCUMENT_A_ID,

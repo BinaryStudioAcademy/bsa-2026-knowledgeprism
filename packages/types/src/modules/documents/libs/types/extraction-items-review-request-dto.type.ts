@@ -18,5 +18,4 @@ type ExtractionItemsReviewSectionItemDto = {
 export {
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewSectionDto,
-	type ExtractionItemsReviewSectionItemDto,
 };

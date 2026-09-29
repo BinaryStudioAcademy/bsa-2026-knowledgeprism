@@ -70,13 +70,16 @@ describe("IntegrationPreview extraction review", () => {
 	});
 
 	it("keeps empty extraction sections returned by the API", () => {
-		const structure = mapExtractionItemsToProposedStructure([], [
-			{
-				id: 41,
-				position: 0,
-				title: "Empty reviewed page",
-			},
-		]);
+		const structure = mapExtractionItemsToProposedStructure(
+			[],
+			[
+				{
+					id: 41,
+					position: 0,
+					title: "Empty reviewed page",
+				},
+			],
+		);
 
 		expect(structure).toEqual([
 			expect.objectContaining({
