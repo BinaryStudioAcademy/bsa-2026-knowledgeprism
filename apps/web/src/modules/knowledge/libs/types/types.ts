@@ -55,6 +55,7 @@ type KnowledgeState = {
 	activeDocumentId: null | number;
 	activeDocumentStatus: "IDLE" | ValueOf<typeof DocumentStatus>;
 	activeDocumentSwitchRequestId: null | string;
+	contentSearchRequestId: null | string;
 	entryRequestId: null | string;
 	extractionItems: ExtractionItemResponseDto[];
 	extractionItemsDocumentId: null | number;
@@ -65,8 +66,10 @@ type KnowledgeState = {
 	isAddingKnowledge: boolean;
 	isEntryLoading: boolean;
 	isIntegrationPreviewLoading: boolean;
+	isSearchingContent: boolean;
 	isTreeLoading: boolean;
 	knowledgeErrorMessage: null | string;
+	matchedContentEntryIds: number[];
 	pendingReviewRequestId: null | string;
 	pipelineErrors: Record<number, string>;
 	pipelineProjectId: null | string;

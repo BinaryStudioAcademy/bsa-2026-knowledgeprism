@@ -27,6 +27,7 @@ import {
 	pollDocumentStatus,
 	processDocument,
 	retryDocumentProcessing,
+	searchKnowledgeEntries,
 	submitExtractionReview,
 	submitManualText,
 	switchActiveDocument,
@@ -50,6 +51,7 @@ const initialState: State = {
 	activeDocumentId: null,
 	activeDocumentStatus: IDLE_DOCUMENT_STATUS,
 	activeDocumentSwitchRequestId: null,
+	contentSearchRequestId: null,
 	entryRequestId: null,
 	extractionItems: [],
 	extractionItemsDocumentId: null,
@@ -60,8 +62,10 @@ const initialState: State = {
 	isAddingKnowledge: false,
 	isEntryLoading: false,
 	isIntegrationPreviewLoading: false,
+	isSearchingContent: false,
 	isTreeLoading: false,
 	knowledgeErrorMessage: null,
+	matchedContentEntryIds: [],
 	pendingReviewRequestId: null,
 	pipelineErrors: {},
 	pipelineProjectId: null,
@@ -424,6 +428,9 @@ const { actions, name, reducer } = createSlice({
 			state.tree = [];
 			state.treeRequestId = action.meta.requestId;
 			state.selectedEntry = null;
+			state.matchedContentEntryIds = [];
+			state.contentSearchRequestId = null;
+			state.isSearchingContent = false;
 		});
 		builder.addCase(fetchKnowledgeTree.fulfilled, (state, action) => {
 			if (state.treeRequestId !== action.meta.requestId) {
@@ -830,6 +837,25 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? "Failed to switch review document",
 			);
 		});
+		builder.addCase(searchKnowledgeEntries.pending, (state, action) => {
+			state.contentSearchRequestId = action.meta.requestId;
+			state.isSearchingContent = true;
+		});
+		builder.addCase(searchKnowledgeEntries.fulfilled, (state, action) => {
+			if (state.contentSearchRequestId !== action.meta.requestId) {
+				return;
+			}
+			state.isSearchingContent = false;
+			state.matchedContentEntryIds = action.payload.items.map(
+				(item) => item.id,
+			);
+		});
+		builder.addCase(searchKnowledgeEntries.rejected, (state, action) => {
+			if (state.contentSearchRequestId !== action.meta.requestId) {
+				return;
+			}
+			state.isSearchingContent = false;
+		});
 	},
 	initialState,
 	name: "knowledge",
@@ -883,6 +909,11 @@ const { actions, name, reducer } = createSlice({
 				status === DocumentStatus.WAITING_FOR_VALIDATION ? documentId : null;
 			clearDocumentPipelineError(state, documentId);
 			reconcileActiveDocument(state);
+		},
+		clearContentSearch(state) {
+			state.contentSearchRequestId = null;
+			state.isSearchingContent = false;
+			state.matchedContentEntryIds = [];
 		},
 		clearIntegrationPreview(state) {
 			state.integrationPreviewDocumentId = null;
