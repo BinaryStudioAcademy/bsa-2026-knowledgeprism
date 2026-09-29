@@ -24,6 +24,7 @@ const INDEX_OFFSET = 1;
 const LAST_INDEX_OFFSET = 1;
 const FALLBACK_DEFER_EXECUTION_MS = 0;
 const FOCUS_DELAY_MS = 10;
+const DEFAULT_DESTINATION_BRANCH_NAME = "Main";
 const POLL_DOCUMENT_STATUS_INTERVAL_MS = 3000;
 
 const KNOWLEDGE_TREE_ITEM_CONFIG = {
@@ -41,6 +42,7 @@ const KnowledgeNotificationMessage = {
 } as const;
 
 export {
+	DEFAULT_DESTINATION_BRANCH_NAME,
 	DocumentValidationMessage,
 	EMPTY_LENGTH,
 	FALLBACK_DEFER_EXECUTION_MS,
