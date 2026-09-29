@@ -89,6 +89,7 @@ class UserService implements Service {
 	private toListItem(item: UserEntity): UserGetAllItemResponseDto {
 		return {
 			...item.toObject(),
+			organisationRole: item.getOrganisationRole(),
 			updatedAt: item.getUpdatedAt().toISOString(),
 		};
 	}

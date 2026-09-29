@@ -6,6 +6,7 @@ type UserGetAllItemResponseDto = {
 	firstName: null | string;
 	id: number;
 	lastName: null | string;
+	organisationRole: "ADMIN" | "USER" | null;
 	status: "active" | "inactive";
 	updatedAt: string;
 };

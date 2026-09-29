@@ -22,6 +22,7 @@ import { UsernameSearchInput } from "~/modules/users/components/user-name-search
 import { getUserManagementCopy } from "~/modules/users/libs/constants/user-management-copy.constant.js";
 import { UsernameSearchCopy } from "~/modules/users/libs/constants/user-name-search.constant.js";
 import { isMatchingUsernameQuery } from "~/modules/users/libs/helpers/is-matching-username-query.helper.js";
+import { selectManagedUsers } from "~/modules/users/libs/helpers/select-managed-users.helper.js";
 import { getUserManagementProjectId } from "~/modules/users/libs/helpers/user-management-project.helper.js";
 import { actions as userActions } from "~/modules/users/users.js";
 import { fetchProjects } from "~/modules/workspaces/state/workspaces.slice.js";
@@ -35,6 +36,7 @@ const UserManagementHubPage: React.FC = () => {
 	const selectedProjectId = getUserManagementProjectId(search);
 	const pageCopy = getUserManagementCopy(selectedProjectId !== null);
 	const [nameQuery, setNameQuery] = useState("");
+	const [hasRequestedProjects, setHasRequestedProjects] = useState(false);
 	const isOrganisationUserManagement = selectedProjectId === null;
 
 	const currentUser = useAppSelector(({ auth }) => auth.user);
@@ -52,16 +54,32 @@ const UserManagementHubPage: React.FC = () => {
 	}, [dispatch]);
 
 	useEffect(() => {
-		if (projects.length === EMPTY_LENGTH) {
-			void dispatch(fetchProjects(workspacesApi));
+		if (projects.length > EMPTY_LENGTH) {
+			return;
 		}
+
+		setHasRequestedProjects(true);
+		void dispatch(fetchProjects(workspacesApi));
 	}, [dispatch, projects.length]);
 
+	const isProjectCatalogKnown =
+		projects.length > EMPTY_LENGTH ||
+		(hasRequestedProjects && !isProjectsLoading && !projectsError);
+	const managedProjectIds = isProjectCatalogKnown
+		? new Set(projects.map((project) => project.id))
+		: null;
+	const scopedUsers = selectManagedUsers(users, {
+		currentUserId: currentUser?.user.id ?? null,
+		isCurrentUserOrganisationAdmin:
+			currentUser?.user.organisationRole === OrganisationRole.ADMIN,
+		projectIds: managedProjectIds,
+		selectedProjectId,
+	});
 	const visibleUsers = isOrganisationUserManagement
-		? users.filter((user) => {
+		? scopedUsers.filter((user) => {
 				return isMatchingUsernameQuery(user, nameQuery);
 			})
-		: users;
+		: scopedUsers;
 	const hasNameQuery = nameQuery.trim().length > EMPTY_LENGTH;
 	const hasEmptyNameSearch =
 		isOrganisationUserManagement &&
@@ -89,13 +107,7 @@ const UserManagementHubPage: React.FC = () => {
 
 	const renderProjectsCount = useCallback(
 		(user: (typeof users)[number]): React.ReactElement => {
-			const isCurrentUserAdmin =
-				currentUser?.user.organisationRole === OrganisationRole.ADMIN;
-			const isUserAdmin =
-				user.id === currentUser?.user.id
-					? isCurrentUserAdmin
-					: (user as { organisationRole?: string }).organisationRole ===
-						OrganisationRole.ADMIN;
+			const isUserAdmin = user.organisationRole === OrganisationRole.ADMIN;
 
 			if (!isUserAdmin) {
 				return <span>{String(user.assignedProjects.length)} Projects</span>;
@@ -111,7 +123,7 @@ const UserManagementHubPage: React.FC = () => {
 
 			return <span>{String(projects.length)} Projects</span>;
 		},
-		[currentUser, isProjectsLoading, projects.length, projectsError],
+		[isProjectsLoading, projects.length, projectsError],
 	);
 
 	return (

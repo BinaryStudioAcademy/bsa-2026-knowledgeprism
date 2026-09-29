@@ -153,6 +153,10 @@ class UserEntity implements Entity {
 		return this.id;
 	}
 
+	public getOrganisationRole(): null | OrganisationRoleValue {
+		return this.organisationRole;
+	}
+
 	public getUpdatedAt(): Date {
 		return this.updatedAt;
 	}

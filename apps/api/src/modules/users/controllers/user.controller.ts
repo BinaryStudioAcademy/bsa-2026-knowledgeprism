@@ -66,6 +66,10 @@ import { type UserService } from "~/modules/users/services/user.service.js";
  *          organisationId:
  *            type: number
  *            nullable: true
+ *          organisationRole:
+ *            type: string
+ *            nullable: true
+ *            enum: [ADMIN, USER]
  *          assignedProjects:
  *            type: array
  *            items:
