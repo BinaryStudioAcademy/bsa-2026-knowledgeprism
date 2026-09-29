@@ -23,6 +23,8 @@ const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
 const SINGLE_UNIT = 1;
 
+const NAVIGATION_ARROW_SIZE = 16;
+
 const FIRST_ARRAY_INDEX = 0;
 const SECOND_ARRAY_INDEX = 1;
 const INITIALS_SLICE_COUNT = 2;
@@ -317,9 +319,15 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 				</div>
 			</div>
 
-			<div className="mt-5 border-t border-(--color-border-subtle) pt-4">
-				<span className="text-(length:--text-sm) text-text-muted">
+			<div className="mt-5 flex items-center justify-between gap-3 border-t border-(--color-border-subtle) pt-4">
+				<span className="min-w-0 truncate text-(length:--text-sm) text-text-muted">
 					{formatRelativeTime(updatedAt)}
+				</span>
+				<span
+					aria-hidden="true"
+					className="shrink-0 text-text-muted transition-colors group-hover:text-accent"
+				>
+					<Icon name="arrow-right-long" size={NAVIGATION_ARROW_SIZE} />
 				</span>
 			</div>
 		</div>
