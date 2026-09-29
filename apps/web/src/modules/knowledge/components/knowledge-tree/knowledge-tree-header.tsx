@@ -34,7 +34,7 @@ const MobileSidebarToggle = ({
 		onClick={onOpenSidebar}
 		variant="icon"
 	>
-		<Icon aria-hidden="true" name="filter" size={16} />
+		<Icon aria-hidden="true" name="hamburger" size={16} />
 	</Button>
 );
 
