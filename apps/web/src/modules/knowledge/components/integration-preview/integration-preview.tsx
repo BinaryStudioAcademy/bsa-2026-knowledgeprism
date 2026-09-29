@@ -19,6 +19,7 @@ import {
 	Heading,
 	Icon,
 	KnowledgeEditor,
+	Modal,
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
@@ -577,6 +578,21 @@ const SectionDetails = ({
 	onTitleChange,
 	showRejectItem = false,
 }: SectionDetailsProperties): JSX.Element => {
+	const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+
+	const handleOpenRejectModal = useCallback((): void => {
+		setIsRejectModalOpen(true);
+	}, []);
+
+	const handleCloseRejectModal = useCallback((): void => {
+		setIsRejectModalOpen(false);
+	}, []);
+
+	const handleConfirmReject = useCallback((): void => {
+		setIsRejectModalOpen(false);
+		onRejectItem?.();
+	}, [onRejectItem]);
+
 	const isParentSelected = activeNodeType === "parent";
 	const selectedNode = isParentSelected ? activePage : activeSection;
 
@@ -615,7 +631,7 @@ const SectionDetails = ({
 					{showRejectItem && !isParentSelected && onRejectItem && (
 						<Button
 							disabled={isInteractionDisabled}
-							onClick={onRejectItem}
+							onClick={handleOpenRejectModal}
 							variant="secondary"
 						>
 							Reject item
@@ -744,6 +760,29 @@ const SectionDetails = ({
 					</div>
 				</div>
 			)}
+
+			<Modal
+				hasCloseButton={true}
+				isOpen={isRejectModalOpen}
+				onClose={handleCloseRejectModal}
+				size="small"
+				title="Reject Knowledge item"
+			>
+				<div className="flex flex-col gap-4">
+					<Paragraph size={ParagraphSize.BODY_SMALL}>
+						Are you sure you want to reject this item? This action cannot be
+						undone.
+					</Paragraph>
+					<div className="flex justify-end gap-2 pt-2">
+						<Button onClick={handleCloseRejectModal} variant="secondary">
+							Cancel
+						</Button>
+						<Button onClick={handleConfirmReject} variant="primary">
+							Reject
+						</Button>
+					</div>
+				</div>
+			</Modal>
 		</div>
 	);
 };
@@ -837,6 +876,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	const [isMergeScreenOpen, setIsMergeScreenOpen] = useState<boolean>(false);
 	const [activeConflicts, setActiveConflicts] = useState<FieldConflict[]>([]);
 	const [isApplying, setIsApplying] = useState<boolean>(false);
+
 	const setApplyingState = useCallback(
 		(isApplyingValue: boolean): void => {
 			setIsApplying(isApplyingValue);
