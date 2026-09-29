@@ -4,6 +4,9 @@ import {
 } from "../types/types.js";
 
 const LAST_INDEX_OFFSET = 1;
+const REGEX_SPECIAL_CHARACTERS = /[$()*+.?[\\\]^{|}]/gu;
+const NOT_A_LETTER_OR_DIGIT_BEFORE = String.raw`(?<![\p{L}\p{N}])`;
+const NOT_A_LETTER_OR_DIGIT_AFTER = String.raw`(?![\p{L}\p{N}])`;
 
 type RawConsistencyMatch = {
 	explanation: string;
@@ -16,9 +19,6 @@ const isNonEmptyString = (value: unknown): value is string => {
 	return typeof value === "string" && value.trim() !== "";
 };
 
-// The prompt asks for a JSON number, but a model occasionally serializes it as a numeric
-// string instead ("13" rather than 13) — accept both rather than rejecting an otherwise
-// valid match over a formatting quirk.
 const isValidTermId = (value: unknown): value is number | string => {
 	if (typeof value === "number") {
 		return Number.isSafeInteger(value);
@@ -50,10 +50,6 @@ const isRawConsistencyMatch = (
 	);
 };
 
-// Despite the prompt requiring ONLY a JSON array, Claude occasionally second-guesses its first
-// answer inline ("Wait, let me reconsider...") before restating the real one, which makes the
-// full response invalid JSON. The model's actual answer is always the last array in the text, so
-// fall back to parsing that instead of rejecting an otherwise usable response.
 const parseTrailingJsonArray = (text: string): unknown => {
 	const arrayMatches = text.match(/\[[^[\]]*]/g);
 	const lastArray = arrayMatches?.at(-LAST_INDEX_OFFSET);
@@ -87,6 +83,14 @@ const parseRawValue = (raw: unknown): unknown => {
 	}
 };
 
+const hasCanonicalName = (excerpt: string, name: string): boolean =>
+	new RegExp(
+		NOT_A_LETTER_OR_DIGIT_BEFORE +
+			name.replaceAll(REGEX_SPECIAL_CHARACTERS, String.raw`\$&`) +
+			NOT_A_LETTER_OR_DIGIT_AFTER,
+		"u",
+	).test(excerpt);
+
 const toMatch = (
 	raw: RawConsistencyMatch,
 	content: string,
@@ -94,7 +98,11 @@ const toMatch = (
 ): GlossaryConsistencyMatch | null => {
 	const term = termsById.get(toTermId(raw.termId));
 
-	if (!term || !content.includes(raw.sourceExcerpt)) {
+	if (
+		!term ||
+		!content.includes(raw.sourceExcerpt) ||
+		hasCanonicalName(raw.sourceExcerpt, term.name)
+	) {
 		return null;
 	}
 

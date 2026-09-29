@@ -37,9 +37,6 @@ const toContentJson = (text: string): KnowledgeNodeContentDto => [
 	{ content: text, type: PARAGRAPH_BLOCK_TYPE },
 ];
 
-// The reviewer may have edited the proposed content in Integration Preview (manually, or by
-// accepting a glossary suggestion) before approving — use that edited text as the incoming
-// content/title instead of the original, unedited extraction when an override is present.
 const resolveIncoming = (
 	change: IntegrationChangeEntity,
 	override: IntegrationChangeContentOverrideDto | undefined,

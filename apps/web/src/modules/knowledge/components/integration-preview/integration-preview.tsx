@@ -651,9 +651,6 @@ const SectionDetails = ({
 		onContentChange,
 	});
 
-	// "Edit" on a suggestion means the reviewer wants to fix it themselves instead of
-	// taking the AI's replacement: dismiss it like Keep, then drop into edit mode so the
-	// content becomes directly editable.
 	const handleEditGlossarySuggestion = useCallback(
 		(match: GlossaryConsistencyMatchDto): void => {
 			handleKeepGlossarySuggestion(match);
@@ -718,9 +715,6 @@ const SectionDetails = ({
 			: `${activePage.title} > ${currentTitle}`;
 	const selectedTitleLabel = getNodeTitleLabel(selectedNode.type, "Node");
 	const editorKey = `${selectedNode.id}-${isEditMode ? "edit" : "view"}`;
-	// The read-only editor only ever needs to remount when the underlying content changes
-	// from outside it (e.g. a glossary suggestion is accepted) — unlike editorKey above, it
-	// must not depend on isEditMode/typing, or every keystroke in edit mode would remount it.
 	const readOnlyEditorKey = `${editorKey}-${activeSection?.content ?? ""}`;
 	const handleTitleChange = isParentSelected
 		? onPageTitleChange

@@ -18,8 +18,6 @@ const SLA_TERM: GlossaryConsistencyTerm = {
 	name: "SLA",
 };
 
-// Measured with cohere.embed-multilingual-v3, both sides embedded as SEARCH_DOCUMENT
-// (see glossary-consistency-threshold.constant.ts for the full table).
 const MeasuredScore = {
 	API_PARAPHRASE: 0.635,
 	SLA_EXACT_PHRASE: 0.719,
@@ -120,6 +118,46 @@ void describe("mapConsistencyOutput", () => {
 		]);
 
 		assert.deepEqual(mapConsistencyOutput(raw, content, [API_TERM]), []);
+	});
+
+	void it("drops a suggestion for text that already uses the canonical name", () => {
+		const raw = JSON.stringify([
+			{
+				explanation: "Backwards suggestion.",
+				sourceExcerpt: "call the API",
+				suggestedText: "call the application programming interface",
+				termId: 1,
+			},
+		]);
+
+		assert.deepEqual(
+			mapConsistencyOutput(raw, "Partners call the API daily.", [API_TERM]),
+			[],
+		);
+	});
+
+	void it("keeps a suggestion when the name only appears in a different case", () => {
+		const raw = JSON.stringify([
+			{
+				explanation: "Lowercase variant of the canonical name.",
+				sourceExcerpt: "the api",
+				suggestedText: "the API",
+				termId: 1,
+			},
+		]);
+
+		assert.deepEqual(
+			mapConsistencyOutput(raw, "Partners call the api daily.", [API_TERM]),
+			[
+				{
+					canonicalName: "API",
+					explanation: "Lowercase variant of the canonical name.",
+					matchedTermId: 1,
+					sourceExcerpt: "the api",
+					suggestedText: "the API",
+				},
+			],
+		);
 	});
 
 	void it("returns an empty array for an empty response", () => {
