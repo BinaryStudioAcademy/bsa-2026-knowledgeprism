@@ -1,5 +1,7 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
+
+import "./knowledge-editor.css";
 import {
 	type Block,
 	BlockNoteSchema,
@@ -83,7 +85,7 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	}, [editor, onChange]);
 
 	return (
-		<div className="w-full">
+		<div className="knowledge-editor w-full">
 			<TypedBlockNoteView
 				editable={isEditable}
 				editor={editor}
