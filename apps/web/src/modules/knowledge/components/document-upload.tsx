@@ -110,6 +110,7 @@ const DocumentUpload = ({
 					projectId,
 					uploadSessionId,
 					uploadUrl: targetItem.uploadUrl,
+					uploadUrlExpiresAt: targetItem.uploadUrlExpiresAt,
 				}),
 			);
 			uploadTasksReference.current.set(id, uploadTask);

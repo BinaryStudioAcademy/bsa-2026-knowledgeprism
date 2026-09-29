@@ -10,9 +10,11 @@ import { DocumentController } from "./controllers/document.controller.js";
 import { ProcessingSweep } from "./libs/constants/processing-sweep.constant.js";
 import { DocumentModel } from "./models/document.model.js";
 import { ExtractionItemModel } from "./models/extraction-item.model.js";
+import { ExtractionSectionModel } from "./models/extraction-section.model.js";
 import { IntegrationChangeModel } from "./models/integration-change.model.js";
 import { DocumentRepository } from "./repositories/document.repository.js";
 import { ExtractionItemRepository } from "./repositories/extraction-item.repository.js";
+import { ExtractionSectionRepository } from "./repositories/extraction-section.repository.js";
 import { IntegrationChangeRepository } from "./repositories/integration-change.repository.js";
 import { DocumentJobScheduler } from "./services/document-job-scheduler.js";
 import { DocumentProcessor } from "./services/document-processor.js";
@@ -24,6 +26,9 @@ import { IntegrationApplier } from "./services/integration-applier.js";
 const documentRepository = new DocumentRepository(DocumentModel);
 const extractionItemRepository = new ExtractionItemRepository(
 	ExtractionItemModel,
+);
+const extractionSectionRepository = new ExtractionSectionRepository(
+	ExtractionSectionModel,
 );
 const integrationChangeRepository = new IntegrationChangeRepository(
 	IntegrationChangeModel,
@@ -64,6 +69,7 @@ const documentReviewService = new DocumentReviewService({
 	documentJobScheduler,
 	documentRepository,
 	extractionItemRepository,
+	extractionSectionRepository,
 	integrationApplier,
 	integrationChangeRepository,
 	projectService,

@@ -457,6 +457,7 @@ const AddKnowledgeModal = ({
 						role="tabpanel"
 					>
 						<ManualTextInput
+							isActive={activeTab === AddKnowledgeTab.TEXT}
 							isLoading={isManualTextSubmitting}
 							onCancel={handleClose}
 							onSubmit={handleManualTextSubmit}

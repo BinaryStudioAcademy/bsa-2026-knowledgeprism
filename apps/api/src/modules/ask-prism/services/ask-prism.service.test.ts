@@ -13,6 +13,7 @@ import {
 } from "~/modules/projects/services/project.service.js";
 
 import { DEFAULT_SUGGESTED_QUESTIONS } from "../libs/constants/default-suggested-questions.constant.js";
+import { RAG_FALLBACK_MESSAGE } from "../libs/constants/rag-fallback-message.constant.js";
 import { AskPrismService, MAX_SIMILAR_NODES } from "./ask-prism.service.js";
 
 const COMPONENT_FRACTION_EIGHT = 0.8;
@@ -37,6 +38,7 @@ const POSITION_ONE = 0;
 const POSITION_THREE = 2;
 const POSITION_TWO = 1;
 const PROJECT_ID = 1;
+const QUESTION = "How does authentication work?";
 const USER_ID = 1;
 
 const CONTEXT: ProjectAccessContext = {
@@ -252,5 +254,49 @@ void describe("AskPrismService search limits", () => {
 			matches.map((match) => match.item),
 			["Topic 1", "Topic 2", "Topic 3"],
 		);
+	});
+});
+
+void describe("AskPrismService.generateAnswer", () => {
+	void it("returns the not-found message when the project has no knowledge", async () => {
+		const { service } = createTestSetup([]);
+
+		const response = await service.generateAnswer(
+			PROJECT_ID,
+			QUESTION,
+			CONTEXT,
+		);
+
+		assert.deepStrictEqual(response, {
+			answer: RAG_FALLBACK_MESSAGE,
+			sources: [],
+		});
+	});
+
+	void it("returns the not-found message when every node is empty", async () => {
+		const emptyPageNode = KnowledgeNodeEntity.initialize({
+			contentJson: [],
+			createdAt: new Date(),
+			id: NODE_ID_ONE,
+			parentId: null,
+			position: POSITION_ONE,
+			projectId: PROJECT_ID,
+			title: "empty-document.pdf",
+			type: KnowledgeNodeType.PAGE,
+			updatedAt: new Date(),
+		});
+
+		const { service } = createTestSetup([emptyPageNode]);
+
+		const response = await service.generateAnswer(
+			PROJECT_ID,
+			QUESTION,
+			CONTEXT,
+		);
+
+		assert.deepStrictEqual(response, {
+			answer: RAG_FALLBACK_MESSAGE,
+			sources: [],
+		});
 	});
 });
