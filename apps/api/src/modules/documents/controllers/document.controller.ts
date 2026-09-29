@@ -140,19 +140,6 @@ class DocumentController extends BaseController {
 		});
 		this.addRoute({
 			handler: (options) =>
-				this.retryManualText(
-					options as APIHandlerOptions<{
-						params: ManualTextRouteParametersDto;
-					}>,
-				),
-			method: "POST",
-			path: DocumentsApiPath.RETRY,
-			validation: {
-				params: manualTextRouteParametersValidationSchema,
-			},
-		});
-		this.addRoute({
-			handler: (options) =>
 				this.cancelManualText(
 					options as APIHandlerOptions<{
 						params: ManualTextRouteParametersDto;
@@ -406,43 +393,6 @@ class DocumentController extends BaseController {
 		return {
 			id: parseIdentifier(options.params.id),
 			projectId: options.params.projectId,
-		};
-	}
-
-	/**
-	 * @swagger
-	 * /projects/{projectId}/manual-text/{id}/retry:
-	 *    post:
-	 *      description: Retry a failed manual text processing attempt
-	 *      parameters:
-	 *        - in: path
-	 *          name: projectId
-	 *          required: true
-	 *          schema:
-	 *            type: string
-	 *        - in: path
-	 *          name: id
-	 *          required: true
-	 *          schema:
-	 *            type: integer
-	 *      responses:
-	 *        200:
-	 *          description: Processing restarted
-	 */
-	private async retryManualText(
-		options: APIHandlerOptions<{
-			params: ManualTextRouteParametersDto;
-		}>,
-	): Promise<APIHandlerResponse> {
-		const { id, projectId } = this.getRouteContext(options);
-
-		return {
-			payload: await this.documentService.retryManualText({
-				context: this.getAuthenticatedSessionContext(options),
-				id,
-				projectId,
-			}),
-			status: HTTPCode.OK,
 		};
 	}
 

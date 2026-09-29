@@ -612,32 +612,6 @@ class DocumentService {
 		return this.toManualTextResponse(document);
 	}
 
-	public async retryManualText({
-		context,
-		id,
-		projectId,
-	}: {
-		context: ProjectAccessContext;
-		id: number;
-		projectId: string;
-	}): Promise<ManualTextResponseDto> {
-		const numericProjectId = Number(projectId);
-
-		await this.projectService.assertCanWriteKnowledge(
-			numericProjectId,
-			context,
-		);
-
-		const document = await this.findOwnedManualDocument({
-			id,
-			projectId: numericProjectId,
-		});
-
-		const retriedDocument = await this.restartFailedProcessing(document);
-
-		return this.toManualTextResponse(retriedDocument);
-	}
-
 	public async retryProcessing({
 		context,
 		documentId,
