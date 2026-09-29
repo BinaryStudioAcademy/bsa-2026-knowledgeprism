@@ -37,6 +37,8 @@ const createExtractionItem = (): ExtractionItemResponseDto => ({
 const createDeferred = (): PromiseWithResolvers<boolean> =>
 	Promise.withResolvers<boolean>();
 
+const FAILED_PAGE_NUMBER = 4;
+
 describe("IntegrationPreview extraction review", () => {
 	afterEach(() => {
 		vi.useRealTimers();
@@ -117,6 +119,30 @@ describe("IntegrationPreview extraction review", () => {
 			await deferred.promise;
 		});
 		expect(handleApplyingChange).toHaveBeenLastCalledWith(false);
+	});
+
+	it("warns about pages whose extraction failed", () => {
+		render(
+			<IntegrationPreview
+				failedPageNumbers={[FAILED_PAGE_NUMBER]}
+				onAddMore={vi.fn()}
+				onApproveExtraction={vi.fn()}
+				onClose={vi.fn()}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					createExtractionItem(),
+				])}
+				variant="extraction-validation"
+			/>,
+		);
+
+		expect(
+			screen.getByText("Some pages could not be processed"),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(
+				"Page 4 could not be processed, so items from it may be missing.",
+			),
+		).toBeInTheDocument();
 	});
 
 	it("shows a document-scoped extraction review error", () => {

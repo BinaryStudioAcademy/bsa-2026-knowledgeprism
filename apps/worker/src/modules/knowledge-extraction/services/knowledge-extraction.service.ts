@@ -5,6 +5,7 @@ import { isBlankPageContent } from "../libs/helpers/is-blank-page-content.helper
 import { mapExtractionOutput } from "../libs/helpers/map-extraction-output.helper.js";
 import { splitIntoChunks } from "../libs/helpers/split-into-chunks.helper.js";
 import { type ExtractionBlock } from "../libs/types/extraction-block.type.js";
+import { type ExtractionResult } from "../libs/types/extraction-result.type.js";
 import { type KnowledgeItem } from "../libs/types/knowledge-item.type.js";
 
 const EMPTY_ITEM_COUNT = 0;
@@ -17,8 +18,11 @@ const toChunks = (blocks: ExtractionBlock[]): ExtractionBlock[] => {
 	});
 };
 
-const extract = async (blocks: ExtractionBlock[]): Promise<KnowledgeItem[]> => {
+const extract = async (
+	blocks: ExtractionBlock[],
+): Promise<ExtractionResult> => {
 	const items: KnowledgeItem[] = [];
+	const failedPageNumbers = new Set<number>();
 	let attemptedChunkCount = 0;
 	let failedChunkCount = 0;
 
@@ -43,6 +47,7 @@ const extract = async (blocks: ExtractionBlock[]): Promise<KnowledgeItem[]> => {
 			items.push(...chunkItems);
 		} catch (error) {
 			failedChunkCount++;
+			failedPageNumbers.add(chunk.pageNumber);
 			logger.error(
 				`Failed to extract knowledge from a chunk of page ${chunk.pageNumber.toString()}`,
 				{ error },
@@ -57,7 +62,12 @@ const extract = async (blocks: ExtractionBlock[]): Promise<KnowledgeItem[]> => {
 		throw new Error("Knowledge extraction failed for every page.");
 	}
 
-	return items;
+	return {
+		failedPageNumbers: [...failedPageNumbers].toSorted(
+			(left, right) => left - right,
+		),
+		items,
+	};
 };
 
 export { extract };

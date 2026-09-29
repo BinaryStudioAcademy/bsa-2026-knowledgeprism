@@ -30,6 +30,7 @@ type FieldConflict = {
 
 type IntegrationPreviewProperties = {
 	errorMessage?: null | string;
+	failedPageNumbers?: number[];
 	onAddMore: () => void;
 	onApplyingChange?: (isApplying: boolean) => void;
 	onApprove?: (
@@ -57,6 +58,7 @@ type KnowledgeState = {
 	activeDocumentSwitchRequestId: null | string;
 	contentSearchRequestId: null | string;
 	entryRequestId: null | string;
+	extractionFailedPageNumbers: number[];
 	extractionItems: ExtractionItemResponseDto[];
 	extractionItemsDocumentId: null | number;
 	integrationPreviewDocumentId: null | number;

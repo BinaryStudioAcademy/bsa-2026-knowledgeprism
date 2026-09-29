@@ -11,6 +11,7 @@ type DocumentDetails = {
 	contentHash: null | string;
 	createdAt: Date;
 	errorMessage: null | string;
+	failedPageNumbers: number[];
 	id: number;
 	mimeType: string;
 	name: string;
@@ -28,6 +29,7 @@ type DocumentEntityPayload = {
 	contentHash: null | string;
 	createdAt: Date | null;
 	errorMessage: null | string;
+	failedPageNumbers: number[];
 	id: null | number;
 	mimeType: string;
 	name: string;
@@ -48,6 +50,8 @@ class DocumentEntity implements Entity {
 	private createdAt: Date | null;
 
 	private errorMessage: null | string;
+
+	private failedPageNumbers: number[];
 
 	private id: null | number;
 
@@ -74,6 +78,7 @@ class DocumentEntity implements Entity {
 		contentHash,
 		createdAt,
 		errorMessage,
+		failedPageNumbers,
 		id,
 		mimeType,
 		name,
@@ -89,6 +94,7 @@ class DocumentEntity implements Entity {
 		this.contentHash = contentHash;
 		this.createdAt = createdAt;
 		this.errorMessage = errorMessage;
+		this.failedPageNumbers = failedPageNumbers;
 		this.id = id;
 		this.mimeType = mimeType;
 		this.name = name;
@@ -106,6 +112,7 @@ class DocumentEntity implements Entity {
 		contentHash,
 		createdAt,
 		errorMessage,
+		failedPageNumbers,
 		id,
 		mimeType,
 		name,
@@ -121,6 +128,7 @@ class DocumentEntity implements Entity {
 		contentHash: null | string;
 		createdAt: Date;
 		errorMessage: null | string;
+		failedPageNumbers: number[];
 		id: number;
 		mimeType: string;
 		name: string;
@@ -137,6 +145,7 @@ class DocumentEntity implements Entity {
 			contentHash,
 			createdAt,
 			errorMessage,
+			failedPageNumbers,
 			id,
 			mimeType,
 			name,
@@ -180,6 +189,7 @@ class DocumentEntity implements Entity {
 			contentHash,
 			createdAt: null,
 			errorMessage,
+			failedPageNumbers: [],
 			id: null,
 			mimeType,
 			name,
@@ -227,6 +237,7 @@ class DocumentEntity implements Entity {
 			contentHash: this.contentHash,
 			createdAt: this.createdAt as Date,
 			errorMessage: this.errorMessage,
+			failedPageNumbers: this.failedPageNumbers,
 			id: this.id as number,
 			mimeType: this.mimeType,
 			name: this.name,

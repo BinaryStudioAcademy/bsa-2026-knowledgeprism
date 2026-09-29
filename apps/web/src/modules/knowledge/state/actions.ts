@@ -902,6 +902,7 @@ const switchActiveDocument = createAppAsyncThunk<
 			return { isLatest: true, isSwitched: false };
 		}
 
+		let extractionFailedPageNumbers: number[] = [];
 		let extractionItems: ExtractionItemResponseDto[] = [];
 
 		if (statusResponse.status === DocumentStatus.WAITING_FOR_VALIDATION) {
@@ -910,6 +911,7 @@ const switchActiveDocument = createAppAsyncThunk<
 				projectId,
 				signal,
 			});
+			extractionFailedPageNumbers = extractionResponse.failedPageNumbers;
 			extractionItems = extractionResponse.items;
 		}
 
@@ -920,6 +922,7 @@ const switchActiveDocument = createAppAsyncThunk<
 		dispatch(
 			sliceSyncActions.activatePreparedReviewDocument({
 				...request,
+				extractionFailedPageNumbers,
 				extractionItems,
 				status: statusResponse.status,
 				switchRequestId: requestId,

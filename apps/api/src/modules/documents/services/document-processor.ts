@@ -70,7 +70,7 @@ class DocumentProcessor {
 		}
 
 		const pages = await this.loadPages(document);
-		const items = await extract(pages);
+		const { failedPageNumbers, items } = await extract(pages);
 
 		return await this.database.transaction(async (transaction) => {
 			const completedDocument =
@@ -78,6 +78,7 @@ class DocumentProcessor {
 					{
 						errorMessage: null,
 						expectedStatus: DocumentStatus.PROCESSING,
+						failedPageNumbers,
 						id: documentId,
 						processingAttempt: attempt,
 						status: DocumentStatus.WAITING_FOR_VALIDATION,
