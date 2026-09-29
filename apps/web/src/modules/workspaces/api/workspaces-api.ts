@@ -1,191 +1,152 @@
 import {
-	type ProjectItem,
-	type ProjectRole,
-	type RecentDocumentItem,
-} from "../types/types.js";
+	APIPath,
+	KnowledgeApiPath,
+	ProjectMemberRole,
+	ProjectsApiPath,
+} from "@knowledgeprism/constants";
+import {
+	type KnowledgeRecentResponseDto,
+	type ProjectCreateRequestDto,
+	type ProjectGetAllItemResponseDto,
+	type ProjectGetAllResponseDto,
+	type ProjectResponseDto,
+	type ProjectUpdateRequestDto,
+} from "@knowledgeprism/types";
 
-type CreateProjectPayload = {
-	description?: string;
-	name: string;
+import { BaseHTTPApi } from "~/api/api.js";
+import { ContentType } from "~/lib/enums/enums.js";
+import { type HTTP } from "~/lib/http/http.js";
+import { type Storage } from "~/lib/storage/storage.js";
+
+import { type ProjectItem, type RecentDocumentItem } from "../types/types.js";
+
+type Constructor = {
+	baseUrl: string;
+	http: HTTP;
+	storage: Storage;
 };
 
-type ProjectListItemDto = {
-	description: null | string;
-	id: number;
-	lastActivityAt: string;
-	name: string;
-	role: ProjectRole;
-};
+type CreateProjectPayload = ProjectCreateRequestDto;
 
-type ProjectResponseDto = {
-	description: null | string;
-	id: number;
-	name: string;
-	updatedAt: string;
-};
-
-type ProjectsResponse =
-	| ProjectListItemDto[]
-	| { items?: ProjectListItemDto[]; projects?: ProjectListItemDto[] };
-
-type RecentDocumentsResponse = {
-	items: RecentDocumentItem[];
-};
-
-type UpdateProjectPayload = {
-	description?: string;
+type UpdateProjectPayload = ProjectUpdateRequestDto & {
 	id: string;
-	name: string;
 };
 
-class WorkspacesApi {
-	#baseUrl: string;
+// This client spans /projects and /knowledge, so each endpoint carries its own APIPath.
+const NO_SHARED_PATH = "";
 
-	public constructor({ baseUrl }: { baseUrl: string }) {
-		this.#baseUrl = baseUrl;
-	}
+const mapProjectListItemToItem = (
+	dto: ProjectGetAllItemResponseDto,
+): ProjectItem => ({
+	description: dto.description,
+	id: String(dto.id),
+	lastActivityAt: dto.lastActivityAt,
+	name: dto.name,
+	role: dto.role,
+	updatedAt: dto.lastActivityAt,
+});
 
-	private async parseError(response: Response): Promise<Error> {
-		try {
-			const body = (await response.json()) as { message?: string };
-			return new Error(body.message ?? response.statusText);
-		} catch {
-			return new Error(response.statusText);
-		}
+// Only organisation admins can create or edit projects, so the caller is always an admin.
+const mapAdminProjectResponseToItem = (
+	dto: ProjectResponseDto,
+): ProjectItem => ({
+	description: dto.description,
+	id: String(dto.id),
+	lastActivityAt: dto.updatedAt,
+	name: dto.name,
+	role: ProjectMemberRole.ADMIN,
+	updatedAt: dto.updatedAt,
+});
+
+class WorkspacesApi extends BaseHTTPApi {
+	public constructor({ baseUrl, http, storage }: Constructor) {
+		super({ baseUrl, http, path: NO_SHARED_PATH, storage });
 	}
 
 	public async createProject(
 		payload: CreateProjectPayload,
 	): Promise<ProjectItem> {
-		const response = await fetch(`${this.#baseUrl}/projects`, {
-			body: JSON.stringify(payload),
-			headers: { "Content-Type": "application/json" },
-			method: "POST",
-		});
+		const response = await this.load(
+			this.getFullEndpoint(APIPath.PROJECTS, ProjectsApiPath.ROOT, {}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify(payload),
+			},
+		);
 
-		if (!response.ok) {
-			throw await this.parseError(response);
-		}
-
-		const dto = (await response.json()) as ProjectResponseDto;
-		return mapProjectResponseToItem(dto, { role: "ADMIN" });
+		return mapAdminProjectResponseToItem(
+			await response.json<ProjectResponseDto>(),
+		);
 	}
 
-	public async deleteProject(id: string): Promise<boolean> {
-		try {
-			const response = await fetch(`${this.#baseUrl}/projects/${id}`, {
+	public async deleteProject(id: string): Promise<void> {
+		await this.load(
+			this.getFullEndpoint(APIPath.PROJECTS, ProjectsApiPath.ID, { id }),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
 				method: "DELETE",
-			});
-
-			return response.ok;
-		} catch {
-			return false;
-		}
+				// Fastify rejects a JSON content type with an empty body.
+				payload: JSON.stringify({}),
+			},
+		);
 	}
 
 	public async getProjects(): Promise<ProjectItem[]> {
-		const response = await fetch(`${this.#baseUrl}/projects`, {
-			headers: {
-				"Content-Type": "application/json",
+		const response = await this.load(
+			this.getFullEndpoint(APIPath.PROJECTS, ProjectsApiPath.ROOT, {}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "GET",
 			},
-		});
+		);
 
-		if (!response.ok) {
-			throw await this.parseError(response);
-		}
+		const { items } = await response.json<ProjectGetAllResponseDto>();
 
-		const data = (await response.json()) as ProjectsResponse;
-
-		if (Array.isArray(data)) {
-			return data.map((item) => mapProjectListItemToItem(item));
-		}
-
-		if ("items" in data && Array.isArray(data.items)) {
-			return data.items.map((item) => mapProjectListItemToItem(item));
-		}
-
-		if ("projects" in data && Array.isArray(data.projects)) {
-			return data.projects.map((item) => mapProjectListItemToItem(item));
-		}
-
-		return [];
+		return items.map((item) => mapProjectListItemToItem(item));
 	}
 
 	public async getRecentDocuments(): Promise<RecentDocumentItem[]> {
-		try {
-			const response = await fetch(`${this.#baseUrl}/knowledge/recent`, {
-				headers: {
-					"Content-Type": "application/json",
-				},
-			});
+		const response = await this.load(
+			this.getFullEndpoint(APIPath.KNOWLEDGE, KnowledgeApiPath.RECENT, {}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "GET",
+			},
+		);
 
-			if (!response.ok) {
-				throw new Error(
-					`Failed to fetch recent documents: ${response.statusText}`,
-				);
-			}
+		const { items } = await response.json<KnowledgeRecentResponseDto>();
 
-			const data = (await response.json()) as unknown;
-
-			if (
-				data &&
-				typeof data === "object" &&
-				"items" in data &&
-				Array.isArray((data as RecentDocumentsResponse).items)
-			) {
-				return (data as RecentDocumentsResponse).items;
-			}
-
-			return [];
-		} catch {
-			return [];
-		}
+		return items.map((item) => ({
+			id: String(item.id),
+			projectId: String(item.projectId),
+			title: item.title,
+			updatedAt: item.updatedAt,
+		}));
 	}
 
-	public async updateProject(
-		payload: UpdateProjectPayload,
-	): Promise<ProjectItem> {
-		const response = await fetch(`${this.#baseUrl}/projects/${payload.id}`, {
-			body: JSON.stringify({
-				description: payload.description,
-				name: payload.name,
-			}),
-			headers: { "Content-Type": "application/json" },
-			method: "PATCH",
-		});
+	public async updateProject({
+		id,
+		...payload
+	}: UpdateProjectPayload): Promise<ProjectItem> {
+		const response = await this.load(
+			this.getFullEndpoint(APIPath.PROJECTS, ProjectsApiPath.ID, { id }),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "PATCH",
+				payload: JSON.stringify(payload),
+			},
+		);
 
-		if (!response.ok) {
-			throw await this.parseError(response);
-		}
-
-		const dto = (await response.json()) as ProjectResponseDto;
-		return mapProjectResponseToItem(dto, {});
+		return mapAdminProjectResponseToItem(
+			await response.json<ProjectResponseDto>(),
+		);
 	}
-}
-
-function mapProjectListItemToItem(dto: ProjectListItemDto): ProjectItem {
-	return {
-		description: dto.description,
-		id: String(dto.id),
-		lastActivityAt: dto.lastActivityAt,
-		name: dto.name,
-		role: dto.role,
-		updatedAt: dto.lastActivityAt,
-	};
-}
-
-function mapProjectResponseToItem(
-	dto: ProjectResponseDto,
-	context: { role?: ProjectRole },
-): ProjectItem {
-	return {
-		description: dto.description,
-		id: String(dto.id),
-		lastActivityAt: dto.updatedAt,
-		name: dto.name,
-		role: context.role ?? "ADMIN",
-		updatedAt: dto.updatedAt,
-	};
 }
 
 export { type CreateProjectPayload, type UpdateProjectPayload, WorkspacesApi };

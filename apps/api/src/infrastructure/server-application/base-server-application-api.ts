@@ -3,6 +3,7 @@ import swaggerJsdoc from "swagger-jsdoc";
 import { type Config } from "~/infrastructure/config/config.js";
 import { AppEnvironment } from "~/shared/enums/enums.js";
 
+import { SESSION_COOKIE_NAME } from "./libs/constants/session-cookie-name.constant.js";
 import {
 	type ServerApplicationApi,
 	type ServerApplicationRouteParameters,
@@ -39,10 +40,10 @@ class BaseServerApplicationApi implements ServerApplicationApi {
 			definition: {
 				components: {
 					securitySchemes: {
-						bearerAuth: {
-							bearerFormat: "JWT",
-							scheme: "bearer",
-							type: "http",
+						sessionAuth: {
+							in: "cookie",
+							name: SESSION_COOKIE_NAME,
+							type: "apiKey",
 						},
 					},
 				},

@@ -22,6 +22,7 @@ import {
 	type ValidationSchema,
 } from "~/shared/types/types.js";
 
+import { SESSION_COOKIE_NAME } from "./libs/constants/session-cookie-name.constant.js";
 import {
 	type ServerApplication,
 	type ServerApplicationApi,
@@ -175,6 +176,7 @@ class BaseServerApplication implements ServerApplication {
 				sameSite: "lax",
 				secure: "auto",
 			},
+			cookieName: SESSION_COOKIE_NAME,
 			saveUninitialized: false,
 			secret: this.config.ENV.SESSION.SECRET,
 			store: new DatabaseStore(this.database.client),
