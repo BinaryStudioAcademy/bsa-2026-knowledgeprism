@@ -13,9 +13,12 @@ import {
 	useAppSelector,
 	useCallback,
 	useEffect,
+	useLocation,
 	useNavigate,
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
+import { getUserManagementCopy } from "~/modules/users/libs/constants/user-management-copy.constant.js";
+import { getUserManagementProjectId } from "~/modules/users/libs/helpers/user-management-project.helper.js";
 import { actions as userActions } from "~/modules/users/users.js";
 import { fetchProjects } from "~/modules/workspaces/state/workspaces.slice.js";
 import { workspacesApi } from "~/modules/workspaces/workspaces.js";
@@ -24,6 +27,9 @@ const EMPTY_LENGTH = 0;
 const UserManagementHubPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
+	const { search } = useLocation();
+	const selectedProjectId = getUserManagementProjectId(search);
+	const pageCopy = getUserManagementCopy(selectedProjectId !== null);
 
 	const currentUser = useAppSelector(({ auth }) => auth.user);
 	const dataStatus = useAppSelector(({ users }) => users.dataStatus);
@@ -92,15 +98,15 @@ const UserManagementHubPage: React.FC = () => {
 			<div className="flex w-full max-w-5xl flex-col gap-3.5 tablet:gap-4.5 desktop:gap-6">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<Heading level="2">User Management</Heading>
+						<Heading level="2">{pageCopy.TITLE}</Heading>
 						<Paragraph
 							className="mt-1.5 hidden text-text-muted desktop:block"
 							size={ParagraphSize.BODY_SMALL}
 						>
-							Manage users and their access levels within the organisation.
+							{pageCopy.SUBTITLE}
 						</Paragraph>
 					</div>
-					<Button onClick={handleAddUserClick}>Add new user</Button>
+					<Button onClick={handleAddUserClick}>{pageCopy.ADD_BUTTON}</Button>
 				</div>
 
 				{dataStatus === DataStatus.PENDING && <Loader />}
