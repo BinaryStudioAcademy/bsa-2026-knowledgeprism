@@ -903,6 +903,7 @@ const switchActiveDocument = createAppAsyncThunk<
 		}
 
 		let extractionItems: ExtractionItemResponseDto[] = [];
+		let extractionSections: ExtractionItemsResponseDto["sections"] = [];
 
 		if (statusResponse.status === DocumentStatus.WAITING_FOR_VALIDATION) {
 			const extractionResponse = await extra.documentsApi.getExtractionItems({
@@ -911,6 +912,7 @@ const switchActiveDocument = createAppAsyncThunk<
 				signal,
 			});
 			extractionItems = extractionResponse.items;
+			extractionSections = extractionResponse.sections;
 		}
 
 		if (!isLatestRequest()) {
@@ -921,6 +923,7 @@ const switchActiveDocument = createAppAsyncThunk<
 			sliceSyncActions.activatePreparedReviewDocument({
 				...request,
 				extractionItems,
+				extractionSections,
 				status: statusResponse.status,
 				switchRequestId: requestId,
 			}),
