@@ -143,7 +143,7 @@ const AskPrismView = (): JSX.Element => {
 	);
 
 	return (
-		<div className="mx-auto flex h-full w-full max-w-[680px] min-h-0 flex-col px-4 pt-6 tablet:pt-8">
+		<div className="mx-auto flex h-full w-full max-w-7xl min-h-0 flex-col px-4 pt-6 tablet:px-7 tablet:pt-7 desktop:px-11 desktop:pt-10">
 			<div className="flex shrink-0 flex-col gap-1.5 border-b border-border pb-4">
 				<div className="flex items-center gap-2 text-accent">
 					<Icon name="ask-prism" size={24} />
@@ -215,7 +215,7 @@ const AskPrismView = (): JSX.Element => {
 						</button>
 					</form>
 
-					<div className="flex items-center justify-between font-sans text-[11px] text-text-faint">
+					<div className="flex items-center justify-between px-1 font-sans text-[11px] text-text-faint">
 						<span>Prism retrieves verified facts from the knowledge tree.</span>
 						<span>Enter to send</span>
 					</div>
