@@ -4,6 +4,7 @@ const UserValidationMessage = {
 	EMAIL_REQUIRE: "Email is required",
 	EMAIL_WRONG: "Email is wrong",
 	FIRST_NAME_REQUIRE: "First name is required",
+	ID_WRONG: "User ID must be a positive integer",
 	LAST_NAME_REQUIRE: "Last name is required",
 	PASSWORD_DIGIT_REQUIRE: "Password must contain at least one digit",
 	PASSWORD_EMOJI_WRONG: "Password must not contain emojis",

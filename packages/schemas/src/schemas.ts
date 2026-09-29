@@ -36,6 +36,7 @@ export {
 export {
 	passwordValidationSchema,
 	userCreateValidationSchema,
+	userRouteParametersValidationSchema,
 	userSignInValidationSchema,
 	userSignUpValidationSchema,
 	userUpdateValidationSchema,

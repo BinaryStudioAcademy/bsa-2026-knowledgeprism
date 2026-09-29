@@ -5,6 +5,7 @@ import {
 } from "@knowledgeprism/constants";
 import {
 	userCreateValidationSchema,
+	userRouteParametersValidationSchema,
 	userUpdateValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
@@ -117,6 +118,9 @@ class UserController extends BaseController {
 				),
 			method: "GET",
 			path: UsersApiPath.ID,
+			validation: {
+				params: userRouteParametersValidationSchema,
+			},
 		});
 
 		this.addRoute({
@@ -133,6 +137,7 @@ class UserController extends BaseController {
 			path: UsersApiPath.ID,
 			validation: {
 				body: userUpdateValidationSchema,
+				params: userRouteParametersValidationSchema,
 			},
 		});
 	}
