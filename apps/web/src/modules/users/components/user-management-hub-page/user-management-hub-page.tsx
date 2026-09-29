@@ -55,6 +55,10 @@ const UserManagementHubPage: React.FC = () => {
 		void navigate(AppRoute.USERS_NEW);
 	}, [navigate]);
 
+	const handleGoBack = useCallback((): void => {
+		void navigate(AppRoute.WORKSPACES);
+	}, [navigate]);
+
 	const handleUserClick = useCallback(
 		(event_: React.MouseEvent<HTMLTableRowElement>): void => {
 			const id = event_.currentTarget.dataset["id"];
@@ -96,6 +100,13 @@ const UserManagementHubPage: React.FC = () => {
 	return (
 		<div className="relative flex flex-1 justify-center overflow-auto p-4 tablet:p-7 desktop:px-11 desktop:py-10">
 			<div className="flex w-full max-w-5xl flex-col gap-3.5 tablet:gap-4.5 desktop:gap-6">
+				{selectedProjectId === null && (
+					<div>
+						<Button onClick={handleGoBack} variant="ghost">
+							Go back
+						</Button>
+					</div>
+				)}
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<Heading level="2">{pageCopy.TITLE}</Heading>

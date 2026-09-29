@@ -61,5 +61,6 @@ const resolveSelectedProjectId = ({
 export {
 	buildUserManagementPath,
 	getUserManagementProjectId,
+	isUserManagementPath,
 	resolveSelectedProjectId,
 };
