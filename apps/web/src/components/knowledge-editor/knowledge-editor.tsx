@@ -22,12 +22,17 @@ type EditorBlockType = Exclude<keyof typeof defaultBlockSpecs, "paragraph">;
 
 type EditorTheme = "dark" | "light";
 
+type KnowledgeEditorApi = {
+	replace: (highlightId: string, replacement: string) => void;
+};
+
 type Properties = {
 	disabledBlocks?: EditorBlockType[];
 	highlights?: TextHighlight[];
 	initialContent?: PartialBlock[];
 	isEditable?: boolean;
 	onChange?: (blocks: EditorBlock[]) => void;
+	onReady?: (api: KnowledgeEditorApi) => void;
 	renderHighlightTooltip?: (
 		highlightId: string,
 		actions: { replace: (replacement: string) => void },
@@ -65,6 +70,7 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	initialContent,
 	isEditable = true,
 	onChange,
+	onReady,
 	renderHighlightTooltip,
 	theme = "light",
 }: Properties) => {
@@ -108,6 +114,13 @@ const KnowledgeEditor: React.FC<Properties> = ({
 		highlightExtension.setHighlights(highlights ?? []);
 	}, [highlightExtension, highlights]);
 
+	// Exposes `replace` so a caller can accept a highlight from outside the hover tooltip too
+	// (e.g. a keyboard-accessible list under the editor), always going through the extension so
+	// the edit lands in the document and `onChange` records it, same as the tooltip's Accept.
+	useEffect(() => {
+		onReady?.({ replace: handleReplace });
+	}, [handleReplace, onReady]);
+
 	const editorView = (
 		<TypedBlockNoteView
 			editable={isEditable}
@@ -133,4 +146,4 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	);
 };
 
-export { KnowledgeEditor };
+export { type KnowledgeEditorApi, KnowledgeEditor };

@@ -7,7 +7,7 @@ type Properties = {
 	canAccept?: boolean;
 	match: GlossaryConsistencyMatchDto;
 	onAccept: (match: GlossaryConsistencyMatchDto) => void;
-	onEdit: (match: GlossaryConsistencyMatchDto) => void;
+	onEdit?: (match: GlossaryConsistencyMatchDto) => void;
 	onKeep: (match: GlossaryConsistencyMatchDto) => void;
 };
 
@@ -23,7 +23,7 @@ const GlossarySuggestionActions = ({
 	}, [match, onAccept]);
 
 	const handleEdit = useCallback(() => {
-		onEdit(match);
+		onEdit?.(match);
 	}, [match, onEdit]);
 
 	const handleKeep = useCallback(() => {
@@ -39,13 +39,15 @@ const GlossarySuggestionActions = ({
 			>
 				Keep
 			</Button>
-			<Button
-				className="px-3 py-1 text-xs"
-				onClick={handleEdit}
-				variant="ghost"
-			>
-				Edit
-			</Button>
+			{onEdit && (
+				<Button
+					className="px-3 py-1 text-xs"
+					onClick={handleEdit}
+					variant="ghost"
+				>
+					Edit
+				</Button>
+			)}
 			{canAccept && (
 				<Button
 					className="px-3 py-1 text-xs"

@@ -7,17 +7,29 @@ import {
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
+import { TextHighlightVariant } from "~/components/knowledge-editor/libs/enums/enums.js";
+import { type ValueOf } from "~/lib/types/types.js";
 
 import { GlossarySuggestionActions } from "./glossary-suggestion-actions.js";
 
 const GLOSSARY_ICON_SIZE = 14;
 const EMPTY_LENGTH = 0;
 
+// The same panel lists AI suggestions on proposed content (Integration Preview) and live
+// warnings while editing a saved KB entry; only the heading differs between the two.
+const GLOSSARY_SUGGESTIONS_HEADING: Record<
+	ValueOf<typeof TextHighlightVariant>,
+	string
+> = {
+	[TextHighlightVariant.SUGGESTION]: "Glossary suggestions",
+	[TextHighlightVariant.WARNING]: "Glossary warnings",
+};
+
 type GlossarySuggestionRowProperties = {
 	canAccept: boolean;
 	match: GlossaryConsistencyMatchDto;
 	onAccept: (match: GlossaryConsistencyMatchDto) => void;
-	onEdit: (match: GlossaryConsistencyMatchDto) => void;
+	onEdit?: (match: GlossaryConsistencyMatchDto) => void;
 	onKeep: (match: GlossaryConsistencyMatchDto) => void;
 };
 
@@ -50,7 +62,7 @@ const GlossarySuggestionRow = ({
 				canAccept={canAccept}
 				match={match}
 				onAccept={onAccept}
-				onEdit={onEdit}
+				{...(onEdit === undefined ? {} : { onEdit })}
 				onKeep={onKeep}
 			/>
 		</div>
@@ -62,8 +74,9 @@ type GlossarySuggestionsProperties = {
 	isChecking: boolean;
 	matches: GlossaryConsistencyMatchDto[];
 	onAccept: (match: GlossaryConsistencyMatchDto) => void;
-	onEdit: (match: GlossaryConsistencyMatchDto) => void;
+	onEdit?: (match: GlossaryConsistencyMatchDto) => void;
 	onKeep: (match: GlossaryConsistencyMatchDto) => void;
+	variant: ValueOf<typeof TextHighlightVariant>;
 };
 
 const GlossarySuggestions = ({
@@ -73,6 +86,7 @@ const GlossarySuggestions = ({
 	onAccept,
 	onEdit,
 	onKeep,
+	variant,
 }: GlossarySuggestionsProperties): JSX.Element | null => {
 	if (isChecking) {
 		return (
@@ -91,7 +105,9 @@ const GlossarySuggestions = ({
 		<div className="flex flex-col gap-2 rounded-md border border-border-subtle bg-bg p-3">
 			<div className="flex items-center gap-1.5 text-xs font-medium text-text-muted">
 				<Icon name="glossary" size={GLOSSARY_ICON_SIZE} />
-				<span>Glossary suggestions ({matches.length})</span>
+				<span>
+					{GLOSSARY_SUGGESTIONS_HEADING[variant]} ({matches.length})
+				</span>
 			</div>
 
 			{matches.map((match) => (
@@ -100,7 +116,7 @@ const GlossarySuggestions = ({
 					key={`${match.matchedTermId.toString()}-${match.sourceExcerpt}`}
 					match={match}
 					onAccept={onAccept}
-					onEdit={onEdit}
+					{...(onEdit === undefined ? {} : { onEdit })}
 					onKeep={onKeep}
 				/>
 			))}
