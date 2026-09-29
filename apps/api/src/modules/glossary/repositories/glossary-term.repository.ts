@@ -36,6 +36,21 @@ class GlossaryTermRepository {
 		this.glossaryTermModel = glossaryTermModel;
 	}
 
+	public async backfillEmbedding({
+		embedding,
+		id,
+	}: {
+		embedding: EmbeddingVector;
+		id: number;
+	}): Promise<void> {
+		await this.glossaryTermModel
+			.query()
+			.patch({ embedding })
+			.where({ id })
+			.whereNull("embedding")
+			.execute();
+	}
+
 	public async countByIdsAndProjectId(
 		{ ids, projectId }: { ids: number[]; projectId: number },
 		transaction?: Transaction,
@@ -192,20 +207,6 @@ class GlossaryTermRepository {
 			.execute();
 
 		return toEntity(term);
-	}
-
-	public async updateEmbedding({
-		embedding,
-		id,
-	}: {
-		embedding: EmbeddingVector;
-		id: number;
-	}): Promise<void> {
-		await this.glossaryTermModel
-			.query()
-			.patch({ embedding })
-			.where({ id })
-			.execute();
 	}
 }
 

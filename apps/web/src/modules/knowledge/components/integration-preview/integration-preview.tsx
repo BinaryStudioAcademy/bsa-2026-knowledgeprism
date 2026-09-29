@@ -317,6 +317,9 @@ const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
 	return conflicts;
 };
 
+const getEditedStatus = (status: ChangeStatus): ChangeStatus =>
+	status === "created" || status === "conflict" ? status : "modified";
+
 const getAllIntegrationConflicts = (
 	pages: ProposedSection[],
 ): FieldConflict[] => {
@@ -354,14 +357,13 @@ const updateSectionInPages = ({
 	updatedSections[sectionIndex] = {
 		...targetSection,
 		...partialSection,
-		status:
-			targetSection.status === "created" ? targetSection.status : "modified",
+		status: getEditedStatus(targetSection.status),
 	};
 
 	updatedPages[pageIndex] = {
 		...targetPage,
 		pages: updatedSections,
-		status: targetPage.status === "created" ? targetPage.status : "modified",
+		status: getEditedStatus(targetPage.status),
 	};
 
 	return updatedPages;
@@ -448,7 +450,7 @@ const updatePageInPages = ({
 	updatedPages[pageIndex] = {
 		...targetPage,
 		...partialPage,
-		status: targetPage.status === "created" ? targetPage.status : "modified",
+		status: getEditedStatus(targetPage.status),
 	};
 
 	return updatedPages;

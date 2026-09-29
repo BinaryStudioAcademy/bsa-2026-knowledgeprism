@@ -270,6 +270,75 @@ describe("IntegrationPreview extraction review", () => {
 		});
 	});
 
+	it("keeps an accepted glossary suggestion on a conflict resolvable as incoming", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const match = {
+			canonicalName: "API",
+			explanation: "Spells out the canonical term instead of using it.",
+			matchedTermId: 1,
+			sourceExcerpt: "application programming interface",
+			suggestedText: "API",
+		};
+		vi.mocked(useGlossaryConsistencyCheck).mockImplementation(
+			({ content, onContentChange }) => ({
+				glossaryMatches: content.includes(match.sourceExcerpt) ? [match] : [],
+				isCheckingGlossary: false,
+				onAcceptGlossarySuggestion: (acceptedMatch): void => {
+					onContentChange(
+						content.replace(
+							acceptedMatch.sourceExcerpt,
+							() => acceptedMatch.suggestedText,
+						),
+					);
+				},
+				onKeepGlossarySuggestion: vi.fn(),
+			}),
+		);
+		const structure: ProposedSection[] = [
+			{
+				id: "section",
+				pages: [
+					{
+						content: "Use the application programming interface.",
+						id: "page",
+						integrationChangeId: 9,
+						matchedNodeId: 3,
+						originalContent: "Live content",
+						originalTitle: "Title",
+						status: "conflict",
+						title: "Title",
+						type: KnowledgeNodeType.PAGE,
+					},
+				],
+				status: "conflict",
+				title: "Section",
+				type: KnowledgeNodeType.SECTION,
+			},
+		];
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				proposedStructure={structure}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "Accept" }));
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+		fireEvent.click(
+			screen.getByRole("button", { name: "Use Incoming Version" }),
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Publish resolution" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				[{ changeId: 9, content: "use-new", title: "keep" }],
+				[{ changeId: 9, content: "Use the API.", title: "Title" }],
+			);
+		});
+	});
+
 	it("lets an extraction error replace a previously ready compact preview", () => {
 		vi.useFakeTimers();
 		const { rerender } = render(
