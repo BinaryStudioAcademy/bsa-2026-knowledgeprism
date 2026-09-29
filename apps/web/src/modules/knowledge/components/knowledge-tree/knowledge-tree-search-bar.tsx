@@ -1,3 +1,4 @@
+import { KnowledgeValidationRule } from "@knowledgeprism/constants";
 import React, { useCallback, useRef } from "react";
 
 import { Icon, Loader } from "~/components/components.js";
@@ -28,6 +29,7 @@ const KnowledgeTreeSearchBar: React.FC<Properties> = ({
 				<input
 					aria-label="Search knowledge base"
 					className="block h-9 w-full appearance-none rounded-md border border-border bg-surface pl-8 pr-8 text-sm text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
+					maxLength={KnowledgeValidationRule.QUERY_MAXIMUM_LENGTH}
 					onChange={onChange}
 					placeholder="Search knowledge base..."
 					ref={inputReference}
