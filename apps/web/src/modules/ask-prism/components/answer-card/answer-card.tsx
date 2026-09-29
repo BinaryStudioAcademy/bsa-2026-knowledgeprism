@@ -9,6 +9,7 @@ import { type AskPrismErrorType } from "../../state/state.js";
 import { PrismAvatar } from "./prism-avatar.js";
 
 const EMPTY_COUNT = 0;
+const SOURCE_ICON_SIZE = 11;
 
 type Properties = {
 	answer: null | string;
@@ -18,6 +19,45 @@ type Properties = {
 	onSourceSelect?: (source: AskPrismSourceDto) => void;
 	query: string;
 	sources: AskPrismSourceDto[];
+};
+
+const getUniqueSources = (
+	sources: AskPrismSourceDto[],
+): AskPrismSourceDto[] => {
+	const seenSourceIds = new Set<string>();
+
+	return sources.filter((source) => {
+		const sourceId = String(source.id);
+
+		if (seenSourceIds.has(sourceId)) {
+			return false;
+		}
+
+		seenSourceIds.add(sourceId);
+
+		return true;
+	});
+};
+
+type SourceLabelProperties = {
+	source: AskPrismSourceDto;
+};
+
+const SourceLabel = ({ source }: SourceLabelProperties): JSX.Element => {
+	const hasDistinctSection = source.sectionTitle !== source.title;
+
+	return (
+		<>
+			<Icon name="file" size={SOURCE_ICON_SIZE} />
+			<span>{source.title}</span>
+			{hasDistinctSection && (
+				<>
+					<span className="opacity-60">·</span>
+					<span className="opacity-85">{source.sectionTitle}</span>
+				</>
+			)}
+		</>
+	);
 };
 
 const AnswerCard = ({
@@ -40,6 +80,7 @@ const AnswerCard = ({
 		return null;
 	}
 
+	const uniqueSources = getUniqueSources(sources);
 	const isNotFound = errorType === "not_found";
 	const isConnectionError =
 		errorType === "connection" ||
@@ -111,9 +152,9 @@ const AnswerCard = ({
 					<div className="flex flex-1 flex-col gap-3 font-sans text-sm leading-relaxed text-text">
 						<div className="whitespace-pre-wrap">{answer}</div>
 
-						{sources.length > EMPTY_COUNT && (
+						{uniqueSources.length > EMPTY_COUNT && (
 							<div className="flex flex-wrap items-center gap-1.5 pt-1">
-								{sources.map((source) =>
+								{uniqueSources.map((source) =>
 									onSourceSelect ? (
 										<button
 											className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs transition-all duration-200 hover:scale-[1.03] hover:border-accent hover:bg-accent hover:text-white active:scale-[0.98]"
@@ -122,20 +163,14 @@ const AnswerCard = ({
 											title={`Jump to ${source.sectionTitle}`}
 											type="button"
 										>
-											<Icon name="file" size={11} />
-											<span>{source.title}</span>
-											<span className="opacity-60">·</span>
-											<span className="opacity-85">{source.sectionTitle}</span>
+											<SourceLabel source={source} />
 										</button>
 									) : (
 										<span
 											className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs"
 											key={String(source.id)}
 										>
-											<Icon name="file" size={11} />
-											<span>{source.title}</span>
-											<span className="opacity-60">·</span>
-											<span className="opacity-85">{source.sectionTitle}</span>
+											<SourceLabel source={source} />
 										</span>
 									),
 								)}
