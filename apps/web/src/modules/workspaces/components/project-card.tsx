@@ -23,6 +23,8 @@ const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
 const SINGLE_UNIT = 1;
 
+const NAVIGATION_ARROW_SIZE = 16;
+
 const FIRST_ARRAY_INDEX = 0;
 const SECOND_ARRAY_INDEX = 1;
 const INITIALS_SLICE_COUNT = 2;
@@ -130,8 +132,12 @@ const formatRelativeTime = (dateString: string): string => {
 		(now.getTime() - date.getTime()) / (MS_PER_SECOND * SECONDS_PER_MINUTE),
 	);
 
+	if (diffMinutes < SINGLE_UNIT) {
+		return "Updated just now";
+	}
+
 	if (diffMinutes < MINUTES_PER_HOUR) {
-		return formatTimeUnit(Math.max(SINGLE_UNIT, diffMinutes), "minute");
+		return formatTimeUnit(diffMinutes, "minute");
 	}
 
 	const diffHours = Math.floor(diffMinutes / MINUTES_PER_HOUR);
@@ -239,13 +245,13 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 
 	return (
 		<div
-			className="group relative flex w-full cursor-pointer flex-col justify-between rounded-lg border border-border bg-(--color-surface) p-5 text-left shadow-(--shadow-sm) transition-all hover:border-(--color-control-inactive) hover:shadow-(--shadow-md)"
+			className="group relative flex w-full min-w-0 cursor-pointer flex-col justify-between rounded-lg border border-border bg-(--color-surface) p-5 text-left shadow-(--shadow-sm) transition-all hover:border-(--color-control-inactive) hover:shadow-(--shadow-md)"
 			onClick={handleClick}
 			onKeyDown={handleKeyDown}
 			role="button"
 			tabIndex={0}
 		>
-			<div>
+			<div className="min-w-0">
 				<div className="mb-4 flex items-center justify-between gap-2">
 					<div
 						className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-(length:--text-sm) font-semibold ${avatarColor.bg} ${avatarColor.text}`}
@@ -305,21 +311,27 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 					</div>
 				</div>
 
-				<h3 className="mb-1 font-serif text-h4 font-normal text-text wrap-break-words">
+				<h3 className="mb-1 min-w-0 font-serif text-h4 font-normal wrap-break-word text-text">
 					{name}
 				</h3>
-				<div className="h-11 overflow-y-auto">
+				<div className="h-11 min-w-0 overflow-x-hidden overflow-y-auto">
 					{description && (
-						<p className="whitespace-normal break-words text-control leading-relaxed text-text-muted">
+						<p className="wrap-break-word text-control leading-relaxed text-text-muted">
 							{description}
 						</p>
 					)}
 				</div>
 			</div>
 
-			<div className="mt-5 border-t border-(--color-border-subtle) pt-4">
-				<span className="text-(length:--text-sm) text-text-muted">
+			<div className="mt-5 flex items-center justify-between gap-3 border-t border-(--color-border-subtle) pt-4">
+				<span className="min-w-0 truncate text-(length:--text-sm) text-text-muted">
 					{formatRelativeTime(updatedAt)}
+				</span>
+				<span
+					aria-hidden="true"
+					className="shrink-0 text-text-muted transition-colors group-hover:text-accent"
+				>
+					<Icon name="arrow-right-long" size={NAVIGATION_ARROW_SIZE} />
 				</span>
 			</div>
 		</div>

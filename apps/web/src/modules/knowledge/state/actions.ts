@@ -1,4 +1,4 @@
-import { DocumentStatus, HTTPCode } from "@knowledgeprism/constants";
+import { DocumentStatus } from "@knowledgeprism/constants";
 import {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentStatusResponseDto,
@@ -11,6 +11,7 @@ import {
 	type IntegrationChangesResponseDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeSearchResponseDto,
 	type KnowledgeTreeResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
@@ -20,7 +21,7 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 
 import { NotificationVariant } from "~/lib/enums/enums.js";
 import { normalizeError } from "~/lib/helpers/helpers.js";
-import { HTTPError } from "~/lib/http/http.js";
+import { HTTPCode, HTTPError } from "~/lib/http/http.js";
 import { notificationService } from "~/lib/notifications/notification.service.js";
 import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 import { type AsyncThunkConfig, type ValueOf } from "~/lib/types/types.js";
@@ -92,6 +93,11 @@ type ProcessDocumentRejection = {
 type ReviewableDocumentStatus =
 	| typeof DocumentStatus.WAITING_FOR_APPROVAL
 	| typeof DocumentStatus.WAITING_FOR_VALIDATION;
+
+type SearchKnowledgeEntriesPayload = {
+	projectId: string;
+	query: string;
+};
 
 type SubmitManualTextPayload = {
 	payload: ManualTextCreateRequestDto;
@@ -328,6 +334,34 @@ const fetchKnowledgeTree = createAsyncThunk<
 		signal,
 	});
 });
+
+const isUnauthorizedError = (error: unknown): error is HTTPError => {
+	return error instanceof HTTPError && error.status === HTTPCode.UNAUTHORIZED;
+};
+
+const searchKnowledgeEntries = createAsyncThunk<
+	KnowledgeSearchResponseDto,
+	SearchKnowledgeEntriesPayload,
+	AsyncThunkConfig
+>(
+	`${sliceName}/search-knowledge-entries`,
+	async ({ projectId, query }, { extra }) => {
+		const { knowledgeApi } = extra;
+
+		try {
+			return await knowledgeApi.search({ projectId, query });
+		} catch (error: unknown) {
+			// A failed background search should not disrupt the tree; fail open to "no
+			// content matches" (the title-only client filter still applies), except when the
+			// user's session is gone — then let the global error middleware log them out.
+			if (isUnauthorizedError(error)) {
+				throw error;
+			}
+
+			return { items: [] };
+		}
+	},
+);
 
 const applyIntegrationChanges = createAppAsyncThunk<
 	DocumentStatusResponseDto,
@@ -1005,10 +1039,6 @@ const untrackDocument = createAppAsyncThunk<null, UntrackDocumentPayload>(
 	},
 );
 
-const isUnauthorizedError = (error: unknown): error is HTTPError => {
-	return error instanceof HTTPError && error.status === HTTPCode.UNAUTHORIZED;
-};
-
 const checkGlossaryConsistency = createAsyncThunk<
 	GlossaryConsistencyCheckResponseDto,
 	CheckGlossaryConsistencyPayload,
@@ -1046,6 +1076,7 @@ export {
 	processDocument,
 	resumeNextPendingReview,
 	retryDocumentProcessing,
+	searchKnowledgeEntries,
 	submitExtractionReview,
 	submitManualText,
 	switchActiveDocument,

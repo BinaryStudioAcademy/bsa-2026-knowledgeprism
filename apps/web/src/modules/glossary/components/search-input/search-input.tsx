@@ -1,3 +1,4 @@
+import { GlossaryValidationRule } from "@knowledgeprism/constants";
 import { useCallback, useRef } from "react";
 
 import { Icon } from "~/components/icon/icon.js";
@@ -34,6 +35,7 @@ const SearchInput: React.FC<Properties> = ({
 			<input
 				aria-label="Search glossary"
 				className="block h-9 w-full appearance-none rounded-md border border-border bg-surface pl-8 pr-8 text-sm text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
+				maxLength={GlossaryValidationRule.QUERY_MAXIMUM_LENGTH}
 				onChange={handleChange}
 				placeholder={placeholder}
 				ref={inputReference}

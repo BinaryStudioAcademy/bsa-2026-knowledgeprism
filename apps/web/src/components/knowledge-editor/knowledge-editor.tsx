@@ -1,5 +1,7 @@
 import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
+
+import "./knowledge-editor.css";
 import {
 	type Block,
 	BlockNoteSchema,
@@ -118,7 +120,7 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	);
 
 	return (
-		<div className="w-full">
+		<div className="knowledge-editor w-full">
 			{renderHighlightTooltip ? (
 				<HighlightTooltip
 					onReplace={handleReplace}

@@ -10,10 +10,19 @@ import React, {
 import { tv } from "tailwind-variants";
 
 import {
+	useAppDispatch,
+	useAppSelector,
+	useCurrentProjectId,
+} from "~/hooks/hooks.js";
+import { useDebouncedValue } from "~/hooks/use-debounced-value/use-debounced-value.hook.js";
+
+import { actions } from "../../knowledge.js";
+import {
 	EMPTY_LENGTH,
 	FALLBACK_DEFER_EXECUTION_MS,
 	FOCUS_DELAY_MS,
 	MIN_INDEX,
+	SEARCH_DEBOUNCE_MS,
 } from "../../libs/constants/constants.js";
 import { filterKnowledgeTree } from "../../libs/helpers/helpers.js";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
@@ -47,9 +56,33 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 	const [searchQuery, setSearchQuery] = useState("");
 	const [focusedNodeId, setFocusedNodeId] = useState<number | undefined>();
 
+	const dispatch = useAppDispatch();
+	const projectId = useCurrentProjectId();
+	const { isSearchingContent, matchedContentEntryIds } = useAppSelector(
+		(state) => state.knowledge,
+	);
+	const debouncedSearchQuery = useDebouncedValue(
+		searchQuery,
+		SEARCH_DEBOUNCE_MS,
+	).trim();
+
+	useEffect(() => {
+		if (!debouncedSearchQuery) {
+			dispatch(actions.clearContentSearch());
+			return;
+		}
+
+		void dispatch(
+			actions.searchKnowledgeEntries({
+				projectId,
+				query: debouncedSearchQuery,
+			}),
+		);
+	}, [debouncedSearchQuery, dispatch, projectId]);
+
 	const filteredItems = useMemo(
-		() => filterKnowledgeTree(items, searchQuery),
-		[items, searchQuery],
+		() => filterKnowledgeTree(items, searchQuery, matchedContentEntryIds),
+		[items, searchQuery, matchedContentEntryIds],
 	);
 
 	const itemsByParentId = useMemo(() => {
@@ -189,6 +222,7 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 				</div>
 
 				<KnowledgeTreeSearchBar
+					isSearchingContent={isSearchingContent}
 					onChange={handleSearchChange}
 					onClear={handleSearchClear}
 					value={searchQuery}

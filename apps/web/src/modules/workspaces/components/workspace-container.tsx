@@ -1,3 +1,4 @@
+import { OrganisationRole } from "@knowledgeprism/constants";
 import { useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { generatePath, useNavigate } from "react-router-dom";
@@ -23,10 +24,6 @@ import { WorkspacePage } from "./workspace-page.js";
 
 const EMPTY_LENGTH = 0;
 
-type UserWithRole = {
-	organisationRole?: "ADMIN" | "USER";
-};
-
 const WorkspaceContainer: React.FC = () => {
 	const dispatch = useDispatch<AppDispatch>();
 	const navigate = useNavigate();
@@ -43,8 +40,8 @@ const WorkspaceContainer: React.FC = () => {
 		recentDocuments,
 	} = useSelector((state: RootState) => state.workspaces);
 
-	const userDetails = userResponse?.user as undefined | UserWithRole;
-	const isOrgAdmin = userDetails?.organisationRole === "ADMIN";
+	const isOrgAdmin =
+		userResponse?.user.organisationRole === OrganisationRole.ADMIN;
 
 	const handleFetchData = useCallback((): void => {
 		void dispatch(fetchProjects(workspacesApi));
