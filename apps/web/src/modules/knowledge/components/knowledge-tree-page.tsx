@@ -11,18 +11,22 @@ import {
 import { actions } from "../knowledge.js";
 import { KnowledgeTreeLayout } from "./knowledge-tree/knowledge-tree-layout.js";
 
+type ManualSelection = {
+	pageId: number;
+	projectId: null | string;
+	queryNodeId: null | string;
+};
+
 const KnowledgeTreePage: React.FC = () => {
 	const projectId = useCurrentProjectId();
 	const dispatch = useAppDispatch();
 	const [searchParameters] = useSearchParams();
 	const canWriteKnowledge = useCanWriteKnowledge();
-	const { selectedEntry, tree } = useAppSelector((state) => state.knowledge);
+	const { pipelineProjectId, selectedEntry, tree, treeRevision } =
+		useAppSelector((state) => state.knowledge);
 
-	const [manualSelectedPageId, setManualSelectedPageId] = useState<
-		number | undefined
-	>();
-	const [lastProjectId, setLastProjectId] = useState<null | string>(null);
-	const [lastQueryNodeId, setLastQueryNodeId] = useState<null | string>(null);
+	const [manualSelection, setManualSelection] =
+		useState<ManualSelection | null>(null);
 	const [fetchedProjectId, setFetchedProjectId] = useState<null | string>(null);
 
 	const queryNodeId = searchParameters.get("nodeId");
@@ -32,28 +36,30 @@ const KnowledgeTreePage: React.FC = () => {
 			? parsedNodeId
 			: undefined;
 
-	if (projectId !== lastProjectId) {
-		setLastProjectId(projectId);
-		setManualSelectedPageId(undefined);
-		setFetchedProjectId(null);
-	}
-
-	if (queryNodeId !== lastQueryNodeId) {
-		setLastQueryNodeId(queryNodeId);
-		setManualSelectedPageId(undefined);
-	}
-
 	useEffect(() => {
-		if (!projectId) {
+		if (!projectId || pipelineProjectId !== projectId) {
 			return;
 		}
 
-		void dispatch(actions.fetchKnowledgeTree({ projectId }))
+		let isCurrentRequest = true;
+		const request = dispatch(actions.fetchKnowledgeTree({ projectId }));
+
+		void request
 			.unwrap()
+			.catch(() => {
+				// The store owns the visible tree error.
+			})
 			.finally(() => {
-				setFetchedProjectId(projectId);
+				if (isCurrentRequest) {
+					setFetchedProjectId(projectId);
+				}
 			});
-	}, [dispatch, projectId]);
+
+		return () => {
+			isCurrentRequest = false;
+			request.abort();
+		};
+	}, [dispatch, pipelineProjectId, projectId]);
 
 	const isTreeReady = fetchedProjectId === projectId;
 	const parentIds = new Set(tree.map((item) => item.parentId));
@@ -69,6 +75,12 @@ const KnowledgeTreePage: React.FC = () => {
 		isTreeReady && validTargetNodeId !== undefined
 			? tree.find((item) => item.id === validTargetNodeId)
 			: undefined;
+	const manualSelectedPageId =
+		manualSelection?.projectId === projectId &&
+		manualSelection.queryNodeId === queryNodeId &&
+		tree.some((item) => item.id === manualSelection.pageId)
+			? manualSelection.pageId
+			: undefined;
 
 	const activePageId =
 		manualSelectedPageId ?? targetPage?.id ?? firstAvailablePage?.id;
@@ -78,14 +90,21 @@ const KnowledgeTreePage: React.FC = () => {
 			return;
 		}
 
-		void dispatch(
+		const request = dispatch(
 			actions.fetchKnowledgeEntry({ entryId: activePageId, projectId }),
 		);
-	}, [dispatch, activePageId, projectId]);
 
-	const handleSelectPage = useCallback((id: number) => {
-		setManualSelectedPageId(id);
-	}, []);
+		return () => {
+			request.abort();
+		};
+	}, [dispatch, activePageId, projectId, treeRevision]);
+
+	const handleSelectPage = useCallback(
+		(id: number) => {
+			setManualSelection({ pageId: id, projectId, queryNodeId });
+		},
+		[projectId, queryNodeId],
+	);
 
 	const entries = useMemo(() => {
 		if (!selectedEntry) {

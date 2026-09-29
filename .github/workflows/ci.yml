@@ -66,6 +66,30 @@ jobs:
           EC_VERSION: v3.11.2
         run: |
           npm run lint
+  test:
+    name: Web Tests
+    needs: dependencies
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v7
+
+      - name: Install NodeJS
+        uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Restore Dependencies
+        uses: actions/cache@v6
+        with:
+          path: |
+            **/node_modules
+            packages/**/build
+          key: ci-${{ hashFiles('**/package-lock.json') }}
+
+      - name: Run Web Tests
+        run: npm test -w apps/web
   build:
     name: Code Building
     needs: dependencies

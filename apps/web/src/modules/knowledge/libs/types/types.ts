@@ -1,6 +1,10 @@
 import { type PartialBlock } from "@blocknote/core";
-import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import {
+	type DocumentStatus,
+	KnowledgeNodeType,
+} from "@knowledgeprism/constants";
+import {
+	type ExtractionItemResponseDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
@@ -25,13 +29,19 @@ type FieldConflict = {
 };
 
 type IntegrationPreviewProperties = {
+	errorMessage?: null | string;
 	onAddMore: () => void;
-	onApprove: (
+	onApplyingChange?: (isApplying: boolean) => void;
+	onApprove?: (
 		resolutions: IntegrationConflictResolutionDto[],
 	) => Promise<boolean>;
+	onApproveExtraction?: (pages: ProposedSection[]) => Promise<boolean>;
 	onClose: () => void;
 	proposedStructure: ProposedSection[];
+	variant?: IntegrationPreviewVariant;
 };
+
+type IntegrationPreviewVariant = "extraction-validation" | "integration";
 
 interface KbEntry {
 	contentJson: PartialBlock[] | Record<string, unknown>[];
@@ -43,20 +53,44 @@ interface KbEntry {
 
 type KnowledgeState = {
 	activeDocumentId: null | number;
+	activeDocumentStatus: "IDLE" | ValueOf<typeof DocumentStatus>;
+	activeDocumentSwitchRequestId: null | string;
 	contentSearchRequestId: null | string;
-	errorMessage: null | string;
+	entryRequestId: null | string;
+	extractionItems: ExtractionItemResponseDto[];
+	extractionItemsDocumentId: null | number;
+	integrationPreviewDocumentId: null | number;
 	integrationPreviewError: null | string;
+	integrationPreviewRequestId: null | string;
 	integrationPreviewSections: ProposedSection[];
 	isAddingKnowledge: boolean;
 	isEntryLoading: boolean;
 	isIntegrationPreviewLoading: boolean;
 	isSearchingContent: boolean;
 	isTreeLoading: boolean;
+	knowledgeErrorMessage: null | string;
 	matchedContentEntryIds: number[];
+	pendingReviewRequestId: null | string;
+	pipelineErrors: Record<number, string>;
+	pipelineProjectId: null | string;
+	pipelineSessionId: number;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
 	selectedEntry: KnowledgeEntryResponseDto | null;
 	selectedFiles: UploadedDocumentItem[];
+	statusRequestIds: Record<number, string>;
+	trackedDocuments: TrackedDocument[];
 	tree: KnowledgeTreeItemResponseDto[];
+	treeRequestId: null | string;
+	treeRevision: number;
+	updateEntryRequestIds: Record<number, string>;
+	uploadErrorMessage: null | string;
+	uploadSession: null | UploadSession;
+	uploadSessionSequence: number;
+};
+
+type PipelineSessionScope = {
+	pipelineSessionId: number;
+	projectId: string;
 };
 
 type ProposedPage = {
@@ -68,6 +102,8 @@ type ProposedPage = {
 	matchedNodeId?: number;
 	originalContent?: string;
 	originalTitle?: string;
+	sourceExcerpt?: string;
+	sourcePageNumber?: number;
 	status: ChangeStatus;
 	summary?: string;
 	title: string;
@@ -82,6 +118,12 @@ type ProposedSection = {
 	type: typeof KnowledgeNodeType.SECTION;
 };
 
+type TrackedDocument = {
+	documentId: number;
+	label: string;
+	status: "IDLE" | ValueOf<typeof DocumentStatus>;
+};
+
 type UploadedDocumentItem = {
 	documentId?: number | undefined;
 	errorMessage?: string | undefined;
@@ -94,6 +136,12 @@ type UploadedDocumentItem = {
 	uploadUrl?: string | undefined;
 };
 
+type UploadSession = {
+	id: number;
+	projectId: string;
+	subscriberCount: number;
+};
+
 export { type KnowledgeEntryUpdateRequestDto } from "@knowledgeprism/types";
 export {
 	type ChangeStatus,
@@ -102,7 +150,9 @@ export {
 	type IntegrationPreviewProperties,
 	type KbEntry,
 	type KnowledgeState,
+	type PipelineSessionScope,
 	type ProposedPage,
 	type ProposedSection,
+	type TrackedDocument,
 	type UploadedDocumentItem,
 };

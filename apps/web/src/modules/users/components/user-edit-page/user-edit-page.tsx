@@ -13,7 +13,6 @@ import {
 	useCallback,
 	useEffect,
 	useNavigate,
-	useState,
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 import { actions as projectsActions } from "~/modules/projects/projects.js";
@@ -38,7 +37,6 @@ const UserEditPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
 	const { id } = useParams<{ id: string }>();
-	const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
 	const { availableProjects, currentUser, selectedUser, selectedUserStatus } =
 		useAppSelector(({ auth, projects, users }) => ({
@@ -91,8 +89,6 @@ const UserEditPage: React.FC = () => {
 
 	const handleValidSubmit = useCallback(
 		(values: UserEditFormValues): void => {
-			setErrorMessage(undefined);
-
 			void dispatch(
 				userActions.updateUser({
 					id: userId,
@@ -115,12 +111,7 @@ const UserEditPage: React.FC = () => {
 				.then(() => {
 					void navigate(AppRoute.USERS);
 				})
-				.catch((error: unknown) => {
-					const message =
-						(error as { message?: string }).message ??
-						"An unexpected error occurred";
-					setErrorMessage(message);
-				});
+				.catch(() => {});
 		},
 		[dispatch, navigate, userId, selectedUser, isAdminEditingSelf],
 	);
@@ -155,7 +146,6 @@ const UserEditPage: React.FC = () => {
 					<UserForm
 						availableProjects={availableProjects}
 						control={control}
-						errorMessage={errorMessage}
 						isAdmin={isAdminEditingSelf}
 						isEditMode={true}
 						onCancel={handleCancel}

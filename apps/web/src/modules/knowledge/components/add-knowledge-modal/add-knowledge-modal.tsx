@@ -1,13 +1,16 @@
 import { HTTPCode } from "@knowledgeprism/constants";
 import { type ManualTextCreateRequestDto } from "@knowledgeprism/types";
+import { unwrapResult } from "@reduxjs/toolkit";
 import {
 	type JSX,
 	type KeyboardEvent,
 	useCallback,
+	useEffect,
 	useId,
 	useRef,
 	useState,
 } from "react";
+import { generatePath } from "react-router-dom";
 
 import { Icon, type IconName } from "~/components/icon/icon.js";
 import { Modal } from "~/components/modal/modal.js";
@@ -15,12 +18,15 @@ import {
 	useAppDispatch,
 	useAppSelector,
 	useCurrentProjectId,
+	useNavigate,
 } from "~/hooks/hooks.js";
+import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { actions } from "../../knowledge.js";
 import { DocumentProcessingStatus } from "../../libs/enums/enums.js";
+import { isUploadSessionCurrent } from "../../state/session-guards.js";
 import { DocumentUpload } from "../document-upload.js";
 import { KnowledgeInputFooter } from "../knowledge-input-footer.js";
 import { ManualTextInput } from "../manual-text-input/manual-text-input.js";
@@ -105,6 +111,7 @@ const AddKnowledgeModal = ({
 	projectName,
 }: Properties): JSX.Element => {
 	const dispatch = useAppDispatch();
+	const navigate = useNavigate();
 	const projectId = useCurrentProjectId();
 	const [activeTab, setActiveTab] = useState<ValueOf<typeof AddKnowledgeTab>>(
 		AddKnowledgeTab.UPLOAD,
@@ -117,15 +124,24 @@ const AddKnowledgeModal = ({
 	const [uploadConfirmationErrorStatus, setUploadConfirmationErrorStatus] =
 		useState<null | number>(null);
 
+	useEffect(() => {
+		dispatch(actions.acquireUploadSession(projectId));
+
+		return () => {
+			dispatch(actions.releaseUploadSession(projectId));
+		};
+	}, [dispatch, projectId]);
+
 	const isUploadSubmissionPendingReference = useRef(false);
 	const tabIdPrefix = useId();
 	const tabReferences = useRef(
 		new Map<ValueOf<typeof AddKnowledgeTab>, HTMLButtonElement>(),
 	);
 
-	const { processingStatus, selectedFiles } = useAppSelector(
+	const { processingStatus, selectedFiles, uploadSession } = useAppSelector(
 		(state) => state.knowledge,
 	);
+	const uploadSessionId = uploadSession?.id;
 	const projects = useAppSelector((state) => state.workspaces.projects);
 	const currentProjectName =
 		projectName ??
@@ -173,12 +189,23 @@ const AddKnowledgeModal = ({
 	);
 
 	const resetAndClose = useCallback((): void => {
-		dispatch(actions.resetState());
+		dispatch(actions.clearSelectedFiles());
 		setActiveTab(AddKnowledgeTab.UPLOAD);
 		setFormSessionKey((currentKey) => currentKey + FORM_SESSION_KEY_INCREMENT);
 		setUploadConfirmationErrorStatus(null);
 		onClose();
 	}, [dispatch, onClose]);
+
+	const submitAndClose = useCallback((): void => {
+		for (const item of readyDocuments) {
+			dispatch(actions.removeDocument({ id: item.id }));
+		}
+		setActiveTab(AddKnowledgeTab.UPLOAD);
+		setFormSessionKey((currentKey) => currentKey + FORM_SESSION_KEY_INCREMENT);
+		setUploadConfirmationErrorStatus(null);
+		onClose();
+		void navigate(generatePath(AppRoute.PROJECT_KNOWLEDGE_TREE, { projectId }));
+	}, [dispatch, navigate, onClose, projectId, readyDocuments]);
 
 	const handleClose = useCallback((): void => {
 		if (isSubmissionPending) {
@@ -190,6 +217,7 @@ const AddKnowledgeModal = ({
 
 	const handleUploadSubmit = useCallback(async (): Promise<void> => {
 		if (
+			uploadSessionId === undefined ||
 			readyDocuments.length === EMPTY_COUNT ||
 			isUploadSubmissionPendingReference.current
 		) {
@@ -208,9 +236,15 @@ const AddKnowledgeModal = ({
 				const result = await dispatch(
 					actions.confirmDocumentUpload({
 						documentId: item.documentId,
+						label: item.name,
 						projectId,
+						uploadSessionId,
 					}),
 				);
+
+				if (!isUploadSessionCurrent(uploadSessionId)) {
+					return;
+				}
 
 				if (actions.confirmDocumentUpload.rejected.match(result)) {
 					setUploadConfirmationErrorStatus(result.error.status ?? null);
@@ -219,12 +253,12 @@ const AddKnowledgeModal = ({
 			}
 
 			setUploadConfirmationErrorStatus(null);
-			resetAndClose();
+			submitAndClose();
 		} finally {
 			isUploadSubmissionPendingReference.current = false;
 			setIsUploadSubmitting(false);
 		}
-	}, [dispatch, projectId, readyDocuments, resetAndClose]);
+	}, [dispatch, projectId, readyDocuments, submitAndClose, uploadSessionId]);
 
 	const handleUploadActionClick = useCallback((): void => {
 		if (hasTerminalUploadConfirmationFailure) {
@@ -245,27 +279,37 @@ const AddKnowledgeModal = ({
 
 	const handleManualTextSubmit = useCallback(
 		async ({ content, title }: ManualTextCreateRequestDto): Promise<void> => {
+			if (uploadSessionId === undefined) {
+				return;
+			}
+
 			setIsManualTextSubmitting(true);
 
 			try {
 				const trimmedTitle = title?.trim();
 
-				await dispatch(
+				const result = await dispatch(
 					actions.submitManualText({
 						payload: {
 							content: content.trim(),
 							...(trimmedTitle && { title: trimmedTitle }),
 						},
 						projectId,
+						uploadSessionId,
 					}),
-				).unwrap();
+				);
 
-				resetAndClose();
+				if (!isUploadSessionCurrent(uploadSessionId)) {
+					return;
+				}
+
+				unwrapResult(result);
+				submitAndClose();
 			} finally {
 				setIsManualTextSubmitting(false);
 			}
 		},
-		[dispatch, projectId, resetAndClose],
+		[dispatch, projectId, submitAndClose, uploadSessionId],
 	);
 
 	const handleTabKeyDown = useCallback(

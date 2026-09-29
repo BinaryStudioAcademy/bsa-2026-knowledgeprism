@@ -1,79 +1,114 @@
+import { type IconName } from "~/components/icon/icon.js";
+import { type ValueOf } from "~/lib/types/types.js";
+
 import { FeatureId } from "./enums/feature-id.enum.js";
 
+type FeatureItem = {
+	body: string;
+	iconName: IconName;
+	id: ValueOf<typeof FeatureId>;
+	title: string;
+};
+
+type PreviewTreeSection = {
+	pages: readonly string[];
+	selectedPage?: string;
+	title: string;
+};
+
+const LAST_INDEX_OFFSET = 1;
+
 const FEATURES_SECTION_COPY = {
-	eyebrow: "Why it's different",
-	heading: "Built for precision, not just storage.",
+	eyebrow: "Core capabilities",
+	heading: "Everything your team needs",
 } as const;
 
 const FEATURES_LIST = [
 	{
-		body: "Find concepts, not just keywords.",
-		iconName: "search",
-		id: FeatureId.SEARCH,
-		title: "Semantic search",
+		body: "Every document you add becomes a node in a shared graph — automatically filed into a Knowledge Tree. Browse sections, pages, and entries.",
+		iconName: "knowledge-tree",
+		id: FeatureId.KNOWLEDGE_BASE,
+		title: "Unified knowledge base",
 	},
 	{
-		body: "Unstructured input becomes a queryable graph.",
-		iconName: "plus",
-		id: FeatureId.EXTRACT,
-		title: "Automated extraction",
+		body: "Review extracted knowledge and its proposed structure before approving it into the Knowledge Base.",
+		iconName: "eye",
+		id: FeatureId.INTEGRATION,
+		title: "Smart integration preview",
 	},
 	{
-		body: "One taxonomy across every project.",
+		body: "Ask questions in natural language. Every answer is grounded in your knowledge base with clickable source references. No hallucination.",
+		iconName: "ask-prism",
+		id: FeatureId.ASK_PRISM,
+		title: "Ask Prism — semantic search",
+	},
+	{
+		body: "Knowledge Tree is cross-linked to a project-wide Glossary, that is searchable by meaning, not just keywords.",
 		iconName: "glossary",
 		id: FeatureId.GLOSSARY,
-		title: "Shared glossary",
+		title: "Shared Glossary",
 	},
-	{
-		body: "Each organisation's data and knowledge are isolated from other organisations.",
-		iconName: "shield",
-		id: FeatureId.SECURITY,
-		title: "Enterprise security",
-	},
-] as const;
+] as const satisfies readonly FeatureItem[];
+
+const FEATURE_PREVIEW_FRAME_CLASS = "w-full max-w-[340px]" as const;
 
 const FEATURE_TAB_ICON_SIZE = 18;
-const FEATURE_SEARCH_BAR_ICON_SIZE = 15;
-const FEATURE_EXTRACT_ARROW_ICON_SIZE = 20;
+const FEATURE_PREVIEW_ICON_SIZE = 12;
+const FEATURE_SOURCE_ICON_SIZE = 11;
+const FEATURE_LINK_ICON_SIZE = 12;
+const FEATURE_AVATAR_ICON_SIZE = 12;
+
+const KNOWLEDGE_BASE_SECTIONS: readonly PreviewTreeSection[] = [
+	{
+		pages: ["SKU management rules", "Pricing & discounts"],
+		title: "Product Catalogue",
+	},
+	{
+		pages: ["Refund policy logic"],
+		selectedPage: "Refund policy logic",
+		title: "Checkout & Payments",
+	},
+	{
+		pages: ["Dispatch rules"],
+		title: "Shipping & Fulfilment",
+	},
+];
 
 const FEATURE_PREVIEW_CONTENT = {
-	EXTRACT: {
-		LABEL: "Resolution",
-		RAW: "Raw PDF",
-		VALUE: "48 Megapixels",
+	ASK_PRISM: {
+		ANSWER:
+			"Customers may request a refund within 14 days of delivery. Items must be unused and in original packaging.",
+		QUESTION: "When can a customer request a refund after delivery?",
+		SOURCE_SECTION: "Checkout & Payments",
+		SOURCE_TITLE: "Refund policy logic",
 	},
 	GLOSSARY: {
-		BODY: "The hierarchical classification of information entities, enabling structured retrieval.",
-		TAG: "ARCHITECTURE",
-		TITLE: "Taxonomy",
+		BODY: "The period after delivery during which a customer can return an unused item in its original packaging.",
+		LINKED_ENTRY: "Refund policy logic",
+		TAG: "POLICY",
+		TITLE: "Refund window",
 	},
-	SEARCH: {
-		QUERY: "low-light sensor specs",
-		RESULTS: [
-			{
-				isDimmed: false,
-				subtitle: "48MP · f/1.8–2.4 · optimized for low light",
-				title: "Camera system",
-			},
-			{
-				isDimmed: true,
-				subtitle: "ISP core · MIPI CSI-2 bus",
-				title: "Processor architecture",
-			},
-		],
+	INTEGRATION: {
+		ACTION: "Approve & save",
+		PARENT: "Checkout & Payments",
+		STATUS: "created",
+		TITLE: "Refund policy logic",
 	},
-	SECURITY: {
-		AUDIT_ACTOR: "Sarah J. edited Camera system",
-		AUDIT_TIME: "2h ago",
-		BADGES: ["PER ORGANISATION", "NO CROSS-TENANT ACCESS"],
+	KNOWLEDGE_BASE: {
+		SECTIONS: KNOWLEDGE_BASE_SECTIONS,
+		TITLE: "Knowledge Tree",
 	},
 } as const;
 
 export {
-	FEATURE_EXTRACT_ARROW_ICON_SIZE,
+	FEATURE_AVATAR_ICON_SIZE,
+	FEATURE_LINK_ICON_SIZE,
 	FEATURE_PREVIEW_CONTENT,
-	FEATURE_SEARCH_BAR_ICON_SIZE,
+	FEATURE_PREVIEW_FRAME_CLASS,
+	FEATURE_PREVIEW_ICON_SIZE,
+	FEATURE_SOURCE_ICON_SIZE,
 	FEATURE_TAB_ICON_SIZE,
 	FEATURES_LIST,
 	FEATURES_SECTION_COPY,
+	LAST_INDEX_OFFSET,
 };
