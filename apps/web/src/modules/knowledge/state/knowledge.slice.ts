@@ -372,6 +372,7 @@ const { actions, name, reducer } = createSlice({
 				targetFile.status = DocumentProcessingStatus.FAILED;
 				targetFile.documentId = action.payload?.documentId;
 				targetFile.uploadUrl = action.payload?.uploadUrl;
+				targetFile.uploadUrlExpiresAt = action.payload?.uploadUrlExpiresAt;
 				targetFile.errorMessage =
 					action.payload?.message ??
 					DocumentValidationMessage.PROCESSING_FAILED;

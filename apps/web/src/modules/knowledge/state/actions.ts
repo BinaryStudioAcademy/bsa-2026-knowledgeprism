@@ -35,7 +35,9 @@ import {
 	addTrackedDocumentId,
 	formatFileSize,
 	getFileContentType,
+	getUploadUrlExpiresAt,
 	isMatchingPipelineSession,
+	isUploadUrlUsable,
 	readTrackedDocumentIds,
 	removeTrackedDocumentId,
 } from "../libs/helpers/helpers.js";
@@ -76,12 +78,14 @@ type ProcessDocumentPayload = {
 	projectId: string;
 	uploadSessionId: number;
 	uploadUrl?: string | undefined;
+	uploadUrlExpiresAt?: number | undefined;
 };
 
 type ProcessDocumentRejection = {
 	documentId?: number | undefined;
 	message: string;
 	uploadUrl?: string | undefined;
+	uploadUrlExpiresAt?: number | undefined;
 };
 
 type ReviewableDocumentStatus =
@@ -233,16 +237,25 @@ const processDocument = createAsyncThunk<
 >(
 	`${sliceName}/process-document`,
 	async (
-		{ documentId, file, id, projectId, uploadUrl },
+		{ documentId, file, id, projectId, uploadUrl, uploadUrlExpiresAt },
 		{ extra, rejectWithValue, signal },
 	) => {
 		const { documentsApi } = extra;
 
 		let resolvedDocumentId = documentId;
 		let resolvedUploadUrl = uploadUrl;
+		let resolvedUploadUrlExpiresAt = uploadUrlExpiresAt;
 
 		try {
-			if (!resolvedDocumentId || !resolvedUploadUrl) {
+			const canReuseUploadUrl =
+				resolvedDocumentId !== undefined &&
+				isUploadUrlUsable({
+					now: Date.now(),
+					uploadUrl: resolvedUploadUrl,
+					uploadUrlExpiresAt: resolvedUploadUrlExpiresAt,
+				});
+
+			if (!canReuseUploadUrl || !resolvedUploadUrl) {
 				const intent = await documentsApi.createUploadIntent({
 					payload: {
 						contentType: getFileContentType(file),
@@ -254,6 +267,10 @@ const processDocument = createAsyncThunk<
 				});
 				resolvedDocumentId = intent.documentId;
 				resolvedUploadUrl = intent.uploadUrl;
+				resolvedUploadUrlExpiresAt = getUploadUrlExpiresAt(
+					intent.expiresInSeconds,
+					Date.now(),
+				);
 			}
 
 			await documentsApi.uploadFileToStorage({
@@ -269,6 +286,7 @@ const processDocument = createAsyncThunk<
 						? error.message
 						: DocumentValidationMessage.PROCESSING_FAILED,
 				uploadUrl: resolvedUploadUrl,
+				uploadUrlExpiresAt: resolvedUploadUrlExpiresAt,
 			});
 		}
 
@@ -281,6 +299,7 @@ const processDocument = createAsyncThunk<
 			sizeLabel: formatFileSize(file.size),
 			status: DocumentProcessingStatus.READY,
 			uploadUrl: resolvedUploadUrl,
+			uploadUrlExpiresAt: resolvedUploadUrlExpiresAt,
 		};
 	},
 );
