@@ -150,9 +150,6 @@ class GlossaryService {
 		};
 	}
 
-	// Legacy rows created before the embedding column existed have no cached vector yet —
-	// compute and persist it once here so every later check reuses it instead of
-	// re-embedding the same term on every request.
 	private async resolveEmbedding(
 		term: GlossaryTermEntity,
 	): Promise<EmbeddingVector> {

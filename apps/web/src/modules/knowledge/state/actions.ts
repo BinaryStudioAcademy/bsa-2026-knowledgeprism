@@ -1023,9 +1023,6 @@ const checkGlossaryConsistency = createAsyncThunk<
 				signal,
 			});
 		} catch (error: unknown) {
-			// A failed consistency check should not block reviewing the proposed content;
-			// fail open to "no suggestions" (the same pattern as kp-314's Ask Prism fix),
-			// except when the session is gone — let the global error middleware log out.
 			if (isUnauthorizedError(error)) {
 				throw error;
 			}

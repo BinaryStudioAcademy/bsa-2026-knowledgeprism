@@ -1,7 +1,6 @@
 import { type GlossaryConsistencyTerm } from "../types/types.js";
 
 const ACRONYM_PATTERN = /^[A-Z]{2,10}$/u;
-// The spelled-out form is the definition's opening phrase, before any explanation.
 const DEFINITION_PHRASE_END = /[(,.:;–—]/u;
 const WORD_SEPARATOR = /[\s-]+/u;
 const WORD_SEPARATOR_RUN = /[\s-]+/gu;
@@ -41,9 +40,6 @@ const toPhrasePattern = (phrase: string): RegExp => {
 	);
 };
 
-// Sentence similarity misses a spelled-out acronym ("application programming interface"
-// for API) when the rest of its sentence is about something else, so a literal
-// occurrence sends the term to classification regardless of similarity.
 const findSpelledOutTerms = (
 	content: string,
 	terms: readonly GlossaryConsistencyTerm[],

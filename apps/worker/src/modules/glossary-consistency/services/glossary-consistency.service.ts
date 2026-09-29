@@ -13,17 +13,11 @@ import {
 
 const EMPTY_COUNT = 0;
 
-// Each term's vector is computed once, on create/update, and cached by the caller —
-// building candidates here is a pure in-memory reshape, no embedding call per check.
 const toTermCandidates = (
 	terms: GlossaryConsistencyTerm[],
 ): EmbeddingCandidate<GlossaryConsistencyTerm>[] =>
 	terms.map((term) => ({ item: term, vector: term.embedding }));
 
-// One embedding of the whole content dilutes the signal: a single unrelated sentence
-// elsewhere in the text pulls the score down below any real term match. Embedding
-// sentence-by-sentence instead, and keeping the union of terms any sentence matched,
-// keeps each comparison specific.
 const findRelevantTerms = async (
 	content: string,
 	candidates: EmbeddingCandidate<GlossaryConsistencyTerm>[],

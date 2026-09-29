@@ -19,9 +19,6 @@ const isNonEmptyString = (value: unknown): value is string => {
 	return typeof value === "string" && value.trim() !== "";
 };
 
-// The prompt asks for a JSON number, but a model occasionally serializes it as a numeric
-// string instead ("13" rather than 13) — accept both rather than rejecting an otherwise
-// valid match over a formatting quirk.
 const isValidTermId = (value: unknown): value is number | string => {
 	if (typeof value === "number") {
 		return Number.isSafeInteger(value);
@@ -53,10 +50,6 @@ const isRawConsistencyMatch = (
 	);
 };
 
-// Despite the prompt requiring ONLY a JSON array, Claude occasionally second-guesses its first
-// answer inline ("Wait, let me reconsider...") before restating the real one, which makes the
-// full response invalid JSON. The model's actual answer is always the last array in the text, so
-// fall back to parsing that instead of rejecting an otherwise usable response.
 const parseTrailingJsonArray = (text: string): unknown => {
 	const arrayMatches = text.match(/\[[^[\]]*]/g);
 	const lastArray = arrayMatches?.at(-LAST_INDEX_OFFSET);
@@ -90,9 +83,6 @@ const parseRawValue = (raw: unknown): unknown => {
 	}
 };
 
-// Case-sensitive on purpose: "api" still gets flagged for API, but an excerpt that already
-// says "API" is using the canonical name, and a suggestion for it points the wrong way
-// (e.g. "the SLA" -> "the Service level agreement").
 const hasCanonicalName = (excerpt: string, name: string): boolean =>
 	new RegExp(
 		NOT_A_LETTER_OR_DIGIT_BEFORE +

@@ -12,8 +12,6 @@ const toTermText = ({
 	name: string;
 }): string => `${name}: ${definition}`;
 
-// Embedded once here (create/update) and cached on the term row, instead of
-// re-embedding every glossary term on every check-consistency call.
 const embedGlossaryTerm = async (term: {
 	definition: string;
 	name: string;

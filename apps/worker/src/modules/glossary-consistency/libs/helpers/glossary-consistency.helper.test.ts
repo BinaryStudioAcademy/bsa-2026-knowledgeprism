@@ -18,8 +18,6 @@ const SLA_TERM: GlossaryConsistencyTerm = {
 	name: "SLA",
 };
 
-// Measured with cohere.embed-multilingual-v3, both sides embedded as SEARCH_DOCUMENT
-// (see glossary-consistency-threshold.constant.ts for the full table).
 const MeasuredScore = {
 	API_PARAPHRASE: 0.635,
 	SLA_EXACT_PHRASE: 0.719,
