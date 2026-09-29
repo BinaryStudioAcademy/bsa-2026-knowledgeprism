@@ -1033,8 +1033,26 @@ const untrackDocument = createAppAsyncThunk<null, UntrackDocumentPayload>(
 	},
 );
 
+const cancelDocument = createAppAsyncThunk<null, UntrackDocumentPayload>(
+	`${sliceName}/cancel-document`,
+	async (payload, { dispatch, extra, signal }) => {
+		try {
+			await extra.documentsApi.cancelProcessing({ ...payload, signal });
+		} catch (error) {
+			if (isUnauthorizedError(error)) {
+				throw error;
+			}
+		}
+
+		await dispatch(untrackDocument(payload));
+
+		return null;
+	},
+);
+
 export {
 	applyIntegrationChanges,
+	cancelDocument,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchIntegrationChanges,
