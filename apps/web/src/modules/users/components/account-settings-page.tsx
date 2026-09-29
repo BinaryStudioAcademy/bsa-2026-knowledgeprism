@@ -1,4 +1,7 @@
-import { type ProjectAssignmentDto } from "@knowledgeprism/types";
+import {
+	type ProjectAssignmentDto,
+	type UserDetailsResponseDto,
+} from "@knowledgeprism/types";
 
 import {
 	Heading,
@@ -23,12 +26,25 @@ import { UserForm } from "./user-form/user-form.js";
 
 type AccountSettingsFormValues = {
 	assignedProjects: ProjectAssignmentDto[];
+	confirmPassword?: string;
 	email: string;
 	firstName: string;
 	isActive?: boolean;
 	lastName: string;
 	password?: string;
 };
+
+const getFormValues = (
+	user: UserDetailsResponseDto,
+): AccountSettingsFormValues => ({
+	assignedProjects: user.assignedProjects,
+	confirmPassword: "",
+	email: user.email,
+	firstName: user.firstName ?? "",
+	isActive: user.status === "active",
+	lastName: user.lastName ?? "",
+	password: "",
+});
 
 const AccountSettingsPage: React.FC = () => {
 	const dispatch = useAppDispatch();
@@ -49,10 +65,11 @@ const AccountSettingsPage: React.FC = () => {
 		void dispatch(projectsActions.loadAllProjects());
 	}, [dispatch, currentUserId]);
 
-	const { control, handleSubmit, reset } =
+	const { control, handleSubmit, isDirty, reset } =
 		useAppForm<AccountSettingsFormValues>({
 			defaultValues: {
 				assignedProjects: [],
+				confirmPassword: "",
 				email: "",
 				firstName: "",
 				isActive: true,
@@ -64,14 +81,7 @@ const AccountSettingsPage: React.FC = () => {
 
 	useEffect(() => {
 		if (selectedUser) {
-			reset({
-				assignedProjects: selectedUser.assignedProjects,
-				email: selectedUser.email,
-				firstName: selectedUser.firstName ?? "",
-				isActive: selectedUser.status === "active",
-				lastName: selectedUser.lastName ?? "",
-				password: "",
-			});
+			reset(getFormValues(selectedUser));
 		}
 	}, [selectedUser, reset]);
 
@@ -92,9 +102,12 @@ const AccountSettingsPage: React.FC = () => {
 				}),
 			)
 				.unwrap()
+				.then((updatedUser) => {
+					reset(getFormValues(updatedUser));
+				})
 				.catch(() => {});
 		},
-		[dispatch, currentUserId],
+		[dispatch, currentUserId, reset],
 	);
 
 	const handleFormSubmit = useCallback(
@@ -129,6 +142,7 @@ const AccountSettingsPage: React.FC = () => {
 						control={control}
 						isEditMode={true}
 						isReadOnly={true}
+						isSubmitDisabled={!isDirty}
 						onCancel={handleCancel}
 						onSubmit={handleFormSubmit}
 					/>
