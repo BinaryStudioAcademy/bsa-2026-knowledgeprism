@@ -1178,6 +1178,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					isEditMode={isEditMode && canEditSelectedNode}
 					isInteractionDisabled={isApplying}
 					isTitleEmpty={isTitleEmpty}
+					key={selectedNode?.id}
 					onContentChange={handleSectionContentChange}
 					onPageTitleChange={handlePageTitleChange}
 					onRejectItem={handleRejectItem}
