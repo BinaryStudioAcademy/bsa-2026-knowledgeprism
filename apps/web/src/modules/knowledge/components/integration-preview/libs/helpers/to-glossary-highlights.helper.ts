@@ -6,8 +6,6 @@ import { type TextHighlight } from "~/components/knowledge-editor/libs/types/typ
 const toGlossaryHighlightId = (match: GlossaryConsistencyMatchDto): string =>
 	`${match.matchedTermId.toString()}:${match.sourceExcerpt}`;
 
-// Maps glossary consistency matches to inline text highlights for KnowledgeEditor. The id
-// is looked up against `glossaryMatches` when the tooltip's Accept/Keep/Edit buttons fire.
 const toGlossaryHighlights = (
 	matches: readonly GlossaryConsistencyMatchDto[],
 ): TextHighlight[] =>
