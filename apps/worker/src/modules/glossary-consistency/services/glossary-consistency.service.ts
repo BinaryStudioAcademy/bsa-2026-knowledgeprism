@@ -2,6 +2,7 @@ import { EmbeddingInputType } from "../../embeddings/libs/constants/embedding-in
 import { type EmbeddingCandidate } from "../../embeddings/libs/types/types.js";
 import { embed, search } from "../../embeddings/services/embedding.service.js";
 import { filterRelevantTerms } from "../libs/helpers/filter-relevant-terms.helper.js";
+import { findSpelledOutTerms } from "../libs/helpers/find-spelled-out-terms.helper.js";
 import { invokeConsistencyCheck } from "../libs/helpers/invoke-consistency-check.helper.js";
 import { mapConsistencyOutput } from "../libs/helpers/map-consistency-output.helper.js";
 import { splitIntoSentences } from "../libs/helpers/split-into-sentences.helper.js";
@@ -67,7 +68,13 @@ const checkGlossaryConsistency = async ({
 	}
 
 	const candidates = toTermCandidates(terms);
-	const relevantTerms = await findRelevantTerms(content, candidates);
+	const relevantTermsById = new Map(
+		[
+			...findSpelledOutTerms(content, terms),
+			...(await findRelevantTerms(content, candidates)),
+		].map((term) => [term.id, term]),
+	);
+	const relevantTerms = relevantTermsById.values().toArray();
 
 	if (relevantTerms.length === EMPTY_COUNT) {
 		return [];

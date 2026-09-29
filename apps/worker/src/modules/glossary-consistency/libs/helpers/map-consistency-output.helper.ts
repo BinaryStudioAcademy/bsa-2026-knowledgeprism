@@ -4,6 +4,9 @@ import {
 } from "../types/types.js";
 
 const LAST_INDEX_OFFSET = 1;
+const REGEX_SPECIAL_CHARACTERS = /[$()*+.?[\\\]^{|}]/gu;
+const NOT_A_LETTER_OR_DIGIT_BEFORE = String.raw`(?<![\p{L}\p{N}])`;
+const NOT_A_LETTER_OR_DIGIT_AFTER = String.raw`(?![\p{L}\p{N}])`;
 
 type RawConsistencyMatch = {
 	explanation: string;
@@ -87,6 +90,17 @@ const parseRawValue = (raw: unknown): unknown => {
 	}
 };
 
+// Case-sensitive on purpose: "api" still gets flagged for API, but an excerpt that already
+// says "API" is using the canonical name, and a suggestion for it points the wrong way
+// (e.g. "the SLA" -> "the Service level agreement").
+const hasCanonicalName = (excerpt: string, name: string): boolean =>
+	new RegExp(
+		NOT_A_LETTER_OR_DIGIT_BEFORE +
+			name.replaceAll(REGEX_SPECIAL_CHARACTERS, String.raw`\$&`) +
+			NOT_A_LETTER_OR_DIGIT_AFTER,
+		"u",
+	).test(excerpt);
+
 const toMatch = (
 	raw: RawConsistencyMatch,
 	content: string,
@@ -94,7 +108,11 @@ const toMatch = (
 ): GlossaryConsistencyMatch | null => {
 	const term = termsById.get(toTermId(raw.termId));
 
-	if (!term || !content.includes(raw.sourceExcerpt)) {
+	if (
+		!term ||
+		!content.includes(raw.sourceExcerpt) ||
+		hasCanonicalName(raw.sourceExcerpt, term.name)
+	) {
 		return null;
 	}
 

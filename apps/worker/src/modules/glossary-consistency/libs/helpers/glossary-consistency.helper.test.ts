@@ -122,6 +122,46 @@ void describe("mapConsistencyOutput", () => {
 		assert.deepEqual(mapConsistencyOutput(raw, content, [API_TERM]), []);
 	});
 
+	void it("drops a suggestion for text that already uses the canonical name", () => {
+		const raw = JSON.stringify([
+			{
+				explanation: "Backwards suggestion.",
+				sourceExcerpt: "call the API",
+				suggestedText: "call the application programming interface",
+				termId: 1,
+			},
+		]);
+
+		assert.deepEqual(
+			mapConsistencyOutput(raw, "Partners call the API daily.", [API_TERM]),
+			[],
+		);
+	});
+
+	void it("keeps a suggestion when the name only appears in a different case", () => {
+		const raw = JSON.stringify([
+			{
+				explanation: "Lowercase variant of the canonical name.",
+				sourceExcerpt: "the api",
+				suggestedText: "the API",
+				termId: 1,
+			},
+		]);
+
+		assert.deepEqual(
+			mapConsistencyOutput(raw, "Partners call the api daily.", [API_TERM]),
+			[
+				{
+					canonicalName: "API",
+					explanation: "Lowercase variant of the canonical name.",
+					matchedTermId: 1,
+					sourceExcerpt: "the api",
+					suggestedText: "the API",
+				},
+			],
+		);
+	});
+
 	void it("returns an empty array for an empty response", () => {
 		assert.deepEqual(mapConsistencyOutput("[]", content, [API_TERM]), []);
 	});
