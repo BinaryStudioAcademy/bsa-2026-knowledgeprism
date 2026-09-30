@@ -2,6 +2,7 @@ import { type UserSignUpResponseDto } from "@knowledgeprism/types";
 import { createSlice } from "@reduxjs/toolkit";
 
 import { DataStatus } from "~/lib/enums/enums.js";
+import { StorageKey } from "~/lib/storage/storage.js";
 import { type ValueOf } from "~/lib/types/types.js";
 import { updateUser } from "~/modules/users/state/actions.js";
 
@@ -14,10 +15,18 @@ type State = {
 	user: null | UserSignUpResponseDto;
 };
 
+let isProbablyLoggedIn = false;
+
+try {
+	isProbablyLoggedIn = Boolean(localStorage.getItem(StorageKey.LOGGED_IN_HINT));
+} catch {
+	// Ignore
+}
+
 const initialState: State = {
 	dataStatus: DataStatus.IDLE,
 	error: null,
-	isInitialized: false,
+	isInitialized: !isProbablyLoggedIn,
 	user: null,
 };
 
