@@ -256,9 +256,7 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 				{pendingReviewDocuments.length > EMPTY_LENGTH && (
 					<div className="flex max-h-24 shrink-0 flex-wrap overflow-y-auto items-center gap-2 border-b border-border bg-surface px-4 py-2 text-sm">
 						<span className="text-text-muted">Also waiting for review:</span>
-						{Array.from({ length: 12 }, () => pendingReviewDocuments)
-							.flat()
-							.map((document) => (
+						{pendingReviewDocuments.map((document) => (
 								<button
 									className="cursor-pointer disabled:cursor-not-allowed rounded-md border border-border px-2 py-1 text-text hover:bg-secondary"
 									data-document-id={document.documentId}
