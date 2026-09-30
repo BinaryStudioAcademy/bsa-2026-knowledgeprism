@@ -262,10 +262,17 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 			.query()
 			.patch({ processingProgress: progress })
 			.where({ id, processingAttempt, status })
-			.whereRaw(
-				"(processing_progress IS NULL OR processing_progress->>'phase' = ? OR processing_progress->>'phase' = ?)",
-				[progress.phase, DocumentProcessingPhase.READING],
-			)
+			.where((query) => {
+				query
+					.whereNull("processingProgress")
+					.orWhereJsonPath("processingProgress", "$.phase", "=", progress.phase)
+					.orWhereJsonPath(
+						"processingProgress",
+						"$.phase",
+						"=",
+						DocumentProcessingPhase.READING,
+					);
+			})
 			.whereRaw(
 				"COALESCE((processing_progress->>'processedUnits')::integer, 0) <= ?",
 				[progress.processedUnits],
