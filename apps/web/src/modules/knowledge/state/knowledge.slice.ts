@@ -51,6 +51,7 @@ const initialState: State = {
 	activeDocumentStatus: IDLE_DOCUMENT_STATUS,
 	activeDocumentSwitchRequestId: null,
 	entryRequestId: null,
+	extractionFailedPageNumbers: [],
 	extractionItems: [],
 	extractionItemsDocumentId: null,
 	integrationPreviewDocumentId: null,
@@ -195,6 +196,7 @@ const reconcileActiveDocument = (state: State): void => {
 
 	if (nextActiveId !== state.activeDocumentId) {
 		state.activeDocumentId = nextActiveId;
+		state.extractionFailedPageNumbers = [];
 		state.extractionItems = [];
 		state.extractionItemsDocumentId = null;
 	}
@@ -202,6 +204,7 @@ const reconcileActiveDocument = (state: State): void => {
 	state.activeDocumentStatus = nextActive?.status ?? IDLE_DOCUMENT_STATUS;
 
 	if (state.activeDocumentStatus !== DocumentStatus.WAITING_FOR_VALIDATION) {
+		state.extractionFailedPageNumbers = [];
 		state.extractionItems = [];
 		state.extractionItemsDocumentId = null;
 	}
@@ -240,6 +243,7 @@ const removeTrackedDocument = (state: State, documentId: number): void => {
 	);
 
 	if (state.extractionItemsDocumentId === documentId) {
+		state.extractionFailedPageNumbers = [];
 		state.extractionItems = [];
 		state.extractionItemsDocumentId = null;
 	}
@@ -589,6 +593,7 @@ const { actions, name, reducer } = createSlice({
 			}
 
 			clearDocumentPipelineError(state, action.meta.arg.documentId);
+			state.extractionFailedPageNumbers = [];
 			state.extractionItems = [];
 			state.extractionItemsDocumentId = null;
 		});
@@ -603,6 +608,7 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
+			state.extractionFailedPageNumbers = action.payload.failedPageNumbers;
 			state.extractionItems = action.payload.items;
 			state.extractionItemsDocumentId = action.meta.arg.documentId;
 			clearDocumentPipelineError(state, action.meta.arg.documentId);
@@ -856,6 +862,7 @@ const { actions, name, reducer } = createSlice({
 			action: PayloadAction<
 				PipelineSessionScope & {
 					documentId: number;
+					extractionFailedPageNumbers: KnowledgeState["extractionFailedPageNumbers"];
 					extractionItems: KnowledgeState["extractionItems"];
 					status:
 						| typeof DocumentStatus.WAITING_FOR_APPROVAL
@@ -864,8 +871,13 @@ const { actions, name, reducer } = createSlice({
 				}
 			>,
 		) {
-			const { documentId, extractionItems, status, switchRequestId } =
-				action.payload;
+			const {
+				documentId,
+				extractionFailedPageNumbers,
+				extractionItems,
+				status,
+				switchRequestId,
+			} = action.payload;
 
 			if (
 				!isCurrentPipelineSession(state, action.payload) ||
@@ -878,6 +890,7 @@ const { actions, name, reducer } = createSlice({
 			upsertTrackedDocumentStatus(state, documentId, status);
 			state.activeDocumentId = documentId;
 			state.activeDocumentStatus = status;
+			state.extractionFailedPageNumbers = extractionFailedPageNumbers;
 			state.extractionItems = extractionItems;
 			state.extractionItemsDocumentId =
 				status === DocumentStatus.WAITING_FOR_VALIDATION ? documentId : null;
@@ -1016,6 +1029,7 @@ const { actions, name, reducer } = createSlice({
 			state.activeDocumentStatus = IDLE_DOCUMENT_STATUS;
 			state.activeDocumentSwitchRequestId = null;
 			state.entryRequestId = null;
+			state.extractionFailedPageNumbers = [];
 			state.extractionItems = [];
 			state.extractionItemsDocumentId = null;
 			state.integrationPreviewDocumentId = null;

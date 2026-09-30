@@ -448,13 +448,14 @@ class DocumentReviewService {
 			reference.projectId,
 			reference.context,
 		);
-		await this.findProjectDocument(reference);
+		const document = await this.findProjectDocument(reference);
 
 		const items = await this.extractionItemRepository.findByDocumentId(
 			reference.documentId,
 		);
 
 		return {
+			failedPageNumbers: document.toObject().failedPageNumbers,
 			items: items.map((item) => toExtractionItemResponse(item)),
 		};
 	}

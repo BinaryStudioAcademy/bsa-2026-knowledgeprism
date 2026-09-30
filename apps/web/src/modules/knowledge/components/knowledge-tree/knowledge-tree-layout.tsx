@@ -40,6 +40,7 @@ import { KnowledgeTreeSidebar } from "./knowledge-tree-sidebar.js";
 type PreviewLayerProperties = {
 	activeDocumentId: null | number;
 	activeDocumentStatus: KnowledgeState["activeDocumentStatus"];
+	extractionFailedPageNumbers: number[];
 	extractionStructure: ProposedSection[];
 	isAddModalOpen: boolean;
 	isExtractionValidationPreview: boolean;
@@ -188,6 +189,7 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	activeDocumentId,
 	activeDocumentStatus,
+	extractionFailedPageNumbers,
 	extractionStructure,
 	isAddModalOpen,
 	isExtractionValidationPreview,
@@ -221,6 +223,7 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	const previewContent = isExtractionValidationPreview ? (
 		<IntegrationPreview
 			errorMessage={pipelineErrorMessage}
+			failedPageNumbers={extractionFailedPageNumbers}
 			key={`extraction-${String(activeDocumentId)}-${String(extractionStructure.length)}`}
 			onAddMore={onAddMore}
 			onApplyingChange={onApplyingChange}
@@ -284,6 +287,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	const {
 		activeDocumentId,
 		activeDocumentStatus,
+		extractionFailedPageNumbers,
 		extractionItems,
 		extractionItemsDocumentId,
 		isAddingKnowledge,
@@ -628,6 +632,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			<KnowledgeTreePreviewLayer
 				activeDocumentId={activeDocumentId}
 				activeDocumentStatus={activeDocumentStatus}
+				extractionFailedPageNumbers={extractionFailedPageNumbers}
 				extractionStructure={mappedExtractionStructure}
 				isAddModalOpen={isAddModalOpen}
 				isExtractionValidationPreview={isExtractionValidationPreview}

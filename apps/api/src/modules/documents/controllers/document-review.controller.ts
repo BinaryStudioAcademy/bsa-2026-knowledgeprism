@@ -265,7 +265,7 @@ class DocumentReviewController extends BaseController {
 	 *            type: integer
 	 *      responses:
 	 *        200:
-	 *          description: Extraction items
+	 *          description: Extraction items, and the page numbers whose extraction failed (items from them may be missing)
 	 *        403:
 	 *          description: User is not a member of the project
 	 *        404:

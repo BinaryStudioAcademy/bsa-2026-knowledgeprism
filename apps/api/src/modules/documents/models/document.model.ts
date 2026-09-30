@@ -16,6 +16,8 @@ class DocumentModel extends AbstractModel {
 
 	public errorMessage!: null | string;
 
+	public failedPageNumbers!: number[];
+
 	public mimeType!: string;
 
 	public name!: string;

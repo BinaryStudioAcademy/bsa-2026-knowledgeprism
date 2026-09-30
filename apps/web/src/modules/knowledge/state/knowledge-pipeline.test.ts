@@ -51,6 +51,7 @@ const KNOWLEDGE_ENTRY_B_ID = 2;
 const POLL_RETRY_DELAY_MS = 30_000;
 const SINGLE_CALL_COUNT = 1;
 const TWO_CALL_COUNT = 2;
+const FAILED_PAGE_NUMBER = 16;
 
 const createStatusResponse = (
 	documentId: number,
@@ -758,13 +759,82 @@ describe("knowledge pipeline lifecycle", () => {
 			store.instance.getState().knowledge.extractionItemsDocumentId,
 		).toBeNull();
 
-		deferred.resolve({ items: [] });
+		deferred.resolve({ failedPageNumbers: [], items: [] });
 		const result = await resuming.unwrap();
 
 		expect(result.openPreview).toBe(true);
 		expect(store.instance.getState().knowledge.extractionItemsDocumentId).toBe(
 			DOCUMENT_A_ID,
 		);
+	});
+
+	it("keeps incomplete-page warnings scoped to the active document", async () => {
+		trackDocumentWithStatus(
+			DOCUMENT_A_ID,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		);
+		trackDocumentWithStatus(
+			DOCUMENT_B_ID,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		);
+		const requestA = createRequest(DOCUMENT_A_ID);
+		store.instance.dispatch(
+			fetchExtractionItems.fulfilled(
+				{ failedPageNumbers: [FAILED_PAGE_NUMBER], items: [] },
+				"extraction-a",
+				requestA,
+			),
+		);
+		expect(
+			store.instance.getState().knowledge.extractionFailedPageNumbers,
+		).toEqual([FAILED_PAGE_NUMBER]);
+
+		vi.spyOn(documentsApi, "getDocumentStatus").mockResolvedValue(
+			createStatusResponse(
+				DOCUMENT_B_ID,
+				DocumentStatus.WAITING_FOR_VALIDATION,
+			),
+		);
+		vi.spyOn(documentsApi, "getExtractionItems").mockResolvedValue({
+			failedPageNumbers: [],
+			items: [],
+		});
+		await store.instance
+			.dispatch(switchActiveDocument(createRequest(DOCUMENT_B_ID)))
+			.unwrap();
+		store.instance.dispatch(
+			fetchExtractionItems.fulfilled(
+				{ failedPageNumbers: [FAILED_PAGE_NUMBER], items: [] },
+				"stale-extraction-a",
+				requestA,
+			),
+		);
+
+		expect(store.instance.getState().knowledge.activeDocumentId).toBe(
+			DOCUMENT_B_ID,
+		);
+		expect(
+			store.instance.getState().knowledge.extractionFailedPageNumbers,
+		).toEqual([]);
+	});
+
+	it("clears incomplete-page warnings when changing projects and ignores stale responses", () => {
+		trackDocumentWithStatus(
+			DOCUMENT_A_ID,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		);
+		const request = createRequest(DOCUMENT_A_ID);
+		const response = { failedPageNumbers: [FAILED_PAGE_NUMBER], items: [] };
+		store.instance.dispatch(
+			fetchExtractionItems.fulfilled(response, "extraction", request),
+		);
+		store.instance.dispatch(actions.resetState(SECOND_PROJECT_ID));
+		store.instance.dispatch(
+			fetchExtractionItems.fulfilled(response, "stale-extraction", request),
+		);
+		expect(
+			store.instance.getState().knowledge.extractionFailedPageNumbers,
+		).toEqual([]);
 	});
 
 	it("invalidates extraction readiness when the document advances", () => {
@@ -774,7 +844,11 @@ describe("knowledge pipeline lifecycle", () => {
 		);
 		const request = createRequest(DOCUMENT_A_ID);
 		store.instance.dispatch(
-			fetchExtractionItems.fulfilled({ items: [] }, "extraction", request),
+			fetchExtractionItems.fulfilled(
+				{ failedPageNumbers: [FAILED_PAGE_NUMBER], items: [] },
+				"extraction",
+				request,
+			),
 		);
 		expect(store.instance.getState().knowledge.extractionItemsDocumentId).toBe(
 			DOCUMENT_A_ID,
@@ -790,6 +864,9 @@ describe("knowledge pipeline lifecycle", () => {
 		expect(
 			store.instance.getState().knowledge.extractionItemsDocumentId,
 		).toBeNull();
+		expect(
+			store.instance.getState().knowledge.extractionFailedPageNumbers,
+		).toEqual([]);
 	});
 
 	it("resyncs an outdated integration apply to INTEGRATING", async () => {

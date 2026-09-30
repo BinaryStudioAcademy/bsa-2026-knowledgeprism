@@ -43,7 +43,9 @@ type TransactionContext = {
 	releaseLock?: () => void;
 };
 
-const createTestSetup = (): {
+const createTestSetup = (
+	failedPageNumbers: number[] = [],
+): {
 	getFindCalls: () => FindCallOptions[];
 	getItems: () => ExtractionItemEntity[];
 	service: DocumentReviewService;
@@ -106,6 +108,7 @@ const createTestSetup = (): {
 					contentHash: "hash",
 					createdAt: new Date(),
 					errorMessage: null,
+					failedPageNumbers,
 					id: DOCUMENT_ID,
 					mimeType: "application/pdf",
 					name: "sample.pdf",
@@ -146,6 +149,7 @@ const createTestSetup = (): {
 				contentHash: "hash",
 				createdAt: new Date(),
 				errorMessage: null,
+				failedPageNumbers,
 				id: DOCUMENT_ID,
 				mimeType: "application/pdf",
 				name: "sample.pdf",
@@ -175,6 +179,7 @@ const createTestSetup = (): {
 					contentHash: "hash",
 					createdAt: new Date(),
 					errorMessage: null,
+					failedPageNumbers,
 					id: DOCUMENT_ID,
 					mimeType: "application/pdf",
 					name: "sample.pdf",
@@ -293,6 +298,17 @@ const createTestSetup = (): {
 };
 
 void describe("DocumentReviewService Concurrency", () => {
+	void it("returns persisted incomplete pages alongside extraction items", async () => {
+		const { service } = createTestSetup([PAGE_NUMBER]);
+		const result = await service.findItems({
+			context: { organisationId: ORGANISATION_ID, userId: USER_ID },
+			documentId: DOCUMENT_ID,
+			projectId: PROJECT_ID,
+		});
+		assert.deepEqual(result.failedPageNumbers, [PAGE_NUMBER]);
+		assert.ok(result.items.some((item) => item.id === ITEM_ID));
+	});
+
 	void it("uses edited content when edit finishes before review", async () => {
 		const { getFindCalls, getItems, service } = createTestSetup();
 
