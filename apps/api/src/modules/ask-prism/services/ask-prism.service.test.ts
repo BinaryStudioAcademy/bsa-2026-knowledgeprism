@@ -233,6 +233,26 @@ void describe("AskPrismService.getSuggestedQuestions", () => {
 		assert.deepStrictEqual(questions, [...DEFAULT_SUGGESTED_QUESTIONS]);
 	});
 
+	void it("excludes nodes with missing or empty title from suggestions", async () => {
+		const nodeWithoutTitle = KnowledgeNodeEntity.initialize({
+			contentJson: [{ content: "Some content", type: "paragraph" }],
+			createdAt: new Date(),
+			id: NODE_ID_ONE,
+			parentId: null,
+			position: POSITION_ONE,
+			projectId: PROJECT_ID,
+			title: null as unknown as string,
+			type: KnowledgeNodeType.ENTRY,
+			updatedAt: new Date(),
+		});
+
+		const { service } = createTestSetup([nodeWithoutTitle]);
+
+		const questions = await service.getSuggestedQuestions(PROJECT_ID, CONTEXT);
+
+		assert.deepStrictEqual(questions, [...DEFAULT_SUGGESTED_QUESTIONS]);
+	});
+
 	void it("formats action statement clauses with how and inserts missing article for suggested questions", async () => {
 		const entryNodeOne = KnowledgeNodeEntity.initialize({
 			contentJson: [

@@ -68,7 +68,7 @@ class AskPrismService {
 			return false;
 		}
 
-		if (FILE_EXTENSION_PATTERN.test(nodeObject.title)) {
+		if (!nodeObject.title || FILE_EXTENSION_PATTERN.test(nodeObject.title)) {
 			return false;
 		}
 
