@@ -8,6 +8,18 @@ type OrganisationRoleValue = ValueOf<typeof OrganisationRole>;
 
 const ID_REQUIRED_MESSAGE = "User id is required";
 
+const toUpdatedAt = (value: Date | string | undefined): Date => {
+	if (value instanceof Date) {
+		return value;
+	}
+
+	if (value) {
+		return new Date(value);
+	}
+
+	return new Date();
+};
+
 class UserEntity implements Entity {
 	private assignedProjects: ProjectAssignmentDto[];
 
@@ -27,6 +39,8 @@ class UserEntity implements Entity {
 
 	private status: "active" | "inactive";
 
+	private updatedAt: Date;
+
 	private constructor({
 		assignedProjects,
 		email,
@@ -37,6 +51,7 @@ class UserEntity implements Entity {
 		organisationRole,
 		passwordHash,
 		status,
+		updatedAt,
 	}: {
 		assignedProjects?: ProjectAssignmentDto[];
 		email: string;
@@ -47,6 +62,7 @@ class UserEntity implements Entity {
 		organisationRole: null | OrganisationRoleValue;
 		passwordHash: string;
 		status: "active" | "inactive";
+		updatedAt?: Date | string;
 	}) {
 		this.assignedProjects = assignedProjects ?? [];
 		this.email = email;
@@ -57,6 +73,7 @@ class UserEntity implements Entity {
 		this.organisationRole = organisationRole;
 		this.passwordHash = passwordHash;
 		this.status = status;
+		this.updatedAt = toUpdatedAt(updatedAt);
 	}
 
 	public static initialize({
@@ -69,6 +86,7 @@ class UserEntity implements Entity {
 		organisationRole,
 		passwordHash,
 		status,
+		updatedAt,
 	}: {
 		assignedProjects?: ProjectAssignmentDto[];
 		email: string;
@@ -79,9 +97,11 @@ class UserEntity implements Entity {
 		organisationRole: null | OrganisationRoleValue;
 		passwordHash: string;
 		status: "active" | "inactive";
+		updatedAt?: Date | string;
 	}): UserEntity {
 		return new UserEntity({
 			...(assignedProjects && { assignedProjects }),
+			...(updatedAt && { updatedAt }),
 			email,
 			firstName,
 			id,
@@ -131,6 +151,14 @@ class UserEntity implements Entity {
 		}
 
 		return this.id;
+	}
+
+	public getOrganisationRole(): null | OrganisationRoleValue {
+		return this.organisationRole;
+	}
+
+	public getUpdatedAt(): Date {
+		return this.updatedAt;
 	}
 
 	public isOrganisationAdmin(): boolean {

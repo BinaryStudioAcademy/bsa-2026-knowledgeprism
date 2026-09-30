@@ -12,6 +12,10 @@ import {
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
+import {
+	buildUserManagementPath,
+	resolveSelectedProjectId,
+} from "~/modules/users/libs/helpers/user-management-project.helper.js";
 
 interface WorkspaceHeaderProperties {
 	avatarUrl?: null | string;
@@ -27,6 +31,9 @@ interface WorkspaceHeaderProperties {
 
 const ACCOUNT_MENU_ITEM_CLASS =
 	"w-full min-h-11 cursor-pointer rounded-md px-3 py-3 text-left text-sm font-medium transition-colors focus:outline-none sm:min-h-0 sm:py-2 sm:text-xs" as const;
+const ACCOUNT_SETTINGS_LABEL = "Account settings";
+const ORGANISATION_USERS_MENU_LABEL = "Organisation users";
+const SETTINGS_LABEL = "Settings";
 const FIRST_CHARACTER_INDEX = 0;
 const EMPTY_LENGTH = 0;
 
@@ -54,8 +61,13 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	organizationName,
 }) => {
 	const { hideModal, isOpen, showModal } = useModal();
-	const { pathname } = useLocation();
+	const { pathname, search } = useLocation();
 	const projectId = useOptionalCurrentProjectId();
+	const selectedProjectId = resolveSelectedProjectId({
+		fallbackProjectId: projectId ?? null,
+		pathname,
+		search,
+	});
 	const canWriteKnowledge = useCanWriteKnowledge();
 	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 	const { projects } = useAppSelector(({ workspaces }) => workspaces);
@@ -109,7 +121,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 			return;
 		}
 
-		void navigate(AppRoute.USERS);
+		void navigate(buildUserManagementPath(null));
 	}, [navigate, onOpenUserManagement, setIsDropdownOpen]);
 
 	const toggleDropdown = useCallback((): void => {
@@ -247,7 +259,9 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 													onClick={handleOpenSettings}
 													type="button"
 												>
-													Settings
+													{selectedProjectId === null
+														? ACCOUNT_SETTINGS_LABEL
+														: SETTINGS_LABEL}
 												</button>
 
 												{isAdmin && (
@@ -259,7 +273,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 														onClick={handleOpenUserManagement}
 														type="button"
 													>
-														User Management
+														{ORGANISATION_USERS_MENU_LABEL}
 													</button>
 												)}
 

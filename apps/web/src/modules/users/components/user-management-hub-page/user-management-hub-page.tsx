@@ -4,6 +4,7 @@ import {
 	Avatar,
 	Button,
 	Heading,
+	Icon,
 	Loader,
 	Paragraph,
 	ParagraphSize,
@@ -13,17 +14,35 @@ import {
 	useAppSelector,
 	useCallback,
 	useEffect,
+	useLocation,
 	useNavigate,
+	useState,
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
+import { UsernameSearchInput } from "~/modules/users/components/user-name-search-input/user-name-search-input.js";
+import { getUserManagementCopy } from "~/modules/users/libs/constants/user-management-copy.constant.js";
+import { UsernameSearchCopy } from "~/modules/users/libs/constants/user-name-search.constant.js";
+import { isMatchingUsernameQuery } from "~/modules/users/libs/helpers/is-matching-username-query.helper.js";
+import { selectManagedUsers } from "~/modules/users/libs/helpers/select-managed-users.helper.js";
+import {
+	buildUserCreationPath,
+	getUserManagementProjectId,
+} from "~/modules/users/libs/helpers/user-management-project.helper.js";
 import { actions as userActions } from "~/modules/users/users.js";
 import { fetchProjects } from "~/modules/workspaces/state/workspaces.slice.js";
 import { workspacesApi } from "~/modules/workspaces/workspaces.js";
 
 const EMPTY_LENGTH = 0;
+const GO_BACK_CHEVRON_SIZE = 10;
 const UserManagementHubPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
+	const { search } = useLocation();
+	const selectedProjectId = getUserManagementProjectId(search);
+	const pageCopy = getUserManagementCopy(selectedProjectId !== null);
+	const [nameQuery, setNameQuery] = useState("");
+	const [hasRequestedProjects, setHasRequestedProjects] = useState(false);
+	const isOrganisationUserManagement = selectedProjectId === null;
 
 	const currentUser = useAppSelector(({ auth }) => auth.user);
 	const dataStatus = useAppSelector(({ users }) => users.dataStatus);
@@ -40,13 +59,44 @@ const UserManagementHubPage: React.FC = () => {
 	}, [dispatch]);
 
 	useEffect(() => {
-		if (projects.length === EMPTY_LENGTH) {
-			void dispatch(fetchProjects(workspacesApi));
+		if (projects.length > EMPTY_LENGTH) {
+			return;
 		}
+
+		setHasRequestedProjects(true);
+		void dispatch(fetchProjects(workspacesApi));
 	}, [dispatch, projects.length]);
 
+	const isProjectCatalogKnown =
+		projects.length > EMPTY_LENGTH ||
+		(hasRequestedProjects && !isProjectsLoading && !projectsError);
+	const managedProjectIds = isProjectCatalogKnown
+		? new Set(projects.map((project) => project.id))
+		: null;
+	const scopedUsers = selectManagedUsers(users, {
+		currentUserId: currentUser?.user.id ?? null,
+		isCurrentUserOrganisationAdmin:
+			currentUser?.user.organisationRole === OrganisationRole.ADMIN,
+		projectIds: managedProjectIds,
+		selectedProjectId,
+	});
+	const visibleUsers = isOrganisationUserManagement
+		? scopedUsers.filter((user) => {
+				return isMatchingUsernameQuery(user, nameQuery);
+			})
+		: scopedUsers;
+	const hasNameQuery = nameQuery.trim().length > EMPTY_LENGTH;
+	const hasEmptyNameSearch =
+		isOrganisationUserManagement &&
+		hasNameQuery &&
+		visibleUsers.length === EMPTY_LENGTH;
+
 	const handleAddUserClick = useCallback((): void => {
-		void navigate(AppRoute.USERS_NEW);
+		void navigate(buildUserCreationPath(selectedProjectId));
+	}, [navigate, selectedProjectId]);
+
+	const handleGoBack = useCallback((): void => {
+		void navigate(AppRoute.WORKSPACES);
 	}, [navigate]);
 
 	const handleUserClick = useCallback(
@@ -62,13 +112,7 @@ const UserManagementHubPage: React.FC = () => {
 
 	const renderProjectsCount = useCallback(
 		(user: (typeof users)[number]): React.ReactElement => {
-			const isCurrentUserAdmin =
-				currentUser?.user.organisationRole === OrganisationRole.ADMIN;
-			const isUserAdmin =
-				user.id === currentUser?.user.id
-					? isCurrentUserAdmin
-					: (user as { organisationRole?: string }).organisationRole ===
-						OrganisationRole.ADMIN;
+			const isUserAdmin = user.organisationRole === OrganisationRole.ADMIN;
 
 			if (!isUserAdmin) {
 				return <span>{String(user.assignedProjects.length)} Projects</span>;
@@ -84,7 +128,7 @@ const UserManagementHubPage: React.FC = () => {
 
 			return <span>{String(projects.length)} Projects</span>;
 		},
-		[currentUser, isProjectsLoading, projects.length, projectsError],
+		[isProjectsLoading, projects.length, projectsError],
 	);
 
 	return (
@@ -92,20 +136,48 @@ const UserManagementHubPage: React.FC = () => {
 			<div className="flex w-full max-w-5xl flex-col gap-3.5 tablet:gap-4.5 desktop:gap-6">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
-						<Heading level="2">User Management</Heading>
+						{isOrganisationUserManagement && (
+							<button
+								className="mb-1 inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-2xs font-medium text-text-faint transition-colors hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none"
+								onClick={handleGoBack}
+								type="button"
+							>
+								<span className="inline-flex rotate-180">
+									<Icon
+										name="chevron-filled-right"
+										size={GO_BACK_CHEVRON_SIZE}
+									/>
+								</span>
+								Go back
+							</button>
+						)}
+						<Heading level="2">{pageCopy.TITLE}</Heading>
 						<Paragraph
 							className="mt-1.5 hidden text-text-muted desktop:block"
 							size={ParagraphSize.BODY_SMALL}
 						>
-							Manage users and their access levels within the organisation.
+							{pageCopy.SUBTITLE}
 						</Paragraph>
 					</div>
-					<Button onClick={handleAddUserClick}>Add new user</Button>
+					<Button onClick={handleAddUserClick}>{pageCopy.ADD_BUTTON}</Button>
 				</div>
+
+				{isOrganisationUserManagement && (
+					<UsernameSearchInput onChange={setNameQuery} value={nameQuery} />
+				)}
 
 				{dataStatus === DataStatus.PENDING && <Loader />}
 
-				{dataStatus === DataStatus.FULFILLED && (
+				{dataStatus === DataStatus.FULFILLED && hasEmptyNameSearch && (
+					<Paragraph
+						className="text-text-muted"
+						size={ParagraphSize.BODY_SMALL}
+					>
+						{UsernameSearchCopy.EMPTY_RESULTS}
+					</Paragraph>
+				)}
+
+				{dataStatus === DataStatus.FULFILLED && !hasEmptyNameSearch && (
 					<div className="overflow-x-auto rounded-lg border border-border bg-surface">
 						<table className="w-full table-fixed text-left font-sans text-sm">
 							<thead className="border-b border-border bg-bg-subtle text-text-muted">
@@ -120,7 +192,7 @@ const UserManagementHubPage: React.FC = () => {
 								</tr>
 							</thead>
 							<tbody className="divide-y divide-border">
-								{users.map((user) => {
+								{visibleUsers.map((user) => {
 									return (
 										<tr
 											className="cursor-pointer transition-colors hover:bg-bg-subtle"

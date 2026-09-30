@@ -1,6 +1,6 @@
 import { OrganisationRole } from "@knowledgeprism/constants";
 import { useEffect, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 
 import { MobileNav, RouterOutlet, Sidebar } from "~/components/components.js";
 import { Icon } from "~/components/icon/icon.js";
@@ -18,6 +18,10 @@ import {
 } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { useProjectKnowledgePipeline } from "~/modules/knowledge/libs/hooks/use-project-knowledge-pipeline.hook.js";
+import {
+	getUserManagementProjectId,
+	isUserManagementPath,
+} from "~/modules/users/libs/helpers/user-management-project.helper.js";
 import {
 	fetchProjects,
 	workspacesActions,
@@ -59,9 +63,14 @@ const SidebarLayout: React.FC = () => {
 		projectId: effectiveProjectId,
 	});
 
+	const { pathname, search } = useLocation();
 	const hasProjects = projects.length > EMPTY_LENGTH;
 	const isAdmin = user?.user.organisationRole === OrganisationRole.ADMIN;
-	const shouldRenderSidebar = hasProjects || isAdmin;
+	const isOrganisationUserManagement =
+		isUserManagementPath(pathname) &&
+		getUserManagementProjectId(search) === null;
+	const shouldRenderSidebar =
+		(hasProjects || isAdmin) && !isOrganisationUserManagement;
 	const isPhone = shell.mode === "phone";
 	const shouldShowSidebar =
 		shouldRenderSidebar && (!isPhone || shell.isOverlayOpen);
