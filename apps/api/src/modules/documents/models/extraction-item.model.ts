@@ -11,7 +11,11 @@ class ExtractionItemModel extends AbstractModel {
 
 	public documentId!: number;
 
+	public extractionSectionId!: null | number;
+
 	public knowledgeNodeId!: null | number;
+
+	public position!: number;
 
 	public rationale!: string;
 

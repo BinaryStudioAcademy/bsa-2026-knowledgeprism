@@ -5,6 +5,7 @@ import {
 } from "@knowledgeprism/constants";
 import {
 	type ExtractionItemResponseDto,
+	type ExtractionSectionResponseDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
@@ -13,6 +14,8 @@ import {
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { type DocumentProcessingStatus } from "../enums/enums.js";
+
+type ActiveNodeType = "child" | "parent";
 
 type ChangeStatus = "conflict" | "created" | "duplicate" | "modified";
 
@@ -59,6 +62,7 @@ type KnowledgeState = {
 	entryRequestId: null | string;
 	extractionItems: ExtractionItemResponseDto[];
 	extractionItemsDocumentId: null | number;
+	extractionSections: ExtractionSectionResponseDto[];
 	integrationPreviewDocumentId: null | number;
 	integrationPreviewError: null | string;
 	integrationPreviewRequestId: null | string;
@@ -134,6 +138,7 @@ type UploadedDocumentItem = {
 	sizeLabel: string;
 	status: ValueOf<typeof DocumentProcessingStatus>;
 	uploadUrl?: string | undefined;
+	uploadUrlExpiresAt?: number | undefined;
 };
 
 type UploadSession = {
@@ -144,6 +149,7 @@ type UploadSession = {
 
 export { type KnowledgeEntryUpdateRequestDto } from "@knowledgeprism/types";
 export {
+	type ActiveNodeType,
 	type ChangeStatus,
 	type ConflictResolution,
 	type FieldConflict,

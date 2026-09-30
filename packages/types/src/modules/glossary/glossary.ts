@@ -1,4 +1,6 @@
 export {
+	type GlossaryConsistencyCheckRequestDto,
+	type GlossaryConsistencyCheckResponseDto,
 	type GlossaryRelatedTermDto,
 	type GlossaryRouteParametersDto,
 	type GlossarySearchQueryDto,

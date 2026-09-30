@@ -1,87 +1,231 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { type AskPrismResponseDto } from "@knowledgeprism/types";
+import {
+	act,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
+import { type JSX, useEffect } from "react";
 import { Provider } from "react-redux";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { MemoryRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { AppRoute } from "~/lib/enums/enums.js";
 import { store } from "~/lib/store/store.js";
 import { askPrismApi } from "~/modules/ask-prism/ask-prism.js";
+import { DEFAULT_SUGGESTED_QUESTIONS } from "~/modules/ask-prism/libs/constants.js";
+import { actions } from "~/modules/ask-prism/state/state.js";
 
-import { actions as askPrismActions } from "../../state/state.js";
 import { AskPrismView } from "./ask-prism-view.js";
 
-const ASK_REQUEST_COUNT = 1;
-const PROJECT_ID = "7";
-const TEST_TIMEOUT_MILLISECONDS = 15_000;
-const SUGGESTED_QUESTION = "Tell me about authentication";
-const MANUAL_QUESTION = "What is a knowledge node?";
+const PROJECT_ID = "1";
+const PROJECT_TWO_ID = "2";
+const FIRST_QUESTION_INDEX = 0;
 
-const renderAskPrism = (): void => {
+const FIRST_DEFAULT_QUESTION =
+	DEFAULT_SUGGESTED_QUESTIONS[FIRST_QUESTION_INDEX] ?? "";
+
+const CUSTOM_SUGGESTIONS = [
+	"Tell me about Authentication Architecture",
+	"Tell me about Database Schema",
+	"Tell me about API Endpoints",
+];
+
+const MOCK_ANSWER: AskPrismResponseDto = {
+	answer: "Authentication uses JWT tokens for security.",
+	sources: [
+		{
+			excerpt: "Authentication uses JWT tokens",
+			id: 1,
+			nodeId: 1,
+			sectionTitle: "Auth",
+			title: "Authentication",
+		},
+	],
+};
+
+const ProjectRoute = ({ projectId }: { projectId: string }): JSX.Element => {
+	const navigate = useNavigate();
+
+	useEffect(() => {
+		void navigate(`/projects/${projectId}/ask-prism`);
+	}, [navigate, projectId]);
+
+	return (
+		<Routes>
+			<Route element={<AskPrismView />} path="/projects/:projectId/ask-prism" />
+		</Routes>
+	);
+};
+
+const renderAskPrismView = (projectId = PROJECT_ID): void => {
 	render(
 		<Provider store={store.instance}>
-			<MemoryRouter initialEntries={[`/workspaces/${PROJECT_ID}/ask-prism`]}>
-				<Routes>
-					<Route element={<AskPrismView />} path={AppRoute.PROJECT_ASK_PRISM} />
-				</Routes>
+			<MemoryRouter initialEntries={[`/projects/${projectId}/ask-prism`]}>
+				<ProjectRoute projectId={projectId} />
 			</MemoryRouter>
 		</Provider>,
 	);
 };
 
-describe("AskPrismView question input", () => {
-	afterEach(() => {
-		store.instance.dispatch(askPrismActions.reset());
+describe("AskPrismView suggested questions behavior", () => {
+	beforeEach(() => {
+		store.instance.dispatch(actions.reset());
+		vi.spyOn(askPrismApi, "getSuggestedQuestions").mockResolvedValue(
+			CUSTOM_SUGGESTIONS,
+		);
+		vi.spyOn(askPrismApi, "ask").mockResolvedValue(MOCK_ANSWER);
 	});
 
-	it(
-		"sends a suggested question once and leaves the input empty",
-		async () => {
-			vi.spyOn(askPrismApi, "getSuggestedQuestions").mockResolvedValue([
-				SUGGESTED_QUESTION,
-			]);
-			const ask = vi.spyOn(askPrismApi, "ask").mockResolvedValue({
-				answer: "Authentication uses signed tokens.",
-				sources: [],
+	afterEach(() => {
+		store.instance.dispatch(actions.reset());
+		vi.restoreAllMocks();
+	});
+
+	it("clears search input and excludes prompt from suggestions when prompt is clicked", async () => {
+		renderAskPrismView();
+
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", {
+					name: "Tell me about Authentication Architecture",
+				}),
+			).toBeInTheDocument();
+		});
+
+		const promptButton = screen.getByRole("button", {
+			name: "Tell me about Authentication Architecture",
+		});
+		const searchInput = screen.getByPlaceholderText<HTMLInputElement>(
+			"Ask anything about your knowledge base...",
+		);
+
+		act(() => {
+			fireEvent.click(promptButton);
+		});
+
+		expect(searchInput.value).toBe("");
+		expect(
+			screen.queryByRole("button", {
+				name: "Tell me about Authentication Architecture",
+			}),
+		).not.toBeInTheDocument();
+		expect(
+			screen.getByRole("button", {
+				name: "Tell me about Database Schema",
+			}),
+		).toBeInTheDocument();
+	});
+
+	it("clears search input and excludes manually submitted query from suggestions", async () => {
+		renderAskPrismView();
+
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", {
+					name: "Tell me about Database Schema",
+				}),
+			).toBeInTheDocument();
+		});
+
+		const searchInput = screen.getByPlaceholderText<HTMLInputElement>(
+			"Ask anything about your knowledge base...",
+		);
+
+		act(() => {
+			fireEvent.change(searchInput, {
+				target: { value: "Tell me about Database Schema" },
 			});
+			fireEvent.keyDown(searchInput, { key: "Enter" });
+		});
 
-			renderAskPrism();
+		expect(searchInput.value).toBe("");
+		expect(
+			screen.queryByRole("button", {
+				name: "Tell me about Database Schema",
+			}),
+		).not.toBeInTheDocument();
+	});
 
-			const suggestion = await screen.findByRole("button", {
-				name: SUGGESTED_QUESTION,
-			});
-			fireEvent.click(suggestion);
+	it("falls back to unasked default questions when all custom suggestions are asked", async () => {
+		renderAskPrismView();
 
-			expect(screen.getByRole("textbox")).toHaveValue("");
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", {
+					name: "Tell me about Authentication Architecture",
+				}),
+			).toBeInTheDocument();
+		});
+
+		for (const prompt of CUSTOM_SUGGESTIONS) {
+			const button = await screen.findByRole("button", { name: prompt });
 			await waitFor(() => {
-				expect(ask).toHaveBeenCalledTimes(ASK_REQUEST_COUNT);
+				expect(button).toBeEnabled();
 			});
-			expect(ask).toHaveBeenCalledWith(Number(PROJECT_ID), {
-				query: SUGGESTED_QUESTION,
+			act(() => {
+				fireEvent.click(button);
 			});
-		},
-		TEST_TIMEOUT_MILLISECONDS,
-	);
-
-	it(
-		"clears a typed question after it is sent",
-		async () => {
-			vi.spyOn(askPrismApi, "getSuggestedQuestions").mockResolvedValue([
-				SUGGESTED_QUESTION,
-			]);
-			vi.spyOn(askPrismApi, "ask").mockResolvedValue({
-				answer: "A knowledge node is an approved entry.",
-				sources: [],
+			await waitFor(() => {
+				expect(
+					screen.queryByRole("button", { name: prompt }),
+				).not.toBeInTheDocument();
 			});
+		}
 
-			renderAskPrism();
-			await screen.findByRole("button", { name: SUGGESTED_QUESTION });
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", {
+					name: FIRST_DEFAULT_QUESTION,
+				}),
+			).toBeInTheDocument();
+		});
+	});
 
-			const input = screen.getByRole("textbox");
-			fireEvent.change(input, { target: { value: MANUAL_QUESTION } });
-			fireEvent.click(screen.getByRole("button", { name: "Send question" }));
+	it("resets asked queries when switching projects", async () => {
+		const { rerender } = render(
+			<Provider store={store.instance}>
+				<MemoryRouter initialEntries={[`/projects/${PROJECT_ID}/ask-prism`]}>
+					<ProjectRoute projectId={PROJECT_ID} />
+				</MemoryRouter>
+			</Provider>,
+		);
 
-			expect(input).toHaveValue("");
-		},
-		TEST_TIMEOUT_MILLISECONDS,
-	);
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", {
+					name: "Tell me about Authentication Architecture",
+				}),
+			).toBeInTheDocument();
+		});
+
+		const promptButton = screen.getByRole("button", {
+			name: "Tell me about Authentication Architecture",
+		});
+		act(() => {
+			fireEvent.click(promptButton);
+		});
+
+		expect(
+			screen.queryByRole("button", {
+				name: "Tell me about Authentication Architecture",
+			}),
+		).not.toBeInTheDocument();
+
+		rerender(
+			<Provider store={store.instance}>
+				<MemoryRouter initialEntries={[`/projects/${PROJECT_ID}/ask-prism`]}>
+					<ProjectRoute projectId={PROJECT_TWO_ID} />
+				</MemoryRouter>
+			</Provider>,
+		);
+
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", {
+					name: "Tell me about Authentication Architecture",
+				}),
+			).toBeInTheDocument();
+		});
+	});
 });
