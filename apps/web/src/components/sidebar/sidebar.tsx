@@ -71,25 +71,18 @@ const buildUtilityNavItems = (
 	isAdmin: boolean | undefined,
 	projectId: string | undefined,
 ): NavItem[] => {
-	const items: NavItem[] = [
-		{
-			icon: <Icon name="settings" />,
-			id: "settings",
-			label: "Settings",
-			to: AppRoute.SETTINGS,
-		},
-	];
-
-	if (role === ProjectMemberRole.ADMIN || Boolean(isAdmin)) {
-		items.push({
-			icon: <Icon name="users" />,
-			id: "users",
-			label: getUserManagementCopy(Boolean(projectId)).NAV_LABEL,
-			to: buildUserManagementPath(projectId ?? null),
-		});
+	if (!projectId || (role !== ProjectMemberRole.ADMIN && !isAdmin)) {
+		return [];
 	}
 
-	return items;
+	return [
+		{
+			icon: <Icon name="users" />,
+			id: "users",
+			label: getUserManagementCopy(true).NAV_LABEL,
+			to: buildUserManagementPath(projectId),
+		},
+	];
 };
 
 const buildMobileNavItems = (projectId: string | undefined): NavItem[] => {
