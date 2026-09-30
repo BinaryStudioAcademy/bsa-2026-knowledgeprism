@@ -33,6 +33,17 @@ const isRetryableTimeout = (error: unknown): boolean => {
 	return true;
 };
 
+const createClient = (
+	endpoint: string,
+): ReturnType<typeof createBedrockRuntimeClient> =>
+	createBedrockRuntimeClient({
+		credentials: { accessKeyId: "test", secretAccessKey: "test" },
+		endpoint,
+		maxAttempts: SINGLE_ATTEMPT,
+		region: REGION,
+		requestTimeout: SHORT_TIMEOUT_MS,
+	});
+
 void describe("createBedrockRuntimeClient", () => {
 	let server: Server | undefined;
 
@@ -52,17 +63,6 @@ void describe("createBedrockRuntimeClient", () => {
 
 		return `http://${LOCAL_HOST}:${String(port)}`;
 	};
-
-	const createClient = (
-		endpoint: string,
-	): ReturnType<typeof createBedrockRuntimeClient> =>
-		createBedrockRuntimeClient({
-			credentials: { accessKeyId: "test", secretAccessKey: "test" },
-			endpoint,
-			maxAttempts: SINGLE_ATTEMPT,
-			region: REGION,
-			requestTimeout: SHORT_TIMEOUT_MS,
-		});
 
 	afterEach(() => {
 		server?.closeAllConnections();
