@@ -34,6 +34,11 @@ const glossaryEditorCheckCache = new Map<
 	GlossaryConsistencyMatchDto[]
 >();
 
+const getGlossaryEditorCheckCacheKey = (
+	projectId: string,
+	text: string,
+): string => JSON.stringify([projectId, text]);
+
 const getTopLevelBlockTexts = (blocks: readonly EditorBlock[]): string[] =>
 	blocks
 		.map((block) => flattenContentToText([block]))
@@ -68,7 +73,10 @@ const useGlossaryEditorWarnings = ({
 				? []
 				: debouncedBlockTextsKey.split(BLOCK_TEXT_JOIN_SEPARATOR);
 		const uncachedTexts = [...new Set(debouncedBlockTexts)].filter(
-			(text) => !glossaryEditorCheckCache.has(text),
+			(text) =>
+				!glossaryEditorCheckCache.has(
+					getGlossaryEditorCheckCacheKey(projectId, text),
+				),
 		);
 
 		if (uncachedTexts.length === EMPTY_LENGTH) {
@@ -84,7 +92,10 @@ const useGlossaryEditorWarnings = ({
 
 		for (const text of uncachedTexts) {
 			if (!batchedTexts.has(text)) {
-				glossaryEditorCheckCache.set(text, EMPTY_MATCHES);
+				glossaryEditorCheckCache.set(
+					getGlossaryEditorCheckCacheKey(projectId, text),
+					EMPTY_MATCHES,
+				);
 			}
 		}
 
@@ -98,30 +109,24 @@ const useGlossaryEditorWarnings = ({
 			setIsChecking(true);
 
 			try {
-				await Promise.all(
+				await Promise.allSettled(
 					batches.map(async (batchTexts) => {
-						try {
-							const response = await dispatch(
-								actions.checkGlossaryConsistency({
-									content: batchTexts.join(BATCH_JOIN_SEPARATOR),
-									projectId,
-								}),
-							).unwrap();
-							const assignedMatches = assignGlossaryMatchesToTexts(
-								batchTexts,
-								response.matches,
-							);
+						const response = await dispatch(
+							actions.checkGlossaryConsistency({
+								content: batchTexts.join(BATCH_JOIN_SEPARATOR),
+								projectId,
+							}),
+						).unwrap();
+						const assignedMatches = assignGlossaryMatchesToTexts(
+							batchTexts,
+							response.matches,
+						);
 
-							for (const text of batchTexts) {
-								glossaryEditorCheckCache.set(
-									text,
-									assignedMatches.get(text) ?? EMPTY_MATCHES,
-								);
-							}
-						} catch {
-							for (const text of batchTexts) {
-								glossaryEditorCheckCache.set(text, EMPTY_MATCHES);
-							}
+						for (const text of batchTexts) {
+							glossaryEditorCheckCache.set(
+								getGlossaryEditorCheckCacheKey(projectId, text),
+								assignedMatches.get(text) ?? EMPTY_MATCHES,
+							);
 						}
 					}),
 				);
@@ -139,7 +144,10 @@ const useGlossaryEditorWarnings = ({
 		const matchById = new Map<string, GlossaryConsistencyMatchDto>();
 
 		for (const text of blockTexts) {
-			const cachedMatches = glossaryEditorCheckCache.get(text) ?? EMPTY_MATCHES;
+			const cachedMatches =
+				glossaryEditorCheckCache.get(
+					getGlossaryEditorCheckCacheKey(projectId, text),
+				) ?? EMPTY_MATCHES;
 
 			for (const match of cachedMatches) {
 				const highlightId = toGlossaryHighlightId(match);
@@ -151,7 +159,7 @@ const useGlossaryEditorWarnings = ({
 		}
 
 		return matchById.values().toArray();
-	}, [blockTexts, cacheVersion, dismissedIds]);
+	}, [blockTexts, cacheVersion, dismissedIds, projectId]);
 
 	const dismiss = useCallback((highlightId: string): void => {
 		setDismissedIds((previous) => new Set(previous).add(highlightId));
