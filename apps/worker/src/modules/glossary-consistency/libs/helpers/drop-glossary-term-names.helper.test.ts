@@ -65,8 +65,36 @@ void describe("dropGlossaryTermNames", () => {
 		);
 	});
 
-	void it("keeps a match whose text only contains another glossary term", () => {
-		const matches = [toClientMatch("the customer account owner")];
+	void it("drops a sentence-long match that would replace another glossary term", () => {
+		const matches = [
+			{
+				...toClientMatch("The customer signs the contract."),
+				suggestedText: "The client signs the contract.",
+			},
+		];
+
+		assert.deepEqual(
+			dropGlossaryTermNames(matches, [CLIENT_TERM, CUSTOMER_TERM]),
+			[],
+		);
+	});
+
+	void it("keeps a match that leaves another glossary term in place", () => {
+		const matches = [
+			{
+				...toClientMatch("the customer's buyer"),
+				suggestedText: "the customer's Client",
+			},
+		];
+
+		assert.deepEqual(
+			dropGlossaryTermNames(matches, [CLIENT_TERM, CUSTOMER_TERM]),
+			matches,
+		);
+	});
+
+	void it("does not treat a longer word as another glossary term", () => {
+		const matches = [toClientMatch("the customerbase owner")];
 
 		assert.deepEqual(
 			dropGlossaryTermNames(matches, [CLIENT_TERM, CUSTOMER_TERM]),

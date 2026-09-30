@@ -3,33 +3,41 @@ import {
 	type GlossaryConsistencyTerm,
 } from "../types/types.js";
 
-const LEADING_ARTICLE = /^(?:a|an|the)\s+/iu;
-const PLURAL_SUFFIX = "s";
-const SINGULAR_END_INDEX = -PLURAL_SUFFIX.length;
-const FIRST_INDEX = 0;
+const REGEX_SPECIAL_CHARACTERS = /[$()*+.?[\\\]^{|}]/gu;
+const NOT_A_LETTER_OR_DIGIT_BEFORE = String.raw`(?<![\p{L}\p{N}])`;
+const OPTIONAL_PLURAL_ENDING = "s?";
+const NOT_A_LETTER_OR_DIGIT_AFTER = String.raw`(?![\p{L}\p{N}])`;
 
-const toComparableName = (text: string): string =>
-	text.trim().replace(LEADING_ARTICLE, "").toLowerCase();
+const toTermNamePattern = (name: string): RegExp =>
+	new RegExp(
+		NOT_A_LETTER_OR_DIGIT_BEFORE +
+			name.trim().replaceAll(REGEX_SPECIAL_CHARACTERS, String.raw`\$&`) +
+			OPTIONAL_PLURAL_ENDING +
+			NOT_A_LETTER_OR_DIGIT_AFTER,
+		"iu",
+	);
 
-const toNameVariants = (name: string): string[] =>
-	name.endsWith(PLURAL_SUFFIX)
-		? [name, name.slice(FIRST_INDEX, SINGULAR_END_INDEX)]
-		: [name];
+const isReplacingTermName = (
+	match: GlossaryConsistencyMatch,
+	namePattern: RegExp,
+): boolean =>
+	namePattern.test(match.sourceExcerpt) &&
+	!namePattern.test(match.suggestedText);
 
 const dropGlossaryTermNames = (
 	matches: GlossaryConsistencyMatch[],
 	terms: readonly GlossaryConsistencyTerm[],
 ): GlossaryConsistencyMatch[] => {
-	const termIdsByName = new Map(
-		terms.map((term) => [toComparableName(term.name), term.id]),
-	);
+	const namePatterns = terms.map((term) => ({
+		id: term.id,
+		pattern: toTermNamePattern(term.name),
+	}));
 
 	return matches.filter((match) =>
-		toNameVariants(toComparableName(match.sourceExcerpt)).every((name) => {
-			const termId = termIdsByName.get(name);
-
-			return termId === undefined || termId === match.matchedTermId;
-		}),
+		namePatterns.every(
+			({ id, pattern }) =>
+				id === match.matchedTermId || !isReplacingTermName(match, pattern),
+		),
 	);
 };
 
