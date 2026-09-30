@@ -38,13 +38,7 @@ const MobileSidebarToggle = ({
 	</Button>
 );
 
-const MobileCenteredTitle = ({
-	isEditing,
-	title,
-}: {
-	isEditing: boolean;
-	title: string | undefined;
-}) => {
+const MobileCenteredTitle = ({ title }: { title: string | undefined }) => {
 	if (!title) {
 		return null;
 	}
@@ -108,7 +102,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 		<div className="relative flex items-center justify-between border-b border-border bg-surface px-4 py-4 @5xl:px-8">
 			<MobileSidebarToggle onOpenSidebar={onOpenSidebar} />
 			<KnowledgeTreeBreadcrumbs breadcrumbs={breadcrumbs} />
-			<MobileCenteredTitle isEditing={isEditing} title={currentFileName} />
+			<MobileCenteredTitle title={currentFileName} />
 
 			<div className="flex items-center gap-3.5">
 				{showCompactLoading && (
