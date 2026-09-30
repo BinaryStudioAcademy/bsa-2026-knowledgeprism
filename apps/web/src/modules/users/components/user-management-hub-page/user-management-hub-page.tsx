@@ -4,6 +4,7 @@ import {
 	Avatar,
 	Button,
 	Heading,
+	Icon,
 	Loader,
 	Paragraph,
 	ParagraphSize,
@@ -29,6 +30,7 @@ import { fetchProjects } from "~/modules/workspaces/state/workspaces.slice.js";
 import { workspacesApi } from "~/modules/workspaces/workspaces.js";
 
 const EMPTY_LENGTH = 0;
+const GO_BACK_CHEVRON_SIZE = 10;
 const UserManagementHubPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
@@ -129,15 +131,23 @@ const UserManagementHubPage: React.FC = () => {
 	return (
 		<div className="relative flex flex-1 justify-center overflow-auto p-4 tablet:p-7 desktop:px-11 desktop:py-10">
 			<div className="flex w-full max-w-5xl flex-col gap-3.5 tablet:gap-4.5 desktop:gap-6">
-				{isOrganisationUserManagement && (
-					<div>
-						<Button onClick={handleGoBack} variant="ghost">
-							Go back
-						</Button>
-					</div>
-				)}
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
+						{isOrganisationUserManagement && (
+							<button
+								className="mb-1 inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-2xs font-medium text-text-faint transition-colors hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none"
+								onClick={handleGoBack}
+								type="button"
+							>
+								<span className="inline-flex rotate-180">
+									<Icon
+										name="chevron-filled-right"
+										size={GO_BACK_CHEVRON_SIZE}
+									/>
+								</span>
+								Go back
+							</button>
+						)}
 						<Heading level="2">{pageCopy.TITLE}</Heading>
 						<Paragraph
 							className="mt-1.5 hidden text-text-muted desktop:block"
