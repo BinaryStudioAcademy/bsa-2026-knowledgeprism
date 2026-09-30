@@ -6,6 +6,7 @@ import { type ValueOf } from "@knowledgeprism/types";
 
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { ProcessingSweep } from "~/modules/documents/libs/constants/processing-sweep.constant.js";
+import { DocumentProcessingError } from "~/modules/documents/libs/exceptions/document-processing.exception.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 
@@ -21,7 +22,7 @@ type Constructor = {
 };
 
 type DocumentJob = {
-	errorMessage: ValueOf<typeof DocumentErrorMessage>;
+	errorMessage: string;
 	run: (processingAttempt: ProcessingAttempt) => Promise<boolean>;
 	status: ValueOf<typeof DocumentStatus>;
 };
@@ -36,6 +37,22 @@ type ScheduledInterval = ReturnType<typeof setInterval>;
 const DEFAULT_INTERVAL_SCHEDULER: IntervalScheduler = {
 	clear: clearInterval,
 	repeat: setInterval,
+};
+
+const resolveFailureMessage = (error: unknown, fallback: string): string => {
+	if (error instanceof DocumentProcessingError) {
+		return error.documentErrorMessage;
+	}
+
+	if (error instanceof Error) {
+		const message = error.message.trim();
+
+		if (message.length > 0) {
+			return message;
+		}
+	}
+
+	return fallback;
 };
 
 class DocumentJobScheduler {
@@ -105,7 +122,12 @@ class DocumentJobScheduler {
 				status: job.status,
 			});
 
-			await this.fail(job, processingAttempt);
+			const failedJob = {
+				...job,
+				errorMessage: resolveFailureMessage(error, job.errorMessage),
+			};
+
+			await this.fail(failedJob, processingAttempt);
 		} finally {
 			this.intervalScheduler.clear(heartbeatInterval);
 		}

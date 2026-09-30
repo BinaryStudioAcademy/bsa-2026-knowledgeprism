@@ -75,6 +75,7 @@ const LoadingStep = ({ label, status }: LoadingStepProperties): JSX.Element => {
 
 const FullVariant = ({
 	currentStatus,
+	errorMessage,
 	isError,
 	onCancel,
 	onRetry,
@@ -115,7 +116,7 @@ const FullVariant = ({
 				size={ParagraphSize.BODY_SMALL}
 			>
 				{isError
-					? "Something went wrong. Please try again."
+					? (errorMessage ?? "Something went wrong. Please try again.")
 					: "This usually takes a few seconds"}
 			</Paragraph>
 

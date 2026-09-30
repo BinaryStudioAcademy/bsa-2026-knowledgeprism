@@ -74,6 +74,7 @@ const DelayedPreview = ({
 
 const CompactVariant = ({
 	currentStatus,
+	errorMessage,
 	isError,
 	onCancel,
 	onPreview,
@@ -91,7 +92,7 @@ const CompactVariant = ({
 						className="font-medium text-error"
 						size={ParagraphSize.BODY_SMALL}
 					>
-						Processing failed
+						{errorMessage ?? "Processing failed"}
 					</Paragraph>
 				) : (
 					<>

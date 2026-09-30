@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { ProcessingSweep } from "~/modules/documents/libs/constants/processing-sweep.constant.js";
+import { DocumentProcessingError } from "~/modules/documents/libs/exceptions/document-processing.exception.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 
@@ -268,7 +269,7 @@ void describe("DocumentJobScheduler heartbeat", () => {
 
 		assert.deepStrictEqual(setup.compareAndSwapCalls, [
 			{
-				errorMessage: DocumentErrorMessage.PROCESSING_FAILED,
+				errorMessage: "Extraction failed",
 				expectedStatus: DocumentStatus.PROCESSING,
 				id: DOCUMENT_ID,
 				processingAttempt: ATTEMPT,
@@ -276,5 +277,24 @@ void describe("DocumentJobScheduler heartbeat", () => {
 			},
 		]);
 		assert.equal(setup.getClearedCount(), SINGLE_CALL);
+	});
+
+	void it("stores a document processing error instead of the generic failure", async () => {
+		const setup = createTestSetup();
+
+		setup.scheduler.scheduleProcessing(PROCESSING_ATTEMPT);
+		await waitForScheduledWork();
+		setup.processing.reject(
+			new DocumentProcessingError(DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED),
+		);
+		await waitForScheduledWork();
+
+		const failureCall = setup.compareAndSwapCalls.at(0);
+
+		assert.ok(failureCall);
+		assert.equal(
+			failureCall.errorMessage,
+			DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED,
+		);
 	});
 });

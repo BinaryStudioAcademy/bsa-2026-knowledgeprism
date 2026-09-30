@@ -153,7 +153,7 @@ const UserManagementHubPage: React.FC = () => {
 						)}
 						<Heading level="2">{pageCopy.TITLE}</Heading>
 						<Paragraph
-							className="mt-1.5 hidden text-text-muted desktop:block"
+							className="mt-1.5 text-text-muted"
 							size={ParagraphSize.BODY_SMALL}
 						>
 							{pageCopy.SUBTITLE}

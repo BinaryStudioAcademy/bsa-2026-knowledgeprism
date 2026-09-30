@@ -41,15 +41,34 @@ const DEFAULT_MANUAL_TEXT_INPUT_PAYLOAD: ManualTextInputPayload = {
 	title: "",
 };
 
-const resolveManualTextInput: Resolver<ManualTextInputPayload> = (payload) => {
+const getManualTextLengthWarning = (trimmedContent: string): null | string => {
+	if (!trimmedContent) {
+		return null;
+	}
+
+	if (
+		trimmedContent.length <
+		DocumentValidationRule.MANUAL_TEXT_CONTENT_MINIMUM_LENGTH
+	) {
+		return DocumentValidationMessage.CONTENT_TOO_SHORT;
+	}
+
+	if (trimmedContent.length > DocumentValidationRule.CONTENT_MAXIMUM_LENGTH) {
+		return DocumentValidationMessage.CONTENT_MAXIMUM_LENGTH;
+	}
+
+	return null;
+};
+
+const resolveManualTextPayload = (
+	payload: ManualTextInputPayload,
+): ReturnType<Resolver<ManualTextInputPayload>> => {
 	const content = payload.content.trim();
 	const title = payload.title.trim();
 	const isContentEmpty = !content;
-	const isContentTooLong =
-		content.length > DocumentValidationRule.CONTENT_MAXIMUM_LENGTH;
 	const isTitleTooLong = title.length > TITLE_MAXIMUM_LENGTH;
 
-	if (!isContentEmpty && !isContentTooLong && !isTitleTooLong) {
+	if (!isContentEmpty && !isTitleTooLong) {
 		return {
 			errors: {},
 			values: {
@@ -65,12 +84,6 @@ const resolveManualTextInput: Resolver<ManualTextInputPayload> = (payload) => {
 				content: {
 					message: ValidationMessage.CONTENT_REQUIRED,
 					type: "required",
-				},
-			}),
-			...(isContentTooLong && {
-				content: {
-					message: DocumentValidationMessage.CONTENT_MAXIMUM_LENGTH,
-					type: "maxLength",
 				},
 			}),
 			...(isTitleTooLong && {
@@ -98,6 +111,12 @@ const ManualTextInput = ({
 	onSubmit,
 }: Properties): JSX.Element => {
 	const formId = useId();
+	const resolveManualTextInput = useCallback<Resolver<ManualTextInputPayload>>(
+		(payload) => {
+			return resolveManualTextPayload(payload);
+		},
+		[],
+	);
 
 	const {
 		control,
@@ -138,10 +157,13 @@ const ManualTextInput = ({
 	});
 
 	const trimmedContent = content.trim();
-	const isPayloadReady =
+	const contentLengthWarning = getManualTextLengthWarning(trimmedContent);
+	const isTitleWithinLimit = title.trim().length <= TITLE_MAXIMUM_LENGTH;
+	const canSubmitContent =
 		Boolean(trimmedContent) &&
-		trimmedContent.length <= DocumentValidationRule.CONTENT_MAXIMUM_LENGTH &&
-		title.trim().length <= TITLE_MAXIMUM_LENGTH;
+		contentLengthWarning === null &&
+		isTitleWithinLimit;
+	const isPayloadReady = canSubmitContent;
 	const isProcessing = isLoading || isSubmitting;
 
 	let statusMessage = "No knowledge added yet";
@@ -176,9 +198,15 @@ const ManualTextInput = ({
 
 	const handleFormSubmit = useCallback(
 		(event: BaseSyntheticEvent): void => {
+			if (contentLengthWarning) {
+				event.preventDefault();
+
+				return;
+			}
+
 			void handleSubmit(handleValidSubmit)(event);
 		},
-		[handleSubmit, handleValidSubmit],
+		[contentLengthWarning, handleSubmit, handleValidSubmit],
 	);
 
 	return (
@@ -199,14 +227,21 @@ const ManualTextInput = ({
 					placeholder="e.g. Onboarding notes"
 				/>
 
-				<Textarea
-					className="min-h-45 leading-relaxed"
-					control={control}
-					label="Content"
-					name="content"
-					placeholder="Paste or type the knowledge you want Prism to learn…"
-					rows={MANUAL_TEXTAREA_ROWS}
-				/>
+				<div className="flex flex-col gap-1">
+					<Textarea
+						className="min-h-45 leading-relaxed"
+						control={control}
+						label="Content"
+						name="content"
+						placeholder="Paste or type the knowledge you want Prism to learn…"
+						rows={MANUAL_TEXTAREA_ROWS}
+					/>
+					{contentLengthWarning && (
+						<span className="font-sans text-xs text-warning">
+							{contentLengthWarning}
+						</span>
+					)}
+				</div>
 
 				{hasProcessingFailed && (
 					<div role="alert">
@@ -223,7 +258,7 @@ const ManualTextInput = ({
 				actionLabel={hasProcessingFailed ? "Retry" : "Add to Knowledge Tree"}
 				formId={formId}
 				hasActionIcon={!hasProcessingFailed}
-				isActionDisabled={!isPayloadReady}
+				isActionDisabled={!canSubmitContent}
 				isLoading={isProcessing}
 				onCancel={onCancel}
 				statusMessage={statusMessage}

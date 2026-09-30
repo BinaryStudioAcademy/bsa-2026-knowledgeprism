@@ -163,6 +163,7 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 		pipelineContent = (
 			<LoadingState
 				currentStatus={activeDocumentStatus}
+				errorMessage={pipelineErrorMessage}
 				hasError={true}
 				onCancel={onCancel}
 				onRetry={onRetry}
@@ -751,6 +752,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 						activeDocumentStatus === DocumentStatus.FAILED ? (
 							<LoadingState
 								currentStatus={activeDocumentStatus}
+								errorMessage={activePipelineError}
 								hasError={true}
 								onCancel={handleResetState}
 								onRetry={handleRetry}

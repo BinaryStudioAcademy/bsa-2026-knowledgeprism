@@ -568,7 +568,13 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			clearDocumentPipelineError(state, action.meta.arg.documentId);
+			const { errorMessage, status } = action.payload;
+
+			if (errorMessage && status === DocumentStatus.FAILED) {
+				setPipelineError(state, action.meta.arg.documentId, errorMessage);
+			} else {
+				clearDocumentPipelineError(state, action.meta.arg.documentId);
+			}
 
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
