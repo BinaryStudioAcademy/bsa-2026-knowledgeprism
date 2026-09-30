@@ -11,6 +11,7 @@ import {
 
 import { DEFAULT_SUGGESTED_QUESTIONS } from "../libs/constants/default-suggested-questions.constant.js";
 import { RAG_FALLBACK_MESSAGE } from "../libs/constants/rag-fallback-message.constant.js";
+import { formatSuggestedQuestion } from "../libs/helpers/format-suggested-question.helper.js";
 import { invokeRagGeneration } from "../libs/helpers/invoke-rag-generation.helper.js";
 
 type Constructor = {
@@ -19,6 +20,7 @@ type Constructor = {
 };
 
 const EMPTY_LENGTH = 0;
+const FILE_EXTENSION_PATTERN = /\.(pdf|txt|docx?|md|json)$/iu;
 const MAX_SIMILAR_NODES = 3;
 const MAX_SUGGESTIONS = 3;
 const SCORE_THRESHOLD = 0.3;
@@ -66,6 +68,10 @@ class AskPrismService {
 			return false;
 		}
 
+		if (FILE_EXTENSION_PATTERN.test(nodeObject.title)) {
+			return false;
+		}
+
 		return textContent.length > EMPTY_LENGTH;
 	}
 
@@ -76,7 +82,6 @@ class AskPrismService {
 	): Promise<AskPrismResponseDto> {
 		await this.projectService.findById(projectId, context);
 
-		// 1. Fetch Knowledge Nodes & Extract Text
 		const nodes =
 			await this.knowledgeNodeRepository.findAllByProjectId(projectId);
 
@@ -90,9 +95,15 @@ class AskPrismService {
 		const contexts = nodes
 			.map((node) => {
 				const nodeObject = node.toObject();
+				const textContent = this.extractTextFromBlocks(nodeObject.contentJson);
+				const indexedContent = nodeObject.title
+					? `${nodeObject.title}\n${textContent}`
+					: textContent;
+
 				return {
-					content: this.extractTextFromBlocks(nodeObject.contentJson),
+					content: textContent,
 					id: nodeObject.id,
+					indexedContent,
 					nodeId: nodeObject.id,
 					sectionTitle: nodeObject.title,
 					title: nodeObject.title,
@@ -117,7 +128,7 @@ class AskPrismService {
 		}
 
 		const nodeVectors = await embed(
-			contexts.map((c) => c.content),
+			contexts.map((c) => c.indexedContent),
 			EmbeddingInputType.SEARCH_DOCUMENT,
 		);
 
@@ -151,7 +162,9 @@ class AskPrismService {
 			};
 		}
 
-		const contextChunks = relevantMatches.map((match) => match.item.content);
+		const contextChunks = relevantMatches.map(
+			(match) => match.item.indexedContent,
+		);
 		const answer = await invokeRagGeneration(question, contextChunks);
 
 		if (answer.trim() === RAG_FALLBACK_MESSAGE) {
@@ -192,7 +205,7 @@ class AskPrismService {
 
 		return eligibleNodes
 			.slice(EMPTY_LENGTH, MAX_SUGGESTIONS)
-			.map((node) => `Tell me about ${node.toObject().title}`);
+			.map((node) => formatSuggestedQuestion(node.toObject().title));
 	}
 }
 
