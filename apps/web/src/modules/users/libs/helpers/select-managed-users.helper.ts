@@ -1,7 +1,5 @@
 import { OrganisationRole } from "@knowledgeprism/constants";
 
-const EMPTY_ASSIGNMENT_LENGTH = 0;
-
 type ManagedUser = {
 	assignedProjects: {
 		projectId: number;
@@ -52,19 +50,31 @@ const selectManagedUsers = <TUser extends ManagedUser>(
 	scope: ManagedUserScope,
 ): TUser[] => {
 	return users.filter((user) => {
+		if (scope.selectedProjectId === null) {
+			if (scope.isCurrentUserOrganisationAdmin) {
+				return true;
+			}
+
+			if (user.organisationRole === OrganisationRole.ADMIN) {
+				return true;
+			}
+
+			if (scope.currentUserId !== null && user.id === scope.currentUserId) {
+				return true;
+			}
+
+			if (scope.projectIds === null) {
+				return false;
+			}
+
+			return isInsideKnownProjects(user, scope.projectIds);
+		}
+
 		if (isListedOrganisationAdmin(user, scope)) {
 			return true;
 		}
 
-		if (scope.selectedProjectId) {
-			return isAssignedToProject(user, scope.selectedProjectId);
-		}
-
-		if (scope.projectIds === null) {
-			return user.assignedProjects.length > EMPTY_ASSIGNMENT_LENGTH;
-		}
-
-		return isInsideKnownProjects(user, scope.projectIds);
+		return isAssignedToProject(user, scope.selectedProjectId);
 	});
 };
 
