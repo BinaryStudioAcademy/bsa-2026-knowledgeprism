@@ -27,16 +27,6 @@ const UTF_8_BOM = [BomByte.BYTE_EF, BomByte.BYTE_BB, BomByte.BYTE_BF] as const;
 const UTF_16_LE_BOM = [BomByte.BYTE_FF, BomByte.BYTE_FE] as const;
 const UTF_16_BE_BOM = [BomByte.BYTE_FE, BomByte.BYTE_FF] as const;
 
-const CharacterByte = {
-	CARRIAGE_RETURN: 13,
-	DEL: 127,
-	FORM_FEED: 12,
-	LINE_FEED: 10,
-	NULL: 0,
-	SPACE: 32,
-	TAB: 9,
-} as const;
-
 const CharacterCode = {
 	CARRIAGE_RETURN: 13,
 	DEL: 127,
@@ -89,7 +79,6 @@ export {
 	BOM_CHARACTER,
 	CARRIAGE_RETURN_CHARACTER,
 	CARRIAGE_RETURN_NEWLINE_CHARACTER,
-	CharacterByte,
 	CharacterCode,
 	TEXT_DOCUMENT_PAGE_NUMBER,
 	TextEncoding,

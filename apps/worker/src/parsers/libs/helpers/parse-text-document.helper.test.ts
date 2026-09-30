@@ -273,4 +273,20 @@ void describe("parseTextDocument", () => {
 			},
 		);
 	});
+
+	void it("rejects isolated Central European characters without realistic words", () => {
+		const isolatedCeBytes = createBytesFromHex("20bf20b320");
+
+		assert.throws(
+			() => {
+				parseTextDocument(isolatedCeBytes);
+			},
+			(error: unknown) => {
+				return (
+					error instanceof DocumentParseFailedError &&
+					error.message === TextErrorMessage.UNSUPPORTED_ENCODING
+				);
+			},
+		);
+	});
 });

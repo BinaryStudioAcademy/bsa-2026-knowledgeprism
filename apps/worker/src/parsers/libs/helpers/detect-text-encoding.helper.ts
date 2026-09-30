@@ -1,5 +1,4 @@
 import {
-	CharacterByte,
 	CharacterCode,
 	TextEncoding,
 	UTF_8_BOM,
@@ -24,6 +23,7 @@ const ASCII_PRINTABLE_MAX = 126;
 
 const MINIMUM_CYRILLIC_LETTERS_COUNT = 2;
 const MINIMUM_CENTRAL_EUROPEAN_LETTERS_COUNT = 2;
+const MINIMUM_CENTRAL_EUROPEAN_WORD_LENGTH = 2;
 const MAXIMUM_SHORT_ACCENTED_WORD_COUNT = 2;
 const SINGLE_ACCENTED_WORD_LENGTH = 1;
 
@@ -33,6 +33,7 @@ const MIXED_LATIN_CYRILLIC_PATTERN =
 	/[a-z][\u{0400}-\u{04FF}]|[\u{0400}-\u{04FF}][a-z]/iu;
 
 const CENTRAL_EUROPEAN_LETTER_PATTERN = /[\u{0100}-\u{024F}]/gu;
+const CENTRAL_EUROPEAN_WORD_PATTERN = /[a-z\u{00C0}-\u{024F}]+/giu;
 
 const LATIN_WORD_PATTERN = /[a-z\u{00C0}-\u{00FF}]+/giu;
 const ACCENTED_LATIN_PATTERN = /[\u{00C0}-\u{00FF}]/gu;
@@ -41,9 +42,9 @@ const WINDOWS_1252_SYMBOL_PATTERN =
 	/[\u{2018}\u{2019}\u{201C}\u{201D}\u{2013}\u{2014}\u{2026}\u{20AC}]/gu;
 
 const WHITESPACE_BYTES: ReadonlySet<number> = new Set([
-	CharacterByte.CARRIAGE_RETURN,
-	CharacterByte.LINE_FEED,
-	CharacterByte.TAB,
+	CharacterCode.CARRIAGE_RETURN,
+	CharacterCode.LINE_FEED,
+	CharacterCode.TAB,
 ]);
 
 type DetectedEncoding = {
@@ -65,18 +66,18 @@ const hasMatchingBom = (bytes: Uint8Array, bom: readonly number[]): boolean => {
 
 const isControlByte = (byte: number): boolean => {
 	const isNonWhitespaceControl =
-		byte < CharacterByte.SPACE &&
-		byte !== CharacterByte.TAB &&
-		byte !== CharacterByte.LINE_FEED &&
-		byte !== CharacterByte.CARRIAGE_RETURN &&
-		byte !== CharacterByte.FORM_FEED;
+		byte < CharacterCode.SPACE &&
+		byte !== CharacterCode.TAB &&
+		byte !== CharacterCode.LINE_FEED &&
+		byte !== CharacterCode.CARRIAGE_RETURN &&
+		byte !== CharacterCode.FORM_FEED;
 
-	return isNonWhitespaceControl || byte === CharacterByte.DEL;
+	return isNonWhitespaceControl || byte === CharacterCode.DEL;
 };
 
 const hasBinaryControlBytes = (bytes: Uint8Array): boolean => {
 	for (const byte of bytes) {
-		if (byte === CharacterByte.NULL || isControlByte(byte)) {
+		if (byte === CharacterCode.NULL || isControlByte(byte)) {
 			return true;
 		}
 	}
@@ -137,7 +138,7 @@ const detectUtf16WithoutBom = (bytes: Uint8Array): null | string => {
 		}
 
 		const isLeAscii =
-			secondByte === CharacterByte.NULL &&
+			secondByte === CharacterCode.NULL &&
 			isPrintableAsciiOrWhitespace(firstByte);
 		const isLeCyrillic = secondByte === UTF16_CYRILLIC_PAGE_BYTE;
 
@@ -146,7 +147,7 @@ const detectUtf16WithoutBom = (bytes: Uint8Array): null | string => {
 		}
 
 		const isBeAscii =
-			firstByte === CharacterByte.NULL &&
+			firstByte === CharacterCode.NULL &&
 			isPrintableAsciiOrWhitespace(secondByte);
 		const isBeCyrillic = firstByte === UTF16_CYRILLIC_PAGE_BYTE;
 
@@ -155,11 +156,17 @@ const detectUtf16WithoutBom = (bytes: Uint8Array): null | string => {
 		}
 	}
 
-	if (leMatches / pairCount >= UTF16_MATCH_RATIO_THRESHOLD) {
+	if (
+		leMatches > beMatches &&
+		leMatches / pairCount >= UTF16_MATCH_RATIO_THRESHOLD
+	) {
 		return TextEncoding.UTF_16_LE;
 	}
 
-	if (beMatches / pairCount >= UTF16_MATCH_RATIO_THRESHOLD) {
+	if (
+		beMatches > leMatches &&
+		beMatches / pairCount >= UTF16_MATCH_RATIO_THRESHOLD
+	) {
 		return TextEncoding.UTF_16_BE;
 	}
 
@@ -233,7 +240,29 @@ const isWindows1250 = (bytes: Uint8Array): boolean => {
 	const ceLetters = (decodedText.match(CENTRAL_EUROPEAN_LETTER_PATTERN) ?? [])
 		.length;
 
-	return ceLetters >= MINIMUM_CENTRAL_EUROPEAN_LETTERS_COUNT;
+	if (ceLetters < MINIMUM_CENTRAL_EUROPEAN_LETTERS_COUNT) {
+		return false;
+	}
+
+	const allWords = decodedText.match(CENTRAL_EUROPEAN_WORD_PATTERN) ?? [];
+	let realisticWordsCount = 0;
+	let unrealisticWordsCount = 0;
+
+	for (const word of allWords) {
+		const ceCount = (word.match(CENTRAL_EUROPEAN_LETTER_PATTERN) ?? []).length;
+
+		if (ceCount > EMPTY_COUNT) {
+			if (word.length >= MINIMUM_CENTRAL_EUROPEAN_WORD_LENGTH) {
+				realisticWordsCount += INCREMENT_STEP;
+			} else {
+				unrealisticWordsCount += INCREMENT_STEP;
+			}
+		}
+	}
+
+	return (
+		unrealisticWordsCount === EMPTY_COUNT && realisticWordsCount > EMPTY_COUNT
+	);
 };
 
 const isWindows1252 = (bytes: Uint8Array): boolean => {
