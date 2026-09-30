@@ -252,11 +252,20 @@ const moveSectionAcrossPages = (
 
 	const sourcePageIndex = findPageIndexBySectionId(pages, activeId);
 	const sourcePage = pages[sourcePageIndex];
+	const sourceSectionIndex = sourcePage?.pages.findIndex(
+		(section) => section.id === activeId,
+	);
 	const movedSection = sourcePage?.pages.find(
 		(section) => section.id === activeId,
 	);
 
-	if (sourcePageIndex === NOT_FOUND_INDEX || !sourcePage || !movedSection) {
+	if (
+		sourcePageIndex === NOT_FOUND_INDEX ||
+		sourceSectionIndex === undefined ||
+		sourceSectionIndex === NOT_FOUND_INDEX ||
+		!sourcePage ||
+		!movedSection
+	) {
 		return pages;
 	}
 
@@ -282,19 +291,26 @@ const moveSectionAcrossPages = (
 		return pages;
 	}
 
-	const insertionIndex =
+	const targetSectionIndex =
 		destinationPageIndexById === NOT_FOUND_INDEX
 			? destinationPage.pages.findIndex((section) => section.id === overId)
 			: destinationPage.pages.length;
+	const originalTargetSectionIndex = sourcePage.pages.findIndex(
+		(section) => section.id === overId,
+	);
+	const isMovingDownWithinPage =
+		destinationPageIndexById === NOT_FOUND_INDEX &&
+		sourcePageIndex === destinationPageIndex &&
+		originalTargetSectionIndex !== NOT_FOUND_INDEX &&
+		sourceSectionIndex < originalTargetSectionIndex;
+	const insertionIndex =
+		targetSectionIndex === NOT_FOUND_INDEX
+			? destinationPage.pages.length
+			: targetSectionIndex +
+				(isMovingDownWithinPage ? SINGLE_ITEM_COUNT : EMPTY_LENGTH);
 	const updatedDestinationSections = [...destinationPage.pages];
 
-	updatedDestinationSections.splice(
-		insertionIndex === NOT_FOUND_INDEX
-			? updatedDestinationSections.length
-			: insertionIndex,
-		EMPTY_LENGTH,
-		movedSection,
-	);
+	updatedDestinationSections.splice(insertionIndex, EMPTY_LENGTH, movedSection);
 
 	return pagesWithoutMoved.map((page, pageIndex) =>
 		pageIndex === destinationPageIndex
