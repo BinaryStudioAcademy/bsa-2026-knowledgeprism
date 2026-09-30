@@ -4,4 +4,6 @@ const DEFAULT_SUGGESTED_QUESTIONS = [
 	"How do I get started?",
 ];
 
-export { DEFAULT_SUGGESTED_QUESTIONS };
+const SLICE_NAME = "askPrism";
+
+export { DEFAULT_SUGGESTED_QUESTIONS, SLICE_NAME };
