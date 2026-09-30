@@ -87,10 +87,9 @@ const AskPrismView = (): JSX.Element => {
 		[],
 	);
 
-	const handleSubmit = useCallback(
-		(event?: BaseSyntheticEvent): void => {
-			event?.preventDefault();
-			const trimmedQuery = query.trim();
+	const submitQuestion = useCallback(
+		(nextQuery: string): void => {
+			const trimmedQuery = nextQuery.trim();
 
 			if (!trimmedQuery || isLoading || !numericProjectId) {
 				return;
@@ -104,7 +103,15 @@ const AskPrismView = (): JSX.Element => {
 			);
 			setQuery("");
 		},
-		[dispatch, isLoading, numericProjectId, query],
+		[dispatch, isLoading, numericProjectId],
+	);
+
+	const handleSubmit = useCallback(
+		(event?: BaseSyntheticEvent): void => {
+			event?.preventDefault();
+			submitQuestion(query);
+		},
+		[query, submitQuestion],
 	);
 
 	const handleKeyDown = useCallback(
@@ -121,19 +128,9 @@ const AskPrismView = (): JSX.Element => {
 
 	const handlePromptClick = useCallback(
 		(prompt: string): void => {
-			if (isLoading || !numericProjectId) {
-				return;
-			}
-
-			void dispatch(
-				askPrismActions.askQuestion({
-					projectId: numericProjectId,
-					query: prompt,
-				}),
-			);
-			setQuery("");
+			submitQuestion(prompt);
 		},
-		[dispatch, isLoading, numericProjectId],
+		[submitQuestion],
 	);
 
 	const handleRetry = useCallback(
