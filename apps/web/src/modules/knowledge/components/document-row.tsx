@@ -132,7 +132,7 @@ const DocumentRow = ({
 			)}
 			{isReady && trackedStatus && (
 				<ProcessingProgress
-					currentStatus={snapshot?.status ?? trackedStatus}
+					currentStatus={trackedStatus}
 					progress={snapshot?.processingProgress ?? null}
 				/>
 			)}
