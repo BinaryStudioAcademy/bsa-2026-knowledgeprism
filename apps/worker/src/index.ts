@@ -1,4 +1,5 @@
 export { bedrockRuntimeClient } from "./bedrock/bedrock.js";
+export { toResponseText } from "./bedrock/to-response-text.helper.js";
 export { logger } from "./logger/logger.js";
 export { EmbeddingInputType } from "./modules/embeddings/libs/constants/embedding-input-type.constant.js";
 

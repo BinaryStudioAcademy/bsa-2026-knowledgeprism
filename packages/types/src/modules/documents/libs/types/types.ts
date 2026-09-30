@@ -8,8 +8,14 @@ export { type DocumentUploadIntentRouteParametersDto } from "./document-upload-i
 export { type ExtractionItemResponseDto } from "./extraction-item-response-dto.type.js";
 export { type ExtractionItemRouteParametersDto } from "./extraction-item-route-parameters-dto.type.js";
 export { type ExtractionItemUpdateRequestDto } from "./extraction-item-update-request-dto.type.js";
-export { type ExtractionItemsResponseDto } from "./extraction-items-response-dto.type.js";
-export { type ExtractionItemsReviewRequestDto } from "./extraction-items-review-request-dto.type.js";
+export {
+	type ExtractionItemsResponseDto,
+	type ExtractionSectionResponseDto,
+} from "./extraction-items-response-dto.type.js";
+export {
+	type ExtractionItemsReviewRequestDto,
+	type ExtractionItemsReviewSectionDto,
+} from "./extraction-items-review-request-dto.type.js";
 export { type ExtractionItemsReviewResponseDto } from "./extraction-items-review-response-dto.type.js";
 export { type IntegrationChangeContentOverrideDto } from "./integration-change-content-override-dto.type.js";
 export { type IntegrationChangeResponseDto } from "./integration-change-response-dto.type.js";

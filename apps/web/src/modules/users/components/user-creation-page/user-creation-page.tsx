@@ -9,15 +9,14 @@ import {
 } from "~/hooks/hooks.js";
 import { AppRoute } from "~/lib/enums/enums.js";
 import { actions as projectsActions } from "~/modules/projects/projects.js";
+import { type AssignableProjectRole } from "~/modules/users/libs/types/assignable-project-role.type.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 import { UserForm } from "../user-form/user-form.js";
 import { userCreateFrontendValidationSchema } from "./libs/validation-schema.js";
 
-type ProjectRole = "EDITOR" | "VIEWER";
-
 type UserCreationFormValues = {
-	assignedProjects: { projectId: number; role: ProjectRole }[];
+	assignedProjects: { projectId: number; role: AssignableProjectRole }[];
 	confirmPassword: string;
 	email: string;
 	firstName: string;

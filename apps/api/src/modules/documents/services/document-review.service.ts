@@ -10,7 +10,9 @@ import {
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
+	type ExtractionItemsReviewSectionDto,
 	type ExtractionItemUpdateRequestDto,
+	type ExtractionSectionResponseDto,
 	type IntegrationChangeResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
@@ -24,9 +26,11 @@ import { getIncomingFields } from "~/modules/documents/libs/helpers/get-incoming
 import { toDocumentStatusResponse } from "~/modules/documents/libs/helpers/to-document-status-response.helper.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
+import { type ExtractionSectionEntity } from "~/modules/documents/models/extraction-section.entity.js";
 import { type IntegrationChangeEntity } from "~/modules/documents/models/integration-change.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
+import { type ExtractionSectionRepository } from "~/modules/documents/repositories/extraction-section.repository.js";
 import { type IntegrationChangeRepository } from "~/modules/documents/repositories/integration-change.repository.js";
 import {
 	type ProjectAccessContext,
@@ -40,12 +44,17 @@ import {
 } from "./integration-applier.js";
 
 const EMPTY_LENGTH = 0;
+const FIRST_PAGE_NUMBER = 1;
+const MANUAL_ITEM_CONFIDENCE = 1;
+const MANUAL_ITEM_RATIONALE = "Created manually during extraction review.";
+const MANUAL_ITEM_SOURCE_EXCERPT = "Manual review item.";
 
 type Constructor = {
 	database: Database;
 	documentJobScheduler: DocumentJobScheduler;
 	documentRepository: DocumentRepository;
 	extractionItemRepository: ExtractionItemRepository;
+	extractionSectionRepository: ExtractionSectionRepository;
 	integrationApplier: IntegrationApplier;
 	integrationChangeRepository: IntegrationChangeRepository;
 	projectService: ProjectService;
@@ -73,10 +82,19 @@ const createReviewNotAllowedError = (): HTTPError => {
 
 const toExtractionItemResponse = (
 	item: ExtractionItemEntity,
+	sectionById: Map<
+		number,
+		{
+			position: number;
+			title: string;
+		}
+	> = new Map(),
 ): ExtractionItemResponseDto => {
 	const {
 		confidence,
+		extractionSectionId,
 		id,
+		position,
 		rationale,
 		sourceExcerpt,
 		sourcePageNumber,
@@ -85,9 +103,13 @@ const toExtractionItemResponse = (
 		title,
 	} = item.toObject();
 
-	return {
+	const section =
+		extractionSectionId === null ? null : sectionById.get(extractionSectionId);
+	const response: ExtractionItemResponseDto = {
 		confidence,
+		extractionSectionId,
 		id,
+		position,
 		rationale,
 		sourceExcerpt,
 		sourcePageNumber,
@@ -95,6 +117,38 @@ const toExtractionItemResponse = (
 		text,
 		title,
 	};
+
+	if (section) {
+		response.sectionPosition = section.position;
+		response.sectionTitle = section.title;
+	}
+
+	return response;
+};
+
+const toSectionById = (
+	sections: ExtractionSectionEntity[],
+): Map<number, { position: number; title: string }> =>
+	new Map(
+		sections.map((section) => {
+			const sectionObject = section.toObject();
+
+			return [
+				sectionObject.id,
+				{
+					position: sectionObject.position,
+					title: sectionObject.title,
+				},
+			];
+		}),
+	);
+
+const toExtractionSectionResponse = (
+	section: ExtractionSectionEntity,
+): ExtractionSectionResponseDto => {
+	const { id, position, title } = section.toObject();
+
+	return { id, position, title };
 };
 
 const toIntegrationChangeResponse = (
@@ -139,6 +193,15 @@ const isExactIdMatch = (
 		providedIdSet.size === expectedIdSet.size &&
 		providedIds.every((id) => expectedIdSet.has(id))
 	);
+};
+
+const getNonPendingSectionIds = (items: ExtractionItemEntity[]): number[] => {
+	const sectionIds = items
+		.filter((item) => item.toObject().status !== ExtractionItemStatus.PENDING)
+		.map((item) => item.toObject().extractionSectionId)
+		.filter((sectionId): sectionId is number => sectionId !== null);
+
+	return [...new Set(sectionIds)];
 };
 
 const assertReviewCoversPendingItems = (
@@ -225,6 +288,11 @@ const assertSingleWritePerEntryField = (
 	}
 };
 
+type NormalizedExtractionReview = {
+	approvedIds: number[];
+	rejectedIds: number[];
+};
+
 class DocumentReviewService {
 	private database: Database;
 
@@ -233,6 +301,8 @@ class DocumentReviewService {
 	private documentRepository: DocumentRepository;
 
 	private extractionItemRepository: ExtractionItemRepository;
+
+	private extractionSectionRepository: ExtractionSectionRepository;
 
 	private integrationApplier: IntegrationApplier;
 
@@ -245,6 +315,7 @@ class DocumentReviewService {
 		documentJobScheduler,
 		documentRepository,
 		extractionItemRepository,
+		extractionSectionRepository,
 		integrationApplier,
 		integrationChangeRepository,
 		projectService,
@@ -253,6 +324,7 @@ class DocumentReviewService {
 		this.documentJobScheduler = documentJobScheduler;
 		this.documentRepository = documentRepository;
 		this.extractionItemRepository = extractionItemRepository;
+		this.extractionSectionRepository = extractionSectionRepository;
 		this.integrationApplier = integrationApplier;
 		this.integrationChangeRepository = integrationChangeRepository;
 		this.projectService = projectService;
@@ -294,6 +366,149 @@ class DocumentReviewService {
 
 			return approvedDocument;
 		});
+	}
+
+	private async applyStructuredExtractionReview(
+		{
+			documentId,
+			pendingItems,
+			preserveSectionIds,
+			sections,
+		}: {
+			documentId: number;
+			pendingItems: ExtractionItemEntity[];
+			preserveSectionIds: number[];
+			sections: ExtractionItemsReviewSectionDto[];
+		},
+		transaction: Transaction,
+	): Promise<NormalizedExtractionReview> {
+		const pendingItemsById = new Map(
+			pendingItems.map((item) => [item.toObject().id, item]),
+		);
+		const usedPendingIds = new Set<number>();
+		const approvedIds: number[] = [];
+		const { positionOffset, sections: createdSections } =
+			await this.extractionSectionRepository.replaceByDocumentId(
+				{
+					documentId,
+					preserveSectionIds,
+					sections: sections.map((section, position) => ({
+						position,
+						title: section.title.trim(),
+					})),
+				},
+				transaction,
+			);
+		const createdSectionByPosition = new Map(
+			createdSections.map((section) => {
+				const sectionObject = section.toObject();
+
+				return [sectionObject.position, sectionObject];
+			}),
+		);
+
+		for (const [sectionIndex, section] of sections.entries()) {
+			const createdSection = createdSectionByPosition.get(
+				sectionIndex + positionOffset,
+			);
+
+			if (createdSection) {
+				const sectionApprovedIds = await this.applyStructuredReviewSection(
+					{
+						documentId,
+						pendingItemsById,
+						section,
+						sectionId: createdSection.id,
+						sectionPageNumber: sectionIndex + FIRST_PAGE_NUMBER,
+						usedPendingIds,
+					},
+					transaction,
+				);
+
+				approvedIds.push(...sectionApprovedIds);
+			}
+		}
+
+		const rejectedIds = pendingItems
+			.map((item) => item.toObject().id)
+			.filter((id) => !usedPendingIds.has(id));
+
+		return { approvedIds, rejectedIds };
+	}
+
+	private async applyStructuredReviewSection(
+		{
+			documentId,
+			pendingItemsById,
+			section,
+			sectionId,
+			sectionPageNumber,
+			usedPendingIds,
+		}: {
+			documentId: number;
+			pendingItemsById: Map<number, ExtractionItemEntity>;
+			section: ExtractionItemsReviewSectionDto;
+			sectionId: number;
+			sectionPageNumber: number;
+			usedPendingIds: Set<number>;
+		},
+		transaction: Transaction,
+	): Promise<number[]> {
+		const approvedIds: number[] = [];
+		const manualItems: { itemPosition: number; text: string; title: string }[] =
+			[];
+
+		for (const [itemPosition, item] of section.items.entries()) {
+			const text = item.text.trim();
+			const title = item.title.trim();
+
+			if (item.id) {
+				const approvedId = await this.updateExistingStructuredReviewItem(
+					{
+						documentId,
+						id: item.id,
+						itemPosition,
+						pendingItemsById,
+						sectionId,
+						text,
+						title,
+						usedPendingIds,
+					},
+					transaction,
+				);
+
+				approvedIds.push(approvedId);
+				continue;
+			}
+
+			manualItems.push({ itemPosition, text, title });
+		}
+
+		if (manualItems.length > EMPTY_LENGTH) {
+			const createdItems =
+				await this.extractionItemRepository.insertManyPending(
+					{
+						documentId,
+						items: manualItems.map(({ itemPosition, text, title }) => ({
+							confidence: MANUAL_ITEM_CONFIDENCE,
+							extractionSectionId: sectionId,
+							position: itemPosition,
+							rationale: MANUAL_ITEM_RATIONALE,
+							sourceExcerpt: MANUAL_ITEM_SOURCE_EXCERPT,
+							sourcePageNumber: sectionPageNumber,
+							text,
+							title,
+						})),
+					},
+					transaction,
+				);
+
+			approvedIds.push(
+				...createdItems.map((createdItem) => createdItem.toObject().id),
+			);
+		}
+
+		return approvedIds;
 	}
 
 	private async executeCompletionWithoutApprovals(
@@ -392,6 +607,60 @@ class DocumentReviewService {
 		}
 	}
 
+	private async updateExistingStructuredReviewItem(
+		{
+			documentId,
+			id,
+			itemPosition,
+			pendingItemsById,
+			sectionId,
+			text,
+			title,
+			usedPendingIds,
+		}: {
+			documentId: number;
+			id: number;
+			itemPosition: number;
+			pendingItemsById: Map<number, ExtractionItemEntity>;
+			sectionId: number;
+			text: string;
+			title: string;
+			usedPendingIds: Set<number>;
+		},
+		transaction: Transaction,
+	): Promise<number> {
+		if (usedPendingIds.has(id) || !pendingItemsById.has(id)) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.REVIEW_ITEMS_MISMATCH,
+				status: HTTPCode.BAD_REQUEST,
+			});
+		}
+
+		const updated =
+			await this.extractionItemRepository.updatePendingReviewPlacement(
+				{
+					documentId,
+					extractionSectionId: sectionId,
+					id,
+					position: itemPosition,
+					text,
+					title,
+				},
+				transaction,
+			);
+
+		if (!updated) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.EXTRACTION_ITEM_NOT_PENDING,
+				status: HTTPCode.CONFLICT,
+			});
+		}
+
+		usedPendingIds.add(id);
+
+		return id;
+	}
+
 	public async applyIntegrationChanges({
 		payload,
 		...reference
@@ -471,9 +740,14 @@ class DocumentReviewService {
 		const items = await this.extractionItemRepository.findByDocumentId(
 			reference.documentId,
 		);
+		const sections = await this.extractionSectionRepository.findByDocumentId(
+			reference.documentId,
+		);
+		const sectionById = toSectionById(sections);
 
 		return {
-			items: items.map((item) => toExtractionItemResponse(item)),
+			items: items.map((item) => toExtractionItemResponse(item, sectionById)),
+			sections: sections.map((section) => toExtractionSectionResponse(section)),
 		};
 	}
 
@@ -544,16 +818,30 @@ class DocumentReviewService {
 					(item) => item.toObject().status === ExtractionItemStatus.PENDING,
 				);
 
-				assertReviewCoversPendingItems(pendingItems, payload);
+				const review = payload.sections
+					? await this.applyStructuredExtractionReview(
+							{
+								documentId: reference.documentId,
+								pendingItems,
+								preserveSectionIds: getNonPendingSectionIds(items),
+								sections: payload.sections,
+							},
+							transaction,
+						)
+					: payload;
 
-				const hasApprovedItems = payload.approvedIds.length > EMPTY_LENGTH;
+				if (!payload.sections) {
+					assertReviewCoversPendingItems(pendingItems, payload);
+				}
+
+				const hasApprovedItems = review.approvedIds.length > EMPTY_LENGTH;
 
 				if (!hasApprovedItems) {
 					const completedDocument =
 						await this.executeCompletionWithoutApprovals(
 							{
 								documentId: reference.documentId,
-								rejectedIds: payload.rejectedIds,
+								rejectedIds: review.rejectedIds,
 							},
 							transaction,
 						);
@@ -568,7 +856,7 @@ class DocumentReviewService {
 
 				const integration = await this.executeIntegrationStart(
 					{
-						...payload,
+						...review,
 						documentId: reference.documentId,
 					},
 					transaction,
@@ -651,7 +939,12 @@ class DocumentReviewService {
 				});
 			}
 
-			return toExtractionItemResponse(updated);
+			const sections = await this.extractionSectionRepository.findByDocumentId(
+				reference.documentId,
+				transaction,
+			);
+
+			return toExtractionItemResponse(updated, toSectionById(sections));
 		});
 	}
 }

@@ -2,7 +2,6 @@ import {
 	type Block,
 	type BlockSchemaFromSpecs,
 	type BlockSpecs,
-	type PartialBlock,
 } from "@blocknote/core";
 import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
 import {
@@ -36,6 +35,7 @@ import {
 	type KnowledgeEntryUpdateRequestDto,
 } from "~/modules/knowledge/libs/types/types.js";
 
+import { parseInitialContent } from "./helpers/parse-initial-content.helper.js";
 import { useGlossaryEditorWarnings } from "./hooks/use-glossary-editor-warnings.hook.js";
 import { kbEntryValidationSchema } from "./validation-schema.js";
 
@@ -44,12 +44,6 @@ type EditorBlock = Block<BlockSchemaFromSpecs<BlockSpecs>>;
 const EMPTY_COUNT = 0;
 
 const MAX_TITLE_CHARACTERS = 255;
-
-const DEFAULT_BLOCKS: PartialBlock[] = [
-	{
-		type: "paragraph",
-	},
-];
 
 type TextNode = {
 	text: string;
@@ -181,22 +175,6 @@ const extractPlainText = (content: unknown): string => {
 
 const isBlockNoteEmpty = (document: unknown): boolean => {
 	return extractPlainText(document).trim().length === EMPTY_COUNT;
-};
-
-const isBlockArray = (value: unknown): value is PartialBlock[] => {
-	return Array.isArray(value);
-};
-
-const parseInitialContent = (content?: unknown): PartialBlock[] => {
-	if (!content) {
-		return DEFAULT_BLOCKS;
-	}
-
-	if (isBlockArray(content)) {
-		return content.length > EMPTY_COUNT ? content : DEFAULT_BLOCKS;
-	}
-
-	return DEFAULT_BLOCKS;
 };
 
 type GlossaryWarningTooltipContentProperties = {
