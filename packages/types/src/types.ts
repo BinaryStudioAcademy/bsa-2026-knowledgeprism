@@ -29,7 +29,9 @@ export {
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
+	type ExtractionItemsReviewSectionDto,
 	type ExtractionItemUpdateRequestDto,
+	type ExtractionSectionResponseDto,
 	type IntegrationChangeResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
@@ -40,6 +42,8 @@ export {
 	type PendingReviewDocumentsResponseDto,
 } from "./modules/documents/documents.js";
 export {
+	type GlossaryConsistencyCheckRequestDto,
+	type GlossaryConsistencyCheckResponseDto,
 	type GlossaryRelatedTermDto,
 	type GlossaryRouteParametersDto,
 	type GlossarySearchQueryDto,

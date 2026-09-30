@@ -35,11 +35,17 @@ const toResponseText = (decoded: string): string => {
 		return "";
 	}
 
+	const stopReason = "stop_reason" in envelope ? envelope.stop_reason : null;
+
 	if (
-		"stop_reason" in envelope &&
-		envelope.stop_reason === BedrockStopReason.MAX_TOKENS
+		stopReason === BedrockStopReason.MAX_TOKENS ||
+		stopReason === BedrockStopReason.MODEL_CONTEXT_WINDOW_EXCEEDED
 	) {
-		throw new Error("Bedrock response was truncated at the max_tokens limit.");
+		throw new Error("Bedrock response was truncated before it finished.");
+	}
+
+	if (stopReason === BedrockStopReason.REFUSAL) {
+		throw new Error("Bedrock declined to answer the request.");
 	}
 
 	return envelope.content

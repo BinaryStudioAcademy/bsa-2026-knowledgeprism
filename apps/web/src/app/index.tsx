@@ -1,5 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { Navigate } from "react-router-dom";
 
 import {
 	AdminRoute,
@@ -21,10 +22,7 @@ import {
 	UserEditPage,
 	UserManagementHubPage,
 } from "~/modules/users/components/components.js";
-import {
-	ProjectDetailsPage,
-	WorkspaceContainer,
-} from "~/modules/workspaces/components/components.js";
+import { WorkspaceContainer } from "~/modules/workspaces/components/components.js";
 import "~/styles/styles.css";
 
 import { GlobalNotifications } from "./global-notifications.js";
@@ -69,7 +67,7 @@ createRoot(document.querySelector("#root") as HTMLElement).render(
 									{
 										children: [
 											{
-												element: <ProjectDetailsPage />,
+												element: <Navigate replace to="knowledge-tree" />,
 												index: true,
 											},
 											{

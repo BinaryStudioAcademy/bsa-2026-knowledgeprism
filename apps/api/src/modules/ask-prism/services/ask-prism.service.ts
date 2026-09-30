@@ -74,23 +74,13 @@ class AskPrismService {
 	): Promise<AskPrismResponseDto> {
 		await this.projectService.findById(projectId, context);
 
-		// 1. Embed Query
-		const [queryVector] = await embed(
-			[question],
-			EmbeddingInputType.SEARCH_QUERY,
-		);
-
-		if (!queryVector) {
-			throw new Error("Failed to generate embedding for the question");
-		}
-
-		// 2. Fetch Knowledge Nodes & Extract Text
+		// 1. Fetch Knowledge Nodes & Extract Text
 		const nodes =
 			await this.knowledgeNodeRepository.findAllByProjectId(projectId);
 
 		if (nodes.length === EMPTY_LENGTH) {
 			return {
-				answer: "Not found in the knowledge base.",
+				answer: RAG_FALLBACK_MESSAGE,
 				sources: [],
 			};
 		}
@@ -110,9 +100,19 @@ class AskPrismService {
 
 		if (contexts.length === EMPTY_LENGTH) {
 			return {
-				answer: "Not found in the knowledge base.",
+				answer: RAG_FALLBACK_MESSAGE,
 				sources: [],
 			};
+		}
+
+		// 2. Embed Query
+		const [queryVector] = await embed(
+			[question],
+			EmbeddingInputType.SEARCH_QUERY,
+		);
+
+		if (!queryVector) {
+			throw new Error("Failed to generate embedding for the question");
 		}
 
 		// 3. Embed Nodes on the fly

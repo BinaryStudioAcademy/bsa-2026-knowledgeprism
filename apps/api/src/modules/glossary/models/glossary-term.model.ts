@@ -1,3 +1,5 @@
+import { type EmbeddingVector } from "@knowledgeprism/worker";
+
 import {
 	AbstractModel,
 	DatabaseTableName,
@@ -8,11 +10,17 @@ class GlossaryTermModel extends AbstractModel {
 
 	public definition!: string;
 
+	public embedding!: EmbeddingVector | null;
+
 	public name!: string;
 
 	public projectId!: number;
 
 	public updatedBy!: null | number;
+
+	public static override get jsonAttributes(): string[] {
+		return ["embedding"];
+	}
 
 	public static override get tableName(): string {
 		return DatabaseTableName.GLOSSARY_TERMS;
