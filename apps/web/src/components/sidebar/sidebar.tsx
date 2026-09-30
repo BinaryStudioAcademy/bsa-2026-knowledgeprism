@@ -71,7 +71,7 @@ const buildUtilityNavItems = (
 	isAdmin: boolean | undefined,
 	projectId: string | undefined,
 ): NavItem[] => {
-	if (!projectId || (role !== ProjectMemberRole.ADMIN && !isAdmin)) {
+	if (!projectId || (!isAdmin && role !== ProjectMemberRole.ADMIN)) {
 		return [];
 	}
 

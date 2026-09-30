@@ -40,7 +40,7 @@ const toProjectId = (projectId: null | string): null | number => {
 
 	const parsed = Number(projectId);
 
-	if (!Number.isInteger(parsed) || parsed < MINIMUM_PROJECT_ID) {
+	if (!Number.isSafeInteger(parsed) || parsed < MINIMUM_PROJECT_ID) {
 		return null;
 	}
 
