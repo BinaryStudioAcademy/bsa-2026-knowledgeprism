@@ -49,12 +49,16 @@ const SourceLabel = ({ source }: SourceLabelProperties): JSX.Element => {
 
 	return (
 		<>
-			<Icon name="file" size={SOURCE_ICON_SIZE} />
-			<span>{source.title}</span>
+			<span className="mt-0.5 shrink-0">
+				<Icon name="file" size={SOURCE_ICON_SIZE} />
+			</span>
+			<span className="min-w-0 wrap-anywhere">{source.title}</span>
 			{hasDistinctSection && (
 				<>
-					<span className="opacity-60">·</span>
-					<span className="opacity-85">{source.sectionTitle}</span>
+					<span className="shrink-0 opacity-60">·</span>
+					<span className="min-w-0 opacity-85 wrap-anywhere">
+						{source.sectionTitle}
+					</span>
 				</>
 			)}
 		</>
@@ -91,7 +95,7 @@ const AnswerCard = ({
 		<div className="flex flex-col gap-6 transition-all duration-300 ease-out">
 			{query && (
 				<div className="flex justify-end animate-fade-in">
-					<div className="max-w-[75%] rounded-[14px_14px_4px_14px] bg-primary px-4.5 py-3 font-sans text-sm text-primary-fg shadow-2xs transition-all duration-300">
+					<div className="max-w-[75%] wrap-break-word whitespace-pre-wrap rounded-[14px_14px_4px_14px] bg-primary px-4.5 py-3 font-sans text-sm text-primary-fg shadow-2xs transition-all duration-300">
 						{query}
 					</div>
 				</div>
@@ -158,7 +162,7 @@ const AnswerCard = ({
 								{uniqueSources.map((source) =>
 									onSourceSelect ? (
 										<button
-											className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs transition-colors duration-200 hover:border-accent hover:bg-accent hover:text-white"
+											className="inline-flex max-w-full cursor-pointer items-start gap-1.5 rounded-xl border border-accent/20 bg-success-bg px-2.5 py-1 font-sans text-[11px] font-medium text-accent shadow-2xs transition-colors duration-200 hover:border-accent hover:bg-accent hover:text-white text-left"
 											key={String(source.id)}
 											onClick={handleSourceClick(source)}
 											title={`Jump to ${source.sectionTitle}`}
@@ -168,7 +172,7 @@ const AnswerCard = ({
 										</button>
 									) : (
 										<span
-											className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs"
+											className="inline-flex max-w-full items-start gap-1.5 rounded-xl border border-accent/20 bg-success-bg px-2.5 py-1 font-sans text-[11px] font-medium text-accent shadow-2xs text-left"
 											key={String(source.id)}
 										>
 											<SourceLabel source={source} />
