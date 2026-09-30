@@ -2,6 +2,8 @@ import {
 	AccessDeniedException,
 	ServiceUnavailableException,
 } from "@aws-sdk/client-bedrock-runtime";
+import { DocumentProcessingPhase } from "@knowledgeprism/constants";
+import { type DocumentProcessingProgressDto } from "@knowledgeprism/types";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
@@ -57,6 +59,7 @@ const truncated = (): BedrockResponseError =>
 
 const createSetup = (invoke: ExtractionDependencies["invoke"]) => {
 	const calls: string[] = [];
+	const progress: DocumentProcessingProgressDto[] = [];
 	const delays: number[] = [];
 	const logs: Record<string, unknown>[] = [];
 	const recordLog = (
@@ -77,16 +80,122 @@ const createSetup = (invoke: ExtractionDependencies["invoke"]) => {
 			info: recordLog,
 			warn: recordLog,
 		},
+		onProgress: (snapshot) => {
+			progress.push(snapshot);
+			return Promise.resolve();
+		},
 		pause: (milliseconds) => {
 			delays.push(milliseconds);
 			return Promise.resolve();
 		},
 	};
 
-	return { calls, delays, dependencies, logs };
+	return { calls, delays, dependencies, logs, progress };
 };
 
 void describe("extraction recovery", () => {
+	void it("counts each original chunk once after retries and excludes blank input", async () => {
+		let calls = 0;
+		const setup = createSetup((content) =>
+			++calls === SINGLE_CALL
+				? Promise.reject(Object.assign(new Error("DNS"), { code: "EAI_AGAIN" }))
+				: Promise.resolve(outputFor(content)),
+		);
+		await extractBlocks(
+			[
+				BLOCK,
+				{ ...BLOCK, content: " ".repeat(THREE_CALLS) },
+				{ ...BLOCK, content: "Another chunk" },
+			],
+			setup.dependencies,
+		);
+		assert.deepEqual(setup.progress, [
+			{
+				failedUnits: 0,
+				phase: DocumentProcessingPhase.EXTRACTING,
+				processedUnits: 0,
+				totalUnits: TWO_CALLS,
+			},
+			{
+				failedUnits: 0,
+				phase: DocumentProcessingPhase.EXTRACTING,
+				processedUnits: SINGLE_CALL,
+				totalUnits: TWO_CALLS,
+			},
+			{
+				failedUnits: 0,
+				phase: DocumentProcessingPhase.EXTRACTING,
+				processedUnits: TWO_CALLS,
+				totalUnits: TWO_CALLS,
+			},
+		]);
+	});
+
+	void it("counts a partially recovered chunk as processed but incomplete", async () => {
+		const setup = createSetup((content) => {
+			if (content === LONG_SOURCE) {
+				return Promise.reject(truncated());
+			}
+			return Promise.resolve(
+				content.startsWith(LEFT_PARAGRAPH) ? outputFor(content) : "{broken",
+			);
+		});
+		await extractBlocks(
+			[{ ...BLOCK, content: LONG_SOURCE }],
+			setup.dependencies,
+		);
+		assert.deepEqual(setup.progress.at(-SINGLE_CALL), {
+			failedUnits: SINGLE_CALL,
+			phase: DocumentProcessingPhase.EXTRACTING,
+			processedUnits: SINGLE_CALL,
+			totalUnits: SINGLE_CALL,
+		});
+		assert.equal(setup.progress.length, TWO_CALLS);
+	});
+
+	void it("reports exhausted failures before the entire extraction fails", async () => {
+		const setup = createSetup(() => Promise.resolve("{broken"));
+		await assert.rejects(
+			extractBlocks([BLOCK], setup.dependencies),
+			/failed for every chunk/u,
+		);
+		assert.deepEqual(setup.progress.at(-SINGLE_CALL), {
+			failedUnits: SINGLE_CALL,
+			phase: DocumentProcessingPhase.EXTRACTING,
+			processedUnits: SINGLE_CALL,
+			totalUnits: SINGLE_CALL,
+		});
+	});
+
+	void it("reports a fatal invocation failure without counting untouched chunks", async () => {
+		const setup = createSetup(() =>
+			Promise.reject(new Error("Permanent failure")),
+		);
+		await assert.rejects(
+			extractBlocks([BLOCK, BLOCK], setup.dependencies),
+			/Permanent failure/u,
+		);
+		assert.deepEqual(setup.progress.at(-SINGLE_CALL), {
+			failedUnits: SINGLE_CALL,
+			phase: DocumentProcessingPhase.EXTRACTING,
+			processedUnits: SINGLE_CALL,
+			totalUnits: TWO_CALLS,
+		});
+	});
+
+	void it("reports no work for an empty document without inventing a percentage", async () => {
+		const setup = createSetup(() => Promise.resolve(EMPTY_OUTPUT));
+		await extractBlocks([], setup.dependencies);
+		assert.deepEqual(setup.progress, [
+			{
+				failedUnits: 0,
+				phase: DocumentProcessingPhase.EXTRACTING,
+				processedUnits: 0,
+				totalUnits: 0,
+			},
+		]);
+	});
+
 	void it("recovers from a temporary DNS error without duplicating prior results", async () => {
 		let networkAttempts = 0;
 		const setup = createSetup((content) => {

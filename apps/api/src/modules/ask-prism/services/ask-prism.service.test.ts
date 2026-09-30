@@ -1,4 +1,4 @@
-import "./ask-prism.test-setup.js";
+import "~/test-setup.js";
 
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import { search } from "@knowledgeprism/worker";
