@@ -49,14 +49,14 @@ const SourceLabel = ({ source }: SourceLabelProperties): JSX.Element => {
 
 	return (
 		<>
-			<span className="mt-0.5 shrink-0">
+			<span className="shrink-0 flex items-center">
 				<Icon name="file" size={SOURCE_ICON_SIZE} />
 			</span>
-			<span className="min-w-0 wrap-anywhere">{source.title}</span>
+			<span className="min-w-0 truncate">{source.title}</span>
 			{hasDistinctSection && (
 				<>
 					<span className="shrink-0 opacity-60">·</span>
-					<span className="min-w-0 opacity-85 wrap-anywhere">
+					<span className="min-w-0 truncate opacity-85">
 						{source.sectionTitle}
 					</span>
 				</>
@@ -154,7 +154,7 @@ const AnswerCard = ({
 			{dataStatus === DataStatus.FULFILLED && !isNotFound && answer && (
 				<div className="flex gap-3 transition-all duration-300 animate-fade-in">
 					<PrismAvatar />
-					<div className="flex flex-1 flex-col gap-3 font-sans text-sm leading-relaxed text-text">
+					<div className="flex min-w-0 flex-1 flex-col gap-3 font-sans text-sm leading-relaxed text-text">
 						<MarkdownContent content={answer} />
 
 						{uniqueSources.length > EMPTY_COUNT && (
@@ -162,7 +162,7 @@ const AnswerCard = ({
 								{uniqueSources.map((source) =>
 									onSourceSelect ? (
 										<button
-											className="inline-flex max-w-full cursor-pointer items-start gap-1.5 rounded-xl border border-accent/20 bg-success-bg px-2.5 py-1 font-sans text-[11px] font-medium text-accent shadow-2xs transition-colors duration-200 hover:border-accent hover:bg-accent hover:text-white text-left"
+											className="inline-flex min-w-0 max-w-full cursor-pointer items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs transition-colors duration-200 hover:border-accent hover:bg-accent hover:text-white"
 											key={String(source.id)}
 											onClick={handleSourceClick(source)}
 											title={`Jump to ${source.sectionTitle}`}
@@ -172,7 +172,7 @@ const AnswerCard = ({
 										</button>
 									) : (
 										<span
-											className="inline-flex max-w-full items-start gap-1.5 rounded-xl border border-accent/20 bg-success-bg px-2.5 py-1 font-sans text-[11px] font-medium text-accent shadow-2xs text-left"
+											className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs"
 											key={String(source.id)}
 										>
 											<SourceLabel source={source} />
