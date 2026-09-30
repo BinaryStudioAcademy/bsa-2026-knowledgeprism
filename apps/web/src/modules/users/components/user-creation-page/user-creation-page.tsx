@@ -1,6 +1,11 @@
 import { ProjectMemberRole } from "@knowledgeprism/constants";
 
-import { Heading, Paragraph, ParagraphSize } from "~/components/components.js";
+import {
+	Heading,
+	PageLayout,
+	Paragraph,
+	ParagraphSize,
+} from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppForm,
@@ -138,27 +143,25 @@ const UserCreationPage: React.FC = () => {
 	}, [navigate, returnPath]);
 
 	return (
-		<div className="relative flex flex-1 justify-center overflow-auto p-4 tablet:p-7 desktop:px-11 desktop:py-10">
-			<div className="flex w-full flex-col gap-3.5 tablet:w-130 tablet:gap-4.5 desktop:w-160 desktop:gap-6">
-				<div>
-					<Heading level="2">Add New User</Heading>
-					<Paragraph
-						className="mt-1.5 hidden text-text-muted desktop:block"
-						size={ParagraphSize.BODY_SMALL}
-					>
-						Invite a new member to the organisation.
-					</Paragraph>
-				</div>
-
-				<UserForm
-					availableProjects={availableProjects}
-					control={control}
-					{...(lockedProjectId === null ? {} : { lockedProjectId })}
-					onCancel={handleCancel}
-					onSubmit={handleFormSubmit}
-				/>
+		<PageLayout>
+			<div>
+				<Heading level="2">Add New User</Heading>
+				<Paragraph
+					className="mt-1.5 hidden text-text-muted desktop:block"
+					size={ParagraphSize.BODY_SMALL}
+				>
+					Invite a new member to the organisation.
+				</Paragraph>
 			</div>
-		</div>
+
+			<UserForm
+				availableProjects={availableProjects}
+				control={control}
+				{...(lockedProjectId === null ? {} : { lockedProjectId })}
+				onCancel={handleCancel}
+				onSubmit={handleFormSubmit}
+			/>
+		</PageLayout>
 	);
 };
 
