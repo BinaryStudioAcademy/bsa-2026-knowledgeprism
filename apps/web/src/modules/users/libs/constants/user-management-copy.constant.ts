@@ -22,4 +22,4 @@ const getUserManagementCopy = (
 		: OrganisationUserManagementCopy;
 };
 
-export { getUserManagementCopy, OrganisationUserManagementCopy };
+export { getUserManagementCopy };

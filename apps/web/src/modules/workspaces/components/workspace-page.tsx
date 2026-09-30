@@ -5,7 +5,6 @@ import { Button, Heading, Icon, Modal } from "~/components/components.js";
 import { useNavigate } from "~/hooks/hooks.js";
 import { ProjectFormValue } from "~/modules/project-managment-modal/components/project-managment-modal-form/lib/type.js";
 import { ProjectManagmentModalForm } from "~/modules/project-managment-modal/components/project-managment-modal-form/project-managment-modal-form.js";
-import { OrganisationUserManagementCopy } from "~/modules/users/libs/constants/user-management-copy.constant.js";
 import { buildUserManagementPath } from "~/modules/users/libs/helpers/user-management-project.helper.js";
 
 import {
@@ -430,9 +429,6 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	}, [deletingProjectId, onDeleteProject]);
 
 	const navigate = useNavigate();
-	const handleOpenOrganisationUsers = useCallback((): void => {
-		void navigate(buildUserManagementPath(null));
-	}, [navigate]);
 
 	const handleManageProjectMembers = useCallback(
 		(projectId: string): void => {
@@ -489,16 +485,6 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 									</div>
 								)}
 							</div>
-
-							{isOrgAdmin && (
-								<Button
-									className="w-full justify-center sm:w-auto"
-									onClick={handleOpenOrganisationUsers}
-									variant="secondary"
-								>
-									{OrganisationUserManagementCopy.NAV_LABEL}
-								</Button>
-							)}
 
 							{isOrgAdmin && (
 								<Button
