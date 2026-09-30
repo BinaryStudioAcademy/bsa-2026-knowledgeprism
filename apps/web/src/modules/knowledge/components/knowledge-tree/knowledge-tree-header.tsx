@@ -140,9 +140,9 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 
 				{canEdit && !isEditing && (
 					<Button
+						className="h-10 @5xl:h-auto"
 						onClick={onEdit}
 						variant="primary"
-						className="h-10 @5xl:h-auto"
 					>
 						Edit
 					</Button>
