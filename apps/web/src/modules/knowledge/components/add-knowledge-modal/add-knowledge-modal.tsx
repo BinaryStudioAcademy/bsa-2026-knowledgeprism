@@ -25,6 +25,7 @@ import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { actions } from "../../knowledge.js";
+import { DEFAULT_DESTINATION_BRANCH_NAME } from "../../libs/constants/constants.js";
 import { DocumentProcessingStatus } from "../../libs/enums/enums.js";
 import { isUploadSessionCurrent } from "../../state/session-guards.js";
 import { DocumentUpload } from "../document-upload.js";
@@ -105,7 +106,7 @@ const getUploadActionLabel = (
 };
 
 const AddKnowledgeModal = ({
-	branchName = "Main",
+	branchName = DEFAULT_DESTINATION_BRANCH_NAME,
 	isOpen,
 	onClose,
 	projectName,
@@ -456,6 +457,7 @@ const AddKnowledgeModal = ({
 						role="tabpanel"
 					>
 						<ManualTextInput
+							isActive={activeTab === AddKnowledgeTab.TEXT}
 							isLoading={isManualTextSubmitting}
 							onCancel={handleClose}
 							onSubmit={handleManualTextSubmit}

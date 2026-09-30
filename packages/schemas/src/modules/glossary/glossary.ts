@@ -1,4 +1,5 @@
 export {
+	glossaryConsistencyCheckRequestValidationSchema,
 	glossaryRouteParametersValidationSchema,
 	glossarySearchQueryValidationSchema,
 	glossaryTermRequestValidationSchema,

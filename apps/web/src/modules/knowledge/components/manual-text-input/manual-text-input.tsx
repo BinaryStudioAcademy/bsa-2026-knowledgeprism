@@ -6,6 +6,7 @@ import {
 	type BaseSyntheticEvent,
 	type JSX,
 	useCallback,
+	useEffect,
 	useId,
 	useRef,
 	useState,
@@ -16,6 +17,7 @@ import { Alert, Input, Textarea } from "~/components/components.js";
 
 import { KnowledgeInputFooter } from "../knowledge-input-footer.js";
 
+const FOCUS_TIMEOUT_DELAY = 0;
 const MANUAL_TEXTAREA_ROWS = 8;
 const TITLE_MAXIMUM_LENGTH = 255;
 
@@ -83,12 +85,14 @@ const resolveManualTextInput: Resolver<ManualTextInputPayload> = (payload) => {
 };
 
 type Properties = {
+	isActive?: boolean;
 	isLoading?: boolean;
 	onCancel: () => void;
 	onSubmit: (payload: ManualTextInputPayload) => Promise<void> | void;
 };
 
 const ManualTextInput = ({
+	isActive = false,
 	isLoading = false,
 	onCancel,
 	onSubmit,
@@ -99,11 +103,26 @@ const ManualTextInput = ({
 		control,
 		formState: { isSubmitting },
 		handleSubmit,
+		setFocus,
 	} = useForm<ManualTextInputPayload>({
 		defaultValues: DEFAULT_MANUAL_TEXT_INPUT_PAYLOAD,
 		mode: "onTouched",
 		resolver: resolveManualTextInput,
 	});
+
+	useEffect(() => {
+		if (!isActive) {
+			return;
+		}
+
+		const timeoutId = setTimeout(() => {
+			setFocus("title");
+		}, FOCUS_TIMEOUT_DELAY);
+
+		return (): void => {
+			clearTimeout(timeoutId);
+		};
+	}, [isActive, setFocus]);
 
 	const [hasProcessingFailed, setHasProcessingFailed] = useState(false);
 	const isSubmissionPendingReference = useRef(false);

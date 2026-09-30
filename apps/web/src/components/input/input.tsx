@@ -58,6 +58,7 @@ const inputStyles = tv({
 });
 
 type Properties<T extends FieldValues> = {
+	autoComplete?: React.HTMLInputAutoCompleteAttribute;
 	control: Control<T, null>;
 	disabled?: boolean;
 	hasPasswordToggle?: boolean;
@@ -72,6 +73,7 @@ type Properties<T extends FieldValues> = {
 };
 
 const Input = <T extends FieldValues>({
+	autoComplete,
 	control,
 	disabled = false,
 	hasPasswordToggle = false,
@@ -159,6 +161,7 @@ const Input = <T extends FieldValues>({
 					{...field}
 					aria-describedby={errorId}
 					aria-invalid={hasError}
+					autoComplete={autoComplete}
 					className={input()}
 					disabled={isDisabled}
 					id={inputId}

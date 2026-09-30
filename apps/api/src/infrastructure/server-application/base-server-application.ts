@@ -22,6 +22,7 @@ import {
 	type ValidationSchema,
 } from "~/shared/types/types.js";
 
+import { SESSION_COOKIE_NAME } from "./libs/constants/session-cookie-name.constant.js";
 import {
 	type ServerApplication,
 	type ServerApplicationApi,
@@ -95,9 +96,9 @@ class BaseServerApplication implements ServerApplication {
 				if ("issues" in error) {
 					this.logger.error(`[Validation Error]: ${error.message}`);
 
-					for (const issue of error.issues) {
+					error.issues.forEach((issue) => {
 						this.logger.error(`[${issue.path.toString()}] — ${issue.message}`);
-					}
+					});
 
 					const [firstIssue] = error.issues;
 					const response: ServerValidationErrorResponse = {
@@ -175,6 +176,7 @@ class BaseServerApplication implements ServerApplication {
 				sameSite: "lax",
 				secure: "auto",
 			},
+			cookieName: SESSION_COOKIE_NAME,
 			saveUninitialized: false,
 			secret: this.config.ENV.SESSION.SECRET,
 			store: new DatabaseStore(this.database.client),
@@ -211,9 +213,9 @@ class BaseServerApplication implements ServerApplication {
 	}
 
 	public addRoutes(parameters: ServerApplicationRouteParameters[]): void {
-		for (const parameter of parameters) {
+		parameters.forEach((parameter) => {
 			this.addRoute(parameter);
-		}
+		});
 	}
 
 	public async init(): Promise<void> {

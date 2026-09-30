@@ -759,7 +759,7 @@ describe("knowledge pipeline lifecycle", () => {
 			store.instance.getState().knowledge.extractionItemsDocumentId,
 		).toBeNull();
 
-		deferred.resolve({ failedPageNumbers: [], items: [] });
+		deferred.resolve({ failedPageNumbers: [], items: [], sections: [] });
 		const result = await resuming.unwrap();
 
 		expect(result.openPreview).toBe(true);
@@ -780,7 +780,7 @@ describe("knowledge pipeline lifecycle", () => {
 		const requestA = createRequest(DOCUMENT_A_ID);
 		store.instance.dispatch(
 			fetchExtractionItems.fulfilled(
-				{ failedPageNumbers: [FAILED_PAGE_NUMBER], items: [] },
+				{ failedPageNumbers: [FAILED_PAGE_NUMBER], items: [], sections: [] },
 				"extraction-a",
 				requestA,
 			),
@@ -798,13 +798,14 @@ describe("knowledge pipeline lifecycle", () => {
 		vi.spyOn(documentsApi, "getExtractionItems").mockResolvedValue({
 			failedPageNumbers: [],
 			items: [],
+			sections: [],
 		});
 		await store.instance
 			.dispatch(switchActiveDocument(createRequest(DOCUMENT_B_ID)))
 			.unwrap();
 		store.instance.dispatch(
 			fetchExtractionItems.fulfilled(
-				{ failedPageNumbers: [FAILED_PAGE_NUMBER], items: [] },
+				{ failedPageNumbers: [FAILED_PAGE_NUMBER], items: [], sections: [] },
 				"stale-extraction-a",
 				requestA,
 			),
@@ -824,7 +825,11 @@ describe("knowledge pipeline lifecycle", () => {
 			DocumentStatus.WAITING_FOR_VALIDATION,
 		);
 		const request = createRequest(DOCUMENT_A_ID);
-		const response = { failedPageNumbers: [FAILED_PAGE_NUMBER], items: [] };
+		const response = {
+			failedPageNumbers: [FAILED_PAGE_NUMBER],
+			items: [],
+			sections: [],
+		};
 		store.instance.dispatch(
 			fetchExtractionItems.fulfilled(response, "extraction", request),
 		);
@@ -845,7 +850,7 @@ describe("knowledge pipeline lifecycle", () => {
 		const request = createRequest(DOCUMENT_A_ID);
 		store.instance.dispatch(
 			fetchExtractionItems.fulfilled(
-				{ failedPageNumbers: [FAILED_PAGE_NUMBER], items: [] },
+				{ failedPageNumbers: [FAILED_PAGE_NUMBER], items: [], sections: [] },
 				"extraction",
 				request,
 			),

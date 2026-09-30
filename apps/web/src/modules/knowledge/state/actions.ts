@@ -10,6 +10,7 @@ import {
 	type IntegrationChangesResponseDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
+	type KnowledgeSearchResponseDto,
 	type KnowledgeTreeResponseDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
@@ -19,7 +20,7 @@ import { createAsyncThunk } from "@reduxjs/toolkit";
 
 import { NotificationVariant } from "~/lib/enums/enums.js";
 import { normalizeError } from "~/lib/helpers/helpers.js";
-import { HTTPCode } from "~/lib/http/http.js";
+import { HTTPCode, HTTPError } from "~/lib/http/http.js";
 import { notificationService } from "~/lib/notifications/notification.service.js";
 import { createAppAsyncThunk } from "~/lib/store/store.module.js";
 import { type AsyncThunkConfig, type ValueOf } from "~/lib/types/types.js";
@@ -34,7 +35,9 @@ import {
 	addTrackedDocumentId,
 	formatFileSize,
 	getFileContentType,
+	getUploadUrlExpiresAt,
 	isMatchingPipelineSession,
+	isUploadUrlUsable,
 	readTrackedDocumentIds,
 	removeTrackedDocumentId,
 } from "../libs/helpers/helpers.js";
@@ -75,17 +78,24 @@ type ProcessDocumentPayload = {
 	projectId: string;
 	uploadSessionId: number;
 	uploadUrl?: string | undefined;
+	uploadUrlExpiresAt?: number | undefined;
 };
 
 type ProcessDocumentRejection = {
 	documentId?: number | undefined;
 	message: string;
 	uploadUrl?: string | undefined;
+	uploadUrlExpiresAt?: number | undefined;
 };
 
 type ReviewableDocumentStatus =
 	| typeof DocumentStatus.WAITING_FOR_APPROVAL
 	| typeof DocumentStatus.WAITING_FOR_VALIDATION;
+
+type SearchKnowledgeEntriesPayload = {
+	projectId: string;
+	query: string;
+};
 
 type SubmitManualTextPayload = {
 	payload: ManualTextCreateRequestDto;
@@ -227,16 +237,25 @@ const processDocument = createAsyncThunk<
 >(
 	`${sliceName}/process-document`,
 	async (
-		{ documentId, file, id, projectId, uploadUrl },
+		{ documentId, file, id, projectId, uploadUrl, uploadUrlExpiresAt },
 		{ extra, rejectWithValue, signal },
 	) => {
 		const { documentsApi } = extra;
 
 		let resolvedDocumentId = documentId;
 		let resolvedUploadUrl = uploadUrl;
+		let resolvedUploadUrlExpiresAt = uploadUrlExpiresAt;
 
 		try {
-			if (!resolvedDocumentId || !resolvedUploadUrl) {
+			const canReuseUploadUrl =
+				resolvedDocumentId !== undefined &&
+				isUploadUrlUsable({
+					now: Date.now(),
+					uploadUrl: resolvedUploadUrl,
+					uploadUrlExpiresAt: resolvedUploadUrlExpiresAt,
+				});
+
+			if (!canReuseUploadUrl || !resolvedUploadUrl) {
 				const intent = await documentsApi.createUploadIntent({
 					payload: {
 						contentType: getFileContentType(file),
@@ -248,6 +267,10 @@ const processDocument = createAsyncThunk<
 				});
 				resolvedDocumentId = intent.documentId;
 				resolvedUploadUrl = intent.uploadUrl;
+				resolvedUploadUrlExpiresAt = getUploadUrlExpiresAt(
+					intent.expiresInSeconds,
+					Date.now(),
+				);
 			}
 
 			await documentsApi.uploadFileToStorage({
@@ -263,6 +286,7 @@ const processDocument = createAsyncThunk<
 						? error.message
 						: DocumentValidationMessage.PROCESSING_FAILED,
 				uploadUrl: resolvedUploadUrl,
+				uploadUrlExpiresAt: resolvedUploadUrlExpiresAt,
 			});
 		}
 
@@ -275,6 +299,7 @@ const processDocument = createAsyncThunk<
 			sizeLabel: formatFileSize(file.size),
 			status: DocumentProcessingStatus.READY,
 			uploadUrl: resolvedUploadUrl,
+			uploadUrlExpiresAt: resolvedUploadUrlExpiresAt,
 		};
 	},
 );
@@ -322,6 +347,34 @@ const fetchKnowledgeTree = createAsyncThunk<
 		signal,
 	});
 });
+
+const isUnauthorizedError = (error: unknown): error is HTTPError => {
+	return error instanceof HTTPError && error.status === HTTPCode.UNAUTHORIZED;
+};
+
+const searchKnowledgeEntries = createAsyncThunk<
+	KnowledgeSearchResponseDto,
+	SearchKnowledgeEntriesPayload,
+	AsyncThunkConfig
+>(
+	`${sliceName}/search-knowledge-entries`,
+	async ({ projectId, query }, { extra }) => {
+		const { knowledgeApi } = extra;
+
+		try {
+			return await knowledgeApi.search({ projectId, query });
+		} catch (error: unknown) {
+			// A failed background search should not disrupt the tree; fail open to "no
+			// content matches" (the title-only client filter still applies), except when the
+			// user's session is gone — then let the global error middleware log them out.
+			if (isUnauthorizedError(error)) {
+				throw error;
+			}
+
+			return { items: [] };
+		}
+	},
+);
 
 const applyIntegrationChanges = createAppAsyncThunk<
 	DocumentStatusResponseDto,
@@ -870,6 +923,7 @@ const switchActiveDocument = createAppAsyncThunk<
 
 		let extractionFailedPageNumbers: number[] = [];
 		let extractionItems: ExtractionItemResponseDto[] = [];
+		let extractionSections: ExtractionItemsResponseDto["sections"] = [];
 
 		if (statusResponse.status === DocumentStatus.WAITING_FOR_VALIDATION) {
 			const extractionResponse = await extra.documentsApi.getExtractionItems({
@@ -879,6 +933,7 @@ const switchActiveDocument = createAppAsyncThunk<
 			});
 			extractionFailedPageNumbers = extractionResponse.failedPageNumbers;
 			extractionItems = extractionResponse.items;
+			extractionSections = extractionResponse.sections;
 		}
 
 		if (!isLatestRequest()) {
@@ -890,6 +945,7 @@ const switchActiveDocument = createAppAsyncThunk<
 				...request,
 				extractionFailedPageNumbers,
 				extractionItems,
+				extractionSections,
 				status: statusResponse.status,
 				switchRequestId: requestId,
 			}),
@@ -1015,6 +1071,7 @@ export {
 	processDocument,
 	resumeNextPendingReview,
 	retryDocumentProcessing,
+	searchKnowledgeEntries,
 	submitExtractionReview,
 	submitManualText,
 	switchActiveDocument,

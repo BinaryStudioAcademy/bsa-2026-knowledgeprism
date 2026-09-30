@@ -9,14 +9,35 @@ const TRANSIENT_ERROR_NAMES = new Set([
 	"ModelErrorException",
 	"ModelNotReadyException",
 	"ModelTimeoutException",
+	"RequestTimeout",
+	"RequestTimeoutException",
 	"ServiceUnavailableException",
 	"ThrottlingException",
 	"TimeoutError",
 ]);
 
+const TRANSIENT_NETWORK_ERROR_CODES = new Set([
+	"EAI_AGAIN",
+	"ECONNREFUSED",
+	"ECONNRESET",
+	"EHOSTUNREACH",
+	"ENETUNREACH",
+	"ENOTFOUND",
+	"EPIPE",
+	"ETIMEDOUT",
+]);
+
 const isTransientExtractionError = (error: unknown): boolean => {
 	if (typeof error !== "object" || error === null) {
 		return false;
+	}
+
+	if (
+		"code" in error &&
+		typeof error.code === "string" &&
+		TRANSIENT_NETWORK_ERROR_CODES.has(error.code)
+	) {
+		return true;
 	}
 
 	if (

@@ -27,6 +27,7 @@ import {
 	pollDocumentStatus,
 	processDocument,
 	retryDocumentProcessing,
+	searchKnowledgeEntries,
 	submitExtractionReview,
 	submitManualText,
 	switchActiveDocument,
@@ -50,10 +51,12 @@ const initialState: State = {
 	activeDocumentId: null,
 	activeDocumentStatus: IDLE_DOCUMENT_STATUS,
 	activeDocumentSwitchRequestId: null,
+	contentSearchRequestId: null,
 	entryRequestId: null,
 	extractionFailedPageNumbers: [],
 	extractionItems: [],
 	extractionItemsDocumentId: null,
+	extractionSections: [],
 	integrationPreviewDocumentId: null,
 	integrationPreviewError: null,
 	integrationPreviewRequestId: null,
@@ -61,8 +64,10 @@ const initialState: State = {
 	isAddingKnowledge: false,
 	isEntryLoading: false,
 	isIntegrationPreviewLoading: false,
+	isSearchingContent: false,
 	isTreeLoading: false,
 	knowledgeErrorMessage: null,
+	matchedContentEntryIds: [],
 	pendingReviewRequestId: null,
 	pipelineErrors: {},
 	pipelineProjectId: null,
@@ -190,23 +195,26 @@ const pickActiveDocument = (state: State): TrackedDocument | undefined => {
 	return current ?? state.trackedDocuments.at(FIRST_TRACKED_DOCUMENT_INDEX);
 };
 
+const clearExtractionReview = (state: State): void => {
+	state.extractionFailedPageNumbers = [];
+	state.extractionItems = [];
+	state.extractionItemsDocumentId = null;
+	state.extractionSections = [];
+};
+
 const reconcileActiveDocument = (state: State): void => {
 	const nextActive = pickActiveDocument(state);
 	const nextActiveId = nextActive?.documentId ?? null;
 
 	if (nextActiveId !== state.activeDocumentId) {
 		state.activeDocumentId = nextActiveId;
-		state.extractionFailedPageNumbers = [];
-		state.extractionItems = [];
-		state.extractionItemsDocumentId = null;
+		clearExtractionReview(state);
 	}
 
 	state.activeDocumentStatus = nextActive?.status ?? IDLE_DOCUMENT_STATUS;
 
 	if (state.activeDocumentStatus !== DocumentStatus.WAITING_FOR_VALIDATION) {
-		state.extractionFailedPageNumbers = [];
-		state.extractionItems = [];
-		state.extractionItemsDocumentId = null;
+		clearExtractionReview(state);
 	}
 
 	state.isAddingKnowledge = state.trackedDocuments.some((document) =>
@@ -243,9 +251,7 @@ const removeTrackedDocument = (state: State, documentId: number): void => {
 	);
 
 	if (state.extractionItemsDocumentId === documentId) {
-		state.extractionFailedPageNumbers = [];
-		state.extractionItems = [];
-		state.extractionItemsDocumentId = null;
+		clearExtractionReview(state);
 	}
 };
 
@@ -368,6 +374,7 @@ const { actions, name, reducer } = createSlice({
 				targetFile.status = DocumentProcessingStatus.FAILED;
 				targetFile.documentId = action.payload?.documentId;
 				targetFile.uploadUrl = action.payload?.uploadUrl;
+				targetFile.uploadUrlExpiresAt = action.payload?.uploadUrlExpiresAt;
 				targetFile.errorMessage =
 					action.payload?.message ??
 					DocumentValidationMessage.PROCESSING_FAILED;
@@ -428,6 +435,9 @@ const { actions, name, reducer } = createSlice({
 			state.tree = [];
 			state.treeRequestId = action.meta.requestId;
 			state.selectedEntry = null;
+			state.matchedContentEntryIds = [];
+			state.contentSearchRequestId = null;
+			state.isSearchingContent = false;
 		});
 		builder.addCase(fetchKnowledgeTree.fulfilled, (state, action) => {
 			if (state.treeRequestId !== action.meta.requestId) {
@@ -593,9 +603,7 @@ const { actions, name, reducer } = createSlice({
 			}
 
 			clearDocumentPipelineError(state, action.meta.arg.documentId);
-			state.extractionFailedPageNumbers = [];
-			state.extractionItems = [];
-			state.extractionItemsDocumentId = null;
+			clearExtractionReview(state);
 		});
 		builder.addCase(fetchExtractionItems.fulfilled, (state, action) => {
 			const document = findTrackedDocument(state, action.meta.arg.documentId);
@@ -611,6 +619,7 @@ const { actions, name, reducer } = createSlice({
 			state.extractionFailedPageNumbers = action.payload.failedPageNumbers;
 			state.extractionItems = action.payload.items;
 			state.extractionItemsDocumentId = action.meta.arg.documentId;
+			state.extractionSections = action.payload.sections;
 			clearDocumentPipelineError(state, action.meta.arg.documentId);
 		});
 		builder.addCase(fetchExtractionItems.rejected, (state, action) => {
@@ -836,6 +845,25 @@ const { actions, name, reducer } = createSlice({
 				action.error.message ?? "Failed to switch review document",
 			);
 		});
+		builder.addCase(searchKnowledgeEntries.pending, (state, action) => {
+			state.contentSearchRequestId = action.meta.requestId;
+			state.isSearchingContent = true;
+		});
+		builder.addCase(searchKnowledgeEntries.fulfilled, (state, action) => {
+			if (state.contentSearchRequestId !== action.meta.requestId) {
+				return;
+			}
+			state.isSearchingContent = false;
+			state.matchedContentEntryIds = action.payload.items.map(
+				(item) => item.id,
+			);
+		});
+		builder.addCase(searchKnowledgeEntries.rejected, (state, action) => {
+			if (state.contentSearchRequestId !== action.meta.requestId) {
+				return;
+			}
+			state.isSearchingContent = false;
+		});
 	},
 	initialState,
 	name: "knowledge",
@@ -864,6 +892,7 @@ const { actions, name, reducer } = createSlice({
 					documentId: number;
 					extractionFailedPageNumbers: KnowledgeState["extractionFailedPageNumbers"];
 					extractionItems: KnowledgeState["extractionItems"];
+					extractionSections: KnowledgeState["extractionSections"];
 					status:
 						| typeof DocumentStatus.WAITING_FOR_APPROVAL
 						| typeof DocumentStatus.WAITING_FOR_VALIDATION;
@@ -875,6 +904,7 @@ const { actions, name, reducer } = createSlice({
 				documentId,
 				extractionFailedPageNumbers,
 				extractionItems,
+				extractionSections,
 				status,
 				switchRequestId,
 			} = action.payload;
@@ -894,8 +924,17 @@ const { actions, name, reducer } = createSlice({
 			state.extractionItems = extractionItems;
 			state.extractionItemsDocumentId =
 				status === DocumentStatus.WAITING_FOR_VALIDATION ? documentId : null;
+			state.extractionSections =
+				status === DocumentStatus.WAITING_FOR_VALIDATION
+					? extractionSections
+					: [];
 			clearDocumentPipelineError(state, documentId);
 			reconcileActiveDocument(state);
+		},
+		clearContentSearch(state) {
+			state.contentSearchRequestId = null;
+			state.isSearchingContent = false;
+			state.matchedContentEntryIds = [];
 		},
 		clearIntegrationPreview(state) {
 			state.integrationPreviewDocumentId = null;
@@ -1029,9 +1068,7 @@ const { actions, name, reducer } = createSlice({
 			state.activeDocumentStatus = IDLE_DOCUMENT_STATUS;
 			state.activeDocumentSwitchRequestId = null;
 			state.entryRequestId = null;
-			state.extractionFailedPageNumbers = [];
-			state.extractionItems = [];
-			state.extractionItemsDocumentId = null;
+			clearExtractionReview(state);
 			state.integrationPreviewDocumentId = null;
 			state.integrationPreviewError = null;
 			state.integrationPreviewRequestId = null;

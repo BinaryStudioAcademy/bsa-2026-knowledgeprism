@@ -24,10 +24,20 @@ const TWO_CALLS = 2;
 const THREE_CALLS = 3;
 const MAXIMUM_RECOVERY_CALLS = 9;
 const EMPTY_COUNT = 0;
-const HALF_LENGTH = 400;
+const PARAGRAPH_REPETITIONS = 12;
+const SINGLE_SENTENCE_LENGTH = 600;
+const THIRD_PAGE_NUMBER = 18;
+const LEFT_PARAGRAPH = "Editors may upload project documents. ".repeat(
+	PARAGRAPH_REPETITIONS,
+);
+const RIGHT_PARAGRAPH = "Viewers may read approved project knowledge. ".repeat(
+	PARAGRAPH_REPETITIONS,
+);
+const BOUNDARY_RULE =
+	"Access is denied unless the project owner explicitly approves the request.";
 const SOURCE = "Editors may upload documents.";
 const BLOCK = { content: SOURCE, pageNumber: PAGE_NUMBER };
-const LONG_SOURCE = `${"a".repeat(HALF_LENGTH)}${"b".repeat(HALF_LENGTH)}`;
+const LONG_SOURCE = `${LEFT_PARAGRAPH}\n\n${RIGHT_PARAGRAPH}`;
 const EMPTY_OUTPUT = { items: [] };
 
 const outputFor = (content: string): unknown => ({
@@ -77,6 +87,125 @@ const createSetup = (invoke: ExtractionDependencies["invoke"]) => {
 };
 
 void describe("extraction recovery", () => {
+	void it("recovers from a temporary DNS error without duplicating prior results", async () => {
+		let networkAttempts = 0;
+		const setup = createSetup((content) => {
+			if (content === "Second page" && ++networkAttempts === SINGLE_CALL) {
+				return Promise.reject(
+					Object.assign(new Error("Temporary DNS failure"), {
+						code: "EAI_AGAIN",
+					}),
+				);
+			}
+
+			return Promise.resolve(outputFor(content));
+		});
+		const result = await extractBlocks(
+			[BLOCK, { content: "Second page", pageNumber: NEXT_PAGE_NUMBER }],
+			setup.dependencies,
+		);
+		assert.deepEqual(
+			result.items.map((item) => item.sourcePageNumber),
+			[PAGE_NUMBER, NEXT_PAGE_NUMBER],
+		);
+		assert.deepEqual(result.failedPageNumbers, []);
+		assert.equal(networkAttempts, TWO_CALLS);
+		assert.deepEqual(setup.delays, [ExtractionRecovery.RETRY_DELAY_MS]);
+	});
+
+	void it("keeps earlier successes and processes later pages after network retries are exhausted", async () => {
+		const setup = createSetup((content) =>
+			content === "Failing page"
+				? Promise.reject(
+						Object.assign(new Error("Temporary DNS failure"), {
+							code: "EAI_AGAIN",
+						}),
+					)
+				: Promise.resolve(outputFor(content)),
+		);
+		const result = await extractBlocks(
+			[
+				BLOCK,
+				{ content: "Failing page", pageNumber: NEXT_PAGE_NUMBER },
+				{ content: "Last page", pageNumber: THIRD_PAGE_NUMBER },
+			],
+			setup.dependencies,
+		);
+		assert.deepEqual(
+			result.items.map((item) => item.sourcePageNumber),
+			[PAGE_NUMBER, THIRD_PAGE_NUMBER],
+		);
+		assert.deepEqual(result.failedPageNumbers, [NEXT_PAGE_NUMBER]);
+		assert.equal(
+			setup.calls.filter((content) => content === "Failing page").length,
+			ExtractionRecovery.MAXIMUM_ATTEMPTS,
+		);
+		assert.deepEqual(setup.delays, [
+			ExtractionRecovery.RETRY_DELAY_MS,
+			ExtractionRecovery.RETRY_DELAY_MS * TWO_CALLS,
+		]);
+	});
+
+	void it("fails after bounded retries when every page has a transport failure", async () => {
+		const setup = createSetup(() =>
+			Promise.reject(
+				Object.assign(new Error("Temporary DNS failure"), {
+					code: "EAI_AGAIN",
+				}),
+			),
+		);
+		await assert.rejects(
+			extractBlocks([BLOCK], setup.dependencies),
+			/failed for every chunk/u,
+		);
+		assert.equal(setup.calls.length, ExtractionRecovery.MAXIMUM_ATTEMPTS);
+	});
+
+	void it("keeps a complete conditional rule that crosses the character midpoint", async () => {
+		const padding = "Background information. ".repeat(PARAGRAPH_REPETITIONS);
+		const source = `${padding}${BOUNDARY_RULE} ${padding}`;
+		const setup = createSetup((content) => {
+			if (content === source) {
+				return Promise.reject(truncated());
+			}
+
+			return Promise.resolve(
+				content.includes(BOUNDARY_RULE)
+					? outputFor(BOUNDARY_RULE)
+					: EMPTY_OUTPUT,
+			);
+		});
+		const result = await extractBlocks(
+			[{ ...BLOCK, content: source }],
+			setup.dependencies,
+		);
+		assert.deepEqual(
+			result.items.map((item) => item.text),
+			[BOUNDARY_RULE],
+		);
+		assert.deepEqual(result.failedPageNumbers, []);
+		assert.equal(setup.calls.length, THREE_CALLS);
+	});
+
+	void it("records an unsplittable truncated sentence instead of sending fragments", async () => {
+		const sentence = `${"x".repeat(SINGLE_SENTENCE_LENGTH)} requires approval.`;
+		const setup = createSetup((content) =>
+			content === sentence
+				? Promise.reject(truncated())
+				: Promise.resolve(outputFor(content)),
+		);
+		const result = await extractBlocks(
+			[BLOCK, { content: sentence, pageNumber: NEXT_PAGE_NUMBER }],
+			setup.dependencies,
+		);
+		assert.deepEqual(
+			result.items.map((item) => item.sourcePageNumber),
+			[PAGE_NUMBER],
+		);
+		assert.deepEqual(result.failedPageNumbers, [NEXT_PAGE_NUMBER]);
+		assert.equal(setup.calls.length, TWO_CALLS);
+	});
+
 	void it("retries malformed output and returns successful items exactly once", async () => {
 		let attempt = 0;
 		const setup = createSetup((content) =>
@@ -190,9 +319,10 @@ void describe("extraction recovery", () => {
 		);
 		assert.equal(setup.calls.length, THREE_CALLS);
 		assert.equal(result.items.length, TWO_CALLS);
-		assert.equal(
-			result.items.map((item) => item.sourceExcerpt).join(""),
-			LONG_SOURCE,
+		assert.equal(setup.calls.slice(SINGLE_CALL).join(""), LONG_SOURCE);
+		assert.deepEqual(
+			result.items.map((item) => item.sourceExcerpt),
+			[LEFT_PARAGRAPH.trim(), RIGHT_PARAGRAPH.trim()],
 		);
 		assert.ok(
 			result.items.every((item) => item.sourcePageNumber === PAGE_NUMBER),
@@ -207,7 +337,7 @@ void describe("extraction recovery", () => {
 			}
 
 			return Promise.resolve(
-				content.startsWith("a") ? outputFor(content) : "{broken",
+				content.startsWith(LEFT_PARAGRAPH) ? outputFor(content) : "{broken",
 			);
 		});
 		const result = await extractBlocks(

@@ -5,6 +5,7 @@ import {
 } from "@knowledgeprism/constants";
 import {
 	type ExtractionItemResponseDto,
+	type ExtractionSectionResponseDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
@@ -13,6 +14,8 @@ import {
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { type DocumentProcessingStatus } from "../enums/enums.js";
+
+type ActiveNodeType = "child" | "parent";
 
 type ChangeStatus = "conflict" | "created" | "duplicate" | "modified";
 
@@ -56,10 +59,12 @@ type KnowledgeState = {
 	activeDocumentId: null | number;
 	activeDocumentStatus: "IDLE" | ValueOf<typeof DocumentStatus>;
 	activeDocumentSwitchRequestId: null | string;
+	contentSearchRequestId: null | string;
 	entryRequestId: null | string;
 	extractionFailedPageNumbers: number[];
 	extractionItems: ExtractionItemResponseDto[];
 	extractionItemsDocumentId: null | number;
+	extractionSections: ExtractionSectionResponseDto[];
 	integrationPreviewDocumentId: null | number;
 	integrationPreviewError: null | string;
 	integrationPreviewRequestId: null | string;
@@ -67,8 +72,10 @@ type KnowledgeState = {
 	isAddingKnowledge: boolean;
 	isEntryLoading: boolean;
 	isIntegrationPreviewLoading: boolean;
+	isSearchingContent: boolean;
 	isTreeLoading: boolean;
 	knowledgeErrorMessage: null | string;
+	matchedContentEntryIds: number[];
 	pendingReviewRequestId: null | string;
 	pipelineErrors: Record<number, string>;
 	pipelineProjectId: null | string;
@@ -133,6 +140,7 @@ type UploadedDocumentItem = {
 	sizeLabel: string;
 	status: ValueOf<typeof DocumentProcessingStatus>;
 	uploadUrl?: string | undefined;
+	uploadUrlExpiresAt?: number | undefined;
 };
 
 type UploadSession = {
@@ -143,6 +151,7 @@ type UploadSession = {
 
 export { type KnowledgeEntryUpdateRequestDto } from "@knowledgeprism/types";
 export {
+	type ActiveNodeType,
 	type ChangeStatus,
 	type ConflictResolution,
 	type FieldConflict,

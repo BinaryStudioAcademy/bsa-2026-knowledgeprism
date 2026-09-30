@@ -10,6 +10,7 @@ import { type ExtractionDependencies } from "../types/extraction-dependencies.ty
 import { type KnowledgeItem } from "../types/knowledge-item.type.js";
 import { isTransientExtractionError } from "./is-transient-extraction-error.helper.js";
 import { mapExtractionOutput } from "./map-extraction-output.helper.js";
+import { splitTruncatedChunk } from "./split-truncated-chunk.helper.js";
 
 type Chunk = ExtractionBlock & {
 	chunkIndex: number;
@@ -25,7 +26,6 @@ type ChunkResult = {
 const NO_SUCCESSFUL_CHUNKS = 0;
 const ONE_SUCCESSFUL_CHUNK = 1;
 const FIRST_ATTEMPT = 1;
-const FIRST_CHARACTER_INDEX = 0;
 
 const isRetryable = (error: unknown): boolean =>
 	error instanceof ExtractionOutputError ||
@@ -37,24 +37,18 @@ const extractSplitChunk = async (
 	chunk: Chunk,
 	dependencies: ExtractionDependencies,
 ): Promise<ChunkResult> => {
-	const midpoint = Math.ceil(
-		chunk.content.length / ExtractionRecovery.SPLIT_PARTS,
-	);
-	const parts = [
-		chunk.content.slice(FIRST_CHARACTER_INDEX, midpoint),
-		chunk.content.slice(midpoint),
-	];
+	const parts = splitTruncatedChunk(chunk.content);
 	const result: ChunkResult = {
 		hasFailures: false,
 		items: [],
 		successfulChunkCount: NO_SUCCESSFUL_CHUNKS,
 	};
 
-	for (const [splitPart, content] of parts.entries()) {
-		if (content.trim() === "") {
-			continue;
-		}
+	if (parts === null) {
+		return { ...result, hasFailures: true };
+	}
 
+	for (const [splitPart, content] of parts.entries()) {
 		const partial = await extractChunk(
 			{ ...chunk, content, splitPart },
 			dependencies,

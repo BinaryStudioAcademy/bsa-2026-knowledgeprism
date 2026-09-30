@@ -16,6 +16,31 @@ const envelope = (stopReason: string, text: string): string =>
 	});
 
 void describe("Bedrock extraction response", () => {
+	void it("joins completed text blocks for all Bedrock consumers", () => {
+		assert.equal(
+			toResponseText(
+				JSON.stringify({
+					content: [
+						{ text: "The answer ", type: "text" },
+						{ text: "is 42.", type: "text" },
+					],
+					stop_reason: "end_turn",
+				}),
+			),
+			"The answer is 42.",
+		);
+	});
+
+	void it("rejects refusal even without text blocks", () => {
+		assert.throws(
+			() =>
+				toResponseText(JSON.stringify({ content: [], stop_reason: "refusal" })),
+			{
+				reason: BedrockResponseFailure.REFUSAL,
+			},
+		);
+	});
+
 	void it("reads completed text", () => {
 		assert.equal(
 			toResponseText(envelope("end_turn", EMPTY_OUTPUT)),

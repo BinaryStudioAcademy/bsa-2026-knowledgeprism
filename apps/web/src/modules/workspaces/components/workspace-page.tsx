@@ -1,3 +1,4 @@
+import { ProjectMemberRole } from "@knowledgeprism/constants";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 
 import { Button, Heading, Icon, Modal } from "~/components/components.js";
@@ -21,11 +22,13 @@ const EMPTY_LENGTH = 0;
 const EVEN_MODULO = 2;
 const INDEX_OFFSET = 1;
 
+const ALL_ROLES_FILTER: RoleFilter = "ALL";
+
 const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
-	{ label: "All roles", value: "ALL" },
-	{ label: "Admin", value: "ADMIN" },
-	{ label: "Editor", value: "EDITOR" },
-	{ label: "Viewer", value: "VIEWER" },
+	{ label: "All roles", value: ALL_ROLES_FILTER },
+	{ label: "Admin", value: ProjectMemberRole.ADMIN },
+	{ label: "Editor", value: ProjectMemberRole.EDITOR },
+	{ label: "Viewer", value: ProjectMemberRole.VIEWER },
 ];
 
 interface CreateProjectModalProperties {
@@ -251,7 +254,9 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 		totalCount % EVEN_MODULO !== EMPTY_LENGTH;
 
 	return (
-		<div className={isLastOdd ? "sm:col-span-2 lg:col-span-1" : ""}>
+		<div
+			className={isLastOdd ? "min-w-0 sm:col-span-2 lg:col-span-1" : "min-w-0"}
+		>
 			<ProjectCard
 				description={project.description ?? ""}
 				id={project.id}
@@ -289,7 +294,8 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		setLocalProjects(initialProjects);
 	}
 
-	const [selectedRole, setSelectedRole] = useState<RoleFilter>("ALL");
+	const [selectedRole, setSelectedRole] =
+		useState<RoleFilter>(ALL_ROLES_FILTER);
 	const [isFilterOpen, setIsFilterOpen] = useState(false);
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [editingProject, setEditingProject] = useState<null | ProjectItem>(
@@ -307,7 +313,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	}, [deletedIds, localProjects]);
 
 	const filteredProjects = useMemo(() => {
-		if (selectedRole === "ALL") {
+		if (selectedRole === ALL_ROLES_FILTER) {
 			return visibleProjects;
 		}
 
@@ -315,7 +321,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	}, [selectedRole, visibleProjects]);
 
 	const filterLabel = useMemo(() => {
-		if (selectedRole === "ALL") {
+		if (selectedRole === ALL_ROLES_FILTER) {
 			return "Filter";
 		}
 
@@ -417,7 +423,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 	return (
 		<div className="workspace-page relative min-h-screen bg-bg">
-			<div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+			<div className="mx-auto min-w-0 max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
 				<div className="mb-6 flex flex-col justify-between gap-4 sm:mb-8 sm:flex-row sm:items-center">
 					<div>
 						<Heading level="2">Your Workspaces</Heading>
@@ -478,7 +484,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 				</div>
 
 				{filteredProjects.length > EMPTY_LENGTH && (
-					<div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
+					<div className="mb-10 grid min-w-0 grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-3">
 						{filteredProjects.map((project, index) => (
 							<ProjectItemCard
 								index={index}
