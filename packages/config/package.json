@@ -20,7 +20,6 @@
 		"@knowledgeprism/types": "*"
 	},
 	"devDependencies": {
-		"@types/node": "26.1.2",
 		"zod": "4.4.3"
 	}
 }

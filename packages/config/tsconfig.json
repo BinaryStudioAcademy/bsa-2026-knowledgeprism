@@ -1,8 +1,5 @@
 {
 	"extends": "../../tsconfig.json",
 	"include": ["**/*.ts", "**/*.js"],
-	"exclude": ["node_modules", "build"],
-	"compilerOptions": {
-		"types": ["node"]
-	}
+	"exclude": ["node_modules", "build"]
 }
