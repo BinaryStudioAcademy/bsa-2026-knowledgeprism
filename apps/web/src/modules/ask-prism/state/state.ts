@@ -8,4 +8,8 @@ const allActions = {
 };
 
 export { allActions as actions };
-export { type AskPrismErrorType, reducer } from "./ask-prism.slice.js";
+export {
+	type AskPrismErrorType,
+	type AskPrismMessage,
+	reducer,
+} from "./ask-prism.slice.js";

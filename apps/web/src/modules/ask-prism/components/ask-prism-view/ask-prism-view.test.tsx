@@ -70,6 +70,8 @@ const renderAskPrismView = (projectId = PROJECT_ID): void => {
 
 describe("AskPrismView suggested questions behavior", () => {
 	beforeEach(() => {
+		sessionStorage.clear();
+		HTMLElement.prototype.scrollIntoView = vi.fn();
 		store.instance.dispatch(actions.reset());
 		vi.spyOn(askPrismApi, "getSuggestedQuestions").mockResolvedValue(
 			CUSTOM_SUGGESTIONS,
@@ -78,6 +80,7 @@ describe("AskPrismView suggested questions behavior", () => {
 	});
 
 	afterEach(() => {
+		sessionStorage.clear();
 		store.instance.dispatch(actions.reset());
 		vi.restoreAllMocks();
 	});
