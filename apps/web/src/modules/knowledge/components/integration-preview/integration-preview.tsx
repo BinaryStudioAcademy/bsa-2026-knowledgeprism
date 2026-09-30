@@ -64,6 +64,7 @@ import {
 	StructureAside,
 } from "./libs/components/structure-aside.js";
 import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
+import { toFailedPagesMessage } from "./libs/helpers/to-failed-pages-message.helper.js";
 import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consistency-check.hook.js";
 
 const EMPTY_LENGTH = 0;
@@ -729,6 +730,7 @@ const PreviewFooter = ({
 
 const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	errorMessage,
+	failedPageNumbers = [],
 	onAddMore,
 	onApplyingChange,
 	onApprove,
@@ -1198,6 +1200,13 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					description={errorMessage}
 					title="Review could not be saved"
 					variant="error"
+				/>
+			)}
+			{isExtractionValidation && failedPageNumbers.length > EMPTY_LENGTH && (
+				<Alert
+					description={toFailedPagesMessage(failedPageNumbers)}
+					title="Some pages could not be processed"
+					variant="warning"
 				/>
 			)}
 			<div className="flex flex-1 min-h-0 flex-col tablet:flex-row overflow-y-auto tablet:overflow-hidden rounded-lg border border-border bg-surface shadow-sm">

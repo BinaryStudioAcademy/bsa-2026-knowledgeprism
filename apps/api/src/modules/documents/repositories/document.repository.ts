@@ -19,12 +19,14 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		{
 			errorMessage,
 			expectedStatus,
+			failedPageNumbers,
 			id,
 			processingAttempt,
 			status,
 		}: {
 			errorMessage: null | string;
 			expectedStatus: ValueOf<typeof DocumentStatus>;
+			failedPageNumbers?: number[];
 			id: number;
 			processingAttempt?: number;
 			status: ValueOf<typeof DocumentStatus>;
@@ -35,6 +37,7 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 			.query(transaction)
 			.patch({
 				errorMessage,
+				...(failedPageNumbers !== undefined && { failedPageNumbers }),
 				status,
 			})
 			.where({
@@ -188,6 +191,7 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 			.query(transaction)
 			.patch({
 				errorMessage: null,
+				...(status === DocumentStatus.PROCESSING && { failedPageNumbers: [] }),
 				processingAttempt: raw(NEXT_PROCESSING_ATTEMPT_SQL),
 				status,
 			})

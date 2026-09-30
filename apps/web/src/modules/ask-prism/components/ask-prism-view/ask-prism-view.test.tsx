@@ -70,6 +70,8 @@ const renderAskPrismView = (projectId = PROJECT_ID): void => {
 
 describe("AskPrismView suggested questions behavior", () => {
 	beforeEach(() => {
+		sessionStorage.clear();
+		HTMLElement.prototype.scrollIntoView = vi.fn();
 		store.instance.dispatch(actions.reset());
 		vi.spyOn(askPrismApi, "getSuggestedQuestions").mockResolvedValue(
 			CUSTOM_SUGGESTIONS,
@@ -78,6 +80,7 @@ describe("AskPrismView suggested questions behavior", () => {
 	});
 
 	afterEach(() => {
+		sessionStorage.clear();
 		store.instance.dispatch(actions.reset());
 		vi.restoreAllMocks();
 	});
@@ -227,5 +230,38 @@ describe("AskPrismView suggested questions behavior", () => {
 				}),
 			).toBeInTheDocument();
 		});
+	});
+
+	it("renders scroll container with vertical scrolling only and source chips without hover scale effect", async () => {
+		renderAskPrismView();
+
+		await waitFor(() => {
+			expect(
+				screen.getByRole("button", {
+					name: "Tell me about Authentication Architecture",
+				}),
+			).toBeInTheDocument();
+		});
+
+		const promptButton = screen.getByRole("button", {
+			name: "Tell me about Authentication Architecture",
+		});
+
+		act(() => {
+			fireEvent.click(promptButton);
+		});
+
+		const sourceButton = await screen.findByRole("button", {
+			name: /Authentication/i,
+		});
+
+		expect(sourceButton).toBeInTheDocument();
+		expect(sourceButton.className).toContain("transition-colors");
+		expect(sourceButton.className).not.toContain("hover:scale");
+		expect(sourceButton.className).not.toContain("active:scale");
+
+		const scrollContainer = sourceButton.closest(".overflow-y-auto");
+		expect(scrollContainer).toBeInTheDocument();
+		expect(scrollContainer?.className).toContain("overflow-x-hidden");
 	});
 });
