@@ -758,7 +758,7 @@ describe("knowledge pipeline lifecycle", () => {
 			store.instance.getState().knowledge.extractionItemsDocumentId,
 		).toBeNull();
 
-		deferred.resolve({ failedPageNumbers: [], items: [] });
+		deferred.resolve({ failedPageNumbers: [], items: [], sections: [] });
 		const result = await resuming.unwrap();
 
 		expect(result.openPreview).toBe(true);
@@ -775,7 +775,7 @@ describe("knowledge pipeline lifecycle", () => {
 		const request = createRequest(DOCUMENT_A_ID);
 		store.instance.dispatch(
 			fetchExtractionItems.fulfilled(
-				{ failedPageNumbers: [], items: [] },
+				{ failedPageNumbers: [], items: [], sections: [] },
 				"extraction",
 				request,
 			),

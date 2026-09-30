@@ -21,7 +21,7 @@ function ProjectManagmentModalForm({
 	onSubmit,
 	submitLabel,
 }: Properties) {
-	const { control, handleSubmit } = useAppForm<ProjectFormValue>({
+	const { control, handleSubmit, isDirty } = useAppForm<ProjectFormValue>({
 		defaultValues:
 			initialValues ?? DEFAULT_PROJECT_MANAGMENT_MODAL_FORM_PAYLOAD,
 		validationSchema: ProjectFormValidationSchema,
@@ -44,6 +44,8 @@ function ProjectManagmentModalForm({
 	);
 
 	const isFormDisabled = isSubmitting === true;
+	const isEditMode = initialValues !== undefined;
+	const isSubmitDisabled = isFormDisabled || (isEditMode && !isDirty);
 
 	return (
 		<form
@@ -66,7 +68,7 @@ function ProjectManagmentModalForm({
 				placeholder="Enter your description"
 			/>
 			<div className="flex items-center gap-5 w-full justify-end">
-				<Button disabled={isFormDisabled} type="submit">
+				<Button disabled={isSubmitDisabled} type="submit">
 					{isSubmitting ? <Loader size="sm" /> : submitLabel}
 				</Button>
 			</div>

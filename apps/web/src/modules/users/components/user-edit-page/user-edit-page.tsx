@@ -17,15 +17,14 @@ import {
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 import { actions as projectsActions } from "~/modules/projects/projects.js";
+import { type AssignableProjectRole } from "~/modules/users/libs/types/assignable-project-role.type.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 import { UserForm } from "../user-form/user-form.js";
 import { userUpdateFrontendValidationSchema } from "./libs/validation-schemas.js";
 
-type ProjectRole = "EDITOR" | "VIEWER";
-
 type UserEditFormValues = {
-	assignedProjects: { projectId: number; role: ProjectRole }[];
+	assignedProjects: { projectId: number; role: AssignableProjectRole }[];
 	confirmPassword?: string;
 	email: string;
 	firstName: string;
@@ -56,25 +55,26 @@ const UserEditPage: React.FC = () => {
 		void dispatch(projectsActions.loadAllProjects());
 	}, [dispatch, userId]);
 
-	const { control, handleSubmit, reset } = useAppForm<UserEditFormValues>({
-		defaultValues: {
-			assignedProjects: [],
-			confirmPassword: "",
-			email: "",
-			firstName: "",
-			isActive: true,
-			lastName: "",
-			password: "",
-		},
-		validationSchema: userUpdateFrontendValidationSchema,
-	});
+	const { control, handleSubmit, isDirty, reset } =
+		useAppForm<UserEditFormValues>({
+			defaultValues: {
+				assignedProjects: [],
+				confirmPassword: "",
+				email: "",
+				firstName: "",
+				isActive: true,
+				lastName: "",
+				password: "",
+			},
+			validationSchema: userUpdateFrontendValidationSchema,
+		});
 
 	useEffect(() => {
 		if (selectedUser) {
 			reset({
 				assignedProjects: selectedUser.assignedProjects as {
 					projectId: number;
-					role: ProjectRole;
+					role: AssignableProjectRole;
 				}[],
 				confirmPassword: "",
 				email: selectedUser.email,
@@ -149,6 +149,7 @@ const UserEditPage: React.FC = () => {
 						control={control}
 						isAdmin={isAdminEditingSelf}
 						isEditMode={true}
+						isSubmitDisabled={!isDirty}
 						onCancel={handleCancel}
 						onSubmit={handleFormSubmit}
 					/>

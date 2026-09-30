@@ -1,4 +1,7 @@
-import { DocumentStatus } from "@knowledgeprism/constants";
+import {
+	DocumentStatus,
+	ExtractionItemStatus,
+} from "@knowledgeprism/constants";
 import {
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
@@ -17,9 +20,8 @@ import {
 import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
 import {
-	collectExtractionItemPatches,
-	deriveExtractionReviewIds,
 	mapExtractionItemsToProposedStructure,
+	toExtractionReviewPayload,
 } from "../../libs/helpers/helpers.js";
 import {
 	type KnowledgeState,
@@ -291,6 +293,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		extractionFailedPageNumbers,
 		extractionItems,
 		extractionItemsDocumentId,
+		extractionSections,
 		isAddingKnowledge,
 		isEntryLoading,
 		isTreeLoading,
@@ -519,9 +522,21 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		}
 	}, [activeDocumentId, activeDocumentStatus, dispatch, projectId]);
 
-	const mappedExtractionStructure = useMemo(
-		() => mapExtractionItemsToProposedStructure(extractionItems),
+	const pendingExtractionItems = useMemo(
+		() =>
+			extractionItems.filter(
+				(item) => item.status === ExtractionItemStatus.PENDING,
+			),
 		[extractionItems],
+	);
+
+	const mappedExtractionStructure = useMemo(
+		() =>
+			mapExtractionItemsToProposedStructure(
+				pendingExtractionItems,
+				extractionSections,
+			),
+		[extractionSections, pendingExtractionItems],
 	);
 
 	const submitExtractionValidation = useCallback(
@@ -530,35 +545,15 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				return false;
 			}
 
-			const patches = collectExtractionItemPatches(pages, extractionItems);
-			const { approvedIds, rejectedIds } = deriveExtractionReviewIds(
-				pages,
-				extractionItems,
-			);
+			const payload = toExtractionReviewPayload(pages, pendingExtractionItems);
 
 			const pipelineSessionId = getPipelineSessionId();
 
 			try {
-				for (const patch of patches) {
-					await dispatch(
-						actions.updateExtractionItem({
-							documentId: activeDocumentId,
-							extractionItemId: patch.id,
-							payload: { text: patch.text, title: patch.title },
-							pipelineSessionId,
-							projectId,
-						}),
-					).unwrap();
-
-					if (!isPipelineSessionCurrent(pipelineSessionId)) {
-						return false;
-					}
-				}
-
 				const response = await dispatch(
 					actions.submitExtractionReview({
 						documentId: activeDocumentId,
-						payload: { approvedIds, rejectedIds },
+						payload,
 						pipelineSessionId,
 						projectId,
 					}),
@@ -590,8 +585,8 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		[
 			activeDocumentId,
 			dispatch,
-			extractionItems,
 			openNextPendingReview,
+			pendingExtractionItems,
 			projectId,
 		],
 	);

@@ -56,6 +56,7 @@ const initialState: State = {
 	extractionFailedPageNumbers: [],
 	extractionItems: [],
 	extractionItemsDocumentId: null,
+	extractionSections: [],
 	integrationPreviewDocumentId: null,
 	integrationPreviewError: null,
 	integrationPreviewRequestId: null,
@@ -203,6 +204,7 @@ const reconcileActiveDocument = (state: State): void => {
 		state.extractionItems = [];
 		state.extractionItemsDocumentId = null;
 		state.extractionFailedPageNumbers = [];
+		state.extractionSections = [];
 	}
 
 	state.activeDocumentStatus = nextActive?.status ?? IDLE_DOCUMENT_STATUS;
@@ -211,6 +213,7 @@ const reconcileActiveDocument = (state: State): void => {
 		state.extractionItems = [];
 		state.extractionItemsDocumentId = null;
 		state.extractionFailedPageNumbers = [];
+		state.extractionSections = [];
 	}
 
 	state.isAddingKnowledge = state.trackedDocuments.some((document) =>
@@ -250,6 +253,7 @@ const removeTrackedDocument = (state: State, documentId: number): void => {
 		state.extractionItems = [];
 		state.extractionItemsDocumentId = null;
 		state.extractionFailedPageNumbers = [];
+		state.extractionSections = [];
 	}
 };
 
@@ -372,6 +376,7 @@ const { actions, name, reducer } = createSlice({
 				targetFile.status = DocumentProcessingStatus.FAILED;
 				targetFile.documentId = action.payload?.documentId;
 				targetFile.uploadUrl = action.payload?.uploadUrl;
+				targetFile.uploadUrlExpiresAt = action.payload?.uploadUrlExpiresAt;
 				targetFile.errorMessage =
 					action.payload?.message ??
 					DocumentValidationMessage.PROCESSING_FAILED;
@@ -603,6 +608,7 @@ const { actions, name, reducer } = createSlice({
 			state.extractionItems = [];
 			state.extractionItemsDocumentId = null;
 			state.extractionFailedPageNumbers = [];
+			state.extractionSections = [];
 		});
 		builder.addCase(fetchExtractionItems.fulfilled, (state, action) => {
 			const document = findTrackedDocument(state, action.meta.arg.documentId);
@@ -618,6 +624,7 @@ const { actions, name, reducer } = createSlice({
 			state.extractionFailedPageNumbers = action.payload.failedPageNumbers;
 			state.extractionItems = action.payload.items;
 			state.extractionItemsDocumentId = action.meta.arg.documentId;
+			state.extractionSections = action.payload.sections;
 			clearDocumentPipelineError(state, action.meta.arg.documentId);
 		});
 		builder.addCase(fetchExtractionItems.rejected, (state, action) => {
@@ -890,6 +897,7 @@ const { actions, name, reducer } = createSlice({
 					documentId: number;
 					extractionFailedPageNumbers: KnowledgeState["extractionFailedPageNumbers"];
 					extractionItems: KnowledgeState["extractionItems"];
+					extractionSections: KnowledgeState["extractionSections"];
 					status:
 						| typeof DocumentStatus.WAITING_FOR_APPROVAL
 						| typeof DocumentStatus.WAITING_FOR_VALIDATION;
@@ -901,6 +909,7 @@ const { actions, name, reducer } = createSlice({
 				documentId,
 				extractionFailedPageNumbers,
 				extractionItems,
+				extractionSections,
 				status,
 				switchRequestId,
 			} = action.payload;
@@ -920,6 +929,10 @@ const { actions, name, reducer } = createSlice({
 			state.extractionItems = extractionItems;
 			state.extractionItemsDocumentId =
 				status === DocumentStatus.WAITING_FOR_VALIDATION ? documentId : null;
+			state.extractionSections =
+				status === DocumentStatus.WAITING_FOR_VALIDATION
+					? extractionSections
+					: [];
 			clearDocumentPipelineError(state, documentId);
 			reconcileActiveDocument(state);
 		},
@@ -1063,6 +1076,7 @@ const { actions, name, reducer } = createSlice({
 			state.extractionItems = [];
 			state.extractionItemsDocumentId = null;
 			state.extractionFailedPageNumbers = [];
+			state.extractionSections = [];
 			state.integrationPreviewDocumentId = null;
 			state.integrationPreviewError = null;
 			state.integrationPreviewRequestId = null;
