@@ -9,6 +9,8 @@ type Properties = {
 const LANGUAGE_REGEX = /language-(\w+)/;
 const LANGUAGE_INDEX = 1;
 
+const DISALLOWED_ELEMENTS = ["img"];
+
 const MARKDOWN_COMPONENTS: Components = {
 	a: ({ children, href }) => (
 		<a
@@ -81,6 +83,7 @@ const MARKDOWN_COMPONENTS: Components = {
 		</h4>
 	),
 	hr: () => <hr className="my-2 border-border" />,
+	img: () => null,
 	ol: ({ children }) => (
 		<ol className="my-1 list-decimal space-y-1 pl-5 font-sans text-sm leading-relaxed text-text">
 			{children}
@@ -107,7 +110,11 @@ const REMARK_PLUGINS = [remarkGfm];
 const MarkdownContent = ({ content }: Properties): JSX.Element => {
 	return (
 		<div className="flex flex-col gap-1.5">
-			<Markdown components={MARKDOWN_COMPONENTS} remarkPlugins={REMARK_PLUGINS}>
+			<Markdown
+				components={MARKDOWN_COMPONENTS}
+				disallowedElements={DISALLOWED_ELEMENTS}
+				remarkPlugins={REMARK_PLUGINS}
+			>
 				{content}
 			</Markdown>
 		</div>

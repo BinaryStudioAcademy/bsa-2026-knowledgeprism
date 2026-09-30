@@ -89,4 +89,13 @@ describe("MarkdownContent", () => {
 		expect(link).toHaveAttribute("target", "_blank");
 		expect(link).toHaveAttribute("rel", "noopener noreferrer");
 	});
+
+	it("does not render markdown images for security and privacy", () => {
+		const { container } = render(
+			<MarkdownContent content="Here is an image: ![Tracker](https://attacker.example/track.png)" />,
+		);
+
+		expect(screen.queryByRole("img")).not.toBeInTheDocument();
+		expect(container.querySelector("img")).not.toBeInTheDocument();
+	});
 });
