@@ -23,6 +23,7 @@ interface WorkspaceHeaderProperties {
 	isAdmin?: boolean;
 	isLoading?: boolean;
 	lastName?: null | string;
+	onDropdownOpen?: () => void;
 	onLogOut?: () => void;
 	onOpenSettings?: (() => void) | undefined;
 	onOpenUserManagement?: (() => void) | undefined;
@@ -55,6 +56,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	isAdmin = false,
 	isLoading = false,
 	lastName,
+	onDropdownOpen,
 	onLogOut,
 	onOpenSettings,
 	onOpenUserManagement,
@@ -125,8 +127,14 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	}, [navigate, onOpenUserManagement, setIsDropdownOpen]);
 
 	const toggleDropdown = useCallback((): void => {
-		setIsDropdownOpen((previous) => !previous);
-	}, [setIsDropdownOpen]);
+		setIsDropdownOpen((previous) => {
+			const isNextOpen = !previous;
+			if (isNextOpen) {
+				onDropdownOpen?.();
+			}
+			return isNextOpen;
+		});
+	}, [onDropdownOpen, setIsDropdownOpen]);
 
 	useEffect(() => {
 		const handleClickOutside = (event: MouseEvent): void => {

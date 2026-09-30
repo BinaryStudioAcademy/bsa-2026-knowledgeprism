@@ -1,5 +1,5 @@
 import { OrganisationRole } from "@knowledgeprism/constants";
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import { useLocation, useParams } from "react-router-dom";
 
 import { MobileNav, RouterOutlet, Sidebar } from "~/components/components.js";
@@ -9,7 +9,6 @@ import {
 	CHEVRON_ICON_SIZE,
 	EXPAND_SIDEBAR_LABEL,
 } from "~/components/sidebar/libs/constants.js";
-import { useShellSidebar } from "~/components/sidebar/libs/use-shell-sidebar.hook.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -28,7 +27,7 @@ import {
 } from "~/modules/workspaces/state/workspaces.slice.js";
 import { workspacesApi } from "~/modules/workspaces/workspaces.js";
 
-import { AppSidebarOverlayContext } from "./app-sidebar-overlay-context.js";
+import { useAppSidebarOverlay } from "./app-sidebar-overlay-context.js";
 
 const EMPTY_LENGTH = 0;
 
@@ -38,7 +37,7 @@ const SidebarLayout: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const { projects } = useAppSelector(({ workspaces }) => workspaces);
 	const { user } = useAppSelector(({ auth }) => auth);
-	const shell = useShellSidebar();
+	const shell = useAppSidebarOverlay();
 
 	useEffect(() => {
 		if (projects.length === EMPTY_LENGTH) {
@@ -78,63 +77,54 @@ const SidebarLayout: React.FC = () => {
 		shouldRenderSidebar && isPhone && !shell.isOverlayOpen;
 	const shouldShowMobileNav =
 		shouldRenderSidebar && isPhone && Boolean(urlProjectId);
-	const overlayContextValue = useMemo(
-		() => ({
-			closeOverlay: shell.closeOverlay,
-			isOverlayOpen: shell.isOverlayOpen,
-		}),
-		[shell.closeOverlay, shell.isOverlayOpen],
-	);
 
 	return (
-		<AppSidebarOverlayContext.Provider value={overlayContextValue}>
-			<div className="flex h-full min-h-0 flex-col">
-				<div
-					className={getValidClassNames(
-						"relative flex min-h-0 flex-1 flex-col overflow-hidden",
-						!isPhone && "flex-row",
-					)}
-				>
-					{shouldRenderSidebar && shell.isOverlayOpen && (
-						<button
-							aria-label="Close sidebar"
-							className="absolute inset-0 z-40 cursor-default border-0 bg-primary/30"
-							onClick={shell.dismissOverlay}
-							tabIndex={-1}
-							type="button"
-						/>
-					)}
+		<div className="flex h-full min-h-0 flex-col">
+			<div
+				className={getValidClassNames(
+					"relative flex min-h-0 flex-1 flex-col overflow-hidden",
+					!isPhone && "flex-row",
+				)}
+			>
+				{shouldRenderSidebar && shell.isOverlayOpen && (
+					<button
+						aria-label="Close sidebar"
+						className="absolute inset-0 z-40 cursor-default border-0 bg-primary/30"
+						onClick={shell.dismissOverlay}
+						tabIndex={-1}
+						type="button"
+					/>
+				)}
 
-					{shouldShowPhoneLauncher && (
-						<button
-							aria-controls={APP_SIDEBAR_ID}
-							aria-expanded={false}
-							aria-label={EXPAND_SIDEBAR_LABEL}
-							className="absolute top-1/2 left-2 z-30 flex size-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-border bg-surface text-text-muted shadow-sm hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none"
-							onClick={shell.toggleSidebar}
-							type="button"
-						>
-							<Icon name="chevron-filled-right" size={CHEVRON_ICON_SIZE} />
-						</button>
-					)}
+				{shouldShowPhoneLauncher && (
+					<button
+						aria-controls={APP_SIDEBAR_ID}
+						aria-expanded={false}
+						aria-label={EXPAND_SIDEBAR_LABEL}
+						className="absolute top-1/2 left-2 z-30 flex size-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-border bg-surface text-text-muted shadow-sm hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none"
+						onClick={shell.toggleSidebar}
+						type="button"
+					>
+						<Icon name="chevron-filled-right" size={CHEVRON_ICON_SIZE} />
+					</button>
+				)}
 
-					{shouldShowSidebar && (
-						<Sidebar
-							isAdmin={isAdmin}
-							projectName={currentProject?.name ?? ""}
-							role={currentProject?.role ?? ""}
-							shell={shell}
-						/>
-					)}
+				{shouldShowSidebar && (
+					<Sidebar
+						isAdmin={isAdmin}
+						projectName={currentProject?.name ?? ""}
+						role={currentProject?.role ?? ""}
+						shell={shell}
+					/>
+				)}
 
-					<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
-						<RouterOutlet />
-					</div>
+				<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto">
+					<RouterOutlet />
 				</div>
-
-				{shouldShowMobileNav && <MobileNav />}
 			</div>
-		</AppSidebarOverlayContext.Provider>
+
+			{shouldShowMobileNav && <MobileNav />}
+		</div>
 	);
 };
 
