@@ -14,6 +14,7 @@ export {
 	type ExtractionItemsReviewSectionDto,
 	type ExtractionItemUpdateRequestDto,
 	type ExtractionSectionResponseDto,
+	type IntegrationChangeContentOverrideDto,
 	type IntegrationChangeResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,

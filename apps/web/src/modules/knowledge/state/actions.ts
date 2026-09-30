@@ -6,6 +6,7 @@ import {
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
+	type GlossaryConsistencyCheckResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
 	type KnowledgeEntryResponseDto,
@@ -53,6 +54,11 @@ import {
 
 type ApplyIntegrationChangesPayload = DocumentPipelineRequest & {
 	payload: IntegrationChangesApplyRequestDto;
+};
+
+type CheckGlossaryConsistencyPayload = {
+	content: string;
+	projectId: string;
 };
 
 type ConfirmDocumentUploadPayload = {
@@ -1058,8 +1064,32 @@ const untrackDocument = createAppAsyncThunk<null, UntrackDocumentPayload>(
 	},
 );
 
+const checkGlossaryConsistency = createAsyncThunk<
+	GlossaryConsistencyCheckResponseDto,
+	CheckGlossaryConsistencyPayload,
+	AsyncThunkConfig
+>(
+	`${sliceName}/check-glossary-consistency`,
+	async ({ content, projectId }, { extra, signal }) => {
+		try {
+			return await extra.glossaryApi.checkConsistency({
+				content,
+				projectId,
+				signal,
+			});
+		} catch (error: unknown) {
+			if (isUnauthorizedError(error)) {
+				throw error;
+			}
+
+			return { matches: [] };
+		}
+	},
+);
+
 export {
 	applyIntegrationChanges,
+	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchIntegrationChanges,
