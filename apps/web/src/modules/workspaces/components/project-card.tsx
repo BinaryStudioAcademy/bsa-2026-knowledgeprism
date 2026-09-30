@@ -10,6 +10,7 @@ interface ProjectCardProperties {
 	name: string;
 	onDelete?: () => void;
 	onEdit?: () => void;
+	onManageMembers?: () => void;
 	onSelect?: (id: string) => void;
 	role: ProjectRole;
 	updatedAt: string;
@@ -23,6 +24,8 @@ const MS_PER_SECOND = 1000;
 const SECONDS_PER_MINUTE = 60;
 const SINGLE_UNIT = 1;
 
+const MANAGE_PROJECT_MEMBERS_LABEL = "Manage project members";
+const MORE_ACTIONS_LABEL = "More actions";
 const NAVIGATION_ARROW_SIZE = 16;
 
 const FIRST_ARRAY_INDEX = 0;
@@ -167,6 +170,7 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 	name,
 	onDelete,
 	onEdit,
+	onManageMembers,
 	onSelect,
 	role,
 	updatedAt,
@@ -195,6 +199,15 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 			onEdit?.();
 		},
 		[onEdit],
+	);
+
+	const handleManageMembers = useCallback(
+		(event: React.MouseEvent<HTMLButtonElement>): void => {
+			event.stopPropagation();
+			setIsMenuOpen(false);
+			onManageMembers?.();
+		},
+		[onManageMembers],
 	);
 
 	const handleKeyDown = useCallback(
@@ -239,7 +252,7 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 	}, []);
 
 	const currentRoleConfig = roleConfig[role];
-	const hasActions = Boolean(onEdit || onDelete);
+	const hasActions = Boolean(onEdit || onDelete || onManageMembers);
 	const initials = getInitials(name);
 	const avatarColor = getAvatarColor(id);
 
@@ -272,7 +285,7 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 						{hasActions && (
 							<>
 								<button
-									aria-label="Project options"
+									aria-label={MORE_ACTIONS_LABEL}
 									className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-0 bg-transparent text-text-muted transition-colors hover:bg-(--color-secondary) hover:text-text"
 									onClick={toggleMenu}
 									type="button"
@@ -284,7 +297,17 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 									</div>
 								</button>
 								{isMenuOpen && (
-									<div className="absolute left-0 right-0 top-full z-10 mt-1 flex flex-col rounded-lg border border-(--color-border-subtle) bg-(--color-surface) p-1 shadow-xl">
+									<div className="absolute right-0 top-full z-10 mt-1 flex w-max flex-col whitespace-nowrap rounded-lg border border-(--color-border-subtle) bg-(--color-surface) p-1 shadow-xl">
+										{onManageMembers && (
+											<button
+												className="w-full cursor-pointer whitespace-nowrap rounded-md px-2.5 py-1 text-left text-(length:--text-xs) font-normal text-text-muted transition-colors hover:bg-(--color-secondary) hover:text-text"
+												onClick={handleManageMembers}
+												type="button"
+											>
+												{MANAGE_PROJECT_MEMBERS_LABEL}
+											</button>
+										)}
+
 										{onEdit && (
 											<button
 												className="w-full cursor-pointer rounded-md px-2.5 py-1 text-left text-(length:--text-xs) font-normal text-text-muted transition-colors hover:bg-(--color-secondary) hover:text-text"
@@ -297,7 +320,7 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 
 										{onDelete && (
 											<button
-												className="w-full cursor-pointer rounded-md px-2.5 py-1 text-left text-(length:--text-xs) font-normal text-red-500 transition-colors hover:bg-red-50 hover:text-red-600"
+												className="w-full cursor-pointer rounded-md px-2.5 py-1 text-left text-(length:--text-xs) font-normal text-error transition-colors hover:bg-error-bg hover:text-error-hover"
 												onClick={handleDelete}
 												type="button"
 											>

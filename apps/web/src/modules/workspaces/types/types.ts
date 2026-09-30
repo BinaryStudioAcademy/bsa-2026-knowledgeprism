@@ -1,3 +1,7 @@
+import { type ProjectMemberRole } from "@knowledgeprism/constants";
+
+import { type ValueOf } from "~/lib/types/types.js";
+
 type ProjectItem = {
 	description: null | string;
 	id: string;
@@ -8,7 +12,7 @@ type ProjectItem = {
 	updatedAt: string;
 };
 
-type ProjectRole = "ADMIN" | "EDITOR" | "VIEWER";
+type ProjectRole = ValueOf<typeof ProjectMemberRole>;
 
 type RecentDocumentItem = {
 	id: string;

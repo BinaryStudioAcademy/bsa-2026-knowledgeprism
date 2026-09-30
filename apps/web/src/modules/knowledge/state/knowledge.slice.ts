@@ -11,6 +11,7 @@ import {
 	isMatchingPipelineSession,
 	mapIntegrationChangesToProposedStructure,
 } from "../libs/helpers/helpers.js";
+import { isDocumentStatusCurrent } from "../libs/helpers/is-document-status-current.helper.js";
 import {
 	type KnowledgeState,
 	type PipelineSessionScope,
@@ -42,8 +43,6 @@ type State = KnowledgeState;
 
 const IDLE_DOCUMENT_STATUS = "IDLE" as const;
 const NOT_FOUND_INDEX = -1;
-const INITIAL_PROGRESS = 15;
-const IN_PROGRESS_PERCENTAGE = 50;
 const EMPTY_FILES_COUNT = 0;
 const FIRST_TRACKED_DOCUMENT_INDEX = 0;
 const SESSION_COUNTER_STEP = 1;
@@ -54,10 +53,13 @@ const initialState: State = {
 	activeDocumentStatus: IDLE_DOCUMENT_STATUS,
 	activeDocumentSwitchRequestId: null,
 	contentSearchRequestId: null,
+	documentStatuses: {},
 	documentStructureRequestId: null,
 	entryRequestId: null,
+	extractionFailedPageNumbers: [],
 	extractionItems: [],
 	extractionItemsDocumentId: null,
+	extractionSections: [],
 	integrationPreviewDocumentId: null,
 	integrationPreviewError: null,
 	integrationPreviewRequestId: null,
@@ -197,21 +199,26 @@ const pickActiveDocument = (state: State): TrackedDocument | undefined => {
 	return current ?? state.trackedDocuments.at(FIRST_TRACKED_DOCUMENT_INDEX);
 };
 
+const clearExtractionReview = (state: State): void => {
+	state.extractionFailedPageNumbers = [];
+	state.extractionItems = [];
+	state.extractionItemsDocumentId = null;
+	state.extractionSections = [];
+};
+
 const reconcileActiveDocument = (state: State): void => {
 	const nextActive = pickActiveDocument(state);
 	const nextActiveId = nextActive?.documentId ?? null;
 
 	if (nextActiveId !== state.activeDocumentId) {
 		state.activeDocumentId = nextActiveId;
-		state.extractionItems = [];
-		state.extractionItemsDocumentId = null;
+		clearExtractionReview(state);
 	}
 
 	state.activeDocumentStatus = nextActive?.status ?? IDLE_DOCUMENT_STATUS;
 
 	if (state.activeDocumentStatus !== DocumentStatus.WAITING_FOR_VALIDATION) {
-		state.extractionItems = [];
-		state.extractionItemsDocumentId = null;
+		clearExtractionReview(state);
 	}
 
 	state.isAddingKnowledge = state.trackedDocuments.some((document) =>
@@ -243,13 +250,17 @@ const removeTrackedDocument = (state: State, documentId: number): void => {
 	clearPollTimer(documentId);
 	clearDocumentPipelineError(state, documentId);
 	clearDocumentStatusRequest(state, documentId);
+	state.documentStatuses = Object.fromEntries(
+		Object.entries(state.documentStatuses).filter(
+			([id]) => Number(id) !== documentId,
+		),
+	);
 	state.trackedDocuments = state.trackedDocuments.filter(
 		(document) => document.documentId !== documentId,
 	);
 
 	if (state.extractionItemsDocumentId === documentId) {
-		state.extractionItems = [];
-		state.extractionItemsDocumentId = null;
+		clearExtractionReview(state);
 	}
 };
 
@@ -257,10 +268,12 @@ const applyTrackedDocumentStatus = ({
 	documentId,
 	pipelineSessionId,
 	projectId,
+	snapshot,
 	state,
 	status,
 }: PipelineSessionScope & {
 	documentId: number;
+	snapshot?: DocumentStatusResponseDto;
 	state: State;
 	status: TrackedDocument["status"];
 }): void => {
@@ -272,7 +285,20 @@ const applyTrackedDocumentStatus = ({
 		return;
 	}
 
+	if (snapshot) {
+		if (
+			!isDocumentStatusCurrent(snapshot, state.documentStatuses[documentId])
+		) {
+			return;
+		}
+		state.documentStatuses[documentId] = snapshot;
+		const document = findTrackedDocument(state, documentId);
+		if (document) {
+			document.label = snapshot.name;
+		}
+	}
 	clearDocumentStatusRequest(state, documentId);
+	clearDocumentPipelineError(state, documentId);
 
 	if (FINISHED_DOCUMENT_STATUSES.has(status)) {
 		removeTrackedDocument(state, documentId);
@@ -324,7 +350,6 @@ const { actions, name, reducer } = createSlice({
 			);
 			if (targetFile) {
 				targetFile.status = DocumentProcessingStatus.PROCESSING;
-				targetFile.progress = IN_PROGRESS_PERCENTAGE;
 			}
 		});
 		builder.addCase(processDocument.fulfilled, (state, action) => {
@@ -372,6 +397,7 @@ const { actions, name, reducer } = createSlice({
 				targetFile.status = DocumentProcessingStatus.FAILED;
 				targetFile.documentId = action.payload?.documentId;
 				targetFile.uploadUrl = action.payload?.uploadUrl;
+				targetFile.uploadUrlExpiresAt = action.payload?.uploadUrlExpiresAt;
 				targetFile.errorMessage =
 					action.payload?.message ??
 					DocumentValidationMessage.PROCESSING_FAILED;
@@ -613,10 +639,9 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			clearDocumentPipelineError(state, action.meta.arg.documentId);
-
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
+				snapshot: action.payload,
 				state,
 				status: action.payload.status,
 			});
@@ -648,8 +673,7 @@ const { actions, name, reducer } = createSlice({
 			}
 
 			clearDocumentPipelineError(state, action.meta.arg.documentId);
-			state.extractionItems = [];
-			state.extractionItemsDocumentId = null;
+			clearExtractionReview(state);
 		});
 		builder.addCase(fetchExtractionItems.fulfilled, (state, action) => {
 			const document = findTrackedDocument(state, action.meta.arg.documentId);
@@ -662,8 +686,10 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
+			state.extractionFailedPageNumbers = action.payload.failedPageNumbers;
 			state.extractionItems = action.payload.items;
 			state.extractionItemsDocumentId = action.meta.arg.documentId;
+			state.extractionSections = action.payload.sections;
 			clearDocumentPipelineError(state, action.meta.arg.documentId);
 		});
 		builder.addCase(fetchExtractionItems.rejected, (state, action) => {
@@ -738,7 +764,6 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			clearDocumentPipelineError(state, action.meta.arg.documentId);
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
 				state,
@@ -761,9 +786,9 @@ const { actions, name, reducer } = createSlice({
 			if (state.integrationPreviewDocumentId === action.meta.arg.documentId) {
 				state.integrationPreviewError = null;
 			}
-			clearDocumentPipelineError(state, action.meta.arg.documentId);
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
+				snapshot: action.payload,
 				state,
 				status: action.payload.status,
 			});
@@ -834,9 +859,9 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			clearDocumentPipelineError(state, action.meta.arg.documentId);
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
+				snapshot: action.payload,
 				state,
 				status: action.payload.status,
 			});
@@ -934,7 +959,10 @@ const { actions, name, reducer } = createSlice({
 			action: PayloadAction<
 				PipelineSessionScope & {
 					documentId: number;
+					extractionFailedPageNumbers: KnowledgeState["extractionFailedPageNumbers"];
 					extractionItems: KnowledgeState["extractionItems"];
+					extractionSections: KnowledgeState["extractionSections"];
+					snapshot: DocumentStatusResponseDto;
 					status:
 						| typeof DocumentStatus.WAITING_FOR_APPROVAL
 						| typeof DocumentStatus.WAITING_FOR_VALIDATION;
@@ -942,8 +970,14 @@ const { actions, name, reducer } = createSlice({
 				}
 			>,
 		) {
-			const { documentId, extractionItems, status, switchRequestId } =
-				action.payload;
+			const {
+				documentId,
+				extractionFailedPageNumbers,
+				extractionItems,
+				extractionSections,
+				status,
+				switchRequestId,
+			} = action.payload;
 
 			if (
 				!isCurrentPipelineSession(state, action.payload) ||
@@ -953,12 +987,26 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
+			if (
+				!isDocumentStatusCurrent(
+					action.payload.snapshot,
+					state.documentStatuses[documentId],
+				)
+			) {
+				return;
+			}
+			state.documentStatuses[documentId] = action.payload.snapshot;
 			upsertTrackedDocumentStatus(state, documentId, status);
 			state.activeDocumentId = documentId;
 			state.activeDocumentStatus = status;
+			state.extractionFailedPageNumbers = extractionFailedPageNumbers;
 			state.extractionItems = extractionItems;
 			state.extractionItemsDocumentId =
 				status === DocumentStatus.WAITING_FOR_VALIDATION ? documentId : null;
+			state.extractionSections =
+				status === DocumentStatus.WAITING_FOR_VALIDATION
+					? extractionSections
+					: [];
 			clearDocumentPipelineError(state, documentId);
 			reconcileActiveDocument(state);
 		},
@@ -1032,6 +1080,7 @@ const { actions, name, reducer } = createSlice({
 					continue;
 				}
 
+				state.documentStatuses[document.id] = document;
 				state.trackedDocuments.push({
 					documentId: document.id,
 					label: document.name,
@@ -1099,8 +1148,8 @@ const { actions, name, reducer } = createSlice({
 			state.activeDocumentStatus = IDLE_DOCUMENT_STATUS;
 			state.activeDocumentSwitchRequestId = null;
 			state.entryRequestId = null;
-			state.extractionItems = [];
-			state.extractionItemsDocumentId = null;
+			state.documentStatuses = {};
+			clearExtractionReview(state);
 			state.integrationPreviewDocumentId = null;
 			state.integrationPreviewError = null;
 			state.integrationPreviewRequestId = null;
@@ -1146,7 +1195,6 @@ const { actions, name, reducer } = createSlice({
 			const processingItem = {
 				id,
 				name,
-				progress: INITIAL_PROGRESS,
 				size,
 				sizeLabel: formatFileSize(size),
 				status: DocumentProcessingStatus.PROCESSING,
@@ -1163,6 +1211,7 @@ const { actions, name, reducer } = createSlice({
 			action: PayloadAction<
 				PipelineSessionScope & {
 					documentId: number;
+					snapshot?: DocumentStatusResponseDto;
 					status: ValueOf<typeof DocumentStatus>;
 				}
 			>,

@@ -5,11 +5,14 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
+import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
 import {
 	type ChangeEvent,
 	type JSX,
 	type MouseEvent,
+	type ReactNode,
 	useCallback,
+	useMemo,
 	useState,
 } from "react";
 
@@ -19,13 +22,35 @@ import {
 	Heading,
 	Icon,
 	KnowledgeEditor,
+	Modal,
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
+import { TextHighlightVariant } from "~/components/knowledge-editor/libs/enums/enums.js";
+import { type TextHighlight } from "~/components/knowledge-editor/libs/types/types.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
-import { toConflictResolutions } from "~/modules/knowledge/libs/helpers/helpers.js";
+import { GlossarySuggestionActions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestion-actions.js";
+import { GlossarySuggestions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestions.js";
 import {
-	type ChangeStatus,
+	toGlossaryHighlightId,
+	toGlossaryHighlights,
+} from "~/modules/glossary/libs/helpers/helpers.js";
+import {
+	addPageGroup,
+	addSectionToPage,
+	isManualPage,
+	movePageGroup,
+	moveSectionAcrossPages,
+	rejectActiveSection,
+	removePageGroup,
+	removeSectionFromPages,
+	toConflictResolutions,
+	toContentOverrides,
+	updatePageInPages,
+	updateSectionInPages,
+} from "~/modules/knowledge/libs/helpers/helpers.js";
+import {
+	type ActiveNodeType,
 	type FieldConflict,
 	type IntegrationPreviewProperties,
 	type ProposedPage,
@@ -34,16 +59,20 @@ import {
 
 import { MergeScreen } from "./libs/components/merge-screen.js";
 import { ProposedStructureSuccessModal } from "./libs/components/proposed-structure-success-modal.js";
+import {
+	formatChangeStatusLabel,
+	StructureAside,
+} from "./libs/components/structure-aside.js";
 import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
+import { toFailedPagesMessage } from "./libs/helpers/to-failed-pages-message.helper.js";
+import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consistency-check.hook.js";
 
 const EMPTY_LENGTH = 0;
 const LAST_INDEX_OFFSET = 1;
 const LIVE_KB_CONTENT_FALLBACK = "No live knowledge base content.";
 const ICON_SIZE_MEDIUM = 16;
-const ICON_SIZE_SMALL = 14;
+const NOT_FOUND_INDEX = -1;
 const TITLE_MAX_LENGTH = 250;
-
-type ActiveNodeType = "child" | "parent";
 
 type EditorBlock = Block<BlockSchemaFromSpecs<BlockSpecs>>;
 
@@ -51,7 +80,6 @@ type PreviewFooterProperties = {
 	approveLabel: string;
 	canEdit: boolean;
 	canSubmitReview: boolean;
-	hasContent: boolean;
 	isApplying: boolean;
 	isEditInvalid: boolean;
 	isEditMode: boolean;
@@ -60,14 +88,20 @@ type PreviewFooterProperties = {
 	onClose: () => void;
 	onEnterEdit: () => void;
 	onSaveEdit: () => void;
+	submitBlockedReason?: string | undefined;
 };
 
 type ProposedNodeType = ProposedPage["type"] | ProposedSection["type"];
 
 type SectionContentEditorProperties = {
 	content: string;
+	highlights?: TextHighlight[];
 	isEditable?: boolean;
 	onContentChange?: (content: string) => void;
+	renderHighlightTooltip?: (
+		highlightId: string,
+		actions: { replace: (replacement: string) => void },
+	) => ReactNode;
 };
 
 type SectionDetailsProperties = {
@@ -79,37 +113,15 @@ type SectionDetailsProperties = {
 	isInteractionDisabled: boolean;
 	isTitleEmpty: boolean;
 	onContentChange: (content: string) => void;
+	onEnterEdit: () => void;
 	onPageTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
 	onRejectItem?: (() => void) | undefined;
 	onTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
 	showRejectItem?: boolean | undefined;
 };
 
-type StructureAsideProperties = {
-	activeNodeType: ActiveNodeType;
-	activePageIndex: number;
-	activeSectionIndex: number;
-	isInteractionDisabled: boolean;
-	onSelectPage: (event: MouseEvent<HTMLButtonElement>) => void;
-	onSelectSection: (event: MouseEvent<HTMLButtonElement>) => void;
-	pages: ProposedSection[];
-};
-
 type TextContentItem = {
 	text?: unknown;
-};
-
-type UpdatePageParameters = {
-	pageIndex: number;
-	pages: ProposedSection[];
-	partialPage: Partial<ProposedSection>;
-};
-
-type UpdateSectionParameters = {
-	pageIndex: number;
-	pages: ProposedSection[];
-	partialSection: Partial<ProposedPage>;
-	sectionIndex: number;
 };
 
 const nodeTypeToLabel: Record<ProposedNodeType, string> = {
@@ -242,27 +254,6 @@ const textToBlocks = (text: string): PartialBlock[] => {
 	];
 };
 
-const formatChangeStatusLabel = (status: ChangeStatus): string => status;
-
-const getStatusBadge = (status: ChangeStatus): JSX.Element => {
-	const isConflict = status === "conflict";
-	const isCreated = status === "created";
-	const isDuplicate = status === "duplicate";
-	const isModified = status === "modified";
-
-	const badgeClass = getValidClassNames(
-		"inline-flex items-center justify-center min-w-[64px] rounded-full px-2 py-0.5 font-sans text-2xs font-medium lowercase tracking-wide shrink-0 border transition-colors text-center leading-none whitespace-nowrap",
-		{
-			"bg-error-bg text-error border-error/25": isConflict,
-			"bg-info-bg text-info border-info/25": isModified,
-			"bg-secondary text-text-muted border-border": isDuplicate,
-			"bg-success-bg text-accent border-accent/25": isCreated,
-		},
-	);
-
-	return <span className={badgeClass}>{formatChangeStatusLabel(status)}</span>;
-};
-
 const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
 	if (section.status !== "conflict") {
 		return [];
@@ -311,133 +302,12 @@ const getAllIntegrationConflicts = (
 	return conflicts;
 };
 
-const updateSectionInPages = ({
-	pageIndex,
-	pages,
-	partialSection,
-	sectionIndex,
-}: UpdateSectionParameters): ProposedSection[] => {
-	const updatedPages = [...pages];
-	const targetPage = updatedPages[pageIndex];
-
-	if (!targetPage) {
-		return pages;
-	}
-
-	const updatedSections = [...targetPage.pages];
-	const targetSection = updatedSections[sectionIndex];
-
-	if (!targetSection) {
-		return pages;
-	}
-
-	updatedSections[sectionIndex] = {
-		...targetSection,
-		...partialSection,
-		status:
-			targetSection.status === "created" ? targetSection.status : "modified",
-	};
-
-	updatedPages[pageIndex] = {
-		...targetPage,
-		pages: updatedSections,
-		status: targetPage.status === "created" ? targetPage.status : "modified",
-	};
-
-	return updatedPages;
-};
-
-const removeSectionFromPages = ({
-	activePageIndex,
-	activeSectionIndex,
-	pages,
-}: {
-	activePageIndex: number;
-	activeSectionIndex: number;
-	pages: ProposedSection[];
-}): ProposedSection[] => {
-	return pages
-		.map((section, pageIndex) => {
-			if (pageIndex !== activePageIndex) {
-				return section;
-			}
-
-			return {
-				...section,
-				pages: section.pages.filter(
-					(_page, sectionIndex) => sectionIndex !== activeSectionIndex,
-				),
-			};
-		})
-		.filter((section) => section.pages.length > EMPTY_LENGTH);
-};
-
-const clampIndex = (index: number, length: number): number =>
-	Math.max(EMPTY_LENGTH, Math.min(index, length - LAST_INDEX_OFFSET));
-
-const rejectActiveSection = ({
-	activePageIndex,
-	activeSectionIndex,
-	pages,
-}: {
-	activePageIndex: number;
-	activeSectionIndex: number;
-	pages: ProposedSection[];
-}): {
-	nextPageIndex: number;
-	nextPages: ProposedSection[];
-	nextSectionIndex: number;
-} => {
-	const pageIndex =
-		activePageIndex < pages.length ? activePageIndex : DEFAULT_PAGE_INDEX;
-	const sectionCount = pages.at(pageIndex)?.pages.length ?? EMPTY_LENGTH;
-	const sectionIndex =
-		activeSectionIndex < sectionCount
-			? activeSectionIndex
-			: DEFAULT_SECTION_INDEX;
-	const nextPages = removeSectionFromPages({
-		activePageIndex: pageIndex,
-		activeSectionIndex: sectionIndex,
-		pages,
-	});
-	const nextPageIndex = clampIndex(pageIndex, nextPages.length);
-	const isPageGroupRemoved = nextPages.length < pages.length;
-	const nextSectionIndex = isPageGroupRemoved
-		? DEFAULT_SECTION_INDEX
-		: clampIndex(
-				sectionIndex,
-				nextPages.at(nextPageIndex)?.pages.length ?? EMPTY_LENGTH,
-			);
-
-	return { nextPageIndex, nextPages, nextSectionIndex };
-};
-
-const updatePageInPages = ({
-	pageIndex,
-	pages,
-	partialPage,
-}: UpdatePageParameters): ProposedSection[] => {
-	const targetPage = pages[pageIndex];
-
-	if (!targetPage) {
-		return pages;
-	}
-
-	const updatedPages = [...pages];
-
-	updatedPages[pageIndex] = {
-		...targetPage,
-		...partialPage,
-		status: targetPage.status === "created" ? targetPage.status : "modified",
-	};
-
-	return updatedPages;
-};
-
 const SectionContentEditor = ({
 	content,
+	highlights = [],
 	isEditable = true,
 	onContentChange,
+	renderHighlightTooltip,
 }: SectionContentEditorProperties): JSX.Element => {
 	const [initialContent] = useState<PartialBlock[]>(() =>
 		textToBlocks(content),
@@ -452,116 +322,50 @@ const SectionContentEditor = ({
 
 	return (
 		<KnowledgeEditor
+			highlights={highlights}
 			initialContent={initialContent}
 			isEditable={isEditable}
 			onChange={handleChange}
+			{...(renderHighlightTooltip === undefined
+				? {}
+				: { renderHighlightTooltip })}
 		/>
 	);
 };
 
-const StructureAside = ({
-	activeNodeType,
-	activePageIndex,
-	activeSectionIndex,
-	isInteractionDisabled,
-	onSelectPage,
-	onSelectSection,
-	pages,
-}: StructureAsideProperties): JSX.Element => (
-	<aside className="flex shrink-0 flex-col gap-3 border-b tablet:border-b-0 tablet:border-r border-border-subtle p-3.5 tablet:p-5 tablet:overflow-y-auto w-full tablet:w-80 tablet:min-w-[320px] tablet:max-w-[320px]">
-		<div className="font-sans text-2xs font-bold uppercase tracking-wider text-text-muted">
-			Proposed Structure
+type GlossaryHighlightTooltipContentProperties = {
+	match: GlossaryConsistencyMatchDto;
+	onAccept: (match: GlossaryConsistencyMatchDto) => void;
+	onEdit: (match: GlossaryConsistencyMatchDto) => void;
+	onKeep: (match: GlossaryConsistencyMatchDto) => void;
+};
+
+const GlossaryHighlightTooltipContent = ({
+	match,
+	onAccept,
+	onEdit,
+	onKeep,
+}: GlossaryHighlightTooltipContentProperties): JSX.Element => {
+	return (
+		<div className="flex flex-col gap-1.5">
+			<Paragraph className="text-xs text-text" size={ParagraphSize.BODY_SMALL}>
+				Use <span className="font-medium">{match.canonicalName}</span>
+			</Paragraph>
+			<Paragraph
+				className="text-2xs text-text-faint"
+				size={ParagraphSize.BODY_SMALL}
+			>
+				{match.explanation}
+			</Paragraph>
+			<GlossarySuggestionActions
+				match={match}
+				onAccept={onAccept}
+				onEdit={onEdit}
+				onKeep={onKeep}
+			/>
 		</div>
-
-		<div className="flex w-full min-w-0 flex-col gap-3">
-			{pages.map((page, pageIndex) => {
-				const isPageSelected =
-					pageIndex === activePageIndex && activeNodeType === "parent";
-
-				return (
-					<div className="flex w-full min-w-0 flex-col gap-1" key={page.id}>
-						<button
-							className={getValidClassNames(
-								"group flex w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-md py-1.5 pl-1.5 pr-1.5 text-left font-sans text-xs font-semibold transition-colors",
-								isPageSelected
-									? "bg-success-bg text-accent"
-									: "text-text hover:bg-secondary",
-							)}
-							data-page-index={pageIndex}
-							disabled={isInteractionDisabled}
-							onClick={onSelectPage}
-							type="button"
-						>
-							<div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-								<div
-									className={getValidClassNames(
-										"shrink-0 flex items-center justify-center transition-colors",
-										isPageSelected
-											? "text-accent"
-											: "text-text-muted group-hover:text-text",
-									)}
-								>
-									<Icon name="paragraph" size={ICON_SIZE_SMALL} />
-								</div>
-								<span className="truncate block min-w-0 flex-1">
-									{page.title}
-								</span>
-							</div>
-							{getStatusBadge(page.status)}
-						</button>
-
-						<div className="flex w-full min-w-0 flex-col gap-0.5">
-							{page.pages.map((section, sectionIndex) => {
-								const isSelected =
-									pageIndex === activePageIndex &&
-									sectionIndex === activeSectionIndex &&
-									activeNodeType === "child";
-								const sectionTitle =
-									section.title.trim().length > EMPTY_LENGTH
-										? section.title
-										: "Untitled section";
-
-								return (
-									<button
-										className={getValidClassNames(
-											"group flex w-full min-w-0 cursor-pointer items-center justify-between overflow-hidden rounded-md py-1.5 pl-4 pr-1.5 text-left font-sans text-xs transition-colors",
-											isSelected
-												? "bg-success-bg font-medium text-accent"
-												: "text-text-muted hover:bg-secondary hover:text-text",
-										)}
-										data-page-index={pageIndex}
-										data-section-index={sectionIndex}
-										disabled={isInteractionDisabled}
-										key={section.id}
-										onClick={onSelectSection}
-										type="button"
-									>
-										<div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
-											<div
-												className={getValidClassNames(
-													"shrink-0 flex items-center justify-center transition-colors",
-													isSelected
-														? "text-accent"
-														: "text-control-inactive group-hover:text-text-muted",
-												)}
-											>
-												<Icon name="file" size={ICON_SIZE_SMALL} />
-											</div>
-											<span className="truncate block min-w-0 flex-1">
-												{sectionTitle}
-											</span>
-										</div>
-										{getStatusBadge(section.status)}
-									</button>
-								);
-							})}
-						</div>
-					</div>
-				);
-			})}
-		</div>
-	</aside>
-);
+	);
+};
 
 const SectionDetails = ({
 	activeNodeType,
@@ -572,13 +376,84 @@ const SectionDetails = ({
 	isInteractionDisabled,
 	isTitleEmpty,
 	onContentChange,
+	onEnterEdit,
 	onPageTitleChange,
 	onRejectItem,
 	onTitleChange,
 	showRejectItem = false,
 }: SectionDetailsProperties): JSX.Element => {
+	const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
+
+	const handleOpenRejectModal = useCallback((): void => {
+		setIsRejectModalOpen(true);
+	}, []);
+
+	const handleCloseRejectModal = useCallback((): void => {
+		setIsRejectModalOpen(false);
+	}, []);
+
+	const handleConfirmReject = useCallback((): void => {
+		setIsRejectModalOpen(false);
+		onRejectItem?.();
+	}, [onRejectItem]);
+
 	const isParentSelected = activeNodeType === "parent";
 	const selectedNode = isParentSelected ? activePage : activeSection;
+
+	const {
+		glossaryMatches,
+		isCheckingGlossary,
+		onAcceptGlossarySuggestion: handleAcceptGlossarySuggestion,
+		onKeepGlossarySuggestion: handleKeepGlossarySuggestion,
+	} = useGlossaryConsistencyCheck({
+		content: isParentSelected ? "" : (activeSection?.content ?? ""),
+		onContentChange,
+	});
+
+	const handleEditGlossarySuggestion = useCallback(
+		(match: GlossaryConsistencyMatchDto): void => {
+			handleKeepGlossarySuggestion(match);
+			onEnterEdit();
+		},
+		[handleKeepGlossarySuggestion, onEnterEdit],
+	);
+
+	const glossaryHighlights = useMemo(
+		() =>
+			toGlossaryHighlights(glossaryMatches, TextHighlightVariant.SUGGESTION),
+		[glossaryMatches],
+	);
+	const glossaryMatchesById = useMemo(
+		() =>
+			new Map(
+				glossaryMatches.map((match) => [toGlossaryHighlightId(match), match]),
+			),
+		[glossaryMatches],
+	);
+	const renderGlossaryHighlightTooltip = useCallback(
+		(highlightId: string): ReactNode => {
+			const match = glossaryMatchesById.get(highlightId);
+
+			if (!match) {
+				return null;
+			}
+
+			return (
+				<GlossaryHighlightTooltipContent
+					match={match}
+					onAccept={handleAcceptGlossarySuggestion}
+					onEdit={handleEditGlossarySuggestion}
+					onKeep={handleKeepGlossarySuggestion}
+				/>
+			);
+		},
+		[
+			glossaryMatchesById,
+			handleAcceptGlossarySuggestion,
+			handleEditGlossarySuggestion,
+			handleKeepGlossarySuggestion,
+		],
+	);
 
 	if (!selectedNode) {
 		return (
@@ -600,6 +475,7 @@ const SectionDetails = ({
 			: `${activePage.title} > ${currentTitle}`;
 	const selectedTitleLabel = getNodeTitleLabel(selectedNode.type, "Node");
 	const editorKey = `${selectedNode.id}-${isEditMode ? "edit" : "view"}`;
+	const readOnlyEditorKey = `${editorKey}-${activeSection?.content ?? ""}`;
 	const handleTitleChange = isParentSelected
 		? onPageTitleChange
 		: onTitleChange;
@@ -615,7 +491,7 @@ const SectionDetails = ({
 					{showRejectItem && !isParentSelected && onRejectItem && (
 						<Button
 							disabled={isInteractionDisabled}
-							onClick={onRejectItem}
+							onClick={handleOpenRejectModal}
 							variant="secondary"
 						>
 							Reject item
@@ -724,11 +600,23 @@ const SectionDetails = ({
 						<div className="min-h-48 tablet:min-h-80 flex-1 rounded-md border border-border-subtle bg-bg p-3.5 tablet:p-5">
 							<SectionContentEditor
 								content={activeSection.content}
+								highlights={glossaryHighlights}
 								isEditable={false}
-								key={editorKey}
+								key={readOnlyEditorKey}
+								renderHighlightTooltip={renderGlossaryHighlightTooltip}
 							/>
 						</div>
 					)}
+
+					<GlossarySuggestions
+						canAccept={!isEditMode}
+						isChecking={isCheckingGlossary}
+						matches={glossaryMatches}
+						onAccept={handleAcceptGlossarySuggestion}
+						onEdit={handleEditGlossarySuggestion}
+						onKeep={handleKeepGlossarySuggestion}
+						variant={TextHighlightVariant.SUGGESTION}
+					/>
 				</div>
 			)}
 
@@ -744,6 +632,29 @@ const SectionDetails = ({
 					</div>
 				</div>
 			)}
+
+			<Modal
+				hasCloseButton={true}
+				isOpen={isRejectModalOpen}
+				onClose={handleCloseRejectModal}
+				size="small"
+				title="Reject Knowledge item"
+			>
+				<div className="flex flex-col gap-4">
+					<Paragraph size={ParagraphSize.BODY_SMALL}>
+						Are you sure you want to reject this item? This action cannot be
+						undone.
+					</Paragraph>
+					<div className="flex justify-end gap-2 pt-2">
+						<Button onClick={handleCloseRejectModal} variant="secondary">
+							Cancel
+						</Button>
+						<Button onClick={handleConfirmReject} variant="primary">
+							Reject
+						</Button>
+					</div>
+				</div>
+			</Modal>
 		</div>
 	);
 };
@@ -752,7 +663,6 @@ const PreviewFooter = ({
 	approveLabel,
 	canEdit,
 	canSubmitReview,
-	hasContent,
 	isApplying,
 	isEditInvalid,
 	isEditMode,
@@ -761,57 +671,66 @@ const PreviewFooter = ({
 	onClose,
 	onEnterEdit,
 	onSaveEdit,
+	submitBlockedReason,
 }: PreviewFooterProperties): JSX.Element => (
-	<div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-border-subtle pt-2 px-1">
-		{isEditMode ? (
-			<div className="flex w-full tablet:w-auto items-center justify-between tablet:justify-start gap-2 tablet:gap-3">
-				<Button
-					className="flex-1 tablet:flex-initial tablet:w-auto"
-					disabled={isApplying}
-					onClick={onCancelEdit}
-					variant="secondary"
-				>
-					Cancel
-				</Button>
-				<Button
-					className="flex-1 tablet:flex-initial tablet:w-auto"
-					disabled={isApplying || isEditInvalid}
-					onClick={onSaveEdit}
-					variant="primary"
-				>
-					Save
-				</Button>
-			</div>
-		) : (
-			<>
-				<Button
-					disabled={!canEdit || !hasContent || isApplying}
-					onClick={onEnterEdit}
-					variant="secondary"
-				>
-					Edit
-				</Button>
-
-				<div className="flex items-center justify-end gap-2">
-					<Button disabled={isApplying} onClick={onClose} variant="secondary">
-						Back
+	<div className="flex shrink-0 flex-col gap-2 border-t border-border-subtle pt-2 px-1">
+		{!isEditMode && !canSubmitReview && submitBlockedReason && (
+			<span className="text-error font-sans text-2xs font-medium">
+				{submitBlockedReason}
+			</span>
+		)}
+		<div className="flex flex-wrap items-center justify-between gap-2">
+			{isEditMode ? (
+				<div className="flex w-full tablet:w-auto items-center justify-between tablet:justify-start gap-2 tablet:gap-3">
+					<Button
+						className="flex-1 tablet:flex-initial tablet:w-auto"
+						disabled={isApplying}
+						onClick={onCancelEdit}
+						variant="secondary"
+					>
+						Cancel
 					</Button>
 					<Button
-						disabled={!canSubmitReview || isApplying}
-						onClick={onApprove}
+						className="flex-1 tablet:flex-initial tablet:w-auto"
+						disabled={isApplying || isEditInvalid}
+						onClick={onSaveEdit}
 						variant="primary"
 					>
-						<Icon name="checkbox-tick" size={ICON_SIZE_MEDIUM} />
-						<span>{approveLabel}</span>
+						Save
 					</Button>
 				</div>
-			</>
-		)}
+			) : (
+				<>
+					<Button
+						disabled={!canEdit || isApplying}
+						onClick={onEnterEdit}
+						variant="secondary"
+					>
+						Edit
+					</Button>
+
+					<div className="flex items-center justify-end gap-2">
+						<Button disabled={isApplying} onClick={onClose} variant="secondary">
+							Back
+						</Button>
+						<Button
+							disabled={!canSubmitReview || isApplying}
+							onClick={onApprove}
+							variant="primary"
+						>
+							<Icon name="checkbox-tick" size={ICON_SIZE_MEDIUM} />
+							<span>{approveLabel}</span>
+						</Button>
+					</div>
+				</>
+			)}
+		</div>
 	</div>
 );
 
 const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	errorMessage,
+	failedPageNumbers = [],
 	onAddMore,
 	onApplyingChange,
 	onApprove,
@@ -837,6 +756,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	const [isMergeScreenOpen, setIsMergeScreenOpen] = useState<boolean>(false);
 	const [activeConflicts, setActiveConflicts] = useState<FieldConflict[]>([]);
 	const [isApplying, setIsApplying] = useState<boolean>(false);
+
 	const setApplyingState = useCallback(
 		(isApplyingValue: boolean): void => {
 			setIsApplying(isApplyingValue);
@@ -851,7 +771,9 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		activePage?.pages[DEFAULT_SECTION_INDEX];
 	const selectedNode = activeNodeType === "parent" ? activePage : activeSection;
 	const canEditSelectedNode =
-		!isExtractionValidation || activeNodeType === "child";
+		!isExtractionValidation ||
+		activeNodeType === "child" ||
+		Boolean(activePage && isManualPage(activePage));
 
 	const isTitleEmpty =
 		(selectedNode?.title.trim().length ?? EMPTY_LENGTH) === EMPTY_LENGTH;
@@ -866,7 +788,10 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, [onAddMore]);
 
 	const applyChanges = useCallback(
-		async (conflicts: FieldConflict[]): Promise<void> => {
+		async (
+			conflicts: FieldConflict[],
+			sections: ProposedSection[],
+		): Promise<void> => {
 			if (isApplying) {
 				return;
 			}
@@ -884,6 +809,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			try {
 				isApplied = await onApprove(
 					toConflictResolutions({ conflicts, sections: proposedStructure }),
+					toContentOverrides(sections),
 				);
 			} catch {
 				return;
@@ -935,7 +861,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		const integrationConflicts = getAllIntegrationConflicts(pages);
 
 		if (integrationConflicts.length === EMPTY_LENGTH) {
-			void applyChanges([]);
+			void applyChanges([], pages);
 
 			return;
 		}
@@ -980,7 +906,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			resolvedConflicts: FieldConflict[],
 		): void => {
 			setPages(resolvedPages);
-			void applyChanges(resolvedConflicts);
+			void applyChanges(resolvedConflicts, resolvedPages);
 		},
 		[applyChanges],
 	);
@@ -1079,6 +1005,146 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		[],
 	);
 
+	const handleAddPage = useCallback((): void => {
+		const newPageIndex = pages.length;
+
+		setPages((previousPages) => addPageGroup(previousPages));
+		setActivePageIndex(newPageIndex);
+		setActiveNodeType("parent");
+	}, [pages.length]);
+
+	const handleAddSection = useCallback(
+		(pageIndex: number): void => {
+			const newSectionIndex =
+				pages[pageIndex]?.pages.length ?? DEFAULT_SECTION_INDEX;
+
+			setPages((previousPages) => addSectionToPage(previousPages, pageIndex));
+			setActivePageIndex(pageIndex);
+			setActiveSectionIndex(newSectionIndex);
+			setActiveNodeType("child");
+		},
+		[pages],
+	);
+
+	const handleDeletePage = useCallback(
+		(pageIndex: number): void => {
+			const nextPages = removePageGroup(pages, pageIndex);
+
+			if (nextPages === pages) {
+				return;
+			}
+
+			setPages(nextPages);
+
+			if (pageIndex === activePageIndex) {
+				setActivePageIndex(DEFAULT_PAGE_INDEX);
+				setActiveSectionIndex(DEFAULT_SECTION_INDEX);
+				setActiveNodeType("child");
+			} else if (pageIndex < activePageIndex) {
+				setActivePageIndex(activePageIndex - LAST_INDEX_OFFSET);
+			}
+		},
+		[activePageIndex, pages],
+	);
+
+	const handleDeleteSection = useCallback(
+		(pageIndex: number, sectionIndex: number): void => {
+			const activePageId = activePage?.id;
+			const activeSectionId = activeSection?.id;
+			const nextPages = removeSectionFromPages({
+				activePageIndex: pageIndex,
+				activeSectionIndex: sectionIndex,
+				pages,
+			});
+
+			setPages(nextPages);
+
+			const nextPageIndex = activePageId
+				? nextPages.findIndex((page) => page.id === activePageId)
+				: NOT_FOUND_INDEX;
+
+			if (nextPageIndex === NOT_FOUND_INDEX) {
+				setActivePageIndex(DEFAULT_PAGE_INDEX);
+				setActiveSectionIndex(DEFAULT_SECTION_INDEX);
+				setActiveNodeType("child");
+
+				return;
+			}
+
+			const nextSectionIndex = activeSectionId
+				? (nextPages[nextPageIndex]?.pages.findIndex(
+						(section) => section.id === activeSectionId,
+					) ?? NOT_FOUND_INDEX)
+				: NOT_FOUND_INDEX;
+
+			setActivePageIndex(nextPageIndex);
+			setActiveSectionIndex(
+				nextSectionIndex === NOT_FOUND_INDEX
+					? DEFAULT_SECTION_INDEX
+					: nextSectionIndex,
+			);
+		},
+		[activePage, activeSection, pages],
+	);
+
+	const handleMovePage = useCallback(
+		(activeId: string, overId: string): void => {
+			const activePageId = activePage?.id;
+			const nextPages = movePageGroup(pages, activeId, overId);
+
+			if (nextPages === pages) {
+				return;
+			}
+
+			setPages(nextPages);
+
+			const nextIndex = activePageId
+				? nextPages.findIndex((page) => page.id === activePageId)
+				: NOT_FOUND_INDEX;
+
+			if (nextIndex !== NOT_FOUND_INDEX) {
+				setActivePageIndex(nextIndex);
+			}
+		},
+		[activePage, pages],
+	);
+
+	const handleMoveSection = useCallback(
+		(activeId: string, overId: string): void => {
+			const activeSectionId = activeSection?.id;
+			const nextPages = moveSectionAcrossPages(pages, activeId, overId);
+
+			if (nextPages === pages) {
+				return;
+			}
+
+			setPages(nextPages);
+
+			if (!activeSectionId) {
+				return;
+			}
+
+			const nextPageIndex = nextPages.findIndex((page) =>
+				page.pages.some((section) => section.id === activeSectionId),
+			);
+
+			if (nextPageIndex === NOT_FOUND_INDEX) {
+				return;
+			}
+
+			const nextSectionIndex =
+				nextPages[nextPageIndex]?.pages.findIndex(
+					(section) => section.id === activeSectionId,
+				) ?? NOT_FOUND_INDEX;
+
+			if (nextSectionIndex !== NOT_FOUND_INDEX) {
+				setActivePageIndex(nextPageIndex);
+				setActiveSectionIndex(nextSectionIndex);
+			}
+		},
+		[activeSection, pages],
+	);
+
 	if (isMergeScreenOpen) {
 		return (
 			<>
@@ -1099,6 +1165,9 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}
 
 	const hasContent = pages.length > EMPTY_LENGTH && Boolean(activeSection);
+	const canEnterEdit =
+		canEditSelectedNode &&
+		(activeNodeType === "parent" ? Boolean(activePage) : hasContent);
 
 	const remainingExtractionItemCount = pages.reduce(
 		(count, section) => count + section.pages.length,
@@ -1108,7 +1177,21 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		isExtractionValidation && remainingExtractionItemCount === EMPTY_LENGTH
 			? "Finish without publishing"
 			: "Approve & save";
-	const canSubmitReview = isExtractionValidation || hasContent;
+	const hasBlankEntry = pages.some(
+		(page) =>
+			page.pages.length > EMPTY_LENGTH &&
+			(page.title.trim().length === EMPTY_LENGTH ||
+				page.pages.some(
+					(section) =>
+						section.title.trim().length === EMPTY_LENGTH ||
+						section.content.trim().length === EMPTY_LENGTH,
+				)),
+	);
+	const canSubmitReview = isExtractionValidation ? !hasBlankEntry : hasContent;
+	const submitBlockedReason =
+		isExtractionValidation && hasBlankEntry
+			? "Every page and item needs a title and content before you can approve. Fill in or remove the blank ones."
+			: undefined;
 
 	return (
 		<div className="mx-auto flex h-full w-full max-w-7xl flex-col justify-between gap-3 p-3 tablet:p-4 pb-2 tablet:pb-4 font-sans text-text">
@@ -1119,12 +1202,26 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					variant="error"
 				/>
 			)}
+			{isExtractionValidation && failedPageNumbers.length > EMPTY_LENGTH && (
+				<Alert
+					description={toFailedPagesMessage(failedPageNumbers)}
+					title="Some pages could not be processed"
+					variant="warning"
+				/>
+			)}
 			<div className="flex flex-1 min-h-0 flex-col tablet:flex-row overflow-y-auto tablet:overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
 				<StructureAside
 					activeNodeType={activeNodeType}
 					activePageIndex={activePageIndex}
 					activeSectionIndex={activeSectionIndex}
+					isExtractionValidation={isExtractionValidation}
 					isInteractionDisabled={isApplying}
+					onAddPage={handleAddPage}
+					onAddSection={handleAddSection}
+					onDeletePage={handleDeletePage}
+					onDeleteSection={handleDeleteSection}
+					onMovePage={handleMovePage}
+					onMoveSection={handleMoveSection}
 					onSelectPage={handleSelectPage}
 					onSelectSection={handleSelectSection}
 					pages={pages}
@@ -1138,7 +1235,9 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					isEditMode={isEditMode && canEditSelectedNode}
 					isInteractionDisabled={isApplying}
 					isTitleEmpty={isTitleEmpty}
+					key={selectedNode?.id}
 					onContentChange={handleSectionContentChange}
+					onEnterEdit={handleEnterEdit}
 					onPageTitleChange={handlePageTitleChange}
 					onRejectItem={handleRejectItem}
 					onTitleChange={handleSectionTitleChange}
@@ -1148,9 +1247,8 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 			<PreviewFooter
 				approveLabel={approveLabel}
-				canEdit={canEditSelectedNode}
+				canEdit={canEnterEdit}
 				canSubmitReview={canSubmitReview}
-				hasContent={hasContent}
 				isApplying={isApplying}
 				isEditInvalid={isEditInvalid}
 				isEditMode={isEditMode && canEditSelectedNode}
@@ -1159,6 +1257,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 				onClose={onClose}
 				onEnterEdit={handleEnterEdit}
 				onSaveEdit={handleSaveEdit}
+				submitBlockedReason={submitBlockedReason}
 			/>
 
 			<ProposedStructureSuccessModal

@@ -1,11 +1,13 @@
 import { type JSX } from "react";
 
 import { Icon } from "~/components/components.js";
+import { useAppSelector } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import { type UploadedDocumentItem } from "../libs/types/types.js";
+import { ProcessingProgress } from "./loading-state/libs/components/processing-progress.js";
 
 type Properties = {
 	isDisabled: boolean;
@@ -19,12 +21,12 @@ const getStatusLabel = (
 	status: ValueOf<typeof DocumentProcessingStatus>,
 ): string => {
 	if (status === DocumentProcessingStatus.PROCESSING) {
-		return "Processing…";
+		return "Uploading…";
 	}
 	if (status === DocumentProcessingStatus.FAILED) {
 		return "Processing failed";
 	}
-	return "Ready";
+	return "Uploaded";
 };
 
 const getIconBgClass = (
@@ -46,6 +48,17 @@ const DocumentRow = ({
 	onRemove,
 	onRetry,
 }: Properties): JSX.Element => {
+	const snapshot = useAppSelector((state) =>
+		item.documentId === undefined
+			? undefined
+			: state.knowledge.documentStatuses[item.documentId],
+	);
+	const trackedStatus = useAppSelector(
+		(state) =>
+			state.knowledge.trackedDocuments.find(
+				(document) => document.documentId === item.documentId,
+			)?.status,
+	);
 	const isProcessing = item.status === DocumentProcessingStatus.PROCESSING;
 	const isFailed = item.status === DocumentProcessingStatus.FAILED;
 	const isReady = item.status === DocumentProcessingStatus.READY;
@@ -110,18 +123,18 @@ const DocumentRow = ({
 
 			{isProcessing && (
 				<div
-					aria-label={`Processing ${item.name}`}
-					aria-valuemax={100}
-					aria-valuemin={0}
-					aria-valuenow={item.progress}
+					aria-label={`Uploading ${item.name}`}
 					className="h-1 w-full overflow-hidden rounded-full bg-border-subtle"
 					role="progressbar"
 				>
-					<div
-						className="h-full bg-accent transition-all duration-300"
-						style={{ width: `${String(item.progress)}%` }}
-					/>
+					<div className="h-full w-full bg-accent motion-safe:animate-pulse" />
 				</div>
+			)}
+			{isReady && trackedStatus && (
+				<ProcessingProgress
+					currentStatus={trackedStatus}
+					progress={snapshot?.processingProgress ?? null}
+				/>
 			)}
 		</div>
 	);

@@ -1,6 +1,7 @@
-import "./ask-prism.test-setup.js";
+import "~/test-setup.js";
 
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
+import { search } from "@knowledgeprism/worker";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
@@ -12,8 +13,20 @@ import {
 } from "~/modules/projects/services/project.service.js";
 
 import { DEFAULT_SUGGESTED_QUESTIONS } from "../libs/constants/default-suggested-questions.constant.js";
-import { AskPrismService } from "./ask-prism.service.js";
+import { RAG_FALLBACK_MESSAGE } from "../libs/constants/rag-fallback-message.constant.js";
+import { AskPrismService, MAX_SIMILAR_NODES } from "./ask-prism.service.js";
 
+const COMPONENT_FRACTION_EIGHT = 0.8;
+const COMPONENT_FRACTION_FOUR = 0.4;
+const COMPONENT_FRACTION_NINE = 0.9;
+const COMPONENT_FRACTION_ONE = 0.1;
+const COMPONENT_FRACTION_SEVEN = 0.7;
+const COMPONENT_FRACTION_SIX = 0.6;
+const COMPONENT_FRACTION_THREE = 0.3;
+const COMPONENT_FRACTION_TWO = 0.2;
+const COMPONENT_ONE = 1;
+const COMPONENT_ZERO = 0;
+const EXPECTED_SIMILAR_NODES_LIMIT = 3;
 const MAX_SUGGESTIONS = 3;
 const NODE_ID_FOUR = 4;
 const NODE_ID_ONE = 1;
@@ -25,6 +38,7 @@ const POSITION_ONE = 0;
 const POSITION_THREE = 2;
 const POSITION_TWO = 1;
 const PROJECT_ID = 1;
+const QUESTION = "How does authentication work?";
 const USER_ID = 1;
 
 const CONTEXT: ProjectAccessContext = {
@@ -197,5 +211,92 @@ void describe("AskPrismService.getSuggestedQuestions", () => {
 		const questions = await service.getSuggestedQuestions(PROJECT_ID, CONTEXT);
 
 		assert.deepStrictEqual(questions, ["Tell me about Project Overview"]);
+	});
+});
+
+void describe("AskPrismService search limits", () => {
+	void it("defines MAX_SIMILAR_NODES as 3", () => {
+		assert.strictEqual(MAX_SIMILAR_NODES, EXPECTED_SIMILAR_NODES_LIMIT);
+	});
+
+	void it("retrieves at most MAX_SIMILAR_NODES matches when more candidates exist", () => {
+		const candidates = [
+			{
+				item: "Topic 1",
+				vector: [COMPONENT_ONE, COMPONENT_ZERO],
+			},
+			{
+				item: "Topic 2",
+				vector: [COMPONENT_FRACTION_NINE, COMPONENT_FRACTION_ONE],
+			},
+			{
+				item: "Topic 3",
+				vector: [COMPONENT_FRACTION_EIGHT, COMPONENT_FRACTION_TWO],
+			},
+			{
+				item: "Topic 4",
+				vector: [COMPONENT_FRACTION_SEVEN, COMPONENT_FRACTION_THREE],
+			},
+			{
+				item: "Topic 5",
+				vector: [COMPONENT_FRACTION_SIX, COMPONENT_FRACTION_FOUR],
+			},
+		];
+
+		const matches = search({
+			candidates,
+			queryVector: [COMPONENT_ONE, COMPONENT_ZERO],
+			topK: MAX_SIMILAR_NODES,
+		});
+
+		assert.strictEqual(matches.length, MAX_SIMILAR_NODES);
+		assert.deepStrictEqual(
+			matches.map((match) => match.item),
+			["Topic 1", "Topic 2", "Topic 3"],
+		);
+	});
+});
+
+void describe("AskPrismService.generateAnswer", () => {
+	void it("returns the not-found message when the project has no knowledge", async () => {
+		const { service } = createTestSetup([]);
+
+		const response = await service.generateAnswer(
+			PROJECT_ID,
+			QUESTION,
+			CONTEXT,
+		);
+
+		assert.deepStrictEqual(response, {
+			answer: RAG_FALLBACK_MESSAGE,
+			sources: [],
+		});
+	});
+
+	void it("returns the not-found message when every node is empty", async () => {
+		const emptyPageNode = KnowledgeNodeEntity.initialize({
+			contentJson: [],
+			createdAt: new Date(),
+			id: NODE_ID_ONE,
+			parentId: null,
+			position: POSITION_ONE,
+			projectId: PROJECT_ID,
+			title: "empty-document.pdf",
+			type: KnowledgeNodeType.PAGE,
+			updatedAt: new Date(),
+		});
+
+		const { service } = createTestSetup([emptyPageNode]);
+
+		const response = await service.generateAnswer(
+			PROJECT_ID,
+			QUESTION,
+			CONTEXT,
+		);
+
+		assert.deepStrictEqual(response, {
+			answer: RAG_FALLBACK_MESSAGE,
+			sources: [],
+		});
 	});
 });

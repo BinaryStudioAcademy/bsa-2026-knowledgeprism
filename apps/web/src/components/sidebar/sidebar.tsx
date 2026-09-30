@@ -14,6 +14,11 @@ import {
 import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { AddKnowledgeModal } from "~/modules/knowledge/components/add-knowledge-modal/add-knowledge-modal.js";
+import { getUserManagementCopy } from "~/modules/users/libs/constants/user-management-copy.constant.js";
+import {
+	buildUserManagementPath,
+	resolveSelectedProjectId,
+} from "~/modules/users/libs/helpers/user-management-project.helper.js";
 
 import {
 	MOBILE_NAV_ICON_SIZE,
@@ -61,26 +66,23 @@ const buildPrimaryNavItems = (projectId: string | undefined): NavItem[] => {
 	];
 };
 
-const buildUtilityNavItems = (role: string, isAdmin?: boolean): NavItem[] => {
-	const items: NavItem[] = [
-		{
-			icon: <Icon name="settings" />,
-			id: "settings",
-			label: "Settings",
-			to: AppRoute.SETTINGS,
-		},
-	];
-
-	if (role === ProjectMemberRole.ADMIN || Boolean(isAdmin)) {
-		items.push({
-			icon: <Icon name="users" />,
-			id: "users",
-			label: "Users",
-			to: AppRoute.USERS,
-		});
+const buildUtilityNavItems = (
+	role: string,
+	isAdmin: boolean | undefined,
+	projectId: string | undefined,
+): NavItem[] => {
+	if (!projectId || (!isAdmin && role !== ProjectMemberRole.ADMIN)) {
+		return [];
 	}
 
-	return items;
+	return [
+		{
+			icon: <Icon name="users" />,
+			id: "users",
+			label: getUserManagementCopy(true).NAV_LABEL,
+			to: buildUserManagementPath(projectId),
+		},
+	];
 };
 
 const buildMobileNavItems = (projectId: string | undefined): NavItem[] => {
@@ -113,7 +115,14 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	role,
 	shell,
 }: SidebarProperties) => {
-	const projectId = useOptionalCurrentProjectId();
+	const routeProjectId = useOptionalCurrentProjectId();
+	const { pathname, search } = useLocation();
+	const projectId =
+		resolveSelectedProjectId({
+			fallbackProjectId: routeProjectId ?? null,
+			pathname,
+			search,
+		}) ?? undefined;
 	const { hideModal, isOpen, showModal } = useModal();
 	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 	const canAddKnowledge = useCanWriteKnowledge();
@@ -125,7 +134,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	useFocusReturn({ opened: isOverlayOpen });
 
 	const primaryNavItems = buildPrimaryNavItems(projectId);
-	const utilityNavItems = buildUtilityNavItems(role, isAdmin);
+	const utilityNavItems = buildUtilityNavItems(role, isAdmin, projectId);
 
 	const handleAddClick = useCallback((): void => {
 		if (onAddKnowledge) {

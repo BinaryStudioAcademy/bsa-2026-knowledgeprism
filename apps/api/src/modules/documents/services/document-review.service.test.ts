@@ -1,10 +1,15 @@
 import {
 	DocumentErrorMessage,
+	DocumentProcessingPhase,
 	DocumentSourceType,
 	DocumentStatus,
 	ExtractionItemStatus,
+	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
-import { type ValueOf } from "@knowledgeprism/types";
+import {
+	type DocumentProcessingProgressDto,
+	type ValueOf,
+} from "@knowledgeprism/types";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { type Transaction } from "objection";
@@ -13,8 +18,10 @@ import { type Database } from "~/infrastructure/database/database.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
+import { ExtractionSectionEntity } from "~/modules/documents/models/extraction-section.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
+import { type ExtractionSectionRepository } from "~/modules/documents/repositories/extraction-section.repository.js";
 import { type IntegrationChangeRepository } from "~/modules/documents/repositories/integration-change.repository.js";
 import { type ProjectService } from "~/modules/projects/services/project.service.js";
 
@@ -25,13 +32,18 @@ import { type IntegrationApplier } from "./integration-applier.js";
 const DOCUMENT_ID = 1;
 const PROJECT_ID = 1;
 const ITEM_ID = 10;
+const MANUAL_ITEM_ID = 11;
+const SECTION_ID = 20;
 const USER_ID = 1;
 const ORGANISATION_ID = 1;
 const ATTEMPT_NUMBER = 1;
 const DOCUMENT_SIZE = 100;
 const CONFIDENCE_SCORE = 0.95;
 const PAGE_NUMBER = 1;
+const FIRST_POSITION = 0;
 const MIN_EXPECTED_CALLS = 2;
+const NO_POSITION_OFFSET = 0;
+const SECOND_POSITION = 1;
 
 type FindCallOptions = {
 	forUpdate?: boolean | undefined;
@@ -43,7 +55,13 @@ type TransactionContext = {
 	releaseLock?: () => void;
 };
 
-const createTestSetup = (): {
+const PROCESSING_ATTEMPT = 1;
+
+const createTestSetup = (
+	failedPageNumbers: number[] = [],
+	processingProgress: DocumentProcessingProgressDto | null = null,
+	isAuthorized = true,
+): {
 	getFindCalls: () => FindCallOptions[];
 	getItems: () => ExtractionItemEntity[];
 	service: DocumentReviewService;
@@ -55,8 +73,10 @@ const createTestSetup = (): {
 		ExtractionItemEntity.initialize({
 			confidence: CONFIDENCE_SCORE,
 			documentId: DOCUMENT_ID,
+			extractionSectionId: null,
 			id: ITEM_ID,
 			knowledgeNodeId: null,
+			position: FIRST_POSITION,
 			rationale: "Original rationale",
 			sourceExcerpt: "Original excerpt",
 			sourcePageNumber: PAGE_NUMBER,
@@ -106,9 +126,12 @@ const createTestSetup = (): {
 					contentHash: "hash",
 					createdAt: new Date(),
 					errorMessage: null,
+					failedPageNumbers,
 					id: DOCUMENT_ID,
 					mimeType: "application/pdf",
 					name: "sample.pdf",
+					processingAttempt: PROCESSING_ATTEMPT,
+					processingProgress,
 					projectId: PROJECT_ID,
 					s3Key: null,
 					sizeInBytes: DOCUMENT_SIZE,
@@ -146,9 +169,12 @@ const createTestSetup = (): {
 				contentHash: "hash",
 				createdAt: new Date(),
 				errorMessage: null,
+				failedPageNumbers,
 				id: DOCUMENT_ID,
 				mimeType: "application/pdf",
 				name: "sample.pdf",
+				processingAttempt: PROCESSING_ATTEMPT,
+				processingProgress,
 				projectId: PROJECT_ID,
 				s3Key: null,
 				sizeInBytes: DOCUMENT_SIZE,
@@ -175,9 +201,12 @@ const createTestSetup = (): {
 					contentHash: "hash",
 					createdAt: new Date(),
 					errorMessage: null,
+					failedPageNumbers,
 					id: DOCUMENT_ID,
 					mimeType: "application/pdf",
 					name: "sample.pdf",
+					processingAttempt: PROCESSING_ATTEMPT,
+					processingProgress,
 					projectId: PROJECT_ID,
 					s3Key: null,
 					sizeInBytes: DOCUMENT_SIZE,
@@ -190,6 +219,8 @@ const createTestSetup = (): {
 		},
 	} as unknown as DocumentRepository;
 
+	let nextItemId = MANUAL_ITEM_ID;
+
 	const extractionItemRepository = {
 		findByDocumentId: async (): Promise<ExtractionItemEntity[]> => {
 			await Promise.resolve();
@@ -199,6 +230,40 @@ const createTestSetup = (): {
 			return Promise.resolve(
 				items.find((item) => item.toObject().id === id) ?? null,
 			);
+		},
+		insertManyPending: async ({
+			documentId,
+			items: newItems,
+		}: {
+			documentId: number;
+			items: {
+				confidence: number;
+				extractionSectionId?: null | number;
+				position?: number;
+				rationale: string;
+				sourceExcerpt: string;
+				sourcePageNumber: number;
+				text: string;
+				title: string;
+			}[];
+		}): Promise<ExtractionItemEntity[]> => {
+			await Promise.resolve();
+
+			const created = newItems.map((item) =>
+				ExtractionItemEntity.initialize({
+					...item,
+					documentId,
+					extractionSectionId: item.extractionSectionId ?? null,
+					id: nextItemId++,
+					knowledgeNodeId: null,
+					position: item.position ?? FIRST_POSITION,
+					status: ExtractionItemStatus.PENDING,
+				}),
+			);
+
+			items = [...items, ...created];
+
+			return created;
 		},
 		markApproved: (ids: number[]): Promise<void> => {
 			items = items.map((item) => {
@@ -256,11 +321,81 @@ const createTestSetup = (): {
 
 			return updated;
 		},
+		updatePendingReviewPlacement: async ({
+			extractionSectionId,
+			id,
+			position,
+			text,
+			title,
+		}: {
+			documentId: number;
+			extractionSectionId: number;
+			id: number;
+			position: number;
+			text: string;
+			title: string;
+		}): Promise<ExtractionItemEntity | null> => {
+			await Promise.resolve();
+			const currentItem = items.find((item) => item.toObject().id === id);
+
+			if (!currentItem) {
+				return null;
+			}
+
+			const current = currentItem.toObject();
+
+			if (current.status !== ExtractionItemStatus.PENDING) {
+				return null;
+			}
+
+			const updated = ExtractionItemEntity.initialize({
+				...current,
+				extractionSectionId,
+				position,
+				text,
+				title,
+			});
+			items = items.map((item) => (item.toObject().id === id ? updated : item));
+
+			return updated;
+		},
 	} as unknown as ExtractionItemRepository;
+
+	const extractionSectionRepository = {
+		findByDocumentId: (): Promise<[]> => Promise.resolve([]),
+		replaceByDocumentId: ({
+			documentId,
+			sections,
+		}: {
+			documentId: number;
+			sections: { position: number; title: string }[];
+		}): Promise<{
+			positionOffset: number;
+			sections: ExtractionSectionEntity[];
+		}> => {
+			return Promise.resolve({
+				positionOffset: NO_POSITION_OFFSET,
+				sections: sections.map((section, index) =>
+					ExtractionSectionEntity.initialize({
+						documentId,
+						id: SECTION_ID + index,
+						position: section.position,
+						title: section.title,
+						type: KnowledgeNodeType.SECTION,
+					}),
+				),
+			});
+		},
+	} as unknown as ExtractionSectionRepository;
 
 	const projectService = {
 		assertCanWriteKnowledge: () => Promise.resolve(),
-		assertProjectAccess: () => Promise.resolve(),
+		assertProjectAccess: () =>
+			isAuthorized
+				? Promise.resolve()
+				: Promise.reject(
+						new HTTPError({ message: "Forbidden", status: HTTPCode.FORBIDDEN }),
+					),
 	} as unknown as ProjectService;
 
 	const documentJobScheduler = {
@@ -280,6 +415,7 @@ const createTestSetup = (): {
 		documentJobScheduler,
 		documentRepository,
 		extractionItemRepository,
+		extractionSectionRepository,
 		integrationApplier,
 		integrationChangeRepository,
 		projectService,
@@ -293,6 +429,47 @@ const createTestSetup = (): {
 };
 
 void describe("DocumentReviewService Concurrency", () => {
+	void it("returns persisted progress through the authorized document status response", async () => {
+		const progress: DocumentProcessingProgressDto = {
+			failedUnits: 1,
+			phase: DocumentProcessingPhase.EXTRACTING,
+			processedUnits: 2,
+			totalUnits: 3,
+		};
+		const { service } = createTestSetup([], progress);
+		const result = await service.findStatus({
+			context: { organisationId: ORGANISATION_ID, userId: USER_ID },
+			documentId: DOCUMENT_ID,
+			projectId: PROJECT_ID,
+		});
+		assert.deepEqual(result.processingProgress, progress);
+		assert.equal(result.processingAttempt, PROCESSING_ATTEMPT);
+	});
+	void it("does not load progress before project authorization succeeds", async () => {
+		const { getFindCalls, service } = createTestSetup([], null, false);
+		await assert.rejects(
+			service.findStatus({
+				context: { organisationId: ORGANISATION_ID, userId: USER_ID },
+				documentId: DOCUMENT_ID,
+				projectId: PROJECT_ID,
+			}),
+			(error: unknown) =>
+				error instanceof HTTPError && error.status === HTTPCode.FORBIDDEN,
+		);
+		assert.deepEqual(getFindCalls(), []);
+	});
+
+	void it("returns persisted incomplete pages alongside extraction items", async () => {
+		const { service } = createTestSetup([PAGE_NUMBER]);
+		const result = await service.findItems({
+			context: { organisationId: ORGANISATION_ID, userId: USER_ID },
+			documentId: DOCUMENT_ID,
+			projectId: PROJECT_ID,
+		});
+		assert.deepEqual(result.failedPageNumbers, [PAGE_NUMBER]);
+		assert.ok(result.items.some((item) => item.id === ITEM_ID));
+	});
+
 	void it("uses edited content when edit finishes before review", async () => {
 		const { getFindCalls, getItems, service } = createTestSetup();
 
@@ -396,5 +573,57 @@ void describe("DocumentReviewService Concurrency", () => {
 				(call) => call.forUpdate === true && Boolean(call.transaction),
 			),
 		);
+	});
+
+	void it("persists structured review edits and manual items", async () => {
+		const { getItems, service } = createTestSetup();
+
+		const reviewResult = await service.review({
+			context: { organisationId: ORGANISATION_ID, userId: USER_ID },
+			documentId: DOCUMENT_ID,
+			payload: {
+				approvedIds: [],
+				rejectedIds: [],
+				sections: [
+					{
+						items: [
+							{
+								id: ITEM_ID,
+								text: "Structured text",
+								title: "Structured title",
+							},
+							{
+								text: "Manual text",
+								title: "Manual title",
+							},
+						],
+						title: "Custom page",
+					},
+				],
+			},
+			projectId: PROJECT_ID,
+		});
+
+		assert.strictEqual(reviewResult.status, DocumentStatus.INTEGRATING);
+
+		const reviewedItems = getItems().map((item) => item.toObject());
+		const updatedOriginal = reviewedItems.find((item) => item.id === ITEM_ID);
+		const createdManual = reviewedItems.find(
+			(item) => item.id === MANUAL_ITEM_ID,
+		);
+
+		assert.ok(updatedOriginal);
+		assert.strictEqual(updatedOriginal.status, ExtractionItemStatus.APPROVED);
+		assert.strictEqual(updatedOriginal.extractionSectionId, SECTION_ID);
+		assert.strictEqual(updatedOriginal.position, FIRST_POSITION);
+		assert.strictEqual(updatedOriginal.title, "Structured title");
+		assert.strictEqual(updatedOriginal.text, "Structured text");
+
+		assert.ok(createdManual);
+		assert.strictEqual(createdManual.status, ExtractionItemStatus.APPROVED);
+		assert.strictEqual(createdManual.extractionSectionId, SECTION_ID);
+		assert.strictEqual(createdManual.position, SECOND_POSITION);
+		assert.strictEqual(createdManual.title, "Manual title");
+		assert.strictEqual(createdManual.text, "Manual text");
 	});
 });

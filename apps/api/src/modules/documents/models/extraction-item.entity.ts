@@ -6,8 +6,10 @@ import { type Entity } from "~/shared/types/types.js";
 type ExtractionItemObject = {
 	confidence: number;
 	documentId: number;
+	extractionSectionId: null | number;
 	id: number;
 	knowledgeNodeId: null | number;
+	position: number;
 	rationale: string;
 	sourceExcerpt: string;
 	sourcePageNumber: number;
@@ -21,9 +23,13 @@ class ExtractionItemEntity implements Entity {
 
 	private documentId: number;
 
+	private extractionSectionId: null | number;
+
 	private id: number;
 
 	private knowledgeNodeId: null | number;
+
+	private position: number;
 
 	private rationale: string;
 
@@ -40,8 +46,10 @@ class ExtractionItemEntity implements Entity {
 	private constructor({
 		confidence,
 		documentId,
+		extractionSectionId,
 		id,
 		knowledgeNodeId,
+		position,
 		rationale,
 		sourceExcerpt,
 		sourcePageNumber,
@@ -51,8 +59,10 @@ class ExtractionItemEntity implements Entity {
 	}: ExtractionItemObject) {
 		this.confidence = confidence;
 		this.documentId = documentId;
+		this.extractionSectionId = extractionSectionId;
 		this.id = id;
 		this.knowledgeNodeId = knowledgeNodeId;
+		this.position = position;
 		this.rationale = rationale;
 		this.sourceExcerpt = sourceExcerpt;
 		this.sourcePageNumber = sourcePageNumber;
@@ -69,7 +79,9 @@ class ExtractionItemEntity implements Entity {
 		return {
 			confidence: this.confidence,
 			documentId: this.documentId,
+			extractionSectionId: this.extractionSectionId,
 			knowledgeNodeId: this.knowledgeNodeId,
+			position: this.position,
 			rationale: this.rationale,
 			sourceExcerpt: this.sourceExcerpt,
 			sourcePageNumber: this.sourcePageNumber,

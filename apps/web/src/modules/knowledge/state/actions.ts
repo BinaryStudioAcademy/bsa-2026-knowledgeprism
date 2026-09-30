@@ -6,6 +6,7 @@ import {
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
+	type GlossaryConsistencyCheckResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
 	type KnowledgeEntryResponseDto,
@@ -35,10 +36,13 @@ import {
 	addTrackedDocumentId,
 	formatFileSize,
 	getFileContentType,
+	getUploadUrlExpiresAt,
 	isMatchingPipelineSession,
+	isUploadUrlUsable,
 	readTrackedDocumentIds,
 	removeTrackedDocumentId,
 } from "../libs/helpers/helpers.js";
+import { isDocumentStatusCurrent } from "../libs/helpers/is-document-status-current.helper.js";
 import {
 	type PipelineSessionScope,
 	type UploadedDocumentItem,
@@ -51,6 +55,11 @@ import {
 
 type ApplyIntegrationChangesPayload = DocumentPipelineRequest & {
 	payload: IntegrationChangesApplyRequestDto;
+};
+
+type CheckGlossaryConsistencyPayload = {
+	content: string;
+	projectId: string;
 };
 
 type ConfirmDocumentUploadPayload = {
@@ -76,12 +85,14 @@ type ProcessDocumentPayload = {
 	projectId: string;
 	uploadSessionId: number;
 	uploadUrl?: string | undefined;
+	uploadUrlExpiresAt?: number | undefined;
 };
 
 type ProcessDocumentRejection = {
 	documentId?: number | undefined;
 	message: string;
 	uploadUrl?: string | undefined;
+	uploadUrlExpiresAt?: number | undefined;
 };
 
 type ReviewableDocumentStatus =
@@ -233,16 +244,25 @@ const processDocument = createAsyncThunk<
 >(
 	`${sliceName}/process-document`,
 	async (
-		{ documentId, file, id, projectId, uploadUrl },
+		{ documentId, file, id, projectId, uploadUrl, uploadUrlExpiresAt },
 		{ extra, rejectWithValue, signal },
 	) => {
 		const { documentsApi } = extra;
 
 		let resolvedDocumentId = documentId;
 		let resolvedUploadUrl = uploadUrl;
+		let resolvedUploadUrlExpiresAt = uploadUrlExpiresAt;
 
 		try {
-			if (!resolvedDocumentId || !resolvedUploadUrl) {
+			const canReuseUploadUrl =
+				resolvedDocumentId !== undefined &&
+				isUploadUrlUsable({
+					now: Date.now(),
+					uploadUrl: resolvedUploadUrl,
+					uploadUrlExpiresAt: resolvedUploadUrlExpiresAt,
+				});
+
+			if (!canReuseUploadUrl || !resolvedUploadUrl) {
 				const intent = await documentsApi.createUploadIntent({
 					payload: {
 						contentType: getFileContentType(file),
@@ -254,6 +274,10 @@ const processDocument = createAsyncThunk<
 				});
 				resolvedDocumentId = intent.documentId;
 				resolvedUploadUrl = intent.uploadUrl;
+				resolvedUploadUrlExpiresAt = getUploadUrlExpiresAt(
+					intent.expiresInSeconds,
+					Date.now(),
+				);
 			}
 
 			await documentsApi.uploadFileToStorage({
@@ -269,6 +293,7 @@ const processDocument = createAsyncThunk<
 						? error.message
 						: DocumentValidationMessage.PROCESSING_FAILED,
 				uploadUrl: resolvedUploadUrl,
+				uploadUrlExpiresAt: resolvedUploadUrlExpiresAt,
 			});
 		}
 
@@ -276,11 +301,11 @@ const processDocument = createAsyncThunk<
 			documentId: resolvedDocumentId,
 			id,
 			name: file.name,
-			progress: 100,
 			size: file.size,
 			sizeLabel: formatFileSize(file.size),
 			status: DocumentProcessingStatus.READY,
 			uploadUrl: resolvedUploadUrl,
+			uploadUrlExpiresAt: resolvedUploadUrlExpiresAt,
 		};
 	},
 );
@@ -628,6 +653,15 @@ const pollDocumentStatus = createAppAsyncThunk<
 				return statusResponse;
 			}
 
+			if (
+				!isDocumentStatusCurrent(
+					statusResponse,
+					getState().knowledge.documentStatuses[documentId],
+				)
+			) {
+				scheduleNextPoll({ dispatch, request, signal });
+				return statusResponse;
+			}
 			persistDocumentStatus(projectId, documentId, statusResponse.status);
 
 			if (POLLING_TERMINAL_DOCUMENT_STATUSES.has(statusResponse.status)) {
@@ -961,7 +995,13 @@ const switchActiveDocument = createAppAsyncThunk<
 			signal,
 		});
 
-		if (!isLatestRequest()) {
+		if (
+			!isLatestRequest() ||
+			!isDocumentStatusCurrent(
+				statusResponse,
+				getState().knowledge.documentStatuses[documentId],
+			)
+		) {
 			return { isLatest: false, isSwitched: false };
 		}
 
@@ -971,6 +1011,7 @@ const switchActiveDocument = createAppAsyncThunk<
 			dispatch(
 				sliceSyncActions.syncTrackedDocumentStatus({
 					...request,
+					snapshot: statusResponse,
 					status: statusResponse.status,
 				}),
 			);
@@ -986,7 +1027,9 @@ const switchActiveDocument = createAppAsyncThunk<
 			return { isLatest: true, isSwitched: false };
 		}
 
+		let extractionFailedPageNumbers: number[] = [];
 		let extractionItems: ExtractionItemResponseDto[] = [];
+		let extractionSections: ExtractionItemsResponseDto["sections"] = [];
 
 		if (statusResponse.status === DocumentStatus.WAITING_FOR_VALIDATION) {
 			const extractionResponse = await extra.documentsApi.getExtractionItems({
@@ -994,17 +1037,28 @@ const switchActiveDocument = createAppAsyncThunk<
 				projectId,
 				signal,
 			});
+			extractionFailedPageNumbers = extractionResponse.failedPageNumbers;
 			extractionItems = extractionResponse.items;
+			extractionSections = extractionResponse.sections;
 		}
 
-		if (!isLatestRequest()) {
+		if (
+			!isLatestRequest() ||
+			!isDocumentStatusCurrent(
+				statusResponse,
+				getState().knowledge.documentStatuses[documentId],
+			)
+		) {
 			return { isLatest: false, isSwitched: false };
 		}
 
 		dispatch(
 			sliceSyncActions.activatePreparedReviewDocument({
 				...request,
+				extractionFailedPageNumbers,
 				extractionItems,
+				extractionSections,
+				snapshot: statusResponse,
 				status: statusResponse.status,
 				switchRequestId: requestId,
 			}),
@@ -1117,8 +1171,32 @@ const untrackDocument = createAppAsyncThunk<null, UntrackDocumentPayload>(
 	},
 );
 
+const checkGlossaryConsistency = createAsyncThunk<
+	GlossaryConsistencyCheckResponseDto,
+	CheckGlossaryConsistencyPayload,
+	AsyncThunkConfig
+>(
+	`${sliceName}/check-glossary-consistency`,
+	async ({ content, projectId }, { extra, signal }) => {
+		try {
+			return await extra.glossaryApi.checkConsistency({
+				content,
+				projectId,
+				signal,
+			});
+		} catch (error: unknown) {
+			if (isUnauthorizedError(error)) {
+				throw error;
+			}
+
+			return { matches: [] };
+		}
+	},
+);
+
 export {
 	applyIntegrationChanges,
+	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	createDocumentNode,
 	fetchExtractionItems,
