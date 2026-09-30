@@ -33,7 +33,6 @@ const ACCOUNT_MENU_ITEM_CLASS =
 	"w-full min-h-11 cursor-pointer rounded-md px-3 py-3 text-left text-sm font-medium transition-colors focus:outline-none sm:min-h-0 sm:py-2 sm:text-xs" as const;
 const ACCOUNT_SETTINGS_LABEL = "Account settings";
 const ORGANISATION_USERS_MENU_LABEL = "Organisation users";
-const PROJECT_MEMBERS_MENU_LABEL = "Project members";
 const SETTINGS_LABEL = "Settings";
 const FIRST_CHARACTER_INDEX = 0;
 const EMPTY_LENGTH = 0;
@@ -122,8 +121,8 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 			return;
 		}
 
-		void navigate(buildUserManagementPath(selectedProjectId));
-	}, [navigate, onOpenUserManagement, selectedProjectId, setIsDropdownOpen]);
+		void navigate(buildUserManagementPath(null));
+	}, [navigate, onOpenUserManagement, setIsDropdownOpen]);
 
 	const toggleDropdown = useCallback((): void => {
 		setIsDropdownOpen((previous) => !previous);
@@ -274,9 +273,7 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 														onClick={handleOpenUserManagement}
 														type="button"
 													>
-														{selectedProjectId === null
-															? ORGANISATION_USERS_MENU_LABEL
-															: PROJECT_MEMBERS_MENU_LABEL}
+														{ORGANISATION_USERS_MENU_LABEL}
 													</button>
 												)}
 
