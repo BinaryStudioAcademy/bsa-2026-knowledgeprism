@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+	buildUserCreationPath,
 	buildUserManagementPath,
 	resolveSelectedProjectId,
 } from "./user-management-project.helper.js";
@@ -40,6 +41,10 @@ describe("user management project scope", () => {
 		).toBe(OTHER_PROJECT_ID);
 		expect(buildUserManagementPath(OTHER_PROJECT_ID)).toBe(
 			`/users?projectId=${OTHER_PROJECT_ID}`,
+		);
+		expect(buildUserCreationPath(null)).toBe("/users/new");
+		expect(buildUserCreationPath(OTHER_PROJECT_ID)).toBe(
+			`/users/new?projectId=${OTHER_PROJECT_ID}`,
 		);
 	});
 

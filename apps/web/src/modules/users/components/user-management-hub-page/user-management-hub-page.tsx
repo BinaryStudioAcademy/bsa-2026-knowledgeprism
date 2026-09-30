@@ -24,7 +24,10 @@ import { getUserManagementCopy } from "~/modules/users/libs/constants/user-manag
 import { UsernameSearchCopy } from "~/modules/users/libs/constants/user-name-search.constant.js";
 import { isMatchingUsernameQuery } from "~/modules/users/libs/helpers/is-matching-username-query.helper.js";
 import { selectManagedUsers } from "~/modules/users/libs/helpers/select-managed-users.helper.js";
-import { getUserManagementProjectId } from "~/modules/users/libs/helpers/user-management-project.helper.js";
+import {
+	buildUserCreationPath,
+	getUserManagementProjectId,
+} from "~/modules/users/libs/helpers/user-management-project.helper.js";
 import { actions as userActions } from "~/modules/users/users.js";
 import { fetchProjects } from "~/modules/workspaces/state/workspaces.slice.js";
 import { workspacesApi } from "~/modules/workspaces/workspaces.js";
@@ -89,8 +92,8 @@ const UserManagementHubPage: React.FC = () => {
 		visibleUsers.length === EMPTY_LENGTH;
 
 	const handleAddUserClick = useCallback((): void => {
-		void navigate(AppRoute.USERS_NEW);
-	}, [navigate]);
+		void navigate(buildUserCreationPath(selectedProjectId));
+	}, [navigate, selectedProjectId]);
 
 	const handleGoBack = useCallback((): void => {
 		void navigate(AppRoute.WORKSPACES);

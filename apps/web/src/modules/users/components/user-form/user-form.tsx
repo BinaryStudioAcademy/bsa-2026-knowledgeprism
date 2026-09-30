@@ -39,6 +39,7 @@ type Properties<T extends FieldValues> = {
 	isLoading?: boolean;
 	isReadOnly?: boolean;
 	isSubmitDisabled?: boolean;
+	lockedProjectId?: number;
 	onCancel: () => void;
 	onSubmit: (event_: React.BaseSyntheticEvent) => void;
 };
@@ -72,6 +73,7 @@ const UserForm = <T extends FieldValues>({
 	isLoading = false,
 	isReadOnly = false,
 	isSubmitDisabled = false,
+	lockedProjectId,
 	onCancel,
 	onSubmit,
 }: Properties<T>): React.JSX.Element => {
@@ -102,11 +104,15 @@ const UserForm = <T extends FieldValues>({
 
 	const handleProjectUnassign = useCallback(
 		(projectId: number) => {
+			if (projectId === lockedProjectId) {
+				return;
+			}
+
 			assignedProjectsField.onChange(
 				assignedProjects.filter((p) => p.projectId !== projectId),
 			);
 		},
-		[assignedProjects, assignedProjectsField],
+		[assignedProjects, assignedProjectsField, lockedProjectId],
 	);
 
 	const handleRoleChange = useCallback(
@@ -187,6 +193,7 @@ const UserForm = <T extends FieldValues>({
 						return (
 							<ProjectListItem
 								isAssigned={isAssigned}
+								isLocked={project.id === lockedProjectId}
 								key={project.id}
 								onAssign={handleProjectAssign}
 								onRoleChange={handleRoleChange}
@@ -534,6 +541,7 @@ const RoleSelect = ({
 
 type ProjectListItemProperties = {
 	isAssigned: boolean;
+	isLocked: boolean;
 	onAssign: (projectId: number) => void;
 	onRoleChange: (projectId: number, newRole: string) => void;
 	onUnassign: (projectId: number) => void;
@@ -543,6 +551,7 @@ type ProjectListItemProperties = {
 
 const ProjectListItem = ({
 	isAssigned,
+	isLocked,
 	onAssign,
 	onRoleChange,
 	onUnassign,
@@ -572,7 +581,8 @@ const ProjectListItem = ({
 			<label className="flex min-w-0 items-center gap-2 font-medium text-text">
 				<input
 					checked={isAssigned}
-					className="size-4.5 shrink-0 rounded border-border accent-accent"
+					className="size-4.5 shrink-0 rounded border-border accent-accent disabled:cursor-default"
+					disabled={isLocked}
 					onChange={handleToggle}
 					type="checkbox"
 				/>

@@ -38,6 +38,18 @@ const buildUserManagementPath = (projectId: null | string): string => {
 	return `${AppRoute.USERS}?${search.toString()}`;
 };
 
+const buildUserCreationPath = (projectId: null | string): string => {
+	if (!projectId) {
+		return AppRoute.USERS_NEW;
+	}
+
+	const search = new URLSearchParams({
+		[USER_MANAGEMENT_PROJECT_QUERY]: projectId,
+	});
+
+	return `${AppRoute.USERS_NEW}?${search.toString()}`;
+};
+
 const resolveSelectedProjectId = ({
 	fallbackProjectId,
 	pathname,
@@ -59,6 +71,7 @@ const resolveSelectedProjectId = ({
 };
 
 export {
+	buildUserCreationPath,
 	buildUserManagementPath,
 	getUserManagementProjectId,
 	isUserManagementPath,
