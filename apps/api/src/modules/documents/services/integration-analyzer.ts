@@ -1,4 +1,7 @@
-import { flattenContentToText } from "@knowledgeprism/config";
+import {
+	flattenContentToText,
+	mapWithConcurrency,
+} from "@knowledgeprism/config";
 import {
 	DocumentErrorMessage,
 	DocumentStatus,
@@ -37,6 +40,7 @@ type KnowledgeCandidate = {
 };
 
 const ANALYSIS_TEXT_SEPARATOR = "\n";
+const MAXIMUM_CONCURRENT_ANALYSES = 8;
 
 const toAnalysisText = (title: string, content: string): string =>
 	[title, content].join(ANALYSIS_TEXT_SEPARATOR).trim();
@@ -73,17 +77,17 @@ class IntegrationAnalyzer {
 		candidates: EmbeddingCandidate<KnowledgeCandidate>[];
 		items: ExtractionItemEntity[];
 	}): Promise<IntegrationChangeEntity[]> {
-		const changes: IntegrationChangeEntity[] = [];
+		const changes = await mapWithConcurrency(
+			items,
+			MAXIMUM_CONCURRENT_ANALYSES,
+			async (item) => {
+				const { documentId, id, text, title } = item.toObject();
+				const { explanation, matchedItem, score, type } = await analyze({
+					candidates,
+					itemText: toAnalysisText(title, text),
+				});
 
-		for (const item of items) {
-			const { documentId, id, text, title } = item.toObject();
-			const { explanation, matchedItem, score, type } = await analyze({
-				candidates,
-				itemText: toAnalysisText(title, text),
-			});
-
-			changes.push(
-				IntegrationChangeEntity.initializeNew({
+				return IntegrationChangeEntity.initializeNew({
 					documentId,
 					explanation,
 					extractionItemId: id,
@@ -94,9 +98,9 @@ class IntegrationAnalyzer {
 					matchedNodeId: matchedItem?.id ?? null,
 					score,
 					type,
-				}),
-			);
-		}
+				});
+			},
+		);
 
 		return toResolvableChanges(changes);
 	}

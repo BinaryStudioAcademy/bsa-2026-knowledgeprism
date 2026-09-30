@@ -392,11 +392,15 @@ void describe("extraction recovery", () => {
 			message: "Access denied",
 		});
 		const setup = createSetup(() => Promise.reject(denied));
-		await assert.rejects(
-			extractBlocks([BLOCK, BLOCK], setup.dependencies),
-			denied,
+		const pages = Array.from(
+			{ length: ExtractionChunk.MAXIMUM_CONCURRENT_REQUESTS + TWO_CALLS },
+			() => BLOCK,
 		);
-		assert.equal(setup.calls.length, SINGLE_CALL);
+		await assert.rejects(extractBlocks(pages, setup.dependencies), denied);
+		assert.equal(
+			setup.calls.length,
+			ExtractionChunk.MAXIMUM_CONCURRENT_REQUESTS,
+		);
 		assert.equal(setup.delays.length, EMPTY_COUNT);
 	});
 

@@ -23,6 +23,7 @@ const config: KnipConfig = {
 			entry: ["src/**/*.test.ts"],
 		},
 		"packages/config": {
+			entry: ["src/**/*.test.ts"],
 			includeEntryExports: true,
 		},
 		"packages/constants": {
