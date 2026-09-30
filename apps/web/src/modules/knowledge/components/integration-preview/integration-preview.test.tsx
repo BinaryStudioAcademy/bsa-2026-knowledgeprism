@@ -39,6 +39,7 @@ const createExtractionItem = (): ExtractionItemResponseDto => ({
 const createDeferred = (): PromiseWithResolvers<boolean> =>
 	Promise.withResolvers<boolean>();
 
+const FAILED_PAGE_NUMBER = 4;
 const INITIAL_ITEM_COUNT = 2;
 const REMAINING_ITEM_COUNT = 1;
 const LAST_BUTTON_OFFSET = -1;
@@ -144,6 +145,48 @@ describe("IntegrationPreview extraction review", () => {
 			await deferred.promise;
 		});
 		expect(handleApplyingChange).toHaveBeenLastCalledWith(false);
+	});
+
+	it("does not show incomplete-page warnings for a successful extraction", () => {
+		render(
+			<IntegrationPreview
+				failedPageNumbers={[]}
+				onAddMore={vi.fn()}
+				onApproveExtraction={vi.fn()}
+				onClose={vi.fn()}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					createExtractionItem(),
+				])}
+				variant="extraction-validation"
+			/>,
+		);
+		expect(
+			screen.queryByText("Some pages could not be processed"),
+		).not.toBeInTheDocument();
+	});
+
+	it("warns about pages whose extraction failed", () => {
+		render(
+			<IntegrationPreview
+				failedPageNumbers={[FAILED_PAGE_NUMBER]}
+				onAddMore={vi.fn()}
+				onApproveExtraction={vi.fn()}
+				onClose={vi.fn()}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					createExtractionItem(),
+				])}
+				variant="extraction-validation"
+			/>,
+		);
+
+		expect(
+			screen.getByText("Some pages could not be processed"),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(
+				"Page 4 could not be processed, so items from it may be missing.",
+			),
+		).toBeInTheDocument();
 	});
 
 	it("shows a document-scoped extraction review error", () => {

@@ -717,7 +717,7 @@ class DocumentReviewService {
 			reference.projectId,
 			reference.context,
 		);
-		await this.findProjectDocument(reference);
+		const document = await this.findProjectDocument(reference);
 
 		const items = await this.extractionItemRepository.findByDocumentId(
 			reference.documentId,
@@ -728,6 +728,7 @@ class DocumentReviewService {
 		const sectionById = toSectionById(sections);
 
 		return {
+			failedPageNumbers: document.toObject().failedPageNumbers,
 			items: items.map((item) => toExtractionItemResponse(item, sectionById)),
 			sections: sections.map((section) => toExtractionSectionResponse(section)),
 		};

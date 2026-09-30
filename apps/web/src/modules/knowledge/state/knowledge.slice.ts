@@ -53,6 +53,7 @@ const initialState: State = {
 	activeDocumentSwitchRequestId: null,
 	contentSearchRequestId: null,
 	entryRequestId: null,
+	extractionFailedPageNumbers: [],
 	extractionItems: [],
 	extractionItemsDocumentId: null,
 	extractionSections: [],
@@ -194,23 +195,26 @@ const pickActiveDocument = (state: State): TrackedDocument | undefined => {
 	return current ?? state.trackedDocuments.at(FIRST_TRACKED_DOCUMENT_INDEX);
 };
 
+const clearExtractionReview = (state: State): void => {
+	state.extractionFailedPageNumbers = [];
+	state.extractionItems = [];
+	state.extractionItemsDocumentId = null;
+	state.extractionSections = [];
+};
+
 const reconcileActiveDocument = (state: State): void => {
 	const nextActive = pickActiveDocument(state);
 	const nextActiveId = nextActive?.documentId ?? null;
 
 	if (nextActiveId !== state.activeDocumentId) {
 		state.activeDocumentId = nextActiveId;
-		state.extractionItems = [];
-		state.extractionItemsDocumentId = null;
-		state.extractionSections = [];
+		clearExtractionReview(state);
 	}
 
 	state.activeDocumentStatus = nextActive?.status ?? IDLE_DOCUMENT_STATUS;
 
 	if (state.activeDocumentStatus !== DocumentStatus.WAITING_FOR_VALIDATION) {
-		state.extractionItems = [];
-		state.extractionItemsDocumentId = null;
-		state.extractionSections = [];
+		clearExtractionReview(state);
 	}
 
 	state.isAddingKnowledge = state.trackedDocuments.some((document) =>
@@ -247,9 +251,7 @@ const removeTrackedDocument = (state: State, documentId: number): void => {
 	);
 
 	if (state.extractionItemsDocumentId === documentId) {
-		state.extractionItems = [];
-		state.extractionItemsDocumentId = null;
-		state.extractionSections = [];
+		clearExtractionReview(state);
 	}
 };
 
@@ -601,9 +603,7 @@ const { actions, name, reducer } = createSlice({
 			}
 
 			clearDocumentPipelineError(state, action.meta.arg.documentId);
-			state.extractionItems = [];
-			state.extractionItemsDocumentId = null;
-			state.extractionSections = [];
+			clearExtractionReview(state);
 		});
 		builder.addCase(fetchExtractionItems.fulfilled, (state, action) => {
 			const document = findTrackedDocument(state, action.meta.arg.documentId);
@@ -616,6 +616,7 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
+			state.extractionFailedPageNumbers = action.payload.failedPageNumbers;
 			state.extractionItems = action.payload.items;
 			state.extractionItemsDocumentId = action.meta.arg.documentId;
 			state.extractionSections = action.payload.sections;
@@ -889,6 +890,7 @@ const { actions, name, reducer } = createSlice({
 			action: PayloadAction<
 				PipelineSessionScope & {
 					documentId: number;
+					extractionFailedPageNumbers: KnowledgeState["extractionFailedPageNumbers"];
 					extractionItems: KnowledgeState["extractionItems"];
 					extractionSections: KnowledgeState["extractionSections"];
 					status:
@@ -900,6 +902,7 @@ const { actions, name, reducer } = createSlice({
 		) {
 			const {
 				documentId,
+				extractionFailedPageNumbers,
 				extractionItems,
 				extractionSections,
 				status,
@@ -917,6 +920,7 @@ const { actions, name, reducer } = createSlice({
 			upsertTrackedDocumentStatus(state, documentId, status);
 			state.activeDocumentId = documentId;
 			state.activeDocumentStatus = status;
+			state.extractionFailedPageNumbers = extractionFailedPageNumbers;
 			state.extractionItems = extractionItems;
 			state.extractionItemsDocumentId =
 				status === DocumentStatus.WAITING_FOR_VALIDATION ? documentId : null;
@@ -1064,9 +1068,7 @@ const { actions, name, reducer } = createSlice({
 			state.activeDocumentStatus = IDLE_DOCUMENT_STATUS;
 			state.activeDocumentSwitchRequestId = null;
 			state.entryRequestId = null;
-			state.extractionItems = [];
-			state.extractionItemsDocumentId = null;
-			state.extractionSections = [];
+			clearExtractionReview(state);
 			state.integrationPreviewDocumentId = null;
 			state.integrationPreviewError = null;
 			state.integrationPreviewRequestId = null;
