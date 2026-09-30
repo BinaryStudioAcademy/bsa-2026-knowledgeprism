@@ -303,11 +303,13 @@ const moveSectionAcrossPages = (
 		sourcePageIndex === destinationPageIndex &&
 		originalTargetSectionIndex !== NOT_FOUND_INDEX &&
 		sourceSectionIndex < originalTargetSectionIndex;
+	const downwardOffset = isMovingDownWithinPage
+		? SINGLE_ITEM_COUNT
+		: EMPTY_LENGTH;
 	const insertionIndex =
 		targetSectionIndex === NOT_FOUND_INDEX
 			? destinationPage.pages.length
-			: targetSectionIndex +
-				(isMovingDownWithinPage ? SINGLE_ITEM_COUNT : EMPTY_LENGTH);
+			: targetSectionIndex + downwardOffset;
 	const updatedDestinationSections = [...destinationPage.pages];
 
 	updatedDestinationSections.splice(insertionIndex, EMPTY_LENGTH, movedSection);
