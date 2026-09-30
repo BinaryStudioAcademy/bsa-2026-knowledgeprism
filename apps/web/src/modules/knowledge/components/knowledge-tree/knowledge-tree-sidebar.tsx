@@ -114,6 +114,23 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 		: rootItems[MIN_INDEX]?.id;
 
 	useEffect(() => {
+		if (selectedPageId === undefined) {
+			return;
+		}
+
+		const selectedElement = document.querySelector(
+			`#knowledge-tree-root [data-id="${CSS.escape(String(selectedPageId))}"]`,
+		);
+
+		if (selectedElement) {
+			selectedElement.scrollIntoView({
+				behavior: "smooth",
+				block: "center",
+			});
+		}
+	}, [selectedPageId, items]);
+
+	useEffect(() => {
 		if (currentFocusId === undefined) {
 			return;
 		}
