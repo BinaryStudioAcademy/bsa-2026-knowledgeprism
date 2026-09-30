@@ -1,11 +1,15 @@
 import {
 	DocumentErrorMessage,
+	DocumentProcessingPhase,
 	DocumentSourceType,
 	DocumentStatus,
 	ExtractionItemStatus,
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
-import { type ValueOf } from "@knowledgeprism/types";
+import {
+	type DocumentProcessingProgressDto,
+	type ValueOf,
+} from "@knowledgeprism/types";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { type Transaction } from "objection";
@@ -51,8 +55,12 @@ type TransactionContext = {
 	releaseLock?: () => void;
 };
 
+const PROCESSING_ATTEMPT = 1;
+
 const createTestSetup = (
 	failedPageNumbers: number[] = [],
+	processingProgress: DocumentProcessingProgressDto | null = null,
+	isAuthorized = true,
 ): {
 	getFindCalls: () => FindCallOptions[];
 	getItems: () => ExtractionItemEntity[];
@@ -122,6 +130,8 @@ const createTestSetup = (
 					id: DOCUMENT_ID,
 					mimeType: "application/pdf",
 					name: "sample.pdf",
+					processingAttempt: PROCESSING_ATTEMPT,
+					processingProgress,
 					projectId: PROJECT_ID,
 					s3Key: null,
 					sizeInBytes: DOCUMENT_SIZE,
@@ -163,6 +173,8 @@ const createTestSetup = (
 				id: DOCUMENT_ID,
 				mimeType: "application/pdf",
 				name: "sample.pdf",
+				processingAttempt: PROCESSING_ATTEMPT,
+				processingProgress,
 				projectId: PROJECT_ID,
 				s3Key: null,
 				sizeInBytes: DOCUMENT_SIZE,
@@ -193,6 +205,8 @@ const createTestSetup = (
 					id: DOCUMENT_ID,
 					mimeType: "application/pdf",
 					name: "sample.pdf",
+					processingAttempt: PROCESSING_ATTEMPT,
+					processingProgress,
 					projectId: PROJECT_ID,
 					s3Key: null,
 					sizeInBytes: DOCUMENT_SIZE,
@@ -376,7 +390,12 @@ const createTestSetup = (
 
 	const projectService = {
 		assertCanWriteKnowledge: () => Promise.resolve(),
-		assertProjectAccess: () => Promise.resolve(),
+		assertProjectAccess: () =>
+			isAuthorized
+				? Promise.resolve()
+				: Promise.reject(
+						new HTTPError({ message: "Forbidden", status: HTTPCode.FORBIDDEN }),
+					),
 	} as unknown as ProjectService;
 
 	const documentJobScheduler = {
@@ -410,6 +429,36 @@ const createTestSetup = (
 };
 
 void describe("DocumentReviewService Concurrency", () => {
+	void it("returns persisted progress through the authorized document status response", async () => {
+		const progress: DocumentProcessingProgressDto = {
+			failedUnits: 1,
+			phase: DocumentProcessingPhase.EXTRACTING,
+			processedUnits: 2,
+			totalUnits: 3,
+		};
+		const { service } = createTestSetup([], progress);
+		const result = await service.findStatus({
+			context: { organisationId: ORGANISATION_ID, userId: USER_ID },
+			documentId: DOCUMENT_ID,
+			projectId: PROJECT_ID,
+		});
+		assert.deepEqual(result.processingProgress, progress);
+		assert.equal(result.processingAttempt, PROCESSING_ATTEMPT);
+	});
+	void it("does not load progress before project authorization succeeds", async () => {
+		const { getFindCalls, service } = createTestSetup([], null, false);
+		await assert.rejects(
+			service.findStatus({
+				context: { organisationId: ORGANISATION_ID, userId: USER_ID },
+				documentId: DOCUMENT_ID,
+				projectId: PROJECT_ID,
+			}),
+			(error: unknown) =>
+				error instanceof HTTPError && error.status === HTTPCode.FORBIDDEN,
+		);
+		assert.deepEqual(getFindCalls(), []);
+	});
+
 	void it("returns persisted incomplete pages alongside extraction items", async () => {
 		const { service } = createTestSetup([PAGE_NUMBER]);
 		const result = await service.findItems({

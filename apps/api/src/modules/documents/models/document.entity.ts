@@ -2,7 +2,10 @@ import {
 	type DocumentSourceType,
 	type DocumentStatus,
 } from "@knowledgeprism/constants";
-import { type ValueOf } from "@knowledgeprism/types";
+import {
+	type DocumentProcessingProgressDto,
+	type ValueOf,
+} from "@knowledgeprism/types";
 
 import { type Entity } from "~/shared/types/types.js";
 
@@ -15,6 +18,8 @@ type DocumentDetails = {
 	id: number;
 	mimeType: string;
 	name: string;
+	processingAttempt: number;
+	processingProgress: DocumentProcessingProgressDto | null;
 	projectId: number;
 	s3Key: null | string;
 	sizeInBytes: null | number;
@@ -33,6 +38,8 @@ type DocumentEntityPayload = {
 	id: null | number;
 	mimeType: string;
 	name: string;
+	processingAttempt: number;
+	processingProgress: DocumentProcessingProgressDto | null;
 	projectId: number;
 	s3Key: null | string;
 	sizeInBytes: null | number;
@@ -52,12 +59,14 @@ class DocumentEntity implements Entity {
 	private errorMessage: null | string;
 
 	private failedPageNumbers: number[];
-
 	private id: null | number;
-
 	private mimeType: string;
 
 	private name: string;
+
+	private processingAttempt: number;
+
+	private processingProgress: DocumentProcessingProgressDto | null;
 
 	private projectId: number;
 
@@ -82,6 +91,8 @@ class DocumentEntity implements Entity {
 		id,
 		mimeType,
 		name,
+		processingAttempt,
+		processingProgress,
 		projectId,
 		s3Key,
 		sizeInBytes,
@@ -95,6 +106,8 @@ class DocumentEntity implements Entity {
 		this.createdAt = createdAt;
 		this.errorMessage = errorMessage;
 		this.failedPageNumbers = failedPageNumbers;
+		this.processingAttempt = processingAttempt;
+		this.processingProgress = processingProgress;
 		this.id = id;
 		this.mimeType = mimeType;
 		this.name = name;
@@ -116,6 +129,8 @@ class DocumentEntity implements Entity {
 		id,
 		mimeType,
 		name,
+		processingAttempt,
+		processingProgress,
 		projectId,
 		s3Key,
 		sizeInBytes,
@@ -132,6 +147,8 @@ class DocumentEntity implements Entity {
 		id: number;
 		mimeType: string;
 		name: string;
+		processingAttempt: number;
+		processingProgress: DocumentProcessingProgressDto | null;
 		projectId: number;
 		s3Key: null | string;
 		sizeInBytes: null | number;
@@ -149,6 +166,8 @@ class DocumentEntity implements Entity {
 			id,
 			mimeType,
 			name,
+			processingAttempt,
+			processingProgress,
 			projectId,
 			s3Key,
 			sizeInBytes,
@@ -193,6 +212,8 @@ class DocumentEntity implements Entity {
 			id: null,
 			mimeType,
 			name,
+			processingAttempt: 0,
+			processingProgress: null,
 			projectId,
 			s3Key,
 			sizeInBytes,
@@ -241,6 +262,8 @@ class DocumentEntity implements Entity {
 			id: this.id as number,
 			mimeType: this.mimeType,
 			name: this.name,
+			processingAttempt: this.processingAttempt,
+			processingProgress: this.processingProgress,
 			projectId: this.projectId,
 			s3Key: this.s3Key,
 			sizeInBytes: this.sizeInBytes,

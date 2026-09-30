@@ -41,6 +41,7 @@ import {
 	readTrackedDocumentIds,
 	removeTrackedDocumentId,
 } from "../libs/helpers/helpers.js";
+import { isDocumentStatusCurrent } from "../libs/helpers/is-document-status-current.helper.js";
 import {
 	type PipelineSessionScope,
 	type UploadedDocumentItem,
@@ -294,7 +295,6 @@ const processDocument = createAsyncThunk<
 			documentId: resolvedDocumentId,
 			id,
 			name: file.name,
-			progress: 100,
 			size: file.size,
 			sizeLabel: formatFileSize(file.size),
 			status: DocumentProcessingStatus.READY,
@@ -563,6 +563,15 @@ const pollDocumentStatus = createAppAsyncThunk<
 				return statusResponse;
 			}
 
+			if (
+				!isDocumentStatusCurrent(
+					statusResponse,
+					getState().knowledge.documentStatuses[documentId],
+				)
+			) {
+				scheduleNextPoll({ dispatch, request, signal });
+				return statusResponse;
+			}
 			persistDocumentStatus(projectId, documentId, statusResponse.status);
 
 			if (POLLING_TERMINAL_DOCUMENT_STATUSES.has(statusResponse.status)) {
@@ -896,7 +905,13 @@ const switchActiveDocument = createAppAsyncThunk<
 			signal,
 		});
 
-		if (!isLatestRequest()) {
+		if (
+			!isLatestRequest() ||
+			!isDocumentStatusCurrent(
+				statusResponse,
+				getState().knowledge.documentStatuses[documentId],
+			)
+		) {
 			return { isLatest: false, isSwitched: false };
 		}
 
@@ -906,6 +921,7 @@ const switchActiveDocument = createAppAsyncThunk<
 			dispatch(
 				sliceSyncActions.syncTrackedDocumentStatus({
 					...request,
+					snapshot: statusResponse,
 					status: statusResponse.status,
 				}),
 			);
@@ -936,7 +952,13 @@ const switchActiveDocument = createAppAsyncThunk<
 			extractionSections = extractionResponse.sections;
 		}
 
-		if (!isLatestRequest()) {
+		if (
+			!isLatestRequest() ||
+			!isDocumentStatusCurrent(
+				statusResponse,
+				getState().knowledge.documentStatuses[documentId],
+			)
+		) {
 			return { isLatest: false, isSwitched: false };
 		}
 
@@ -946,6 +968,7 @@ const switchActiveDocument = createAppAsyncThunk<
 				extractionFailedPageNumbers,
 				extractionItems,
 				extractionSections,
+				snapshot: statusResponse,
 				status: statusResponse.status,
 				switchRequestId: requestId,
 			}),

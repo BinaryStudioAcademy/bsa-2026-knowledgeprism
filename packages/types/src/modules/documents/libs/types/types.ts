@@ -1,5 +1,6 @@
 export { type DocumentConfirmUploadResponseDto } from "./document-confirm-upload-response-dto.type.js";
 export { type DocumentConfirmUploadRouteParametersDto } from "./document-confirm-upload-route-parameters-dto.type.js";
+export { type DocumentProcessingProgressDto } from "./document-processing-progress-dto.type.js";
 export { type DocumentRouteParametersDto } from "./document-route-parameters-dto.type.js";
 export { type DocumentStatusResponseDto } from "./document-status-response-dto.type.js";
 export { type DocumentUploadIntentRequestDto } from "./document-upload-intent-request-dto.type.js";
