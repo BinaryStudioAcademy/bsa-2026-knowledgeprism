@@ -18,6 +18,7 @@ import { type IntegrationAnalyzer } from "./integration-analyzer.js";
 
 const ATTEMPT = 2;
 const DOCUMENT_ID = 7;
+const FIRST_CALL_INDEX = 0;
 const NO_CALLS = 0;
 const SINGLE_CALL = 1;
 const TWO_CALLS = 2;
@@ -289,7 +290,7 @@ void describe("DocumentJobScheduler heartbeat", () => {
 		);
 		await waitForScheduledWork();
 
-		const failureCall = setup.compareAndSwapCalls.at(0);
+		const failureCall = setup.compareAndSwapCalls.at(FIRST_CALL_INDEX);
 
 		assert.ok(failureCall);
 		assert.equal(

@@ -34,6 +34,8 @@ type IntervalScheduler = {
 
 type ScheduledInterval = ReturnType<typeof setInterval>;
 
+const EMPTY_MESSAGE_LENGTH = 0;
+
 const DEFAULT_INTERVAL_SCHEDULER: IntervalScheduler = {
 	clear: clearInterval,
 	repeat: setInterval,
@@ -47,7 +49,7 @@ const resolveFailureMessage = (error: unknown, fallback: string): string => {
 	if (error instanceof Error) {
 		const message = error.message.trim();
 
-		if (message.length > 0) {
+		if (message.length > EMPTY_MESSAGE_LENGTH) {
 			return message;
 		}
 	}
