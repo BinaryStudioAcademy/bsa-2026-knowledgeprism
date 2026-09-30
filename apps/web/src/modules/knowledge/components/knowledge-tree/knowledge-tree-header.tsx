@@ -50,10 +50,10 @@ const MobileCenteredTitle = ({
 	}
 
 	return (
-		<div
-			className={`absolute left-1/2 w-[calc(100%-${isEditing ? "12rem" : "10.5rem"})] -translate-x-1/2 overflow-x-auto whitespace-nowrap text-center font-medium text-text text-control @5xl:hidden`}
-		>
-			{title}
+		<div className="absolute inset-x-0 mx-auto max-w-[calc(100%-9.5rem)] -translate-x-5 text-center font-medium text-text text-control @5xl:hidden">
+			<span className="block overflow-hidden text-ellipsis whitespace-nowrap px-2">
+				{title}
+			</span>
 		</div>
 	);
 };
