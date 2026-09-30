@@ -5,11 +5,14 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
+import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
 import {
 	type ChangeEvent,
 	type JSX,
 	type MouseEvent,
+	type ReactNode,
 	useCallback,
+	useMemo,
 	useState,
 } from "react";
 
@@ -23,7 +26,15 @@ import {
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
+import { TextHighlightVariant } from "~/components/knowledge-editor/libs/enums/enums.js";
+import { type TextHighlight } from "~/components/knowledge-editor/libs/types/types.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { GlossarySuggestionActions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestion-actions.js";
+import { GlossarySuggestions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestions.js";
+import {
+	toGlossaryHighlightId,
+	toGlossaryHighlights,
+} from "~/modules/glossary/libs/helpers/helpers.js";
 import {
 	addPageGroup,
 	addSectionToPage,
@@ -34,6 +45,7 @@ import {
 	removePageGroup,
 	removeSectionFromPages,
 	toConflictResolutions,
+	toContentOverrides,
 	updatePageInPages,
 	updateSectionInPages,
 } from "~/modules/knowledge/libs/helpers/helpers.js";
@@ -52,6 +64,8 @@ import {
 	StructureAside,
 } from "./libs/components/structure-aside.js";
 import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
+import { toFailedPagesMessage } from "./libs/helpers/to-failed-pages-message.helper.js";
+import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consistency-check.hook.js";
 
 const EMPTY_LENGTH = 0;
 const LAST_INDEX_OFFSET = 1;
@@ -81,8 +95,13 @@ type ProposedNodeType = ProposedPage["type"] | ProposedSection["type"];
 
 type SectionContentEditorProperties = {
 	content: string;
+	highlights?: TextHighlight[];
 	isEditable?: boolean;
 	onContentChange?: (content: string) => void;
+	renderHighlightTooltip?: (
+		highlightId: string,
+		actions: { replace: (replacement: string) => void },
+	) => ReactNode;
 };
 
 type SectionDetailsProperties = {
@@ -94,6 +113,7 @@ type SectionDetailsProperties = {
 	isInteractionDisabled: boolean;
 	isTitleEmpty: boolean;
 	onContentChange: (content: string) => void;
+	onEnterEdit: () => void;
 	onPageTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
 	onRejectItem?: (() => void) | undefined;
 	onTitleChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -284,8 +304,10 @@ const getAllIntegrationConflicts = (
 
 const SectionContentEditor = ({
 	content,
+	highlights = [],
 	isEditable = true,
 	onContentChange,
+	renderHighlightTooltip,
 }: SectionContentEditorProperties): JSX.Element => {
 	const [initialContent] = useState<PartialBlock[]>(() =>
 		textToBlocks(content),
@@ -300,10 +322,48 @@ const SectionContentEditor = ({
 
 	return (
 		<KnowledgeEditor
+			highlights={highlights}
 			initialContent={initialContent}
 			isEditable={isEditable}
 			onChange={handleChange}
+			{...(renderHighlightTooltip === undefined
+				? {}
+				: { renderHighlightTooltip })}
 		/>
+	);
+};
+
+type GlossaryHighlightTooltipContentProperties = {
+	match: GlossaryConsistencyMatchDto;
+	onAccept: (match: GlossaryConsistencyMatchDto) => void;
+	onEdit: (match: GlossaryConsistencyMatchDto) => void;
+	onKeep: (match: GlossaryConsistencyMatchDto) => void;
+};
+
+const GlossaryHighlightTooltipContent = ({
+	match,
+	onAccept,
+	onEdit,
+	onKeep,
+}: GlossaryHighlightTooltipContentProperties): JSX.Element => {
+	return (
+		<div className="flex flex-col gap-1.5">
+			<Paragraph className="text-xs text-text" size={ParagraphSize.BODY_SMALL}>
+				Use <span className="font-medium">{match.canonicalName}</span>
+			</Paragraph>
+			<Paragraph
+				className="text-2xs text-text-faint"
+				size={ParagraphSize.BODY_SMALL}
+			>
+				{match.explanation}
+			</Paragraph>
+			<GlossarySuggestionActions
+				match={match}
+				onAccept={onAccept}
+				onEdit={onEdit}
+				onKeep={onKeep}
+			/>
+		</div>
 	);
 };
 
@@ -316,6 +376,7 @@ const SectionDetails = ({
 	isInteractionDisabled,
 	isTitleEmpty,
 	onContentChange,
+	onEnterEdit,
 	onPageTitleChange,
 	onRejectItem,
 	onTitleChange,
@@ -339,6 +400,61 @@ const SectionDetails = ({
 	const isParentSelected = activeNodeType === "parent";
 	const selectedNode = isParentSelected ? activePage : activeSection;
 
+	const {
+		glossaryMatches,
+		isCheckingGlossary,
+		onAcceptGlossarySuggestion: handleAcceptGlossarySuggestion,
+		onKeepGlossarySuggestion: handleKeepGlossarySuggestion,
+	} = useGlossaryConsistencyCheck({
+		content: isParentSelected ? "" : (activeSection?.content ?? ""),
+		onContentChange,
+	});
+
+	const handleEditGlossarySuggestion = useCallback(
+		(match: GlossaryConsistencyMatchDto): void => {
+			handleKeepGlossarySuggestion(match);
+			onEnterEdit();
+		},
+		[handleKeepGlossarySuggestion, onEnterEdit],
+	);
+
+	const glossaryHighlights = useMemo(
+		() =>
+			toGlossaryHighlights(glossaryMatches, TextHighlightVariant.SUGGESTION),
+		[glossaryMatches],
+	);
+	const glossaryMatchesById = useMemo(
+		() =>
+			new Map(
+				glossaryMatches.map((match) => [toGlossaryHighlightId(match), match]),
+			),
+		[glossaryMatches],
+	);
+	const renderGlossaryHighlightTooltip = useCallback(
+		(highlightId: string): ReactNode => {
+			const match = glossaryMatchesById.get(highlightId);
+
+			if (!match) {
+				return null;
+			}
+
+			return (
+				<GlossaryHighlightTooltipContent
+					match={match}
+					onAccept={handleAcceptGlossarySuggestion}
+					onEdit={handleEditGlossarySuggestion}
+					onKeep={handleKeepGlossarySuggestion}
+				/>
+			);
+		},
+		[
+			glossaryMatchesById,
+			handleAcceptGlossarySuggestion,
+			handleEditGlossarySuggestion,
+			handleKeepGlossarySuggestion,
+		],
+	);
+
 	if (!selectedNode) {
 		return (
 			<div className="flex flex-1 min-w-0 flex-col gap-3 p-3.5 tablet:p-6 tablet:overflow-y-auto">
@@ -359,6 +475,7 @@ const SectionDetails = ({
 			: `${activePage.title} > ${currentTitle}`;
 	const selectedTitleLabel = getNodeTitleLabel(selectedNode.type, "Node");
 	const editorKey = `${selectedNode.id}-${isEditMode ? "edit" : "view"}`;
+	const readOnlyEditorKey = `${editorKey}-${activeSection?.content ?? ""}`;
 	const handleTitleChange = isParentSelected
 		? onPageTitleChange
 		: onTitleChange;
@@ -483,11 +600,23 @@ const SectionDetails = ({
 						<div className="min-h-48 tablet:min-h-80 flex-1 rounded-md border border-border-subtle bg-bg p-3.5 tablet:p-5">
 							<SectionContentEditor
 								content={activeSection.content}
+								highlights={glossaryHighlights}
 								isEditable={false}
-								key={editorKey}
+								key={readOnlyEditorKey}
+								renderHighlightTooltip={renderGlossaryHighlightTooltip}
 							/>
 						</div>
 					)}
+
+					<GlossarySuggestions
+						canAccept={!isEditMode}
+						isChecking={isCheckingGlossary}
+						matches={glossaryMatches}
+						onAccept={handleAcceptGlossarySuggestion}
+						onEdit={handleEditGlossarySuggestion}
+						onKeep={handleKeepGlossarySuggestion}
+						variant={TextHighlightVariant.SUGGESTION}
+					/>
 				</div>
 			)}
 
@@ -601,6 +730,7 @@ const PreviewFooter = ({
 
 const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	errorMessage,
+	failedPageNumbers = [],
 	onAddMore,
 	onApplyingChange,
 	onApprove,
@@ -658,7 +788,10 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, [onAddMore]);
 
 	const applyChanges = useCallback(
-		async (conflicts: FieldConflict[]): Promise<void> => {
+		async (
+			conflicts: FieldConflict[],
+			sections: ProposedSection[],
+		): Promise<void> => {
 			if (isApplying) {
 				return;
 			}
@@ -676,6 +809,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			try {
 				isApplied = await onApprove(
 					toConflictResolutions({ conflicts, sections: proposedStructure }),
+					toContentOverrides(sections),
 				);
 			} catch {
 				return;
@@ -727,7 +861,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		const integrationConflicts = getAllIntegrationConflicts(pages);
 
 		if (integrationConflicts.length === EMPTY_LENGTH) {
-			void applyChanges([]);
+			void applyChanges([], pages);
 
 			return;
 		}
@@ -772,7 +906,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			resolvedConflicts: FieldConflict[],
 		): void => {
 			setPages(resolvedPages);
-			void applyChanges(resolvedConflicts);
+			void applyChanges(resolvedConflicts, resolvedPages);
 		},
 		[applyChanges],
 	);
@@ -1068,6 +1202,13 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					variant="error"
 				/>
 			)}
+			{isExtractionValidation && failedPageNumbers.length > EMPTY_LENGTH && (
+				<Alert
+					description={toFailedPagesMessage(failedPageNumbers)}
+					title="Some pages could not be processed"
+					variant="warning"
+				/>
+			)}
 			<div className="flex flex-1 min-h-0 flex-col tablet:flex-row overflow-y-auto tablet:overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
 				<StructureAside
 					activeNodeType={activeNodeType}
@@ -1096,6 +1237,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					isTitleEmpty={isTitleEmpty}
 					key={selectedNode?.id}
 					onContentChange={handleSectionContentChange}
+					onEnterEdit={handleEnterEdit}
 					onPageTitleChange={handlePageTitleChange}
 					onRejectItem={handleRejectItem}
 					onTitleChange={handleSectionTitleChange}

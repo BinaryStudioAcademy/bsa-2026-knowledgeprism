@@ -6,6 +6,7 @@ import {
 import {
 	type ExtractionItemResponseDto,
 	type ExtractionSectionResponseDto,
+	type IntegrationChangeContentOverrideDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
@@ -33,10 +34,12 @@ type FieldConflict = {
 
 type IntegrationPreviewProperties = {
 	errorMessage?: null | string;
+	failedPageNumbers?: number[];
 	onAddMore: () => void;
 	onApplyingChange?: (isApplying: boolean) => void;
 	onApprove?: (
 		resolutions: IntegrationConflictResolutionDto[],
+		contentOverrides: IntegrationChangeContentOverrideDto[],
 	) => Promise<boolean>;
 	onApproveExtraction?: (pages: ProposedSection[]) => Promise<boolean>;
 	onClose: () => void;
@@ -60,6 +63,7 @@ type KnowledgeState = {
 	activeDocumentSwitchRequestId: null | string;
 	contentSearchRequestId: null | string;
 	entryRequestId: null | string;
+	extractionFailedPageNumbers: number[];
 	extractionItems: ExtractionItemResponseDto[];
 	extractionItemsDocumentId: null | number;
 	extractionSections: ExtractionSectionResponseDto[];

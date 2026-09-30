@@ -2,8 +2,10 @@ import { ProjectMemberRole } from "@knowledgeprism/constants";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 
 import { Button, Heading, Icon, Modal } from "~/components/components.js";
+import { useNavigate } from "~/hooks/hooks.js";
 import { ProjectFormValue } from "~/modules/project-managment-modal/components/project-managment-modal-form/lib/type.js";
 import { ProjectManagmentModalForm } from "~/modules/project-managment-modal/components/project-managment-modal-form/project-managment-modal-form.js";
+import { buildUserManagementPath } from "~/modules/users/libs/helpers/user-management-project.helper.js";
 
 import {
 	CreateProjectPayload,
@@ -64,6 +66,7 @@ interface ProjectItemCardProperties {
 	isOrgAdmin: boolean;
 	onDelete: (id: string) => void;
 	onEdit: (project: ProjectItem) => void;
+	onManageMembers: (id: string) => void;
 	onSelect: (id: string) => void;
 	project: ProjectItem;
 	totalCount: number;
@@ -234,6 +237,7 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	isOrgAdmin,
 	onDelete,
 	onEdit,
+	onManageMembers,
 	onSelect,
 	project,
 	totalCount,
@@ -248,6 +252,10 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	const handleEdit = useCallback((): void => {
 		onEdit(project);
 	}, [onEdit, project]);
+
+	const handleManageMembers = useCallback((): void => {
+		onManageMembers(project.id);
+	}, [onManageMembers, project.id]);
 
 	const isLastOdd =
 		index === totalCount - INDEX_OFFSET &&
@@ -266,6 +274,7 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 				updatedAt={project.lastActivityAt ?? project.updatedAt}
 				{...(canDelete ? { onDelete: handleDelete } : {})}
 				{...(canEdit ? { onEdit: handleEdit } : {})}
+				{...(isOrgAdmin ? { onManageMembers: handleManageMembers } : {})}
 			/>
 		</div>
 	);
@@ -419,6 +428,15 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		})();
 	}, [deletingProjectId, onDeleteProject]);
 
+	const navigate = useNavigate();
+
+	const handleManageProjectMembers = useCallback(
+		(projectId: string): void => {
+			void navigate(buildUserManagementPath(projectId));
+		},
+		[navigate],
+	);
+
 	const hasProjects = localProjects.length > EMPTY_LENGTH;
 
 	return (
@@ -492,6 +510,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 								key={project.id}
 								onDelete={handleSetDeletingProjectId}
 								onEdit={handleSetEditingProject}
+								onManageMembers={handleManageProjectMembers}
 								onSelect={onSelectProject}
 								project={project}
 								totalCount={filteredProjects.length}

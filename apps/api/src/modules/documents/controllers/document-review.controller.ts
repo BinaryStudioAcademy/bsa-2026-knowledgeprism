@@ -143,7 +143,7 @@ class DocumentReviewController extends BaseController {
 	 * @swagger
 	 * /projects/{projectId}/documents/{documentId}/integration-changes/apply:
 	 *    post:
-	 *      description: Approve the integration results and write them to the knowledge base in one transaction. NEW creates entries, UPDATE replaces the matched entry's content, DUPLICATE writes nothing, CONFLICT applies the chosen value per field.
+	 *      description: Approve the integration results and write them to the knowledge base in one transaction. NEW creates entries, UPDATE replaces the matched entry's content, DUPLICATE writes nothing, CONFLICT applies the chosen value per field. A contentOverrides entry replaces a change's extracted text/title with reviewer-edited text (e.g. a glossary suggestion the reviewer accepted) wherever that change would otherwise write its incoming content.
 	 *      parameters:
 	 *        - in: path
 	 *          name: projectId
@@ -163,6 +163,7 @@ class DocumentReviewController extends BaseController {
 	 *              type: object
 	 *              required:
 	 *                - resolutions
+	 *                - contentOverrides
 	 *              properties:
 	 *                resolutions:
 	 *                  type: array
@@ -183,11 +184,28 @@ class DocumentReviewController extends BaseController {
 	 *                      content:
 	 *                        type: string
 	 *                        enum: [keep, use-new]
+	 *                contentOverrides:
+	 *                  type: array
+	 *                  description: Optional, one entry per change the reviewer edited before approving. Every changeId must belong to this document.
+	 *                  items:
+	 *                    type: object
+	 *                    required:
+	 *                      - changeId
+	 *                      - title
+	 *                      - content
+	 *                    properties:
+	 *                      changeId:
+	 *                        type: integer
+	 *                        example: 7
+	 *                      title:
+	 *                        type: string
+	 *                      content:
+	 *                        type: string
 	 *      responses:
 	 *        200:
 	 *          description: Changes applied; document completed
 	 *        400:
-	 *          description: Resolutions do not match the conflicts, or two changes would write the same field of one entry
+	 *          description: Resolutions do not match the conflicts, two changes would write the same field of one entry, or a contentOverrides entry references a change outside this document
 	 *        403:
 	 *          description: Viewer cannot approve
 	 *        404:
@@ -265,7 +283,7 @@ class DocumentReviewController extends BaseController {
 	 *            type: integer
 	 *      responses:
 	 *        200:
-	 *          description: Extraction items
+	 *          description: Extraction items, and the page numbers whose extraction failed (items from them may be missing)
 	 *        403:
 	 *          description: User is not a member of the project
 	 *        404:
