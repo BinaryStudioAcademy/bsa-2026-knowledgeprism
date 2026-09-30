@@ -116,7 +116,7 @@ const AnswerCard = ({
 								{sources.map((source) =>
 									onSourceSelect ? (
 										<button
-											className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs transition-all duration-200 hover:scale-[1.03] hover:border-accent hover:bg-accent hover:text-white active:scale-[0.98]"
+											className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs transition-colors duration-200 hover:border-accent hover:bg-accent hover:text-white"
 											key={String(source.id)}
 											onClick={handleSourceClick(source)}
 											title={`Jump to ${source.sectionTitle}`}
