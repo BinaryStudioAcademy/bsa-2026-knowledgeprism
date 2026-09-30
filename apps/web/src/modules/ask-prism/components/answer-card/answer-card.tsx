@@ -6,6 +6,7 @@ import { DataStatus } from "~/lib/enums/enums.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { type AskPrismErrorType } from "../../state/state.js";
+import { MarkdownContent } from "./markdown-content.js";
 import { PrismAvatar } from "./prism-avatar.js";
 
 const EMPTY_COUNT = 0;
@@ -109,7 +110,7 @@ const AnswerCard = ({
 				<div className="flex gap-3 transition-all duration-300 animate-fade-in">
 					<PrismAvatar />
 					<div className="flex flex-1 flex-col gap-3 font-sans text-sm leading-relaxed text-text">
-						<div className="whitespace-pre-wrap">{answer}</div>
+						<MarkdownContent content={answer} />
 
 						{sources.length > EMPTY_COUNT && (
 							<div className="flex flex-wrap items-center gap-1.5 pt-1">
