@@ -44,8 +44,8 @@ const MobileCenteredTitle = ({ title }: { title: string | undefined }) => {
 	}
 
 	return (
-		<div className="absolute inset-x-0 mx-auto max-w-[calc(100%-9.5rem)] -translate-x-5 text-center font-medium text-text text-control @5xl:hidden">
-			<span className="block overflow-hidden text-ellipsis whitespace-nowrap px-2">
+		<div className="absolute inset-y-0 left-14 right-22 flex items-center justify-center @5xl:hidden">
+			<span className="block truncate px-2 font-medium text-text text-control">
 				{title}
 			</span>
 		</div>
@@ -60,7 +60,7 @@ const KnowledgeTreeBreadcrumbs = ({
 	return (
 		<nav
 			aria-label="Breadcrumb"
-			className="hidden items-center gap-2 text-[13px] text-text-muted @5xl:flex"
+			className="hidden min-w-0 flex-1 items-center gap-2 text-[13px] text-text-muted @5xl:flex"
 		>
 			{breadcrumbs.map((breadcrumb, index) => {
 				const isLast = index === breadcrumbs.length - LAST_INDEX_OFFSET;
@@ -68,12 +68,21 @@ const KnowledgeTreeBreadcrumbs = ({
 					<React.Fragment key={`${String(index)}-${breadcrumb}`}>
 						<span
 							aria-current={isLast ? "page" : undefined}
-							className={isLast ? "font-medium text-text" : "text-text-muted"}
+							className={`block truncate ${
+								isLast ? "font-medium text-text" : "text-text-muted"
+							}`}
+							title={breadcrumb}
 						>
 							{breadcrumb}
 						</span>
 						{!isLast && (
-							<Icon aria-hidden="true" name="chevron-filled-right" size={10} />
+							<span className="shrink-0">
+								<Icon
+									aria-hidden="true"
+									name="chevron-filled-right"
+									size={10}
+								/>
+							</span>
 						)}
 					</React.Fragment>
 				);
@@ -99,12 +108,15 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 	const currentFileName = breadcrumbs.at(-LAST_INDEX_OFFSET);
 
 	return (
-		<div className="relative flex items-center justify-between border-b border-border bg-surface px-4 py-4 @5xl:px-8">
-			<MobileSidebarToggle onOpenSidebar={onOpenSidebar} />
-			<KnowledgeTreeBreadcrumbs breadcrumbs={breadcrumbs} />
+		<div className="relative flex items-center justify-between gap-4 border-b border-border bg-surface px-4 py-4 @5xl:px-8">
+			<div className="flex min-w-0 flex-1 items-center">
+				<MobileSidebarToggle onOpenSidebar={onOpenSidebar} />
+				<KnowledgeTreeBreadcrumbs breadcrumbs={breadcrumbs} />
+			</div>
+
 			<MobileCenteredTitle title={currentFileName} />
 
-			<div className="flex items-center gap-3.5">
+			<div className="relative z-10 flex shrink-0 items-center gap-3.5">
 				{showCompactLoading && (
 					<div className="hidden @5xl:block">
 						{hasError || currentStatus === "FAILED" ? (
