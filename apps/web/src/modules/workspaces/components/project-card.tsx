@@ -297,10 +297,10 @@ const ProjectCard: React.FC<ProjectCardProperties> = ({
 									</div>
 								</button>
 								{isMenuOpen && (
-									<div className="absolute left-0 right-0 top-full z-10 mt-1 flex flex-col rounded-lg border border-(--color-border-subtle) bg-(--color-surface) p-1 shadow-xl">
+									<div className="absolute right-0 top-full z-10 mt-1 flex w-max flex-col whitespace-nowrap rounded-lg border border-(--color-border-subtle) bg-(--color-surface) p-1 shadow-xl">
 										{onManageMembers && (
 											<button
-												className="w-full cursor-pointer rounded-md px-2.5 py-1 text-left text-(length:--text-xs) font-normal text-text-muted transition-colors hover:bg-(--color-secondary) hover:text-text"
+												className="w-full cursor-pointer whitespace-nowrap rounded-md px-2.5 py-1 text-left text-(length:--text-xs) font-normal text-text-muted transition-colors hover:bg-(--color-secondary) hover:text-text"
 												onClick={handleManageMembers}
 												type="button"
 											>
