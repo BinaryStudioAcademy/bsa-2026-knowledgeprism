@@ -39,7 +39,7 @@ const GO_BACK_CHEVRON_SIZE = 10;
 const UserManagementHubPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
-	const { search } = useLocation();
+	const { pathname, search } = useLocation();
 	const selectedProjectId = getUserManagementProjectId(search);
 	const pageCopy = getUserManagementCopy(selectedProjectId !== null);
 	const [nameQuery, setNameQuery] = useState("");
@@ -108,12 +108,12 @@ const UserManagementHubPage: React.FC = () => {
 			if (id) {
 				void navigate(AppRoute.USERS_EDIT.split(":id").join(id), {
 					state: {
-						from: `${location.pathname}${location.search}`,
+						from: `${pathname}${search}`,
 					},
 				});
 			}
 		},
-		[navigate],
+		[navigate, pathname, search],
 	);
 
 	const renderProjectsCount = useCallback(
