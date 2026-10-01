@@ -75,10 +75,14 @@ const mapExtractionOutput = (
 	block: ExtractionBlock,
 ): KnowledgeItem[] => {
 	return parseExtractionCandidates(raw).map((candidate) => {
-		if (
-			!isExtractionCandidate(candidate) ||
-			!block.content.includes(candidate.sourceExcerpt.trim())
-		) {
+		if (!isExtractionCandidate(candidate)) {
+			throw new ExtractionOutputError(ExtractionOutputFailure.INVALID_ITEM);
+		}
+
+		const normalizedBlockContent = block.content.replaceAll(/\s+/g, "");
+		const normalizedExcerpt = candidate.sourceExcerpt.replaceAll(/\s+/g, "");
+
+		if (!normalizedBlockContent.includes(normalizedExcerpt)) {
 			throw new ExtractionOutputError(ExtractionOutputFailure.INVALID_ITEM);
 		}
 
