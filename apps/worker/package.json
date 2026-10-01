@@ -5,6 +5,7 @@
 	"main": "build/index.js",
 	"types": "build/index.d.ts",
 	"scripts": {
+		"test": "tsx --test 'src/**/*.test.ts'",
 		"lint:type": "npx tsc --noEmit",
 		"lint:js": "npx eslint . --max-warnings=0",
 		"lint": "concurrently \"npm:lint:*\"",
@@ -23,6 +24,7 @@
 		"@aws-sdk/client-s3": "3.1120.0",
 		"@knowledgeprism/config": "*",
 		"@knowledgeprism/constants": "*",
+		"@knowledgeprism/types": "*",
 		"dotenv": "17.4.2",
 		"pdfjs-dist": "6.3.289",
 		"pino": "10.3.1",

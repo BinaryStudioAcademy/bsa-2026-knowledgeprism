@@ -14,6 +14,7 @@ export {
 	manualTextCreateValidationSchema,
 } from "./modules/documents/documents.js";
 export {
+	glossaryConsistencyCheckRequestValidationSchema,
 	glossaryRouteParametersValidationSchema,
 	glossarySearchQueryValidationSchema,
 	glossaryTermRequestValidationSchema,

@@ -1,4 +1,7 @@
-import { UserValidationMessage } from "@knowledgeprism/constants";
+import {
+	ProjectMemberRole,
+	UserValidationMessage,
+} from "@knowledgeprism/constants";
 import {
 	passwordValidationSchema,
 	userUpdateValidationSchema,
@@ -7,7 +10,7 @@ import { z } from "zod";
 
 const assignedProjectSchema = z.object({
 	projectId: z.number(),
-	role: z.enum(["EDITOR", "VIEWER"]),
+	role: z.enum([ProjectMemberRole.EDITOR, ProjectMemberRole.VIEWER]),
 });
 
 const userUpdateFrontendValidationSchema = userUpdateValidationSchema

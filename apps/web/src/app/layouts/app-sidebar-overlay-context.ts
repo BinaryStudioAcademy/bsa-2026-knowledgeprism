@@ -1,17 +1,17 @@
 import { createContext, useContext } from "react";
 
-type AppSidebarOverlayContextValue = {
-	closeOverlay: () => void;
-	isOverlayOpen: boolean;
-};
+import { type ShellSidebar } from "~/components/sidebar/libs/use-shell-sidebar.hook.js";
 
-const AppSidebarOverlayContext = createContext<AppSidebarOverlayContextValue>({
-	closeOverlay: (): void => undefined,
-	isOverlayOpen: false,
-});
+const AppSidebarOverlayContext = createContext<null | ShellSidebar>(null);
 
-const useAppSidebarOverlay = (): AppSidebarOverlayContextValue => {
-	return useContext(AppSidebarOverlayContext);
+const useAppSidebarOverlay = (): ShellSidebar => {
+	const context = useContext(AppSidebarOverlayContext);
+	if (!context) {
+		throw new Error(
+			"useAppSidebarOverlay must be used within AppSidebarOverlayContext.Provider",
+		);
+	}
+	return context;
 };
 
 export { AppSidebarOverlayContext, useAppSidebarOverlay };

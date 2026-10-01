@@ -1,4 +1,3 @@
-import { type PartialBlock } from "@blocknote/core";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { KnowledgeEditor } from "~/components/components.js";
@@ -7,31 +6,8 @@ import {
 	type KnowledgeEntryUpdateRequestDto,
 } from "~/modules/knowledge/libs/types/types.js";
 
+import { parseInitialContent } from "./libs/helpers/parse-initial-content.helper.js";
 import { KbEntryForm } from "./libs/kb-entry-form.js";
-
-const EMPTY_COUNT = 0;
-
-const DEFAULT_BLOCKS: PartialBlock[] = [
-	{
-		type: "paragraph",
-	},
-];
-
-const isBlockArray = (value: unknown): value is PartialBlock[] => {
-	return Array.isArray(value);
-};
-
-const parseInitialContent = (content?: unknown): PartialBlock[] => {
-	if (!content) {
-		return DEFAULT_BLOCKS;
-	}
-
-	if (isBlockArray(content)) {
-		return content.length > EMPTY_COUNT ? content : DEFAULT_BLOCKS;
-	}
-
-	return DEFAULT_BLOCKS;
-};
 
 interface KbEntryDetailProperties {
 	entry: KbEntry;
@@ -101,7 +77,9 @@ const KbEntryDetail = ({
 				/>
 			) : (
 				<>
-					<h1 className="mb-2.5 font-serif text-h1 text-text">{entry.title}</h1>
+					<h1 className="mb-2.5 font-serif text-h1 wrap-break-word  text-text">
+						{entry.title}
+					</h1>
 					<div className="mb-7 font-mono text-xs text-text-faint">
 						<span>
 							Last updated:{" "}

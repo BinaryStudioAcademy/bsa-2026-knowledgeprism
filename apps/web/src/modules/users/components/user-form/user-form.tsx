@@ -1,4 +1,7 @@
-import { UserValidationMessage } from "@knowledgeprism/constants";
+import {
+	ProjectMemberRole,
+	UserValidationMessage,
+} from "@knowledgeprism/constants";
 import React, {
 	useCallback,
 	useEffect,
@@ -16,18 +19,17 @@ import {
 import { Button, Icon, Input, Toggle } from "~/components/components.js";
 import { useFormController } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
+import { type AssignableProjectRole } from "~/modules/users/libs/types/assignable-project-role.type.js";
 
 type AssignedProject = {
 	projectId: number;
-	role: ProjectRole;
+	role: AssignableProjectRole;
 };
 
 type AvailableProject = {
 	id: number;
 	name: string;
 };
-
-type ProjectRole = "EDITOR" | "VIEWER";
 
 type Properties<T extends FieldValues> = {
 	availableProjects?: AvailableProject[];
@@ -36,6 +38,8 @@ type Properties<T extends FieldValues> = {
 	isEditMode?: boolean;
 	isLoading?: boolean;
 	isReadOnly?: boolean;
+	isSubmitDisabled?: boolean;
+	lockedProjectId?: number;
 	onCancel: () => void;
 	onSubmit: (event_: React.BaseSyntheticEvent) => void;
 };
@@ -54,9 +58,11 @@ const ESCAPE_KEY = "Escape";
 const SPACE_KEY = " ";
 const TAB_KEY = "Tab";
 
+const DEFAULT_PROJECT_ROLE: AssignableProjectRole = ProjectMemberRole.VIEWER;
+
 const ROLE_OPTIONS = [
-	{ label: "Viewer", value: "VIEWER" },
-	{ label: "Editor", value: "EDITOR" },
+	{ label: "Viewer", value: ProjectMemberRole.VIEWER },
+	{ label: "Editor", value: ProjectMemberRole.EDITOR },
 ] as const;
 
 const UserForm = <T extends FieldValues>({
@@ -66,6 +72,8 @@ const UserForm = <T extends FieldValues>({
 	isEditMode = false,
 	isLoading = false,
 	isReadOnly = false,
+	isSubmitDisabled = false,
+	lockedProjectId,
 	onCancel,
 	onSubmit,
 }: Properties<T>): React.JSX.Element => {
@@ -88,7 +96,7 @@ const UserForm = <T extends FieldValues>({
 		(projectId: number) => {
 			assignedProjectsField.onChange([
 				...assignedProjects,
-				{ projectId, role: "VIEWER" },
+				{ projectId, role: DEFAULT_PROJECT_ROLE },
 			]);
 		},
 		[assignedProjects, assignedProjectsField],
@@ -96,11 +104,15 @@ const UserForm = <T extends FieldValues>({
 
 	const handleProjectUnassign = useCallback(
 		(projectId: number) => {
+			if (projectId === lockedProjectId) {
+				return;
+			}
+
 			assignedProjectsField.onChange(
 				assignedProjects.filter((p) => p.projectId !== projectId),
 			);
 		},
-		[assignedProjects, assignedProjectsField],
+		[assignedProjects, assignedProjectsField, lockedProjectId],
 	);
 
 	const handleRoleChange = useCallback(
@@ -108,7 +120,7 @@ const UserForm = <T extends FieldValues>({
 			assignedProjectsField.onChange(
 				assignedProjects.map((p) =>
 					p.projectId === projectId
-						? { ...p, role: newRole as ProjectRole }
+						? { ...p, role: newRole as AssignableProjectRole }
 						: p,
 				),
 			);
@@ -181,12 +193,13 @@ const UserForm = <T extends FieldValues>({
 						return (
 							<ProjectListItem
 								isAssigned={isAssigned}
+								isLocked={project.id === lockedProjectId}
 								key={project.id}
 								onAssign={handleProjectAssign}
 								onRoleChange={handleRoleChange}
 								onUnassign={handleProjectUnassign}
 								project={project}
-								role={assignment?.role ?? "VIEWER"}
+								role={assignment?.role ?? DEFAULT_PROJECT_ROLE}
 							/>
 						);
 					})}
@@ -234,6 +247,7 @@ const UserForm = <T extends FieldValues>({
 				/>
 
 				<Input
+					autoComplete="new-password"
 					control={control}
 					hasPasswordToggle={true}
 					hintInfo={UserValidationMessage.PASSWORD_HINT}
@@ -245,6 +259,7 @@ const UserForm = <T extends FieldValues>({
 				/>
 
 				<Input
+					autoComplete="new-password"
 					control={control}
 					hasPasswordToggle={true}
 					label="Confirm password"
@@ -299,7 +314,7 @@ const UserForm = <T extends FieldValues>({
 				>
 					Cancel
 				</Button>
-				<Button disabled={isLoading} type="submit">
+				<Button disabled={isLoading || isSubmitDisabled} type="submit">
 					{isEditMode ? "Save Changes" : "Create User"}
 				</Button>
 			</div>
@@ -312,13 +327,13 @@ type RoleOptionItemProperties = {
 	isFocused: boolean;
 	isSelected: boolean;
 	label: string;
-	onSelect: (newRole: ProjectRole) => void;
-	value: ProjectRole;
+	onSelect: (newRole: AssignableProjectRole) => void;
+	value: AssignableProjectRole;
 };
 
 type RoleSelectProperties = {
-	onChange: (newRole: ProjectRole) => void;
-	value: ProjectRole;
+	onChange: (newRole: AssignableProjectRole) => void;
+	value: AssignableProjectRole;
 };
 
 const RoleOptionItem = ({
@@ -395,7 +410,7 @@ const RoleSelect = ({
 	}, [handleClose]);
 
 	const handleSelectOption = useCallback(
-		(newRole: ProjectRole): void => {
+		(newRole: AssignableProjectRole): void => {
 			onChange(newRole);
 			handleDismiss();
 		},
@@ -526,15 +541,17 @@ const RoleSelect = ({
 
 type ProjectListItemProperties = {
 	isAssigned: boolean;
+	isLocked: boolean;
 	onAssign: (projectId: number) => void;
 	onRoleChange: (projectId: number, newRole: string) => void;
 	onUnassign: (projectId: number) => void;
 	project: AvailableProject;
-	role: ProjectRole;
+	role: AssignableProjectRole;
 };
 
 const ProjectListItem = ({
 	isAssigned,
+	isLocked,
 	onAssign,
 	onRoleChange,
 	onUnassign,
@@ -564,7 +581,8 @@ const ProjectListItem = ({
 			<label className="flex min-w-0 items-center gap-2 font-medium text-text">
 				<input
 					checked={isAssigned}
-					className="size-4.5 shrink-0 rounded border-border accent-accent"
+					className="size-4.5 shrink-0 rounded border-border accent-accent disabled:cursor-default"
+					disabled={isLocked}
 					onChange={handleToggle}
 					type="checkbox"
 				/>

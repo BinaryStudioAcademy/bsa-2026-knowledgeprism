@@ -1,5 +1,6 @@
 export { type DocumentConfirmUploadResponseDto } from "./document-confirm-upload-response-dto.type.js";
 export { type DocumentConfirmUploadRouteParametersDto } from "./document-confirm-upload-route-parameters-dto.type.js";
+export { type DocumentProcessingProgressDto } from "./document-processing-progress-dto.type.js";
 export { type DocumentRouteParametersDto } from "./document-route-parameters-dto.type.js";
 export { type DocumentStatusResponseDto } from "./document-status-response-dto.type.js";
 export { type DocumentUploadIntentRequestDto } from "./document-upload-intent-request-dto.type.js";
@@ -8,9 +9,16 @@ export { type DocumentUploadIntentRouteParametersDto } from "./document-upload-i
 export { type ExtractionItemResponseDto } from "./extraction-item-response-dto.type.js";
 export { type ExtractionItemRouteParametersDto } from "./extraction-item-route-parameters-dto.type.js";
 export { type ExtractionItemUpdateRequestDto } from "./extraction-item-update-request-dto.type.js";
-export { type ExtractionItemsResponseDto } from "./extraction-items-response-dto.type.js";
-export { type ExtractionItemsReviewRequestDto } from "./extraction-items-review-request-dto.type.js";
+export {
+	type ExtractionItemsResponseDto,
+	type ExtractionSectionResponseDto,
+} from "./extraction-items-response-dto.type.js";
+export {
+	type ExtractionItemsReviewRequestDto,
+	type ExtractionItemsReviewSectionDto,
+} from "./extraction-items-review-request-dto.type.js";
 export { type ExtractionItemsReviewResponseDto } from "./extraction-items-review-response-dto.type.js";
+export { type IntegrationChangeContentOverrideDto } from "./integration-change-content-override-dto.type.js";
 export { type IntegrationChangeResponseDto } from "./integration-change-response-dto.type.js";
 export { type IntegrationChangesApplyRequestDto } from "./integration-changes-apply-request-dto.type.js";
 export { type IntegrationChangesResponseDto } from "./integration-changes-response-dto.type.js";

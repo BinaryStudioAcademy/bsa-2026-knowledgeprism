@@ -1,8 +1,11 @@
+import { ProjectMemberRole } from "@knowledgeprism/constants";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 
 import { Button, Heading, Icon, Modal } from "~/components/components.js";
+import { useNavigate } from "~/hooks/hooks.js";
 import { ProjectFormValue } from "~/modules/project-managment-modal/components/project-managment-modal-form/lib/type.js";
 import { ProjectManagmentModalForm } from "~/modules/project-managment-modal/components/project-managment-modal-form/project-managment-modal-form.js";
+import { buildUserManagementPath } from "~/modules/users/libs/helpers/user-management-project.helper.js";
 
 import {
 	CreateProjectPayload,
@@ -21,11 +24,13 @@ const EMPTY_LENGTH = 0;
 const EVEN_MODULO = 2;
 const INDEX_OFFSET = 1;
 
+const ALL_ROLES_FILTER: RoleFilter = "ALL";
+
 const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
-	{ label: "All roles", value: "ALL" },
-	{ label: "Admin", value: "ADMIN" },
-	{ label: "Editor", value: "EDITOR" },
-	{ label: "Viewer", value: "VIEWER" },
+	{ label: "All roles", value: ALL_ROLES_FILTER },
+	{ label: "Admin", value: ProjectMemberRole.ADMIN },
+	{ label: "Editor", value: ProjectMemberRole.EDITOR },
+	{ label: "Viewer", value: ProjectMemberRole.VIEWER },
 ];
 
 interface CreateProjectModalProperties {
@@ -61,6 +66,7 @@ interface ProjectItemCardProperties {
 	isOrgAdmin: boolean;
 	onDelete: (id: string) => void;
 	onEdit: (project: ProjectItem) => void;
+	onManageMembers: (id: string) => void;
 	onSelect: (id: string) => void;
 	project: ProjectItem;
 	totalCount: number;
@@ -231,6 +237,7 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	isOrgAdmin,
 	onDelete,
 	onEdit,
+	onManageMembers,
 	onSelect,
 	project,
 	totalCount,
@@ -245,6 +252,10 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 	const handleEdit = useCallback((): void => {
 		onEdit(project);
 	}, [onEdit, project]);
+
+	const handleManageMembers = useCallback((): void => {
+		onManageMembers(project.id);
+	}, [onManageMembers, project.id]);
 
 	const isLastOdd =
 		index === totalCount - INDEX_OFFSET &&
@@ -263,6 +274,7 @@ const ProjectItemCard: React.FC<ProjectItemCardProperties> = ({
 				updatedAt={project.lastActivityAt ?? project.updatedAt}
 				{...(canDelete ? { onDelete: handleDelete } : {})}
 				{...(canEdit ? { onEdit: handleEdit } : {})}
+				{...(isOrgAdmin ? { onManageMembers: handleManageMembers } : {})}
 			/>
 		</div>
 	);
@@ -291,7 +303,8 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		setLocalProjects(initialProjects);
 	}
 
-	const [selectedRole, setSelectedRole] = useState<RoleFilter>("ALL");
+	const [selectedRole, setSelectedRole] =
+		useState<RoleFilter>(ALL_ROLES_FILTER);
 	const [isFilterOpen, setIsFilterOpen] = useState(false);
 	const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 	const [editingProject, setEditingProject] = useState<null | ProjectItem>(
@@ -309,7 +322,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	}, [deletedIds, localProjects]);
 
 	const filteredProjects = useMemo(() => {
-		if (selectedRole === "ALL") {
+		if (selectedRole === ALL_ROLES_FILTER) {
 			return visibleProjects;
 		}
 
@@ -317,7 +330,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 	}, [selectedRole, visibleProjects]);
 
 	const filterLabel = useMemo(() => {
-		if (selectedRole === "ALL") {
+		if (selectedRole === ALL_ROLES_FILTER) {
 			return "Filter";
 		}
 
@@ -415,6 +428,15 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		})();
 	}, [deletingProjectId, onDeleteProject]);
 
+	const navigate = useNavigate();
+
+	const handleManageProjectMembers = useCallback(
+		(projectId: string): void => {
+			void navigate(buildUserManagementPath(projectId));
+		},
+		[navigate],
+	);
+
 	const hasProjects = localProjects.length > EMPTY_LENGTH;
 
 	return (
@@ -488,6 +510,7 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 								key={project.id}
 								onDelete={handleSetDeletingProjectId}
 								onEdit={handleSetEditingProject}
+								onManageMembers={handleManageProjectMembers}
 								onSelect={onSelectProject}
 								project={project}
 								totalCount={filteredProjects.length}

@@ -1,6 +1,7 @@
 import {
 	applyIntegrationChanges,
 	cancelDocument,
+	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchIntegrationChanges,
@@ -26,6 +27,7 @@ const allActions = {
 	...sliceActions,
 	applyIntegrationChanges,
 	cancelDocument,
+	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchIntegrationChanges,

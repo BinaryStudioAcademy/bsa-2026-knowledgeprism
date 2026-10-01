@@ -9,11 +9,15 @@ export { Header } from "./header/header.js";
 export { Heading } from "./heading/heading.js";
 export { type IconName, Icon } from "./icon/icon.js";
 export { Input } from "./input/input.js";
-export { KnowledgeEditor } from "./knowledge-editor/knowledge-editor.js";
+export {
+	type KnowledgeEditorApi,
+	KnowledgeEditor,
+} from "./knowledge-editor/knowledge-editor.js";
 export { Link } from "./link/link.js";
 export { Loader } from "./loader/loader.js";
 export { Logo } from "./logo/logo.js";
 export { Modal } from "./modal/modal.js";
+export { PageLayout } from "./page-layout/page-layout.js";
 export { Paragraph, ParagraphSize } from "./paragraph/paragraph.js";
 export { AdminRoute } from "./protected-route/admin-route.js";
 export { ProtectedRoute } from "./protected-route/protected-route.js";

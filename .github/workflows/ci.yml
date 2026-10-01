@@ -91,6 +91,9 @@ jobs:
       - name: Run API Tests
         run: npm test -w apps/api
 
+      - name: Run Worker Tests
+        run: npm test -w apps/worker
+
       - name: Run Web Tests
         run: npm test -w apps/web
   build:

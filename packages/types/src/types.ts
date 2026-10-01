@@ -19,6 +19,7 @@ export {
 export {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentConfirmUploadRouteParametersDto,
+	type DocumentProcessingProgressDto,
 	type DocumentRouteParametersDto,
 	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
@@ -29,7 +30,10 @@ export {
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
+	type ExtractionItemsReviewSectionDto,
 	type ExtractionItemUpdateRequestDto,
+	type ExtractionSectionResponseDto,
+	type IntegrationChangeContentOverrideDto,
 	type IntegrationChangeResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
@@ -39,6 +43,9 @@ export {
 	type PendingReviewDocumentsResponseDto,
 } from "./modules/documents/documents.js";
 export {
+	type GlossaryConsistencyCheckRequestDto,
+	type GlossaryConsistencyCheckResponseDto,
+	type GlossaryConsistencyMatchDto,
 	type GlossaryRelatedTermDto,
 	type GlossaryRouteParametersDto,
 	type GlossarySearchQueryDto,

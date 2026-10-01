@@ -1,6 +1,7 @@
 export {
 	DocumentContentType,
 	DocumentErrorMessage,
+	DocumentProcessingPhase,
 	DocumentsApiPath,
 	DocumentSourceType,
 	DocumentStatus,

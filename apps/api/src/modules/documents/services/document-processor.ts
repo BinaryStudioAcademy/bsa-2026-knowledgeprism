@@ -1,5 +1,6 @@
 import {
 	DocumentErrorMessage,
+	DocumentProcessingPhase,
 	DocumentSourceType,
 	DocumentStatus,
 } from "@knowledgeprism/constants";
@@ -69,8 +70,36 @@ class DocumentProcessor {
 			throw new Error(DocumentErrorMessage.NOT_FOUND);
 		}
 
+		const isCurrent = await this.documentRepository.updateProcessingProgress({
+			id: documentId,
+			processingAttempt: attempt,
+			progress: {
+				failedUnits: 0,
+				phase: DocumentProcessingPhase.READING,
+				processedUnits: 0,
+				totalUnits: null,
+			},
+			status: DocumentStatus.PROCESSING,
+		});
+		if (!isCurrent) {
+			return false;
+		}
 		const pages = await this.loadPages(document);
-		const items = await extract(pages);
+		const { failedPageNumbers, items } = await extract(
+			pages,
+			{
+				documentId,
+				processingAttempt: attempt,
+			},
+			async (progress) => {
+				await this.documentRepository.updateProcessingProgress({
+					id: documentId,
+					processingAttempt: attempt,
+					progress,
+					status: DocumentStatus.PROCESSING,
+				});
+			},
+		);
 
 		return await this.database.transaction(async (transaction) => {
 			const completedDocument =
@@ -78,6 +107,7 @@ class DocumentProcessor {
 					{
 						errorMessage: null,
 						expectedStatus: DocumentStatus.PROCESSING,
+						failedPageNumbers,
 						id: documentId,
 						processingAttempt: attempt,
 						status: DocumentStatus.WAITING_FOR_VALIDATION,

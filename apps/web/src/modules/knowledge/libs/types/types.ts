@@ -4,7 +4,10 @@ import {
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
 import {
+	type DocumentStatusResponseDto,
 	type ExtractionItemResponseDto,
+	type ExtractionSectionResponseDto,
+	type IntegrationChangeContentOverrideDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
@@ -13,6 +16,8 @@ import {
 import { type ValueOf } from "~/lib/types/types.js";
 
 import { type DocumentProcessingStatus } from "../enums/enums.js";
+
+type ActiveNodeType = "child" | "parent";
 
 type ChangeStatus = "conflict" | "created" | "duplicate" | "modified";
 
@@ -30,10 +35,12 @@ type FieldConflict = {
 
 type IntegrationPreviewProperties = {
 	errorMessage?: null | string;
+	failedPageNumbers?: number[];
 	onAddMore: () => void;
 	onApplyingChange?: (isApplying: boolean) => void;
 	onApprove?: (
 		resolutions: IntegrationConflictResolutionDto[],
+		contentOverrides: IntegrationChangeContentOverrideDto[],
 	) => Promise<boolean>;
 	onApproveExtraction?: (pages: ProposedSection[]) => Promise<boolean>;
 	onClose: () => void;
@@ -56,9 +63,12 @@ type KnowledgeState = {
 	activeDocumentStatus: "IDLE" | ValueOf<typeof DocumentStatus>;
 	activeDocumentSwitchRequestId: null | string;
 	contentSearchRequestId: null | string;
+	documentStatuses: Record<number, DocumentStatusResponseDto>;
 	entryRequestId: null | string;
+	extractionFailedPageNumbers: number[];
 	extractionItems: ExtractionItemResponseDto[];
 	extractionItemsDocumentId: null | number;
+	extractionSections: ExtractionSectionResponseDto[];
 	integrationPreviewDocumentId: null | number;
 	integrationPreviewError: null | string;
 	integrationPreviewRequestId: null | string;
@@ -129,11 +139,11 @@ type UploadedDocumentItem = {
 	errorMessage?: string | undefined;
 	id: string;
 	name: string;
-	progress: number;
 	size: number;
 	sizeLabel: string;
 	status: ValueOf<typeof DocumentProcessingStatus>;
 	uploadUrl?: string | undefined;
+	uploadUrlExpiresAt?: number | undefined;
 };
 
 type UploadSession = {
@@ -144,6 +154,7 @@ type UploadSession = {
 
 export { type KnowledgeEntryUpdateRequestDto } from "@knowledgeprism/types";
 export {
+	type ActiveNodeType,
 	type ChangeStatus,
 	type ConflictResolution,
 	type FieldConflict,

@@ -1,4 +1,5 @@
 import { type DocumentStatus } from "@knowledgeprism/constants";
+import { type DocumentProcessingProgressDto } from "@knowledgeprism/types";
 import React from "react";
 
 import { Button } from "~/components/components.js";
@@ -20,6 +21,7 @@ type Properties = {
 	onPreview: () => void;
 	onResetState: () => void;
 	onRetry: () => void;
+	progress: DocumentProcessingProgressDto | null;
 	showCompactLoading?: boolean;
 };
 
@@ -34,17 +36,25 @@ const MobileSidebarToggle = ({
 		onClick={onOpenSidebar}
 		variant="icon"
 	>
-		<Icon aria-hidden="true" name="filter" size={16} />
+		<Icon aria-hidden="true" name="hamburger" size={16} />
 	</Button>
 );
 
-const MobileCenteredTitle = ({ title }: { title: string | undefined }) => {
+const MobileCenteredTitle = ({
+	isEditing,
+	title,
+}: {
+	isEditing: boolean;
+	title: string | undefined;
+}) => {
 	if (!title) {
 		return null;
 	}
 
 	return (
-		<div className="absolute left-1/2 -translate-x-1/2 font-medium text-text text-control @5xl:hidden">
+		<div
+			className={`absolute left-1/2 w-[calc(100%-${isEditing ? "12rem" : "10.5rem"})] -translate-x-1/2 overflow-x-auto whitespace-nowrap text-center font-medium text-text text-control @5xl:hidden`}
+		>
 			{title}
 		</div>
 	);
@@ -92,6 +102,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 	onPreview,
 	onResetState,
 	onRetry,
+	progress,
 	showCompactLoading = false,
 }: Properties) => {
 	const currentFileName = breadcrumbs.at(-LAST_INDEX_OFFSET);
@@ -100,7 +111,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 		<div className="relative flex items-center justify-between border-b border-border bg-surface px-4 py-4 @5xl:px-8">
 			<MobileSidebarToggle onOpenSidebar={onOpenSidebar} />
 			<KnowledgeTreeBreadcrumbs breadcrumbs={breadcrumbs} />
-			<MobileCenteredTitle title={currentFileName} />
+			<MobileCenteredTitle isEditing={isEditing} title={currentFileName} />
 
 			<div className="flex items-center gap-3.5">
 				{showCompactLoading && (
@@ -111,12 +122,14 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 								hasError={true}
 								onCancel={onResetState}
 								onRetry={onRetry}
+								progress={progress}
 								variant="compact"
 							/>
 						) : (
 							<LoadingState
 								currentStatus={currentStatus}
 								onPreview={onPreview}
+								progress={progress}
 								variant="compact"
 							/>
 						)}

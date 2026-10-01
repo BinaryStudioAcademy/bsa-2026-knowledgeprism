@@ -1,5 +1,9 @@
-import { DocumentStatus } from "@knowledgeprism/constants";
 import {
+	DocumentStatus,
+	ExtractionItemStatus,
+} from "@knowledgeprism/constants";
+import {
+	type DocumentProcessingProgressDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
 } from "@knowledgeprism/types";
@@ -17,9 +21,8 @@ import {
 import { actions } from "../../knowledge.js";
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
 import {
-	collectExtractionItemPatches,
-	deriveExtractionReviewIds,
 	mapExtractionItemsToProposedStructure,
+	toExtractionReviewPayload,
 } from "../../libs/helpers/helpers.js";
 import {
 	type KnowledgeState,
@@ -31,6 +34,7 @@ import {
 } from "../../state/session-guards.js";
 import { AddKnowledgeModal } from "../add-knowledge-modal/add-knowledge-modal.js";
 import { IntegrationPreview } from "../integration-preview/integration-preview.js";
+import { DocumentProcessingList } from "../loading-state/document-processing-list.js";
 import { LoadingState } from "../loading-state/loading-state.js";
 import { IntegrationPreviewPanel } from "./integration-preview-panel.js";
 import { KnowledgeTreeContent } from "./knowledge-tree-content.js";
@@ -41,6 +45,7 @@ import { KnowledgeTreeSidebar } from "./knowledge-tree-sidebar.js";
 type PreviewLayerProperties = {
 	activeDocumentId: null | number;
 	activeDocumentStatus: KnowledgeState["activeDocumentStatus"];
+	extractionFailedPageNumbers: number[];
 	extractionStructure: ProposedSection[];
 	isAddModalOpen: boolean;
 	isExtractionValidationPreview: boolean;
@@ -125,6 +130,7 @@ type EmptyPipelineProperties = {
 	onPreview: () => void;
 	onRetry: () => void;
 	pipelineErrorMessage: null | string;
+	progress: DocumentProcessingProgressDto | null;
 };
 
 const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
@@ -137,6 +143,7 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 	onPreview,
 	onRetry,
 	pipelineErrorMessage,
+	progress,
 }: EmptyPipelineProperties) => {
 	if (!isShowDocumentPipelineUi) {
 		return knowledgeErrorMessage ? (
@@ -152,6 +159,7 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 		<LoadingState
 			currentStatus={activeDocumentStatus}
 			onFinish={onFinish}
+			progress={progress}
 			variant="full"
 		/>
 	);
@@ -163,6 +171,7 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 				hasError={true}
 				onCancel={onCancel}
 				onRetry={onRetry}
+				progress={progress}
 				variant="full"
 			/>
 		);
@@ -171,6 +180,7 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 			<LoadingState
 				currentStatus={activeDocumentStatus}
 				onPreview={onPreview}
+				progress={progress}
 				variant="compact"
 			/>
 		);
@@ -189,6 +199,7 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	activeDocumentId,
 	activeDocumentStatus,
+	extractionFailedPageNumbers,
 	extractionStructure,
 	isAddModalOpen,
 	isExtractionValidationPreview,
@@ -222,6 +233,7 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	const previewContent = isExtractionValidationPreview ? (
 		<IntegrationPreview
 			errorMessage={pipelineErrorMessage}
+			failedPageNumbers={extractionFailedPageNumbers}
 			key={`extraction-${String(activeDocumentId)}-${String(extractionStructure.length)}`}
 			onAddMore={onAddMore}
 			onApplyingChange={onApplyingChange}
@@ -265,6 +277,7 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 						))}
 					</div>
 				)}
+				<DocumentProcessingList />
 				<div className="min-h-0 flex-1">{previewContent}</div>
 			</div>
 			<AddKnowledgeModal isOpen={isAddModalOpen} onClose={onCloseAddModal} />
@@ -285,8 +298,11 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	const {
 		activeDocumentId,
 		activeDocumentStatus,
+		documentStatuses,
+		extractionFailedPageNumbers,
 		extractionItems,
 		extractionItemsDocumentId,
+		extractionSections,
 		isAddingKnowledge,
 		isEntryLoading,
 		isTreeLoading,
@@ -296,6 +312,10 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		pipelineSessionId,
 		trackedDocuments,
 	} = useAppSelector((state) => state.knowledge);
+	const progress =
+		activeDocumentId === null
+			? null
+			: (documentStatuses[activeDocumentId]?.processingProgress ?? null);
 	const [isEditing, setIsEditing] = useState<boolean>(false);
 	const [reviewMutationSessionId, setReviewMutationSessionId] = useState<
 		null | number
@@ -515,9 +535,21 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		}
 	}, [activeDocumentId, activeDocumentStatus, dispatch, projectId]);
 
-	const mappedExtractionStructure = useMemo(
-		() => mapExtractionItemsToProposedStructure(extractionItems),
+	const pendingExtractionItems = useMemo(
+		() =>
+			extractionItems.filter(
+				(item) => item.status === ExtractionItemStatus.PENDING,
+			),
 		[extractionItems],
+	);
+
+	const mappedExtractionStructure = useMemo(
+		() =>
+			mapExtractionItemsToProposedStructure(
+				pendingExtractionItems,
+				extractionSections,
+			),
+		[extractionSections, pendingExtractionItems],
 	);
 
 	const submitExtractionValidation = useCallback(
@@ -526,35 +558,15 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				return false;
 			}
 
-			const patches = collectExtractionItemPatches(pages, extractionItems);
-			const { approvedIds, rejectedIds } = deriveExtractionReviewIds(
-				pages,
-				extractionItems,
-			);
+			const payload = toExtractionReviewPayload(pages, pendingExtractionItems);
 
 			const pipelineSessionId = getPipelineSessionId();
 
 			try {
-				for (const patch of patches) {
-					await dispatch(
-						actions.updateExtractionItem({
-							documentId: activeDocumentId,
-							extractionItemId: patch.id,
-							payload: { text: patch.text, title: patch.title },
-							pipelineSessionId,
-							projectId,
-						}),
-					).unwrap();
-
-					if (!isPipelineSessionCurrent(pipelineSessionId)) {
-						return false;
-					}
-				}
-
 				const response = await dispatch(
 					actions.submitExtractionReview({
 						documentId: activeDocumentId,
-						payload: { approvedIds, rejectedIds },
+						payload,
 						pipelineSessionId,
 						projectId,
 					}),
@@ -586,8 +598,8 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		[
 			activeDocumentId,
 			dispatch,
-			extractionItems,
 			openNextPendingReview,
+			pendingExtractionItems,
 			projectId,
 		],
 	);
@@ -640,6 +652,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			<KnowledgeTreePreviewLayer
 				activeDocumentId={activeDocumentId}
 				activeDocumentStatus={activeDocumentStatus}
+				extractionFailedPageNumbers={extractionFailedPageNumbers}
 				extractionStructure={mappedExtractionStructure}
 				isAddModalOpen={isAddModalOpen}
 				isExtractionValidationPreview={isExtractionValidationPreview}
@@ -674,7 +687,8 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			dismissedPreview.pipelineSessionId === pipelineSessionId;
 
 		return (
-			<div className="flex h-full w-full items-center justify-center bg-bg">
+			<div className="flex h-full w-full flex-col items-center overflow-y-auto bg-bg">
+				<DocumentProcessingList />
 				<KnowledgeTreeEmptyPipeline
 					activeDocumentStatus={activeDocumentStatus}
 					isPreviewDismissed={canResumePreview && isActivePreviewDismissed}
@@ -685,6 +699,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					onPreview={handleOpenPreview}
 					onRetry={handleRetry}
 					pipelineErrorMessage={activePipelineError}
+					progress={progress}
 				/>
 				<AddKnowledgeModal
 					isOpen={isAddModalOpen}
@@ -743,6 +758,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					onPreview={handleOpenPreview}
 					onResetState={handleResetState}
 					onRetry={handleRetry}
+					progress={progress}
 					showCompactLoading={isShowDocumentPipelineUi || canResumePreview}
 				/>
 				{(isShowDocumentPipelineUi || canResumePreview) && (
@@ -754,17 +770,20 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 								hasError={true}
 								onCancel={handleResetState}
 								onRetry={handleRetry}
+								progress={progress}
 								variant="compact"
 							/>
 						) : (
 							<LoadingState
 								currentStatus={activeDocumentStatus}
 								onPreview={handleOpenPreview}
+								progress={progress}
 								variant="compact"
 							/>
 						)}
 					</div>
 				)}
+				<DocumentProcessingList />
 				{mainContent}
 			</div>
 			<AddKnowledgeModal

@@ -19,7 +19,9 @@ type Constructor = {
 };
 
 const EMPTY_LENGTH = 0;
+const MAX_SIMILAR_NODES = 3;
 const MAX_SUGGESTIONS = 3;
+const SCORE_THRESHOLD = 0.3;
 
 class AskPrismService {
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
@@ -74,23 +76,13 @@ class AskPrismService {
 	): Promise<AskPrismResponseDto> {
 		await this.projectService.findById(projectId, context);
 
-		// 1. Embed Query
-		const [queryVector] = await embed(
-			[question],
-			EmbeddingInputType.SEARCH_QUERY,
-		);
-
-		if (!queryVector) {
-			throw new Error("Failed to generate embedding for the question");
-		}
-
-		// 2. Fetch Knowledge Nodes & Extract Text
+		// 1. Fetch Knowledge Nodes & Extract Text
 		const nodes =
 			await this.knowledgeNodeRepository.findAllByProjectId(projectId);
 
 		if (nodes.length === EMPTY_LENGTH) {
 			return {
-				answer: "Not found in the knowledge base.",
+				answer: RAG_FALLBACK_MESSAGE,
 				sources: [],
 			};
 		}
@@ -110,18 +102,25 @@ class AskPrismService {
 
 		if (contexts.length === EMPTY_LENGTH) {
 			return {
-				answer: "Not found in the knowledge base.",
+				answer: RAG_FALLBACK_MESSAGE,
 				sources: [],
 			};
 		}
 
-		// 3. Embed Nodes on the fly
+		const [queryVector] = await embed(
+			[question],
+			EmbeddingInputType.SEARCH_QUERY,
+		);
+
+		if (!queryVector) {
+			throw new Error("Failed to generate embedding for the question");
+		}
+
 		const nodeVectors = await embed(
 			contexts.map((c) => c.content),
 			EmbeddingInputType.SEARCH_DOCUMENT,
 		);
 
-		// 4. In-Memory Search
 		const candidates = contexts.map((contextItem, index) => {
 			const vector = nodeVectors[index];
 
@@ -135,15 +134,11 @@ class AskPrismService {
 			};
 		});
 
-		// 3. Execute Search
 		const matches = search({
 			candidates,
 			queryVector,
-			topK: 10,
+			topK: MAX_SIMILAR_NODES,
 		});
-
-		// 4. Handle Missing Context
-		const SCORE_THRESHOLD = 0.3; // Lowered to 0.3 to safely catch partially relevant data
 
 		const relevantMatches = matches.filter(
 			(match) => match.score >= SCORE_THRESHOLD,
@@ -156,7 +151,6 @@ class AskPrismService {
 			};
 		}
 
-		// 5. Construct Prompt & Generate Answer
 		const contextChunks = relevantMatches.map((match) => match.item.content);
 		const answer = await invokeRagGeneration(question, contextChunks);
 
@@ -167,11 +161,6 @@ class AskPrismService {
 			};
 		}
 
-		// 6. Format Response
-		// TODO (Issue #162): Implement proper LLM-grounded citations.
-		// Currently returning all retrieved matches as "sources". Future iterations
-		// should prompt the LLM to return specific chunk IDs it used and include
-		// document/page/version metadata from knowledge_sources.
 		return {
 			answer,
 			sources: relevantMatches.map((match) => ({
@@ -207,4 +196,4 @@ class AskPrismService {
 	}
 }
 
-export { AskPrismService };
+export { AskPrismService, MAX_SIMILAR_NODES };

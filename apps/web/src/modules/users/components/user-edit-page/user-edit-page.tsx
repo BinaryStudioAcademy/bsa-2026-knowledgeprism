@@ -4,6 +4,7 @@ import { useParams } from "react-router-dom";
 import {
 	Heading,
 	Loader,
+	PageLayout,
 	Paragraph,
 	ParagraphSize,
 } from "~/components/components.js";
@@ -17,15 +18,14 @@ import {
 } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 import { actions as projectsActions } from "~/modules/projects/projects.js";
+import { type AssignableProjectRole } from "~/modules/users/libs/types/assignable-project-role.type.js";
 import { actions as userActions } from "~/modules/users/users.js";
 
 import { UserForm } from "../user-form/user-form.js";
 import { userUpdateFrontendValidationSchema } from "./libs/validation-schemas.js";
 
-type ProjectRole = "EDITOR" | "VIEWER";
-
 type UserEditFormValues = {
-	assignedProjects: { projectId: number; role: ProjectRole }[];
+	assignedProjects: { projectId: number; role: AssignableProjectRole }[];
 	confirmPassword?: string;
 	email: string;
 	firstName: string;
@@ -56,25 +56,26 @@ const UserEditPage: React.FC = () => {
 		void dispatch(projectsActions.loadAllProjects());
 	}, [dispatch, userId]);
 
-	const { control, handleSubmit, reset } = useAppForm<UserEditFormValues>({
-		defaultValues: {
-			assignedProjects: [],
-			confirmPassword: "",
-			email: "",
-			firstName: "",
-			isActive: true,
-			lastName: "",
-			password: "",
-		},
-		validationSchema: userUpdateFrontendValidationSchema,
-	});
+	const { control, handleSubmit, isDirty, reset } =
+		useAppForm<UserEditFormValues>({
+			defaultValues: {
+				assignedProjects: [],
+				confirmPassword: "",
+				email: "",
+				firstName: "",
+				isActive: true,
+				lastName: "",
+				password: "",
+			},
+			validationSchema: userUpdateFrontendValidationSchema,
+		});
 
 	useEffect(() => {
 		if (selectedUser) {
 			reset({
 				assignedProjects: selectedUser.assignedProjects as {
 					projectId: number;
-					role: ProjectRole;
+					role: AssignableProjectRole;
 				}[],
 				confirmPassword: "",
 				email: selectedUser.email,
@@ -129,32 +130,31 @@ const UserEditPage: React.FC = () => {
 	}, [navigate]);
 
 	return (
-		<div className="relative flex flex-1 justify-center overflow-auto p-4 tablet:p-7 desktop:px-11 desktop:py-10">
-			<div className="flex w-full flex-col gap-3.5 tablet:w-130 tablet:gap-4.5 desktop:w-160 desktop:gap-6">
-				<div>
-					<Heading level="2">Edit User</Heading>
-					<Paragraph
-						className="mt-1.5 hidden text-text-muted desktop:block"
-						size={ParagraphSize.BODY_SMALL}
-					>
-						Update user details and their access levels.
-					</Paragraph>
-				</div>
-
-				{selectedUserStatus === DataStatus.PENDING && <Loader />}
-
-				{selectedUserStatus === DataStatus.FULFILLED && selectedUser && (
-					<UserForm
-						availableProjects={availableProjects}
-						control={control}
-						isAdmin={isAdminEditingSelf}
-						isEditMode={true}
-						onCancel={handleCancel}
-						onSubmit={handleFormSubmit}
-					/>
-				)}
+		<PageLayout>
+			<div>
+				<Heading level="2">Edit User</Heading>
+				<Paragraph
+					className="mt-1.5 hidden text-text-muted desktop:block"
+					size={ParagraphSize.BODY_SMALL}
+				>
+					Update user details and their access levels.
+				</Paragraph>
 			</div>
-		</div>
+
+			{selectedUserStatus === DataStatus.PENDING && <Loader />}
+
+			{selectedUserStatus === DataStatus.FULFILLED && selectedUser && (
+				<UserForm
+					availableProjects={availableProjects}
+					control={control}
+					isAdmin={isAdminEditingSelf}
+					isEditMode={true}
+					isSubmitDisabled={!isDirty}
+					onCancel={handleCancel}
+					onSubmit={handleFormSubmit}
+				/>
+			)}
+		</PageLayout>
 	);
 };
 
