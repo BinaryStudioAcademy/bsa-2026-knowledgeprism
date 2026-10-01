@@ -1,5 +1,6 @@
+import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import { type IntegrationChangesApplyRequestDto } from "@knowledgeprism/types";
-import React, { useCallback } from "react";
+import React, { useCallback, useMemo } from "react";
 
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 
@@ -15,7 +16,6 @@ type Properties = {
 	documentId: number | undefined;
 	extractionStructure: ProposedSection[];
 	failedPageNumbers: number[];
-	isPlacementPending: boolean;
 	onAddMore: () => void;
 	onApplyingChange: (isApplying: boolean) => void;
 	onApprove: () => void;
@@ -29,7 +29,6 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 	documentId,
 	extractionStructure,
 	failedPageNumbers,
-	isPlacementPending,
 	onAddMore,
 	onApplyingChange,
 	onApprove,
@@ -39,8 +38,15 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 	projectId,
 }: Properties) => {
 	const dispatch = useAppDispatch();
-	const { integrationPreviewError, integrationPreviewSections } =
+	const { integrationPreviewError, integrationPreviewSections, tree } =
 		useAppSelector((state) => state.knowledge);
+	const placementTargets = useMemo(
+		() =>
+			tree
+				.filter((item) => item.type === KnowledgeNodeType.PAGE)
+				.map(({ id, title }) => ({ id, title })),
+		[tree],
+	);
 
 	const handleApply = useCallback(
 		async (payload: IntegrationChangesApplyRequestDto): Promise<boolean> => {
@@ -79,7 +85,6 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 			<IntegrationPreview
 				errorMessage={pipelineErrorMessage ?? integrationPreviewError}
 				failedPageNumbers={failedPageNumbers}
-				isPlacementPending={isPlacementPending}
 				key={String(documentId)}
 				onAddMore={onAddMore}
 				onApplyingChange={onApplyingChange}
@@ -87,6 +92,7 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 				onCancelDocument={onCancelDocument}
 				onClose={onClose}
 				placementStructure={integrationPreviewSections}
+				placementTargets={placementTargets}
 				proposedStructure={extractionStructure}
 			/>
 		</div>

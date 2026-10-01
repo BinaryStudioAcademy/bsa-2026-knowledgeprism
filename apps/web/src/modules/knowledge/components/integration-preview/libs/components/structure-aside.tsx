@@ -22,8 +22,11 @@ import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import {
 	type ActiveNodeType,
 	type ChangeStatus,
+	type PlacementTarget,
 	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
+
+import { SectionRowMenu } from "./section-row-menu.js";
 
 const EMPTY_LENGTH = 0;
 const EMPTY_DROP_ZONE_ID_PREFIX = "empty-drop-";
@@ -45,9 +48,16 @@ type StructureAsideProperties = {
 	onDeleteSection: (pageIndex: number, sectionIndex: number) => void;
 	onMovePage: (activeId: string, overId: string) => void;
 	onMoveSection: (activeId: string, overId: string) => void;
+	onMoveSectionTo: (
+		pageIndex: number,
+		sectionIndex: number,
+		targetId: null | number,
+	) => void;
+	onRenameSection: (pageIndex: number, sectionIndex: number) => void;
 	onSelectPage: (event: MouseEvent<HTMLButtonElement>) => void;
 	onSelectSection: (event: MouseEvent<HTMLButtonElement>) => void;
 	pages: ProposedSection[];
+	placementTargets: PlacementTarget[];
 };
 
 const formatChangeStatusLabel = (status: ChangeStatus): string => status;
@@ -195,8 +205,11 @@ const SortableSectionRow = ({
 	isReorderable,
 	isSelected,
 	onDeleteSection,
+	onMoveSectionTo,
+	onRenameSection,
 	onSelectSection,
 	pageIndex,
+	placementTargets,
 	section,
 	sectionIndex,
 }: {
@@ -204,8 +217,15 @@ const SortableSectionRow = ({
 	isReorderable: boolean;
 	isSelected: boolean;
 	onDeleteSection: (pageIndex: number, sectionIndex: number) => void;
+	onMoveSectionTo: (
+		pageIndex: number,
+		sectionIndex: number,
+		targetId: null | number,
+	) => void;
+	onRenameSection: (pageIndex: number, sectionIndex: number) => void;
 	onSelectSection: (event: MouseEvent<HTMLButtonElement>) => void;
 	pageIndex: number;
+	placementTargets: PlacementTarget[];
 	section: ProposedSection["pages"][number];
 	sectionIndex: number;
 }): JSX.Element => {
@@ -228,6 +248,15 @@ const SortableSectionRow = ({
 	const handleDeleteClick = useCallback((): void => {
 		onDeleteSection(pageIndex, sectionIndex);
 	}, [onDeleteSection, pageIndex, sectionIndex]);
+	const handleRename = useCallback((): void => {
+		onRenameSection(pageIndex, sectionIndex);
+	}, [onRenameSection, pageIndex, sectionIndex]);
+	const handleMoveTo = useCallback(
+		(targetId: null | number): void => {
+			onMoveSectionTo(pageIndex, sectionIndex, targetId);
+		},
+		[onMoveSectionTo, pageIndex, sectionIndex],
+	);
 
 	return (
 		<div
@@ -284,15 +313,14 @@ const SortableSectionRow = ({
 			</button>
 
 			{isReorderable && (
-				<button
-					aria-label="Delete item"
-					className="flex shrink-0 items-center justify-center rounded p-1 text-text-faint hover:bg-error-bg hover:text-error disabled:cursor-not-allowed disabled:opacity-40"
-					disabled={isInteractionDisabled}
-					onClick={handleDeleteClick}
-					type="button"
-				>
-					<Icon name="close" size={ICON_SIZE_TINY} />
-				</button>
+				<SectionRowMenu
+					isDisabled={isInteractionDisabled}
+					onDiscard={handleDeleteClick}
+					onMoveTo={handleMoveTo}
+					onRename={handleRename}
+					placementTargets={placementTargets}
+					title={sectionTitle}
+				/>
 			)}
 		</div>
 	);
@@ -307,10 +335,13 @@ const PageGroup = ({
 	onAddSection,
 	onDeletePage,
 	onDeleteSection,
+	onMoveSectionTo,
+	onRenameSection,
 	onSelectPage,
 	onSelectSection,
 	page,
 	pageIndex,
+	placementTargets,
 }: {
 	activeNodeType: ActiveNodeType;
 	activePageIndex: number;
@@ -320,10 +351,17 @@ const PageGroup = ({
 	onAddSection: (pageIndex: number) => void;
 	onDeletePage: (pageIndex: number) => void;
 	onDeleteSection: (pageIndex: number, sectionIndex: number) => void;
+	onMoveSectionTo: (
+		pageIndex: number,
+		sectionIndex: number,
+		targetId: null | number,
+	) => void;
+	onRenameSection: (pageIndex: number, sectionIndex: number) => void;
 	onSelectPage: (event: MouseEvent<HTMLButtonElement>) => void;
 	onSelectSection: (event: MouseEvent<HTMLButtonElement>) => void;
 	page: ProposedSection;
 	pageIndex: number;
+	placementTargets: PlacementTarget[];
 }): JSX.Element => {
 	const isPageSelected =
 		pageIndex === activePageIndex && activeNodeType === "parent";
@@ -362,8 +400,11 @@ const PageGroup = ({
 									isSelected={isSelected}
 									key={section.id}
 									onDeleteSection={onDeleteSection}
+									onMoveSectionTo={onMoveSectionTo}
+									onRenameSection={onRenameSection}
 									onSelectSection={onSelectSection}
 									pageIndex={pageIndex}
+									placementTargets={placementTargets}
 									section={section}
 									sectionIndex={sectionIndex}
 								/>
@@ -402,9 +443,12 @@ const StructureAside = ({
 	onDeleteSection,
 	onMovePage,
 	onMoveSection,
+	onMoveSectionTo,
+	onRenameSection,
 	onSelectPage,
 	onSelectSection,
 	pages,
+	placementTargets,
 }: StructureAsideProperties): JSX.Element => {
 	const sensors = useSensors(
 		useSensor(PointerSensor, {
@@ -493,10 +537,13 @@ const StructureAside = ({
 								onAddSection={onAddSection}
 								onDeletePage={onDeletePage}
 								onDeleteSection={onDeleteSection}
+								onMoveSectionTo={onMoveSectionTo}
+								onRenameSection={onRenameSection}
 								onSelectPage={onSelectPage}
 								onSelectSection={onSelectSection}
 								page={page}
 								pageIndex={pageIndex}
+								placementTargets={placementTargets}
 							/>
 						))}
 					</div>

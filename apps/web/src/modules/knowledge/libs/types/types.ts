@@ -37,13 +37,13 @@ type FieldConflict = {
 type IntegrationPreviewProperties = {
 	errorMessage?: null | string;
 	failedPageNumbers?: number[];
-	isPlacementPending?: boolean;
 	onAddMore: () => void;
 	onApplyingChange?: (isApplying: boolean) => void;
 	onApprove?: (payload: IntegrationChangesApplyRequestDto) => Promise<boolean>;
 	onCancelDocument?: () => void;
 	onClose: () => void;
 	placementStructure?: ProposedSection[];
+	placementTargets?: PlacementTarget[];
 	proposedStructure: ProposedSection[];
 	variant?: IntegrationPreviewVariant;
 };
@@ -109,6 +109,11 @@ type PipelineSessionScope = {
 	projectId: string;
 };
 
+type PlacementTarget = {
+	id: number;
+	title: string;
+};
+
 type ProposedPage = {
 	blocks?: PartialBlock[];
 	conflicts?: FieldConflict[];
@@ -119,6 +124,7 @@ type ProposedPage = {
 	matchedNodeId?: number;
 	originalContent?: string;
 	originalTitle?: string;
+	placementParentId?: null | number;
 	proposedHeading?: string;
 	proposedPlace?: string;
 	sourceExcerpt?: string;
@@ -176,6 +182,7 @@ export {
 	type KbEntry,
 	type KnowledgeState,
 	type PipelineSessionScope,
+	type PlacementTarget,
 	type ProposedPage,
 	type ProposedSection,
 	type TrackedDocument,

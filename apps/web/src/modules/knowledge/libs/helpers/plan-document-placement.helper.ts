@@ -9,10 +9,18 @@ const EMPTY_LENGTH = 0;
 const FIRST_DEPTH = 1;
 const ROOT_PARENT_DEPTH = 0;
 
+const DropZone = {
+	AFTER: "after",
+	BEFORE: "before",
+	INSIDE: "inside",
+} as const;
+
 type DocumentPlacement = {
 	parentId: null | number;
 	position: number;
 };
+
+type DropZoneValue = (typeof DropZone)[keyof typeof DropZone];
 
 const isDocumentNode = (
 	type: KnowledgeTreeItemResponseDto["type"],
@@ -154,113 +162,93 @@ const canAddSubdocument = (
 	);
 };
 
-const planMoveUp = (
+const planMoveToParent = (
 	items: KnowledgeTreeItemResponseDto[],
 	nodeId: number,
+	parentId: null | number,
 ): DocumentPlacement | null => {
 	const node = items.find((item) => item.id === nodeId);
 
-	if (!node || !isDocumentNode(node.type)) {
+	if (!node || node.parentId === parentId) {
 		return null;
 	}
 
-	const siblings = getSiblings(items, node.parentId);
-	const index = siblings.findIndex((item) => item.id === nodeId);
-
-	if (index <= KnowledgeValidationRule.POSITION_MINIMUM) {
-		return null;
-	}
-
-	return { parentId: node.parentId, position: index - DEPTH_STEP };
-};
-
-const planMoveDown = (
-	items: KnowledgeTreeItemResponseDto[],
-	nodeId: number,
-): DocumentPlacement | null => {
-	const node = items.find((item) => item.id === nodeId);
-
-	if (!node || !isDocumentNode(node.type)) {
-		return null;
-	}
-
-	const siblings = getSiblings(items, node.parentId);
-	const index = siblings.findIndex((item) => item.id === nodeId);
-	const lastIndex = siblings.length - DEPTH_STEP;
-
-	if (index < KnowledgeValidationRule.POSITION_MINIMUM || index >= lastIndex) {
-		return null;
-	}
-
-	return { parentId: node.parentId, position: index + DEPTH_STEP };
-};
-
-const planNestUnderPrevious = (
-	items: KnowledgeTreeItemResponseDto[],
-	nodeId: number,
-): DocumentPlacement | null => {
-	const node = items.find((item) => item.id === nodeId);
-
-	if (!node || !isDocumentNode(node.type)) {
-		return null;
-	}
-
-	const siblings = getSiblings(items, node.parentId);
-	const index = siblings.findIndex((item) => item.id === nodeId);
-	const previous = siblings[index - DEPTH_STEP];
-
-	if (!previous || !isDocumentNode(previous.type)) {
-		return null;
-	}
-
-	if (!canPlaceDocument(items, nodeId, previous.id)) {
+	if (!canPlaceDocument(items, nodeId, parentId)) {
 		return null;
 	}
 
 	return {
-		parentId: previous.id,
-		position: getSiblings(items, previous.id).length,
+		parentId,
+		position: getSiblings(items, parentId).length,
 	};
 };
 
-const planMoveOut = (
+type DropTarget = {
+	target: KnowledgeTreeItemResponseDto;
+	zone: DropZoneValue;
+};
+
+const planDropBeside = (
 	items: KnowledgeTreeItemResponseDto[],
 	nodeId: number,
+	{ target, zone }: DropTarget,
 ): DocumentPlacement | null => {
 	const node = items.find((item) => item.id === nodeId);
 
-	if (!node?.parentId || !isDocumentNode(node.type)) {
+	if (!node || !isDocumentNode(target.type)) {
 		return null;
 	}
 
-	const parent = items.find((item) => item.id === node.parentId);
-
-	if (!parent) {
+	if (!canPlaceDocument(items, nodeId, target.parentId)) {
 		return null;
 	}
 
-	if (!canPlaceDocument(items, nodeId, parent.parentId)) {
+	const siblings = getSiblings(items, target.parentId).filter(
+		(item) => item.id !== nodeId,
+	);
+	const targetIndex = siblings.findIndex((item) => item.id === target.id);
+	const position =
+		zone === DropZone.BEFORE ? targetIndex : targetIndex + DEPTH_STEP;
+	const currentIndex = getSiblings(items, node.parentId).findIndex(
+		(item) => item.id === nodeId,
+	);
+	const isUnchanged =
+		currentIndex === position && node.parentId === target.parentId;
+
+	return isUnchanged ? null : { parentId: target.parentId, position };
+};
+
+const planDrop = (
+	items: KnowledgeTreeItemResponseDto[],
+	nodeId: number,
+	{ targetId, zone }: { targetId: number; zone: DropZoneValue },
+): DocumentPlacement | null => {
+	const target = items.find((item) => item.id === targetId);
+
+	if (!target || nodeId === targetId) {
 		return null;
 	}
 
-	const parentSiblings = getSiblings(items, parent.parentId);
-	const parentIndex = parentSiblings.findIndex((item) => item.id === parent.id);
+	if (zone === DropZone.INSIDE) {
+		return isDocumentNode(target.type)
+			? planMoveToParent(items, nodeId, targetId)
+			: null;
+	}
 
-	if (parentIndex < KnowledgeValidationRule.POSITION_MINIMUM) {
+	if (isInsideSubtree(items, nodeId, targetId)) {
 		return null;
 	}
 
-	return {
-		parentId: parent.parentId,
-		position: parentIndex + DEPTH_STEP,
-	};
+	return planDropBeside(items, nodeId, { target, zone });
 };
 
 export {
 	type DocumentPlacement,
+	type DropZoneValue,
 	canAddSubdocument,
-	planMoveDown,
-	planMoveOut,
-	planMoveUp,
-	planNestUnderPrevious,
+	canPlaceDocument,
+	DropZone,
+	isDocumentNode,
+	planDrop,
+	planMoveToParent,
 };

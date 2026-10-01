@@ -82,6 +82,7 @@ const createDeferred = (): PromiseWithResolvers<boolean> =>
 	Promise.withResolvers<boolean>();
 
 const FAILED_PAGE_NUMBER = 4;
+const KB_PAGE_ID = 40;
 const INITIAL_ITEM_COUNT = 2;
 const LAST_BUTTON_OFFSET = -1;
 const PARAGRAPH_BLOCK_COUNT = 2;
@@ -575,23 +576,24 @@ describe("IntegrationPreview proposed structure editing", () => {
 			/>,
 		);
 
-		expect(screen.getAllByRole("button", { name: "Delete item" })).toHaveLength(
-			INITIAL_ITEM_COUNT,
-		);
+		expect(
+			screen.getAllByRole("button", { name: /^More actions for / }),
+		).toHaveLength(INITIAL_ITEM_COUNT);
 
-		const [firstDeleteButton] = screen.getAllByRole("button", {
-			name: "Delete item",
+		const [firstMenuButton] = screen.getAllByRole("button", {
+			name: /^More actions for /,
 		});
 
-		if (!firstDeleteButton) {
-			throw new Error("Expected a delete button to be rendered");
+		if (!firstMenuButton) {
+			throw new Error("Expected an item menu to be rendered");
 		}
 
-		fireEvent.click(firstDeleteButton);
+		fireEvent.click(firstMenuButton);
+		fireEvent.click(screen.getByRole("menuitem", { name: "Discard" }));
 
-		expect(screen.getAllByRole("button", { name: "Delete item" })).toHaveLength(
-			REMAINING_ITEM_COUNT,
-		);
+		expect(
+			screen.getAllByRole("button", { name: /^More actions for / }),
+		).toHaveLength(REMAINING_ITEM_COUNT);
 	});
 
 	it("deletes an empty manual page group via its delete button", () => {
@@ -657,8 +659,36 @@ describe("IntegrationPreview proposed structure editing", () => {
 			screen.getByRole("button", { name: "Add item" }),
 		).toBeInTheDocument();
 		expect(
-			screen.getByRole("button", { name: "Delete item" }),
+			screen.getByRole("button", { name: /^More actions for / }),
 		).toBeInTheDocument();
+	});
+
+	it("moves an item under a chosen knowledge base page from its menu", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				placementTargets={[{ id: KB_PAGE_ID, title: "Requirements" }]}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					createExtractionItem(),
+				])}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: /^More actions for / }));
+		fireEvent.click(screen.getByRole("menuitem", { name: "Move to…" }));
+		fireEvent.click(screen.getByRole("menuitem", { name: "Requirements" }));
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					placements: [expect.objectContaining({ parentId: KB_PAGE_ID })],
+				}),
+			);
+		});
 	});
 });
 
@@ -770,5 +800,119 @@ describe("IntegrationPreview document discard", () => {
 		expect(
 			screen.queryByRole("button", { name: "Discard document" }),
 		).not.toBeInTheDocument();
+	});
+});
+
+describe("IntegrationPreview focus mode", () => {
+	const SECOND_ITEM_ID = 18;
+	const THIRD_ITEM_ID = 19;
+
+	const renderTwoItems = (): void => {
+		const first = createExtractionItem();
+		const second = {
+			...first,
+			id: SECOND_ITEM_ID,
+			position: 1,
+			title: "Second item",
+		};
+		const third = {
+			...first,
+			id: THIRD_ITEM_ID,
+			position: 2,
+			title: "Third item",
+		};
+
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={vi.fn().mockResolvedValue(false)}
+				onClose={vi.fn()}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					first,
+					second,
+					third,
+				])}
+			/>,
+		);
+	};
+
+	it("shows the navigator with the section position when editing", () => {
+		renderTwoItems();
+
+		expect(screen.queryByText(/ \/ /u)).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+		expect(screen.getByText("1 / 3")).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: /Previous section/u }),
+		).toBeDisabled();
+	});
+
+	it("moves to the next section and stays in edit mode", () => {
+		renderTwoItems();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.click(screen.getByRole("button", { name: /Next section/u }));
+
+		expect(screen.getByText("2 / 3")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+		expect(screen.getByDisplayValue("Second item")).toBeInTheDocument();
+	});
+
+	it("supports Alt+Arrow keys and disables Next on the last section", () => {
+		renderTwoItems();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.keyDown(screen.getByDisplayValue("Source traceability"), {
+			altKey: true,
+			key: "ArrowDown",
+		});
+		fireEvent.keyDown(screen.getByDisplayValue("Second item"), {
+			altKey: true,
+			key: "ArrowDown",
+		});
+
+		expect(screen.getByText("3 / 3")).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: /Next section/u }),
+		).toBeDisabled();
+
+		fireEvent.keyDown(screen.getByDisplayValue("Third item"), {
+			altKey: true,
+			key: "ArrowUp",
+		});
+
+		expect(screen.getByText("2 / 3")).toBeInTheDocument();
+	});
+
+	it("keeps edits made before navigating", () => {
+		renderTwoItems();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.change(screen.getByDisplayValue("Source traceability"), {
+			target: { value: "Edited title" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: /Next section/u }));
+		fireEvent.click(screen.getByRole("button", { name: /Previous section/u }));
+
+		expect(screen.getByDisplayValue("Edited title")).toBeInTheDocument();
+	});
+
+	it("leaves edit mode on Done and on Escape", () => {
+		renderTwoItems();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+		expect(screen.queryByText("1 / 3")).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.keyDown(screen.getByDisplayValue("Source traceability"), {
+			key: "Escape",
+		});
+
+		expect(screen.queryByText("1 / 3")).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
 	});
 });

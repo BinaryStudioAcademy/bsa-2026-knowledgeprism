@@ -18,6 +18,9 @@ const mergePlacedPage = (
 		...(placed.originalTitle !== undefined && {
 			originalTitle: placed.originalTitle,
 		}),
+		...(placed.placementParentId !== undefined && {
+			placementParentId: placed.placementParentId,
+		}),
 		...(placed.proposedPlace && { proposedPlace: placed.proposedPlace }),
 		status: placed.status,
 		...(placed.wordingMatches && { wordingMatches: placed.wordingMatches }),

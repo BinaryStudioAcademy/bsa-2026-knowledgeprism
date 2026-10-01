@@ -6,11 +6,13 @@ export { mapIntegrationChangesToProposedStructure } from "./map-integration-chan
 export { isMatchingPipelineSession } from "./pipeline-session.helper.js";
 export {
 	type DocumentPlacement,
+	type DropZoneValue,
 	canAddSubdocument,
-	planMoveDown,
-	planMoveOut,
-	planMoveUp,
-	planNestUnderPrevious,
+	canPlaceDocument,
+	DropZone,
+	isDocumentNode,
+	planDrop,
+	planMoveToParent,
 } from "./plan-document-placement.helper.js";
 export {
 	addPageGroup,

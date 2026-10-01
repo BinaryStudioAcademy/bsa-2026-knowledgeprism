@@ -28,6 +28,7 @@ import {
 import { filterKnowledgeTree } from "../../libs/helpers/helpers.js";
 import { type DocumentPlacement } from "../../libs/helpers/helpers.js";
 import { KnowledgeTreeDocumentForm } from "./knowledge-tree-document-form.js";
+import { useKnowledgeTreeDrag } from "./knowledge-tree-drag.js";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
 import { KnowledgeTreeSearchBar } from "./knowledge-tree-search-bar.js";
 
@@ -57,6 +58,7 @@ type Properties = {
 	onClose: () => void;
 	onCreateDocument?:
 		((title: string, parentId: null | number) => void) | undefined;
+	onEditNode?: ((id: number) => void) | undefined;
 	onHide?: (() => void) | undefined;
 	onMoveDocument?:
 		((id: number, placement: DocumentPlacement) => void) | undefined;
@@ -72,6 +74,7 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 	items,
 	onClose,
 	onCreateDocument,
+	onEditNode,
 	onHide,
 	onMoveDocument,
 	onSelectPage,
@@ -126,6 +129,8 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 		}
 		return map;
 	}, [filteredItems]);
+
+	const drag = useKnowledgeTreeDrag(items, onMoveDocument);
 
 	const rootItems = itemsByParentId.get(null) ?? [];
 
@@ -196,6 +201,14 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 			onClose();
 		},
 		[onClose, onSelectPage],
+	);
+
+	const handleEditNode = useCallback(
+		(id: number) => {
+			onEditNode?.(id);
+			onClose();
+		},
+		[onClose, onEditNode],
 	);
 
 	const handleBackdropKeyDown = useCallback(
@@ -301,12 +314,14 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 							rootItems.map((item) => (
 								<KnowledgeTreeItem
 									canStructure={canStructure}
+									drag={drag}
 									focusedNodeId={currentFocusId}
 									isStructurePending={isStructurePending}
 									item={item}
 									itemsByParentId={itemsByParentId}
 									key={item.id}
 									onCreateDocument={handleCreateDocument}
+									onEditNode={onEditNode ? handleEditNode : undefined}
 									onFocus={setFocusedNodeId}
 									onMoveDocument={onMoveDocument}
 									onSelect={handleSelectPage}

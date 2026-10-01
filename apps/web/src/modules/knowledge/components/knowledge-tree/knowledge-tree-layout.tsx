@@ -53,7 +53,6 @@ type PreviewLayerProperties = {
 	extractionFailedPageNumbers: number[];
 	extractionStructure: ProposedSection[];
 	isAddModalOpen: boolean;
-	isPlacementPending: boolean;
 	isReviewMutationPending: boolean;
 	onAddMore: () => void;
 	onApplyingChange: (isApplying: boolean) => void;
@@ -69,11 +68,7 @@ type PreviewLayerProperties = {
 
 const PLACEMENT_REVIEW_STATUSES = new Set<
 	KnowledgeState["activeDocumentStatus"]
->([
-	DocumentStatus.INTEGRATING,
-	DocumentStatus.WAITING_FOR_APPROVAL,
-	DocumentStatus.WAITING_FOR_VALIDATION,
-]);
+>([DocumentStatus.WAITING_FOR_APPROVAL]);
 
 const isPlacementReviewStatus = (
 	status: KnowledgeState["activeDocumentStatus"],
@@ -269,7 +264,6 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 	extractionFailedPageNumbers,
 	extractionStructure,
 	isAddModalOpen,
-	isPlacementPending,
 	isReviewMutationPending,
 	onAddMore,
 	onApplyingChange,
@@ -302,7 +296,6 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 			documentId={activeDocumentId ?? undefined}
 			extractionStructure={extractionStructure}
 			failedPageNumbers={extractionFailedPageNumbers}
-			isPlacementPending={isPlacementPending}
 			onAddMore={onAddMore}
 			onApplyingChange={onApplyingChange}
 			onApprove={onApproveIntegration}
@@ -487,10 +480,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			: (pipelineErrors[activeDocumentId] ?? null);
 
 	const isKbEmpty = items.length === EMPTY_LENGTH;
-
-	const isPlacementPending =
-		isPlacementReviewStatus(activeDocumentStatus) &&
-		activeDocumentStatus !== DocumentStatus.WAITING_FOR_APPROVAL;
 
 	const { canResumePreview, isPreviewVisible, isShowDocumentPipelineUi } =
 		getPipelineVisibility({
@@ -815,6 +804,14 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		[onSelectPage],
 	);
 
+	const handleEditNode = useCallback(
+		(id: number): void => {
+			onSelectPage(id);
+			setIsEditing(true);
+		},
+		[onSelectPage],
+	);
+
 	const handleCreateDocument = useCallback(
 		(title: string, parentId: null | number): void => {
 			if (!projectId) {
@@ -883,7 +880,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				extractionFailedPageNumbers={extractionFailedPageNumbers}
 				extractionStructure={mappedExtractionStructure}
 				isAddModalOpen={isAddModalOpen}
-				isPlacementPending={isPlacementPending}
 				isReviewMutationPending={isReviewMutationPending}
 				onAddMore={handleAddMore}
 				onApplyingChange={handleReviewMutationChange}
@@ -919,6 +915,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 						items={items}
 						onClose={handleCloseSidebar}
 						onCreateDocument={handleCreateDocument}
+						onEditNode={handleEditNode}
 						onHide={handleHideTree}
 						onMoveDocument={handleMoveDocument}
 						onSelectPage={handleSelectPage}
@@ -995,6 +992,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				items={items}
 				onClose={handleCloseSidebar}
 				onCreateDocument={handleCreateDocument}
+				onEditNode={handleEditNode}
 				onHide={handleHideTree}
 				onMoveDocument={handleMoveDocument}
 				onSelectPage={handleSelectPage}

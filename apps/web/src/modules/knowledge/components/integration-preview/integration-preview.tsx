@@ -9,6 +9,7 @@ import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
 import {
 	type ChangeEvent,
 	type JSX,
+	type KeyboardEvent,
 	type MouseEvent,
 	type ReactNode,
 	useCallback,
@@ -52,16 +53,23 @@ import {
 } from "~/modules/knowledge/libs/helpers/helpers.js";
 import { mergePlacementIntoPages } from "~/modules/knowledge/libs/helpers/merge-placement-into-pages.helper.js";
 import { toPublishedItems } from "~/modules/knowledge/libs/helpers/to-published-items.helper.js";
+import { toPublishedPlacements } from "~/modules/knowledge/libs/helpers/to-published-placements.helper.js";
 import {
 	type ActiveNodeType,
 	type FieldConflict,
 	type IntegrationPreviewProperties,
+	type PlacementTarget,
 	type ProposedPage,
 	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
 
 import { MergeScreen } from "./libs/components/merge-screen.js";
 import { ProposedStructureSuccessModal } from "./libs/components/proposed-structure-success-modal.js";
+import {
+	SectionNavigator,
+	toSectionPositions,
+} from "./libs/components/section-navigator.js";
+import { DOCUMENT_PAGE_LABEL } from "./libs/components/section-row-menu.js";
 import {
 	formatChangeStatusLabel,
 	StructureAside,
@@ -73,6 +81,8 @@ import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consisten
 
 const IS_EXTRACTION_VALIDATION = true;
 
+const UNDER_PLACE_PREFIX = "Under ";
+const NO_PLACEMENT_TARGETS: PlacementTarget[] = [];
 const BLANK_REVIEW_MESSAGE =
 	"Every page and item needs a title and content before you can approve. Fill in or remove the blank ones.";
 const EMPTY_LENGTH = 0;
@@ -80,11 +90,13 @@ const FINISH_WITHOUT_PUBLISHING_LABEL = "Finish without publishing";
 const FIRST_MATCH_INDEX = 0;
 const LAST_INDEX_OFFSET = 1;
 const LIVE_KB_CONTENT_FALLBACK = "No live knowledge base content.";
-const PLACEMENT_PENDING_MESSAGE = "Placement is still being decided.";
 const PUBLISH_LABEL = "Approve & save";
 const ICON_SIZE_MEDIUM = 16;
 const NOT_FOUND_INDEX = -1;
 const TITLE_MAX_LENGTH = 250;
+const EDIT_HINT = "Esc to exit · Alt+↓ next";
+const NEXT_SECTION_STEP = 1;
+const PREVIOUS_SECTION_STEP = -1;
 
 type EditorBlock = Block<BlockSchemaFromSpecs<BlockSpecs>>;
 
@@ -125,7 +137,6 @@ type SectionDetailsProperties = {
 	isContentEmpty: boolean;
 	isEditMode: boolean;
 	isInteractionDisabled: boolean;
-	isPlacementPending?: boolean;
 	isTitleEmpty: boolean;
 	onContentChange: (content: string, blocks: PartialBlock[]) => void;
 	onEnterEdit: () => void;
@@ -405,7 +416,6 @@ const SectionDetails = ({
 	isContentEmpty,
 	isEditMode,
 	isInteractionDisabled,
-	isPlacementPending = false,
 	isTitleEmpty,
 	onContentChange,
 	onEnterEdit,
@@ -544,7 +554,12 @@ const SectionDetails = ({
 	return (
 		<div className="flex flex-1 min-w-0 flex-col gap-3 p-3.5 tablet:p-6 tablet:overflow-y-auto">
 			<div className="flex flex-col gap-2 border-b border-border-subtle pb-3">
-				<div className="flex items-center justify-between gap-2">
+				<div
+					className={getValidClassNames(
+						"flex items-center justify-between gap-2 transition-opacity",
+						{ "opacity-40 pointer-events-none": isEditMode },
+					)}
+				>
 					<span className="font-mono text-2xs uppercase tracking-wide text-text-muted truncate block min-w-0 flex-1">
 						{breadcrumbLabel}
 					</span>
@@ -640,9 +655,6 @@ const SectionDetails = ({
 							Proposed place: {activeSection.proposedPlace}
 						</p>
 					)}
-					{isPlacementPending && !activeSection.proposedPlace && (
-						<p className="mt-1">{PLACEMENT_PENDING_MESSAGE}</p>
-					)}
 				</div>
 			)}
 
@@ -652,7 +664,7 @@ const SectionDetails = ({
 						<div className="flex flex-1 flex-col gap-1">
 							<div
 								className={getValidClassNames(
-									"min-h-40 tablet:min-h-72 w-full flex-1 rounded-md border bg-surface p-3 tablet:p-4 transition-colors",
+									"min-h-40 tablet:min-h-72 w-full flex-1 rounded-md border bg-white p-3 tablet:p-4 transition-colors ring-2 ring-accent",
 									isContentEmpty
 										? "border-error"
 										: "border-border focus:border-accent",
@@ -759,6 +771,9 @@ const PreviewFooter = ({
 		<div className="flex flex-wrap items-center justify-between gap-2">
 			{isEditMode ? (
 				<div className="flex w-full tablet:w-auto items-center justify-between tablet:justify-start gap-2 tablet:gap-3">
+					<span className="hidden tablet:block font-sans text-2xs text-text-muted">
+						{EDIT_HINT}
+					</span>
 					<Button
 						className="flex-1 tablet:flex-initial tablet:w-auto"
 						disabled={isApplying}
@@ -867,11 +882,9 @@ const syncIncomingReviewPages = ({
 
 const getReviewSubmitState = ({
 	hasBlankEntry,
-	isPlacementPending,
 	remainingExtractionItemCount,
 }: {
 	hasBlankEntry: boolean;
-	isPlacementPending: boolean;
 	remainingExtractionItemCount: number;
 }): {
 	approveLabel: string;
@@ -882,22 +895,15 @@ const getReviewSubmitState = ({
 		remainingExtractionItemCount === EMPTY_LENGTH
 			? FINISH_WITHOUT_PUBLISHING_LABEL
 			: PUBLISH_LABEL;
-	let submitBlockedReason: string | undefined;
-
-	if (hasBlankEntry && remainingExtractionItemCount > EMPTY_LENGTH) {
-		submitBlockedReason = BLANK_REVIEW_MESSAGE;
-	} else if (
-		isPlacementPending &&
-		remainingExtractionItemCount > EMPTY_LENGTH
-	) {
-		submitBlockedReason = PLACEMENT_PENDING_MESSAGE;
-	}
+	const submitBlockedReason =
+		hasBlankEntry && remainingExtractionItemCount > EMPTY_LENGTH
+			? BLANK_REVIEW_MESSAGE
+			: undefined;
 
 	return {
 		approveLabel,
 		canSubmitReview:
-			remainingExtractionItemCount === EMPTY_LENGTH ||
-			(!hasBlankEntry && !isPlacementPending),
+			remainingExtractionItemCount === EMPTY_LENGTH || !hasBlankEntry,
 		submitBlockedReason,
 	};
 };
@@ -905,13 +911,13 @@ const getReviewSubmitState = ({
 const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	errorMessage,
 	failedPageNumbers = [],
-	isPlacementPending = false,
 	onAddMore,
 	onApplyingChange,
 	onApprove,
 	onCancelDocument,
 	onClose,
 	placementStructure,
+	placementTargets = NO_PLACEMENT_TARGETS,
 	proposedStructure,
 }: IntegrationPreviewProperties): JSX.Element => {
 	const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
@@ -973,6 +979,11 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		onAddMore();
 	}, [onAddMore]);
 
+	const placementPageIds = useMemo(
+		() => new Set(placementTargets.map((target) => target.id)),
+		[placementTargets],
+	);
+
 	const publishPages = useCallback(
 		async (
 			pagesToPublish: ProposedSection[],
@@ -997,6 +1008,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 				isApplied = await onApprove({
 					contentOverrides: toContentOverrides(pagesToPublish),
 					items: toPublishedItems(pagesToPublish),
+					placements: toPublishedPlacements(pagesToPublish, placementPageIds),
 					resolutions: toConflictResolutions({
 						conflicts,
 						sections: conflictPages,
@@ -1013,7 +1025,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 				setIsSuccessModalOpen(true);
 			}
 		},
-		[isApplying, onApprove, setApplyingState],
+		[isApplying, onApprove, placementPageIds, setApplyingState],
 	);
 
 	const handleApprove = useCallback((): void => {
@@ -1092,6 +1104,46 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		[pages, publishPages],
 	);
 
+	const handleRenameSection = useCallback(
+		(pageIndex: number, sectionIndex: number): void => {
+			if (isApplying) {
+				return;
+			}
+
+			setActivePageIndex(pageIndex);
+			setActiveSectionIndex(sectionIndex);
+			setActiveNodeType("child");
+			setBackupPages(pages);
+			setIsEditMode(true);
+		},
+		[isApplying, pages],
+	);
+
+	const handleMoveSectionTo = useCallback(
+		(
+			pageIndex: number,
+			sectionIndex: number,
+			targetId: null | number,
+		): void => {
+			const target = placementTargets.find((item) => item.id === targetId);
+
+			setPages((previousPages) =>
+				updateSectionInPages({
+					pageIndex,
+					pages: previousPages,
+					partialSection: {
+						placementParentId: target?.id ?? null,
+						proposedPlace: target
+							? `${UNDER_PLACE_PREFIX}${target.title}`
+							: DOCUMENT_PAGE_LABEL,
+					},
+					sectionIndex,
+				}),
+			);
+		},
+		[placementTargets],
+	);
+
 	const handleEnterEdit = useCallback((): void => {
 		if (!canEditSelectedNode || isApplying) {
 			return;
@@ -1113,6 +1165,62 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 		setIsEditMode(false);
 	}, [isEditInvalid]);
+
+	const sectionPositions = useMemo(() => toSectionPositions(pages), [pages]);
+	const currentSectionPosition = sectionPositions.findIndex(
+		(position) =>
+			position.pageIndex === activePageIndex &&
+			position.sectionIndex === activeSectionIndex,
+	);
+
+	const handleMoveEditedSection = useCallback(
+		(step: number): void => {
+			const target = sectionPositions[currentSectionPosition + step];
+
+			if (isEditInvalid || !target) {
+				return;
+			}
+
+			setActivePageIndex(target.pageIndex);
+			setActiveSectionIndex(target.sectionIndex);
+			setActiveNodeType("child");
+		},
+		[currentSectionPosition, isEditInvalid, sectionPositions],
+	);
+
+	const handleNextSection = useCallback((): void => {
+		handleMoveEditedSection(NEXT_SECTION_STEP);
+	}, [handleMoveEditedSection]);
+
+	const handlePreviousSection = useCallback((): void => {
+		handleMoveEditedSection(PREVIOUS_SECTION_STEP);
+	}, [handleMoveEditedSection]);
+
+	const handleReviewKeyDown = useCallback(
+		(event: KeyboardEvent<HTMLDivElement>): void => {
+			if (!isEditMode || !canEditSelectedNode || event.defaultPrevented) {
+				return;
+			}
+
+			if (event.key === "Escape") {
+				event.preventDefault();
+				handleCancelEdit();
+			} else if (event.altKey && event.key === "ArrowDown") {
+				event.preventDefault();
+				handleNextSection();
+			} else if (event.altKey && event.key === "ArrowUp") {
+				event.preventDefault();
+				handlePreviousSection();
+			}
+		},
+		[
+			canEditSelectedNode,
+			handleCancelEdit,
+			handleNextSection,
+			handlePreviousSection,
+			isEditMode,
+		],
+	);
 
 	const handleSectionContentChange = useCallback(
 		(newContent: string, blocks: PartialBlock[]): void => {
@@ -1367,12 +1475,15 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	const { approveLabel, canSubmitReview, submitBlockedReason } =
 		getReviewSubmitState({
 			hasBlankEntry,
-			isPlacementPending,
 			remainingExtractionItemCount,
 		});
 
 	return (
-		<div className="mx-auto flex h-full w-full max-w-7xl flex-col justify-between gap-3 p-3 tablet:p-4 pb-2 tablet:pb-4 font-sans text-text">
+		<div
+			className="mx-auto flex h-full w-full max-w-7xl flex-col justify-between gap-3 p-3 tablet:p-4 pb-2 tablet:pb-4 font-sans text-text"
+			onKeyDown={handleReviewKeyDown}
+			role="presentation"
+		>
 			{errorMessage && (
 				<Alert
 					description={errorMessage}
@@ -1387,7 +1498,15 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					variant="warning"
 				/>
 			)}
-			<div className="flex flex-1 min-h-0 flex-col tablet:flex-row overflow-y-auto tablet:overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+			<div
+				className={getValidClassNames(
+					"flex flex-1 min-h-0 flex-col tablet:flex-row overflow-y-auto tablet:overflow-hidden rounded-lg border border-border bg-surface shadow-sm",
+					{
+						"[&>aside]:opacity-40 [&>aside]:pointer-events-none":
+							isEditMode && canEditSelectedNode,
+					},
+				)}
+			>
 				<StructureAside
 					activeNodeType={activeNodeType}
 					activePageIndex={activePageIndex}
@@ -1400,9 +1519,12 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					onDeleteSection={handleDeleteSection}
 					onMovePage={handleMovePage}
 					onMoveSection={handleMoveSection}
+					onMoveSectionTo={handleMoveSectionTo}
+					onRenameSection={handleRenameSection}
 					onSelectPage={handleSelectPage}
 					onSelectSection={handleSelectSection}
 					pages={pages}
+					placementTargets={placementTargets}
 				/>
 
 				<SectionDetails
@@ -1412,7 +1534,6 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					isContentEmpty={isContentEmpty}
 					isEditMode={isEditMode && canEditSelectedNode}
 					isInteractionDisabled={isApplying}
-					isPlacementPending={isPlacementPending}
 					isTitleEmpty={isTitleEmpty}
 					key={selectedNode?.id}
 					onContentChange={handleSectionContentChange}
@@ -1423,6 +1544,20 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					showRejectItem={IS_EXTRACTION_VALIDATION}
 				/>
 			</div>
+
+			{isEditMode &&
+				canEditSelectedNode &&
+				activeNodeType === "child" &&
+				currentSectionPosition !== NOT_FOUND_INDEX && (
+					<SectionNavigator
+						currentPosition={currentSectionPosition}
+						isDisabled={isApplying}
+						onDone={handleSaveEdit}
+						onNext={handleNextSection}
+						onPrevious={handlePreviousSection}
+						total={sectionPositions.length}
+					/>
+				)}
 
 			<PreviewFooter
 				approveLabel={approveLabel}

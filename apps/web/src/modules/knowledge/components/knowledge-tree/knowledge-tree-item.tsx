@@ -9,13 +9,20 @@ import {
 	EMPTY_LENGTH,
 	KNOWLEDGE_TREE_ITEM_CONFIG,
 } from "../../libs/constants/constants.js";
-import { type DocumentPlacement } from "../../libs/helpers/helpers.js";
+import {
+	type DocumentPlacement,
+	DropZone,
+	isDocumentNode,
+} from "../../libs/helpers/helpers.js";
 import { HighlightedText } from "./highlighted-text.js";
-import { KnowledgeTreeDocumentActions } from "./knowledge-tree-document-actions.js";
+import { type KnowledgeTreeDrag } from "./knowledge-tree-drag.js";
 import {
 	handleHorizontalNavigation,
 	handleVerticalNavigation,
 } from "./knowledge-tree-keyboard-navigation.js";
+import { KnowledgeTreeRowActions } from "./knowledge-tree-row-actions.js";
+
+const DRAG_GRIP_ICON_SIZE = 10;
 
 const {
 	BASE_PADDING,
@@ -29,12 +36,14 @@ const {
 
 type Properties = {
 	canStructure?: boolean | undefined;
+	drag?: KnowledgeTreeDrag | undefined;
 	focusedNodeId?: number | undefined;
 	isStructurePending?: boolean | undefined;
 	item: KnowledgeTreeItemResponseDto;
 	itemsByParentId: Map<null | number, KnowledgeTreeItemResponseDto[]>;
 	level?: number | undefined;
 	onCreateDocument?: ((title: string, parentId: number) => void) | undefined;
+	onEditNode?: ((id: number) => void) | undefined;
 	onFocus: (id: number) => void;
 	onMoveDocument?:
 		((id: number, placement: DocumentPlacement) => void) | undefined;
@@ -56,12 +65,14 @@ const treeItemVariants = tv({
 
 const KnowledgeTreeItem: React.FC<Properties> = ({
 	canStructure = false,
+	drag,
 	focusedNodeId,
 	isStructurePending = false,
 	item,
 	itemsByParentId,
 	level = DEFAULT_LEVEL,
 	onCreateDocument,
+	onEditNode,
 	onFocus,
 	onMoveDocument,
 	onSelect,
@@ -129,27 +140,89 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 	const expandLabel = isExpanded
 		? `Collapse ${item.title}`
 		: `Expand ${item.title}`;
-	const documentActions =
-		onCreateDocument &&
-		onMoveDocument &&
-		canStructure &&
-		isSelected &&
-		!isSearching ? (
-			<KnowledgeTreeDocumentActions
+	const rowActions =
+		onCreateDocument && onMoveDocument && canStructure ? (
+			<KnowledgeTreeRowActions
 				isPending={isStructurePending}
-				itemId={item.id}
+				item={item}
 				items={treeItems}
 				onCreateDocument={onCreateDocument}
+				onEdit={onEditNode}
 				onMoveDocument={onMoveDocument}
+				onSelect={onSelect}
 			/>
 		) : null;
+	const isDraggable =
+		Boolean(drag) &&
+		Boolean(rowActions) &&
+		!isSearching &&
+		isDocumentNode(item.type);
+	const isDropTarget = drag?.draggedId !== undefined;
+	const indicator =
+		drag?.indicator?.targetId === item.id ? drag.indicator.zone : undefined;
+
+	const handleDragStart = useCallback(
+		(event_: React.DragEvent<HTMLElement>): void => {
+			drag?.onDragStart(event_, item.id);
+		},
+		[drag, item.id],
+	);
+
+	const handleDragOver = useCallback(
+		(event_: React.DragEvent<HTMLElement>): void => {
+			drag?.onDragOver(event_, item.id);
+		},
+		[drag, item.id],
+	);
+
+	const handleDrop = useCallback(
+		(event_: React.DragEvent<HTMLElement>): void => {
+			drag?.onDrop(event_, item.id);
+		},
+		[drag, item.id],
+	);
 
 	return (
 		<div className="flex flex-col gap-0.5" role="none">
 			<div
-				className="flex items-center gap-0.5"
+				className="group relative flex items-center gap-0.5"
+				onDragOver={isDropTarget ? handleDragOver : undefined}
+				onDrop={isDropTarget ? handleDrop : undefined}
 				style={{ paddingLeft: paddingLeftString }}
 			>
+				{isDraggable && (
+					<span
+						aria-hidden="true"
+						className="absolute left-0 top-1/2 flex -translate-y-1/2 cursor-grab items-center text-text-faint opacity-0 group-focus-within:opacity-100 group-hover:opacity-100 active:cursor-grabbing"
+						data-testid={`drag-grip-${String(item.id)}`}
+						draggable
+						onDragEnd={drag?.onDragEnd}
+						onDragStart={handleDragStart}
+					>
+						<Icon name="drag-handle" size={DRAG_GRIP_ICON_SIZE} />
+					</span>
+				)}
+				{indicator === DropZone.BEFORE && (
+					<span
+						aria-hidden="true"
+						className="pointer-events-none absolute inset-x-0 top-0 h-0.5 rounded-full bg-accent"
+						data-testid="drop-indicator"
+					/>
+				)}
+				{indicator === DropZone.AFTER && (
+					<span
+						aria-hidden="true"
+						className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 rounded-full bg-accent"
+						data-testid="drop-indicator"
+					/>
+				)}
+				{indicator === DropZone.INSIDE && (
+					<span
+						aria-hidden="true"
+						className="pointer-events-none absolute inset-0 rounded-[7px] ring-2 ring-accent/60"
+						data-testid="drop-indicator"
+					/>
+				)}
 				{hasChildren ? (
 					<button
 						aria-label={expandLabel}
@@ -192,9 +265,8 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 					)}
 					<HighlightedText highlight={searchQuery} text={item.title} />
 				</button>
+				{rowActions}
 			</div>
-
-			{documentActions}
 
 			{hasChildren && isExpanded && (
 				<div
@@ -205,6 +277,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 					{children.map((child) => (
 						<KnowledgeTreeItem
 							canStructure={canStructure}
+							drag={drag}
 							focusedNodeId={focusedNodeId}
 							isStructurePending={isStructurePending}
 							item={child}
@@ -212,6 +285,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 							key={child.id}
 							level={level + LEVEL_INCREMENT}
 							onCreateDocument={onCreateDocument}
+							onEditNode={onEditNode}
 							onFocus={onFocus}
 							onMoveDocument={onMoveDocument}
 							onSelect={onSelect}

@@ -4,10 +4,9 @@ import { describe, expect, it } from "vitest";
 
 import {
 	canAddSubdocument,
-	planMoveDown,
-	planMoveOut,
-	planMoveUp,
-	planNestUnderPrevious,
+	DropZone,
+	planDrop,
+	planMoveToParent,
 } from "./plan-document-placement.helper.js";
 
 const DETAILS_ID = 3;
@@ -56,32 +55,62 @@ const tree = [
 ];
 
 describe("planDocumentPlacement", () => {
-	it("moves a document down among its siblings", () => {
-		expect(planMoveDown(tree, GUIDE_ID)).toEqual({
-			parentId: ROOT_PARENT_ID,
-			position: POSITION_SECOND,
-		});
-		expect(planMoveUp(tree, GUIDE_ID)).toBeNull();
+	it("reorders a document after its next sibling", () => {
+		expect(
+			planDrop(tree, GUIDE_ID, { targetId: NOTES_ID, zone: DropZone.AFTER }),
+		).toEqual({ parentId: ROOT_PARENT_ID, position: POSITION_SECOND });
 	});
 
-	it("nests a document under the previous document", () => {
-		expect(planNestUnderPrevious(tree, NOTES_ID)).toEqual({
-			parentId: GUIDE_ID,
-			position: POSITION_SECOND,
-		});
+	it("places a document before a sibling", () => {
+		expect(
+			planDrop(tree, NOTES_ID, { targetId: GUIDE_ID, zone: DropZone.BEFORE }),
+		).toEqual({ parentId: ROOT_PARENT_ID, position: POSITION_FIRST });
 	});
 
-	it("moves a nested document out beside its parent", () => {
-		expect(planMoveOut(tree, NESTED_ID)).toEqual({
+	it("ignores a drop that leaves the document where it is", () => {
+		expect(
+			planDrop(tree, GUIDE_ID, { targetId: NOTES_ID, zone: DropZone.BEFORE }),
+		).toBeNull();
+	});
+
+	it("nests a document at the end of the target", () => {
+		expect(
+			planDrop(tree, NOTES_ID, { targetId: GUIDE_ID, zone: DropZone.INSIDE }),
+		).toEqual({ parentId: GUIDE_ID, position: POSITION_SECOND });
+	});
+
+	it("moves a nested document beside a root document", () => {
+		expect(
+			planDrop(tree, NESTED_ID, { targetId: GUIDE_ID, zone: DropZone.AFTER }),
+		).toEqual({ parentId: ROOT_PARENT_ID, position: POSITION_SECOND });
+		expect(planMoveToParent(tree, NESTED_ID, ROOT_PARENT_ID)).toEqual({
 			parentId: ROOT_PARENT_ID,
 			position: POSITION_THIRD,
 		});
 	});
 
-	it("does not move a fact entry", () => {
-		expect(planMoveUp(tree, FACT_ID)).toBeNull();
-		expect(planMoveDown(tree, FACT_ID)).toBeNull();
-		expect(planNestUnderPrevious(tree, FACT_ID)).toBeNull();
+	it("rejects dropping a document into its own subtree or onto itself", () => {
+		expect(
+			planDrop(tree, NOTES_ID, { targetId: NESTED_ID, zone: DropZone.INSIDE }),
+		).toBeNull();
+		expect(
+			planDrop(tree, NOTES_ID, { targetId: NESTED_ID, zone: DropZone.AFTER }),
+		).toBeNull();
+		expect(
+			planDrop(tree, NOTES_ID, { targetId: NOTES_ID, zone: DropZone.AFTER }),
+		).toBeNull();
+	});
+
+	it("does not move or drop onto a fact entry", () => {
+		expect(
+			planDrop(tree, FACT_ID, { targetId: NOTES_ID, zone: DropZone.AFTER }),
+		).toBeNull();
+		expect(
+			planDrop(tree, NOTES_ID, { targetId: FACT_ID, zone: DropZone.INSIDE }),
+		).toBeNull();
+		expect(
+			planDrop(tree, NOTES_ID, { targetId: FACT_ID, zone: DropZone.BEFORE }),
+		).toBeNull();
 	});
 
 	it("stops nesting at three levels", () => {
@@ -97,7 +126,12 @@ describe("planDocumentPlacement", () => {
 		];
 
 		expect(canAddSubdocument(deepTree, DETAILS_ID)).toBe(false);
-		expect(planNestUnderPrevious(deepTree, GUIDE_ID)).toBeNull();
+		expect(
+			planDrop(deepTree, ROOT_ID, {
+				targetId: DETAILS_ID,
+				zone: DropZone.INSIDE,
+			}),
+		).toBeNull();
 		expect(canAddSubdocument(deepTree, NOTES_ID)).toBe(true);
 	});
 });

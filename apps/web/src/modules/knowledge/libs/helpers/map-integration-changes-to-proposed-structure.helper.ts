@@ -64,6 +64,8 @@ const mapIntegrationChangeToPage = (
 			.join(", ");
 	}
 
+	page.placementParentId = item.placement.parentId;
+
 	if (item.placement.matches.length > EMPTY_LENGTH) {
 		page.wordingMatches = item.placement.matches.map((match) => ({
 			span: match.span,
