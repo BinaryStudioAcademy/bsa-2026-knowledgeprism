@@ -24,7 +24,10 @@ import {
 	MIN_INDEX,
 	SEARCH_DEBOUNCE_MS,
 } from "../../libs/constants/constants.js";
-import { filterKnowledgeTree } from "../../libs/helpers/helpers.js";
+import {
+	filterKnowledgeTree,
+	getTreeItemElement,
+} from "../../libs/helpers/helpers.js";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
 import { KnowledgeTreeSearchBar } from "./knowledge-tree-search-bar.js";
 
@@ -118,9 +121,7 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 			return;
 		}
 
-		const selectedElement = document.querySelector(
-			`#knowledge-tree-root [data-id="${CSS.escape(String(selectedPageId))}"]`,
-		);
+		const selectedElement = getTreeItemElement(selectedPageId);
 
 		if (selectedElement) {
 			selectedElement.scrollIntoView({
@@ -128,16 +129,14 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 				block: "center",
 			});
 		}
-	}, [selectedPageId, items]);
+	}, [selectedPageId]);
 
 	useEffect(() => {
 		if (currentFocusId === undefined) {
 			return;
 		}
 
-		const expectedFocusElement = document.querySelector(
-			`#knowledge-tree-root [data-id="${CSS.escape(String(currentFocusId))}"]`,
-		);
+		const expectedFocusElement = getTreeItemElement(currentFocusId);
 
 		if (!expectedFocusElement) {
 			const firstVisibleItem = document.querySelector(
