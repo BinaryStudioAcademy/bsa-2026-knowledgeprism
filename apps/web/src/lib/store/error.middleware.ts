@@ -17,14 +17,12 @@ const IGNORED_ACTION_TYPES = new Set([
 	"glossary/create-term/rejected",
 	"glossary/update-term/rejected",
 	"knowledge/apply-integration-changes/rejected",
-	"knowledge/confirm-document-upload/rejected",
 	"knowledge/fetch-extraction-items/rejected",
 	"knowledge/fetch-integration-changes/rejected",
 	"knowledge/poll-document-status/rejected",
 	"knowledge/process-document/rejected",
 	"knowledge/retry-document-processing/rejected",
 	"knowledge/submit-extraction-review/rejected",
-	"knowledge/submit-manual-text/rejected",
 	"knowledge/update-extraction-item/rejected",
 ]);
 
