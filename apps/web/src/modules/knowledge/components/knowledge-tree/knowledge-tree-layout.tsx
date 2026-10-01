@@ -261,11 +261,11 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 		<>
 			<div className="flex h-full w-full flex-col bg-bg">
 				{pendingReviewDocuments.length > EMPTY_LENGTH && (
-					<div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2 text-sm">
+					<div className="flex max-h-24 shrink-0 flex-wrap overflow-y-auto items-center gap-2 border-b border-border bg-surface px-4 py-2 text-sm">
 						<span className="text-text-muted">Also waiting for review:</span>
 						{pendingReviewDocuments.map((document) => (
 							<button
-								className="rounded-md border border-border px-2 py-1 text-text hover:bg-secondary"
+								className="cursor-pointer disabled:cursor-not-allowed rounded-md border border-border px-2 py-1 text-text hover:bg-secondary"
 								data-document-id={document.documentId}
 								disabled={isReviewMutationPending}
 								key={document.documentId}
