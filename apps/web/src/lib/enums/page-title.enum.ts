@@ -15,7 +15,7 @@ const PageTitle = {
 	SIGN_UP: "Register Organisation",
 	USERS: "User Management",
 	USERS_EDIT: "Edit User",
-	USERS_NEW: "Add New User",
+	USERS_NEW: "Add New Member",
 	WORKSPACE_DETAILS: "Workspace",
 	WORKSPACES: "Workspaces",
 } as const satisfies Record<keyof typeof AppRoute, null | string>;
