@@ -1,4 +1,7 @@
-import { flattenContentToText } from "@knowledgeprism/config";
+import {
+	flattenContentToText,
+	mapWithConcurrency,
+} from "@knowledgeprism/config";
 import {
 	DocumentErrorMessage,
 	DocumentProcessingPhase,
@@ -39,6 +42,7 @@ type KnowledgeCandidate = {
 };
 
 const ANALYSIS_TEXT_SEPARATOR = "\n";
+const MAXIMUM_CONCURRENT_ANALYSES = 8;
 
 const toAnalysisText = (title: string, content: string): string =>
 	[title, content].join(ANALYSIS_TEXT_SEPARATOR).trim();
@@ -77,32 +81,34 @@ class IntegrationAnalyzer {
 		items: ExtractionItemEntity[];
 		onProgress: (progress: DocumentProcessingProgressDto) => Promise<void>;
 	}): Promise<IntegrationChangeEntity[]> {
-		const changes: IntegrationChangeEntity[] = [];
 		const progress: DocumentProcessingProgressDto = {
 			failedUnits: 0,
 			phase: DocumentProcessingPhase.INTEGRATING,
 			processedUnits: 0,
 			totalUnits: items.length,
 		};
-
-		for (const item of items) {
-			const { documentId, id, text, title } = item.toObject();
-			let result: Awaited<ReturnType<typeof analyze<KnowledgeCandidate>>>;
-			try {
-				result = await analyze({
-					candidates,
-					itemText: toAnalysisText(title, text),
-				});
-			} catch (error) {
+		const changes = await mapWithConcurrency(
+			items,
+			MAXIMUM_CONCURRENT_ANALYSES,
+			async (item) => {
+				const { documentId, id, text, title } = item.toObject();
+				let result: Awaited<ReturnType<typeof analyze<KnowledgeCandidate>>>;
+				try {
+					result = await analyze({
+						candidates,
+						itemText: toAnalysisText(title, text),
+					});
+				} catch (error) {
+					progress.processedUnits++;
+					progress.failedUnits++;
+					await onProgress({ ...progress });
+					throw error;
+				}
+				const { explanation, matchedItem, score, type } = result;
 				progress.processedUnits++;
-				progress.failedUnits++;
 				await onProgress({ ...progress });
-				throw error;
-			}
-			const { explanation, matchedItem, score, type } = result;
 
-			changes.push(
-				IntegrationChangeEntity.initializeNew({
+				return IntegrationChangeEntity.initializeNew({
 					documentId,
 					explanation,
 					extractionItemId: id,
@@ -113,11 +119,9 @@ class IntegrationAnalyzer {
 					matchedNodeId: matchedItem?.id ?? null,
 					score,
 					type,
-				}),
-			);
-			progress.processedUnits++;
-			await onProgress({ ...progress });
-		}
+				});
+			},
+		);
 
 		return toResolvableChanges(changes);
 	}

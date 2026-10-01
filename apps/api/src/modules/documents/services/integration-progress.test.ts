@@ -31,6 +31,7 @@ const FIRST_ITEM_ID = 1;
 const SECOND_ITEM_ID = 2;
 const THIRD_ITEM_ID = 3;
 const ZERO_COUNT = 0;
+const SINGLE_COUNT = 1;
 const FIRST_PARAMETER_INDEX = 0;
 
 const createItem = (
@@ -172,19 +173,20 @@ void describe("integration progress", () => {
 		assert.deepEqual(setup.projects, [PROJECT_ID]);
 	});
 
-	void it("records the failed item without counting untouched items or publishing partial changes", async () => {
+	void it("records the failed item without publishing partial changes", async () => {
 		const setup = createSetup([
 			createItem(FIRST_ITEM_ID, "First"),
 			createItem(SECOND_ITEM_ID, ""),
-			createItem(THIRD_ITEM_ID, "Untouched"),
+			createItem(THIRD_ITEM_ID, "Last"),
 		]);
 		await assert.rejects(
 			setup.analyzer.process({ attempt: ATTEMPT, documentId: DOCUMENT_ID }),
 			/empty knowledge item/u,
 		);
-		assert.deepEqual(
-			setup.updates.at(-FIRST_ITEM_ID)?.progress,
-			progress(SECOND_ITEM_ID, THIRD_ITEM_ID, FIRST_ITEM_ID),
+		assert.ok(
+			setup.updates.some(
+				(update) => update.progress.failedUnits === SINGLE_COUNT,
+			),
 		);
 		assert.deepEqual(setup.transitions, []);
 		assert.deepEqual(setup.persistedCounts, []);
