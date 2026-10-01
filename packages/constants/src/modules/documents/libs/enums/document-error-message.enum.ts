@@ -13,6 +13,8 @@ const DocumentErrorMessage = {
 	EXTRACTION_ITEM_NOT_PENDING: "Only pending extraction items can be edited",
 	FORBIDDEN: "You do not have permission to add knowledge",
 	INTEGRATION_FAILED: "Integration analysis failed",
+	INVALID_PLACEMENT:
+		"A section can only be placed under a page in this project",
 	NOT_FOUND: "Document not found",
 	PROCESSING_FAILED: "Processing failed",
 	PROCESSING_INTERRUPTED: "Processing was interrupted. Please retry.",
