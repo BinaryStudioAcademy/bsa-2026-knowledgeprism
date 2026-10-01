@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import {
+	ExtractionItemRejection,
 	ExtractionOutputError,
 	ExtractionOutputFailure,
 } from "../exceptions/extraction-output-error.exception.js";
@@ -20,6 +21,7 @@ const HEADING_BLOCK_INDEX = 0;
 const NESTED_HEADING_BLOCK_INDEX = 5;
 const PARAGRAPH_BLOCK_INDEX = 1;
 const SECOND_RUN_INDEX = 1;
+const CAPABILITIES_HEADING = "Core Capabilities";
 const CHUNK = [
 	"Overview",
 	"The limit is 10.",
@@ -276,6 +278,74 @@ void describe("mapExtractionOutput", () => {
 		);
 	});
 
+	void it("rejects the attempt when a block states something the chunk does not", () => {
+		const output = toOutput([
+			section({
+				blocks: [
+					headingBlock("Overview"),
+					{
+						content: [
+							textRun(
+								"Administrators can export every proposal to a spreadsheet.",
+							),
+						],
+						type: "paragraph",
+					},
+				],
+			}),
+		]);
+
+		assert.throws(
+			() => mapExtractionOutput(output, PAGE_NUMBER, CHUNK),
+			(error: unknown) =>
+				isInvalidItemError(error) &&
+				error instanceof ExtractionOutputError &&
+				error.detail === ExtractionItemRejection.UNGROUNDED_TEXT,
+		);
+	});
+
+	void it("marks the first section to inherit its heading when the chunk does not state it", () => {
+		const items = mapSections(
+			[
+				section({
+					blocks: [
+						headingBlock("Storage rules"),
+						{ content: [textRun("Keep a backup.")], type: "paragraph" },
+					],
+					heading: "Storage rules",
+					order: 1,
+					sourceExcerpt: "Keep a backup.",
+				}),
+			],
+			PAGE_NUMBER,
+			CHUNK,
+		);
+
+		assert.equal(items[FIRST_ITEM_INDEX]?.isHeadingInherited, true);
+	});
+
+	void it("rejects an unstated heading on a section that does not open the chunk", () => {
+		const output = toOutput([
+			section(),
+			section({
+				blocks: [
+					headingBlock("Storage rules"),
+					{ content: [textRun("Use Postgres.")], type: "paragraph" },
+				],
+				heading: "Storage rules",
+				order: 2,
+				sourceExcerpt: "Use Postgres.",
+			}),
+		]);
+
+		assert.throws(
+			() => mapExtractionOutput(output, PAGE_NUMBER, CHUNK),
+			(error: unknown) =>
+				error instanceof ExtractionOutputError &&
+				error.detail === ExtractionItemRejection.UNGROUNDED_TEXT,
+		);
+	});
+
 	void it("saves numbered capability names as a list with bold lead-ins", () => {
 		const source = [
 			"Core Capabilities",
@@ -349,8 +419,8 @@ void describe("mapExtractionOutput", () => {
 
 	void it("saves dashed capability names as a numbered list when the source numbers them", () => {
 		const source = [
-			"1. Unified Knowledge Base",
-			"2. Contextual Product Understanding",
+			"1. Unified Knowledge Base — Creates a centralized knowledge base.",
+			"2. Contextual Product Understanding — Builds an evolving understanding.",
 		].join("\n");
 		const items = mapSections(
 			[
@@ -379,7 +449,7 @@ void describe("mapExtractionOutput", () => {
 				}),
 			],
 			PAGE_NUMBER,
-			source,
+			`${CAPABILITIES_HEADING}\n${source}`,
 		);
 		const item = items[FIRST_ITEM_INDEX];
 
@@ -434,7 +504,7 @@ void describe("mapExtractionOutput", () => {
 				}),
 			],
 			PAGE_NUMBER,
-			source,
+			`${CAPABILITIES_HEADING}\n${source}`,
 		);
 		const item = items[FIRST_ITEM_INDEX];
 
@@ -473,7 +543,7 @@ void describe("mapExtractionOutput", () => {
 				}),
 			],
 			PAGE_NUMBER,
-			source,
+			`${CAPABILITIES_HEADING}\n${source}`,
 		);
 		const item = items[FIRST_ITEM_INDEX];
 

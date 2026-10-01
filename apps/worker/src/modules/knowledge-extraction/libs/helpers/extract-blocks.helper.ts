@@ -9,10 +9,15 @@ import { type ExtractionResult } from "../types/extraction-result.type.js";
 import { type KnowledgeItem } from "../types/knowledge-item.type.js";
 import { extractChunk } from "./extract-chunk.helper.js";
 import { isBlankPageContent } from "./is-blank-page-content.helper.js";
+import { withInheritedHeading } from "./map-extraction-output.helper.js";
 import { readPreviousHeading } from "./read-previous-heading.helper.js";
 import { splitIntoChunks } from "./split-into-chunks.helper.js";
 
 const EMPTY_COUNT = 0;
+const LAST_ITEM_INDEX = -1;
+const LINE_BREAK = /\r?\n/u;
+const TITLE_MAXIMUM_LENGTH = 80;
+const TITLE_START = 0;
 const FIRST_FOLLOWING_CHUNK = 1;
 const PREVIOUS_CHUNK_OFFSET = 1;
 
@@ -68,6 +73,36 @@ const carryOpenHeadings = async (
 	return carried;
 };
 
+const readFirstSourceLine = (content: string): string => {
+	const firstLine =
+		content
+			.split(LINE_BREAK)
+			.map((line) => line.trim())
+			.find((line) => line !== "") ?? "";
+
+	return firstLine.slice(TITLE_START, TITLE_MAXIMUM_LENGTH);
+};
+
+const inheritOpenHeadings = (outcomes: ChunkOutcome[]): ChunkOutcome[] => {
+	let openHeading: null | string = null;
+
+	return outcomes.map(({ chunk, result }) => {
+		const items = result.items.map((item) =>
+			item.isHeadingInherited
+				? withInheritedHeading(
+						item,
+						openHeading ?? readFirstSourceLine(chunk.content),
+					)
+				: item,
+		);
+		openHeading = result.hasFailures
+			? null
+			: (items.at(LAST_ITEM_INDEX)?.heading ?? null);
+
+		return { chunk, result: { ...result, items } };
+	});
+};
+
 const extractBlocks = async (
 	blocks: ExtractionBlock[],
 	dependencies: ExtractionDependencies,
@@ -106,7 +141,9 @@ const extractBlocks = async (
 		},
 	);
 
-	const carriedOutcomes = await carryOpenHeadings(outcomes, dependencies);
+	const carriedOutcomes = inheritOpenHeadings(
+		await carryOpenHeadings(outcomes, dependencies),
+	);
 
 	for (const { chunk, result } of carriedOutcomes) {
 		successfulChunkCount += result.successfulChunkCount;

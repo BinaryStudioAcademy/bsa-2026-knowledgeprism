@@ -11,6 +11,10 @@ import {
 	type Rejection,
 } from "../exceptions/extraction-output-error.exception.js";
 import { type KnowledgeItem } from "../types/knowledge-item.type.js";
+import {
+	createSourceVocabulary,
+	isGroundedText,
+} from "./is-grounded-text.helper.js";
 import { locateSourceSpan } from "./locate-source-span.helper.js";
 import { promoteParallelItems } from "./promote-parallel-items.helper.js";
 
@@ -343,17 +347,41 @@ const toStoredBlock = (value: unknown): ExtractionContentBlock | null => {
 	}
 };
 
+const readRawBlockText = (block: unknown): string => {
+	const content = isRecord(block) ? readContent(block) : null;
+
+	return content ? readBlockText(content) : "";
+};
+
+type StoredSection = {
+	blocks: ExtractionContentBlock[];
+	isHeadingInherited: boolean;
+};
+
 const toStoredBlocks = (
 	blocks: unknown[],
 	heading: string,
-): Checked<ExtractionContentBlock[]> => {
+	{
+		canInheritHeading,
+		vocabulary,
+	}: { canInheritHeading: boolean; vocabulary: Set<string> },
+): Checked<StoredSection> => {
 	const storedBlocks: ExtractionContentBlock[] = [];
+	let isHeadingInherited = false;
 
 	for (const [index, block] of blocks.entries()) {
 		const storedBlock = toStoredBlock(block);
 
 		if (!storedBlock) {
 			return reject(ExtractionItemRejection.INVALID_BLOCK);
+		}
+
+		if (!isGroundedText(readRawBlockText(block), vocabulary)) {
+			if (index !== FIRST_BLOCK_INDEX || !canInheritHeading) {
+				return reject(ExtractionItemRejection.UNGROUNDED_TEXT);
+			}
+
+			isHeadingInherited = true;
 		}
 
 		if (index === FIRST_BLOCK_INDEX) {
@@ -370,7 +398,7 @@ const toStoredBlocks = (
 		storedBlocks.push(storedBlock);
 	}
 
-	return accept(storedBlocks);
+	return accept({ blocks: storedBlocks, isHeadingInherited });
 };
 
 const toPlainText = (blocks: ExtractionContentBlock[]): string => {
@@ -457,7 +485,10 @@ const readCandidateRejection = (
 const toKnowledgeItem = (
 	candidate: unknown,
 	pageNumber: number,
-	chunkContent: string,
+	{
+		canInheritHeading,
+		chunkContent,
+	}: { canInheritHeading: boolean; chunkContent: string },
 ): Checked<KnowledgeItem> => {
 	if (!isRecord(candidate)) {
 		return reject(ExtractionItemRejection.NOT_AN_OBJECT);
@@ -476,7 +507,10 @@ const toKnowledgeItem = (
 		order: number;
 		sourceExcerpt: string;
 	};
-	const storedBlocks = toStoredBlocks(blocks, heading);
+	const storedBlocks = toStoredBlocks(blocks, heading, {
+		canInheritHeading,
+		vocabulary: createSourceVocabulary(chunkContent),
+	});
 
 	if (storedBlocks.rejection) {
 		return reject(storedBlocks.rejection);
@@ -484,7 +518,10 @@ const toKnowledgeItem = (
 
 	const sourceSpan =
 		locateSourceSpan(chunkContent, sourceExcerpt) ?? sourceExcerpt.trim();
-	const promotedBlocks = promoteParallelItems(storedBlocks.value, sourceSpan);
+	const promotedBlocks = promoteParallelItems(
+		storedBlocks.value.blocks,
+		sourceSpan,
+	);
 	const text = toPlainText(promotedBlocks);
 
 	if (text.trim() === "") {
@@ -495,6 +532,7 @@ const toKnowledgeItem = (
 		blocks: promotedBlocks,
 		confidence,
 		heading,
+		...(storedBlocks.value.isHeadingInherited && { isHeadingInherited: true }),
 		position: order,
 		rationale: SECTION_RATIONALE,
 		sourceExcerpt: sourceSpan,
@@ -508,18 +546,57 @@ const byPosition = (left: KnowledgeItem, right: KnowledgeItem): number => {
 	return left.position - right.position;
 };
 
+const readFirstOrder = (candidates: unknown[]): null | number => {
+	const orders = candidates
+		.map((candidate) => (isRecord(candidate) ? candidate["order"] : null))
+		.filter((order): order is number => isOrder(order));
+
+	return orders.length === EMPTY_LENGTH ? null : Math.min(...orders);
+};
+
+const withInheritedHeading = (
+	item: KnowledgeItem,
+	heading: string,
+): KnowledgeItem => {
+	const [headingBlock, ...bodyBlocks] = item.blocks;
+	const blocks = headingBlock
+		? [
+				{
+					...headingBlock,
+					content: [{ text: heading, type: TextRunType.TEXT }],
+				},
+				...bodyBlocks,
+			]
+		: bodyBlocks;
+
+	return {
+		blocks,
+		confidence: item.confidence,
+		heading,
+		position: item.position,
+		rationale: item.rationale,
+		sourceExcerpt: item.sourceExcerpt,
+		sourcePageNumber: item.sourcePageNumber,
+		text: toPlainText(blocks),
+		title: heading,
+	};
+};
+
 const mapExtractionOutput = (
 	raw: unknown,
 	pageNumber: number,
 	chunkContent: string,
 ): KnowledgeItem[] => {
-	return parseExtractionCandidates(raw)
+	const candidates = parseExtractionCandidates(raw);
+	const firstOrder = readFirstOrder(candidates);
+
+	return candidates
 		.map((candidate) => {
-			const { rejection, value } = toKnowledgeItem(
-				candidate,
-				pageNumber,
+			const { rejection, value } = toKnowledgeItem(candidate, pageNumber, {
+				canInheritHeading:
+					isRecord(candidate) && candidate["order"] === firstOrder,
 				chunkContent,
-			);
+			});
 
 			if (rejection) {
 				throw new ExtractionOutputError(
@@ -533,4 +610,4 @@ const mapExtractionOutput = (
 		.toSorted(byPosition);
 };
 
-export { mapExtractionOutput };
+export { mapExtractionOutput, withInheritedHeading };

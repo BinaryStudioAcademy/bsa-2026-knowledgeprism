@@ -14,6 +14,7 @@ const ExtractionItemRejection = {
 	INVALID_ORDER: "invalid_order",
 	MISSING_BLOCKS: "missing_blocks",
 	NOT_AN_OBJECT: "not_an_object",
+	UNGROUNDED_TEXT: "ungrounded_text",
 } as const;
 
 type Failure =

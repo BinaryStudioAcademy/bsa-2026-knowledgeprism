@@ -4,6 +4,7 @@ type KnowledgeItem = {
 	blocks: ExtractionContentBlock[];
 	confidence: number;
 	heading: string;
+	isHeadingInherited?: boolean;
 	position: number;
 	rationale: string;
 	sourceExcerpt: string;
