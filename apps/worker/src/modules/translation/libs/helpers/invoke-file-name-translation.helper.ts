@@ -4,6 +4,7 @@ import { BedrockRequest, ClaudeModelId } from "@knowledgeprism/constants";
 import { ExtractionBedrockConfig } from "~/bedrock/bedrock-request.constant.js";
 import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
 import { toResponseText } from "~/bedrock/to-response-text.helper.js";
+
 import {
 	FILE_NAME_TAG,
 	FILE_NAME_TRANSLATION_SYSTEM_PROMPT,
