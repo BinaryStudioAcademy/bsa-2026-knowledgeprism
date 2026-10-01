@@ -7,6 +7,14 @@ import { type InternalVariantProperties } from "../../types.js";
 import { ProcessingProgress } from "../processing-progress.js";
 import "./full-variant.css";
 
+const FAILED_HEADING = "Processing failed";
+const GENERIC_FAILURE_DETAIL = "Something went wrong. Please try again.";
+
+const toFailureDetail = (errorMessage: null | string | undefined): string =>
+	errorMessage && errorMessage !== FAILED_HEADING
+		? errorMessage
+		: GENERIC_FAILURE_DETAIL;
+
 const FullVariant = ({
 	currentStatus,
 	errorMessage,
@@ -22,14 +30,14 @@ const FullVariant = ({
 	return (
 		<div className="analyzing-full-state mx-auto flex w-full max-w-lg flex-col items-center justify-center gap-6 rounded-lg p-10 text-center">
 			{!isReady && !isError && <Loader size="lg" />}
-			<Heading level="1">{isError ? "Processing failed" : heading}</Heading>
+			<Heading level="1">{isError ? FAILED_HEADING : heading}</Heading>
 			<ProcessingProgress
 				currentStatus={isError ? DocumentStatus.FAILED : currentStatus}
 				progress={progress ?? null}
 			/>
 			{isError && (
 				<p className="text-sm text-text-muted">
-					{errorMessage ?? "Something went wrong. Please try again."}
+					{toFailureDetail(errorMessage)}
 				</p>
 			)}
 			{isReady && (

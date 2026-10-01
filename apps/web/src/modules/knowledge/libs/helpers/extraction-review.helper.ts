@@ -356,4 +356,8 @@ const toExtractionReviewPayload = (
 	};
 };
 
-export { mapExtractionItemsToProposedStructure, toExtractionReviewPayload };
+export {
+	mapExtractionItemsToProposedStructure,
+	toExtractionContentBlocks,
+	toExtractionReviewPayload,
+};
