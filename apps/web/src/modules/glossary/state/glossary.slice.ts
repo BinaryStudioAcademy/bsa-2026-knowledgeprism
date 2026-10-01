@@ -8,6 +8,7 @@ import { DataStatus } from "~/lib/enums/enums.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
 import {
+	confirmTerm,
 	createTerm,
 	deleteTerm,
 	loadTerm,
@@ -86,6 +87,15 @@ const { name, reducer } = createSlice({
 		builder.addCase(updateTerm.fulfilled, (state, action) => {
 			state.revision += REVISION_STEP;
 			state.selectedTerm = action.payload;
+		});
+
+		builder.addCase(confirmTerm.fulfilled, (state, action) => {
+			const { id, origin } = action.payload;
+
+			state.selectedTerm = action.payload;
+			state.terms = state.terms.map((term) =>
+				term.id === id ? { ...term, origin } : term,
+			);
 		});
 
 		builder.addCase(deleteTerm.fulfilled, (state, action) => {

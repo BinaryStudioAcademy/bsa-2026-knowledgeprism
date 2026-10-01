@@ -11,9 +11,53 @@ type ExtractionCandidate = Omit<KnowledgeItem, "sourcePageNumber">;
 const ConfidenceRange = { MAX: 1, MIN: 0 } as const;
 const TITLE_MAXIMUM_LENGTH = 80;
 const ROOT_KEY_COUNT = 1;
+const WHITESPACE_RUN = /\s+/u;
+const LINE_BREAK = /\n/u;
+const SINGLE_SPACE = " ";
+const EMPTY_STRING = "";
+const TYPOGRAPHIC_SINGLE_QUOTES = /[‘’‚‛′]/gu;
+const TYPOGRAPHIC_DOUBLE_QUOTES = /[“”„‟″]/gu;
+const TYPOGRAPHIC_DASHES = /[‐-―−]/gu;
 
 const isNonEmptyString = (value: unknown): value is string =>
 	typeof value === "string" && value.trim() !== "";
+
+const normalizeForComparison = (text: string): string =>
+	text
+		.replaceAll(TYPOGRAPHIC_SINGLE_QUOTES, "'")
+		.replaceAll(TYPOGRAPHIC_DOUBLE_QUOTES, "\u{22}")
+		.replaceAll(TYPOGRAPHIC_DASHES, "-")
+		.trim()
+		.split(WHITESPACE_RUN)
+		.join(SINGLE_SPACE);
+
+const removeWhitespace = (text: string): string =>
+	text.split(WHITESPACE_RUN).join(EMPTY_STRING);
+
+const isTextOnPage = (content: string, text: string): boolean => {
+	const normalizedText = normalizeForComparison(text);
+
+	return (
+		content.includes(normalizedText) ||
+		removeWhitespace(content).includes(removeWhitespace(normalizedText))
+	);
+};
+
+const isExcerptFromBlock = (
+	excerpt: string,
+	block: ExtractionBlock,
+): boolean => {
+	const content = normalizeForComparison(block.content);
+
+	if (isTextOnPage(content, excerpt)) {
+		return true;
+	}
+
+	return excerpt
+		.split(LINE_BREAK)
+		.filter(isNonEmptyString)
+		.every((line) => isTextOnPage(content, line));
+};
 
 const isExtractionCandidate = (
 	value: unknown,
@@ -77,7 +121,7 @@ const mapExtractionOutput = (
 	return parseExtractionCandidates(raw).map((candidate) => {
 		if (
 			!isExtractionCandidate(candidate) ||
-			!block.content.includes(candidate.sourceExcerpt.trim())
+			!isExcerptFromBlock(candidate.sourceExcerpt, block)
 		) {
 			throw new ExtractionOutputError(ExtractionOutputFailure.INVALID_ITEM);
 		}

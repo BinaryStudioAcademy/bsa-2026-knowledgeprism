@@ -19,6 +19,7 @@ export {
 export {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentConfirmUploadRouteParametersDto,
+	type DocumentProcessingProgressDto,
 	type DocumentRouteParametersDto,
 	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
@@ -39,7 +40,6 @@ export {
 	type IntegrationConflictResolutionDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
-	type ManualTextRouteParametersDto,
 	type PendingReviewDocumentsResponseDto,
 } from "./modules/documents/documents.js";
 export {

@@ -1,8 +1,6 @@
 import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { BedrockRequest, ClaudeModelId } from "@knowledgeprism/constants";
-import { toResponseText } from "@knowledgeprism/worker";
-
-import { bedrockRuntimeClient } from "~/infrastructure/bedrock/bedrock.js";
+import { bedrockRuntimeClient, toResponseText } from "@knowledgeprism/worker";
 
 import { RagBedrockRequest } from "../constants/rag-bedrock-request.constant.js";
 import {

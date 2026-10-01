@@ -1,3 +1,5 @@
+import { type GlossaryTermOrigin } from "@knowledgeprism/constants";
+import { type ValueOf } from "@knowledgeprism/types";
 import { type EmbeddingVector } from "@knowledgeprism/worker";
 
 import {
@@ -14,7 +16,13 @@ class GlossaryTermModel extends AbstractModel {
 
 	public name!: string;
 
+	public origin!: ValueOf<typeof GlossaryTermOrigin>;
+
 	public projectId!: number;
+
+	public sourceDocumentId!: null | number;
+
+	public sourceDocumentName?: null | string;
 
 	public updatedBy!: null | number;
 

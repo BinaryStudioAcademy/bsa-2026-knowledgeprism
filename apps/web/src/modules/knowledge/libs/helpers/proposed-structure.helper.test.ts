@@ -13,7 +13,8 @@ import {
 
 const EMPTY_ITEM_COUNT = 0;
 const FIRST_PAGE_INDEX = 0;
-const ITEM_COUNT_AFTER_ADDING_ONE = 3;
+const ITEM_COUNT_AFTER_ADDING_ONE = 4;
+const THIRD_ITEM_ID = 3;
 const LAST_INDEX_OFFSET = 1;
 const LAST_ITEM_OFFSET = -1;
 const OUT_OF_RANGE_PAGE_INDEX = 5;
@@ -39,6 +40,14 @@ const createPages = (): ProposedSection[] => [
 				title: "Second item",
 				type: KnowledgeNodeType.PAGE,
 			},
+			{
+				content: "Third content",
+				id: "3",
+				integrationChangeId: THIRD_ITEM_ID,
+				status: "created",
+				title: "Third item",
+				type: KnowledgeNodeType.PAGE,
+			},
 		],
 		status: "created",
 		title: "Extracted from Page 1",
@@ -48,11 +57,11 @@ const createPages = (): ProposedSection[] => [
 		id: "source-page-2",
 		pages: [
 			{
-				content: "Third content",
-				id: "3",
-				integrationChangeId: 3,
+				content: "Fourth content",
+				id: "4",
+				integrationChangeId: 4,
 				status: "created",
-				title: "Third item",
+				title: "Fourth item",
 				type: KnowledgeNodeType.PAGE,
 			},
 		],
@@ -141,19 +150,37 @@ describe("moveSectionAcrossPages", () => {
 
 		expect(
 			nextPages[FIRST_PAGE_INDEX]?.pages.map((section) => section.id),
-		).toEqual(["2", "1"]);
+		).toEqual(["2", "1", "3"]);
 	});
 
-	it("moves an item into a different page, positioned before the target item", () => {
+	it("moves an item down by one position within the same page", () => {
+		const pages = createPages();
+		const nextPages = moveSectionAcrossPages(pages, "1", "2");
+
+		expect(
+			nextPages[FIRST_PAGE_INDEX]?.pages.map((section) => section.id),
+		).toEqual(["2", "1", "3"]);
+	});
+
+	it("moves an item down by two positions within the same page", () => {
 		const pages = createPages();
 		const nextPages = moveSectionAcrossPages(pages, "1", "3");
 
 		expect(
 			nextPages[FIRST_PAGE_INDEX]?.pages.map((section) => section.id),
-		).toEqual(["2"]);
+		).toEqual(["2", "3", "1"]);
+	});
+
+	it("moves an item into a different page, positioned before the target item", () => {
+		const pages = createPages();
+		const nextPages = moveSectionAcrossPages(pages, "1", "4");
+
+		expect(
+			nextPages[FIRST_PAGE_INDEX]?.pages.map((section) => section.id),
+		).toEqual(["2", "3"]);
 		expect(
 			nextPages[SECOND_PAGE_INDEX]?.pages.map((section) => section.id),
-		).toEqual(["1", "3"]);
+		).toEqual(["1", "4"]);
 	});
 
 	it("appends an item to the end of a page when dropped on the page itself", () => {
@@ -162,7 +189,7 @@ describe("moveSectionAcrossPages", () => {
 
 		expect(
 			nextPages[SECOND_PAGE_INDEX]?.pages.map((section) => section.id),
-		).toEqual(["3", "1"]);
+		).toEqual(["4", "1"]);
 	});
 
 	it("is a no-op when active and over ids are the same", () => {

@@ -1,6 +1,7 @@
 export {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentConfirmUploadRouteParametersDto,
+	type DocumentProcessingProgressDto,
 	type DocumentRouteParametersDto,
 	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
@@ -21,6 +22,5 @@ export {
 	type IntegrationConflictResolutionDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
-	type ManualTextRouteParametersDto,
 	type PendingReviewDocumentsResponseDto,
 } from "./libs/types/types.js";

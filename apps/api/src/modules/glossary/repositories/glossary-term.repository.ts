@@ -1,6 +1,7 @@
+import { GlossaryTermOrigin } from "@knowledgeprism/constants";
 import { type GlossaryRelatedTermDto } from "@knowledgeprism/types";
 import { type EmbeddingVector } from "@knowledgeprism/worker";
-import { type Transaction } from "objection";
+import { raw, type Transaction } from "objection";
 
 import { DatabaseTableName } from "~/infrastructure/database/database.js";
 
@@ -11,6 +12,8 @@ const EMPTY_LENGTH = 0;
 const LOWERCASE_NAME_SQL = "lower(name)";
 const RELATION_ALIAS = "relation";
 const TERM_ALIAS = "term";
+const SOURCE_DOCUMENT_NAME_SQL = `(select name from ${DatabaseTableName.DOCUMENTS} where ${DatabaseTableName.DOCUMENTS}.id = ${DatabaseTableName.GLOSSARY_TERMS}.source_document_id) as source_document_name`;
+const ALL_TERM_COLUMNS = `${DatabaseTableName.GLOSSARY_TERMS}.*`;
 
 const escapeLikePattern = (query: string): string =>
 	query
@@ -25,7 +28,10 @@ const toEntity = (term: GlossaryTermModel): GlossaryTermEntity =>
 		embedding: term.embedding,
 		id: term.id,
 		name: term.name,
+		origin: term.origin,
 		projectId: term.projectId,
+		sourceDocumentId: term.sourceDocumentId,
+		sourceDocumentName: term.sourceDocumentName ?? null,
 		updatedAt: term.updatedAt,
 	});
 
@@ -51,6 +57,24 @@ class GlossaryTermRepository {
 			.execute();
 	}
 
+	public async confirm({
+		id,
+		projectId,
+		updatedBy,
+	}: {
+		id: number;
+		projectId: number;
+		updatedBy: number;
+	}): Promise<boolean> {
+		const updatedCount = await this.glossaryTermModel
+			.query()
+			.patch({ origin: GlossaryTermOrigin.MANUAL, updatedBy })
+			.where({ id, projectId })
+			.execute();
+
+		return updatedCount > EMPTY_LENGTH;
+	}
+
 	public async countByIdsAndProjectId(
 		{ ids, projectId }: { ids: number[]; projectId: number },
 		transaction?: Transaction,
@@ -67,7 +91,7 @@ class GlossaryTermRepository {
 	}
 
 	public async create(
-		{ entity, userId }: { entity: GlossaryTermEntity; userId: number },
+		{ entity, userId }: { entity: GlossaryTermEntity; userId: null | number },
 		transaction: Transaction,
 	): Promise<GlossaryTermEntity> {
 		const term = await this.glossaryTermModel
@@ -130,7 +154,10 @@ class GlossaryTermRepository {
 		projectId: number;
 		query: string;
 	}): Promise<GlossaryTermEntity[]> {
-		const builder = this.glossaryTermModel.query().where({ projectId });
+		const builder = this.glossaryTermModel
+			.query()
+			.select(ALL_TERM_COLUMNS, raw(SOURCE_DOCUMENT_NAME_SQL))
+			.where({ projectId });
 
 		if (query.length > EMPTY_LENGTH) {
 			void builder.where("name", "ilike", `%${escapeLikePattern(query)}%`);
@@ -151,6 +178,7 @@ class GlossaryTermRepository {
 	): Promise<GlossaryTermEntity | null> {
 		const term = await this.glossaryTermModel
 			.query(transaction)
+			.select(ALL_TERM_COLUMNS, raw(SOURCE_DOCUMENT_NAME_SQL))
 			.findOne({ id, projectId })
 			.execute();
 
@@ -203,7 +231,13 @@ class GlossaryTermRepository {
 	): Promise<GlossaryTermEntity> {
 		const term = await this.glossaryTermModel
 			.query(transaction)
-			.patchAndFetchById(id, { definition, embedding, name, updatedBy })
+			.patchAndFetchById(id, {
+				definition,
+				embedding,
+				name,
+				origin: GlossaryTermOrigin.MANUAL,
+				updatedBy,
+			})
 			.execute();
 
 		return toEntity(term);

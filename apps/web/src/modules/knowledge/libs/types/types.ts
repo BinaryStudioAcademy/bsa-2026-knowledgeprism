@@ -4,6 +4,7 @@ import {
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
 import {
+	type DocumentStatusResponseDto,
 	type ExtractionItemResponseDto,
 	type ExtractionSectionResponseDto,
 	type IntegrationChangeContentOverrideDto,
@@ -62,6 +63,7 @@ type KnowledgeState = {
 	activeDocumentStatus: "IDLE" | ValueOf<typeof DocumentStatus>;
 	activeDocumentSwitchRequestId: null | string;
 	contentSearchRequestId: null | string;
+	documentStatuses: Record<number, DocumentStatusResponseDto>;
 	entryRequestId: null | string;
 	extractionFailedPageNumbers: number[];
 	extractionItems: ExtractionItemResponseDto[];
@@ -137,7 +139,6 @@ type UploadedDocumentItem = {
 	errorMessage?: string | undefined;
 	id: string;
 	name: string;
-	progress: number;
 	size: number;
 	sizeLabel: string;
 	status: ValueOf<typeof DocumentProcessingStatus>;

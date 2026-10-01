@@ -423,7 +423,7 @@ describe("IntegrationPreview extraction review", () => {
 			vi.runAllTimers();
 		});
 		expect(
-			screen.getByRole("button", { name: "Preview is ready" }),
+			screen.getByRole("button", { name: "Review extraction" }),
 		).toBeInTheDocument();
 
 		rerender(
@@ -438,7 +438,7 @@ describe("IntegrationPreview extraction review", () => {
 
 		expect(screen.getByText("Processing failed")).toBeInTheDocument();
 		expect(
-			screen.queryByRole("button", { name: "Preview is ready" }),
+			screen.queryByRole("button", { name: "Review extraction" }),
 		).not.toBeInTheDocument();
 	});
 });

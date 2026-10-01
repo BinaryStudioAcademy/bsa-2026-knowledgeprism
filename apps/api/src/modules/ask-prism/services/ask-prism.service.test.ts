@@ -1,4 +1,4 @@
-import "./ask-prism.test-setup.js";
+import "~/test-setup.js";
 
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import { search } from "@knowledgeprism/worker";
@@ -211,6 +211,92 @@ void describe("AskPrismService.getSuggestedQuestions", () => {
 		const questions = await service.getSuggestedQuestions(PROJECT_ID, CONTEXT);
 
 		assert.deepStrictEqual(questions, ["Tell me about Project Overview"]);
+	});
+
+	void it("excludes file name page nodes from suggestions even if they have content", async () => {
+		const filePageWithContent = KnowledgeNodeEntity.initialize({
+			contentJson: [{ content: "Specification details", type: "paragraph" }],
+			createdAt: new Date(),
+			id: NODE_ID_ONE,
+			parentId: null,
+			position: POSITION_ONE,
+			projectId: PROJECT_ID,
+			title: "spec.pdf",
+			type: KnowledgeNodeType.PAGE,
+			updatedAt: new Date(),
+		});
+
+		const { service } = createTestSetup([filePageWithContent]);
+
+		const questions = await service.getSuggestedQuestions(PROJECT_ID, CONTEXT);
+
+		assert.deepStrictEqual(questions, [...DEFAULT_SUGGESTED_QUESTIONS]);
+	});
+
+	void it("excludes nodes with missing or empty title from suggestions", async () => {
+		const nodeWithoutTitle = KnowledgeNodeEntity.initialize({
+			contentJson: [{ content: "Some content", type: "paragraph" }],
+			createdAt: new Date(),
+			id: NODE_ID_ONE,
+			parentId: null,
+			position: POSITION_ONE,
+			projectId: PROJECT_ID,
+			title: null as unknown as string,
+			type: KnowledgeNodeType.ENTRY,
+			updatedAt: new Date(),
+		});
+
+		const { service } = createTestSetup([nodeWithoutTitle]);
+
+		const questions = await service.getSuggestedQuestions(PROJECT_ID, CONTEXT);
+
+		assert.deepStrictEqual(questions, [...DEFAULT_SUGGESTED_QUESTIONS]);
+	});
+
+	void it("formats action statement clauses with how and inserts missing article for suggested questions", async () => {
+		const entryNodeOne = KnowledgeNodeEntity.initialize({
+			contentJson: [
+				{
+					content: "Converts documents into a unified knowledge base",
+					type: "paragraph",
+				},
+			],
+			createdAt: new Date(),
+			id: NODE_ID_ONE,
+			parentId: null,
+			position: POSITION_ONE,
+			projectId: PROJECT_ID,
+			title:
+				"KnowledgePrism converts scattered docs into unified knowledge base",
+			type: KnowledgeNodeType.ENTRY,
+			updatedAt: new Date(),
+		});
+
+		const entryNodeTwo = KnowledgeNodeEntity.initialize({
+			contentJson: [
+				{
+					content: "Ensures a single source of truth across teams",
+					type: "paragraph",
+				},
+			],
+			createdAt: new Date(),
+			id: NODE_ID_TWO,
+			parentId: null,
+			position: POSITION_TWO,
+			projectId: PROJECT_ID,
+			title: "KnowledgePrism ensures a single source of truth",
+			type: KnowledgeNodeType.ENTRY,
+			updatedAt: new Date(),
+		});
+
+		const { service } = createTestSetup([entryNodeOne, entryNodeTwo]);
+
+		const questions = await service.getSuggestedQuestions(PROJECT_ID, CONTEXT);
+
+		assert.deepStrictEqual(questions, [
+			"Tell me about how KnowledgePrism converts scattered docs into a unified knowledge base",
+			"Tell me about how KnowledgePrism ensures a single source of truth",
+		]);
 	});
 });
 

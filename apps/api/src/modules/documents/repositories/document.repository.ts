@@ -1,5 +1,11 @@
-import { DocumentStatus } from "@knowledgeprism/constants";
-import { type ValueOf } from "@knowledgeprism/types";
+import {
+	DocumentProcessingPhase,
+	DocumentStatus,
+} from "@knowledgeprism/constants";
+import {
+	type DocumentProcessingProgressDto,
+	type ValueOf,
+} from "@knowledgeprism/types";
 import { raw, type Transaction } from "objection";
 
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
@@ -193,6 +199,15 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 				errorMessage: null,
 				...(status === DocumentStatus.PROCESSING && { failedPageNumbers: [] }),
 				processingAttempt: raw(NEXT_PROCESSING_ATTEMPT_SQL),
+				processingProgress: {
+					failedUnits: 0,
+					phase:
+						status === DocumentStatus.INTEGRATING
+							? DocumentProcessingPhase.INTEGRATING
+							: DocumentProcessingPhase.READING,
+					processedUnits: 0,
+					totalUnits: null,
+				},
 				status,
 			})
 			.where({ id })
@@ -229,6 +244,40 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 			})
 			.execute();
 
+		return Boolean(updatedCount);
+	}
+
+	public async updateProcessingProgress({
+		id,
+		processingAttempt,
+		progress,
+		status,
+	}: {
+		id: number;
+		processingAttempt: number;
+		progress: DocumentProcessingProgressDto;
+		status: ValueOf<typeof DocumentStatus>;
+	}): Promise<boolean> {
+		const updatedCount = await this.documentModel
+			.query()
+			.patch({ processingProgress: progress })
+			.where({ id, processingAttempt, status })
+			.where((query) => {
+				query
+					.whereNull("processingProgress")
+					.orWhereJsonPath("processingProgress", "$.phase", "=", progress.phase)
+					.orWhereJsonPath(
+						"processingProgress",
+						"$.phase",
+						"=",
+						DocumentProcessingPhase.READING,
+					);
+			})
+			.whereRaw(
+				"COALESCE((processing_progress->>'processedUnits')::integer, 0) <= ?",
+				[progress.processedUnits],
+			)
+			.execute();
 		return Boolean(updatedCount);
 	}
 

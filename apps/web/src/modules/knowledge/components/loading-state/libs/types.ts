@@ -1,4 +1,5 @@
 import { DocumentStatus } from "@knowledgeprism/constants";
+import { type DocumentProcessingProgressDto } from "@knowledgeprism/types";
 
 import { type ValueOf } from "~/lib/types/types.js";
 
@@ -35,12 +36,14 @@ type FullSuccessProperties = {
 type InternalStatusProperties = {
 	currentStatus: ValueOf<typeof DocumentStatus>;
 	isError: boolean;
-	percentage: number;
 };
 
 type InternalVariantProperties = InternalStatusProperties & Properties;
 
-type Properties =
-	CompactSuccessProperties | ErrorProperties | FullSuccessProperties;
+type Properties = (
+	CompactSuccessProperties | ErrorProperties | FullSuccessProperties
+) & {
+	progress?: DocumentProcessingProgressDto | null;
+};
 
 export { type InternalVariantProperties, type Properties };

@@ -1,5 +1,6 @@
 export { DocumentContentType } from "./document-content-type.enum.js";
 export { DocumentErrorMessage } from "./document-error-message.enum.js";
+export { DocumentProcessingPhase } from "./document-processing-phase.enum.js";
 export { DocumentSourceType } from "./document-source-type.enum.js";
 export { DocumentStatus } from "./document-status.enum.js";
 export { DocumentValidationMessage } from "./document-validation-message.enum.js";

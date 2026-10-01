@@ -20,4 +20,4 @@ const glossaryService = new GlossaryService({
 });
 const glossaryController = new GlossaryController(logger, glossaryService);
 
-export { glossaryController };
+export { glossaryController, glossaryService };
