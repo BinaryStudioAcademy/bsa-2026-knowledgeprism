@@ -8,6 +8,7 @@ import { createAutoNewResult } from "../libs/helpers/create-auto-new-result.help
 import { filterRelevantMatches } from "../libs/helpers/filter-relevant-matches.helper.js";
 import { invokeClassification } from "../libs/helpers/invoke-classification.helper.js";
 import { mapClassificationOutput } from "../libs/helpers/map-classification-output.helper.js";
+import { resolveClassification } from "../libs/helpers/resolve-classification.helper.js";
 import { type IntegrationAnalysisParameters } from "../libs/types/integration-analysis-parameters.type.js";
 import { type IntegrationAnalysisResult } from "../libs/types/integration-analysis-result.type.js";
 
@@ -79,19 +80,28 @@ const analyze = async <T>(
 	const candidateTexts = relevant.map((match) => {
 		return JSON.stringify(match.item);
 	});
-	const raw = await invokeClassification({
-		candidateTexts,
-		itemText,
-		priorPlacements,
-		tree: documents,
+	return await resolveClassification({
+		fallback: () => {
+			logger.warn(
+				"Classification stayed unparsable; proposing NEW so one section cannot fail the document",
+			);
+
+			return createAutoNewResult();
+		},
+		invoke: () =>
+			invokeClassification({
+				candidateTexts,
+				itemText,
+				priorPlacements,
+				tree: documents,
+			}),
+		map: (raw) => mapClassificationOutput(raw, relevant),
+		onUnparsable: (attempt) => {
+			logger.warn("Classification response could not be parsed.", {
+				attempt,
+			});
+		},
 	});
-	const result = mapClassificationOutput(raw, relevant);
-
-	if (result === null) {
-		throw new Error("Claude classification response could not be parsed");
-	}
-
-	return result;
 };
 
 export { analyze };
