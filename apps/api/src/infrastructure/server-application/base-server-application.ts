@@ -8,7 +8,7 @@ import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { type Config } from "~/infrastructure/config/config.js";
+import { type Config } from "~/infrastructure/config/libs/types/config.type.js";
 import { type Database } from "~/infrastructure/database/database.js";
 import { DatabaseStore } from "~/infrastructure/database/libs/packages/session/database-store.js";
 import { type Health, HealthStatus } from "~/infrastructure/health/health.js";
@@ -23,6 +23,7 @@ import {
 } from "~/shared/types/types.js";
 
 import { API_PATH_PREFIX } from "./libs/constants/api-path-prefix.constant.js";
+import { SERVER_BODY_LIMIT_IN_BYTES } from "./libs/constants/server-body-limit.constant.js";
 import { SESSION_COOKIE_NAME } from "./libs/constants/session-cookie-name.constant.js";
 import {
 	type ServerApplication,
@@ -93,12 +94,19 @@ class BaseServerApplication implements ServerApplication {
 		this.initApp();
 	}
 
+	public get fastify(): FastifyInstance {
+		return this.app;
+	}
+
 	private initApp(): void {
 		this.app = Fastify({
+			bodyLimit: SERVER_BODY_LIMIT_IN_BYTES,
 			ignoreTrailingSlash: true,
 		});
 
 		this.app.decorate("s3", this.s3Client);
+
+		this.initErrorHandler();
 	}
 
 	private initErrorHandler(): void {
@@ -162,6 +170,19 @@ class BaseServerApplication implements ServerApplication {
 				return reply.status(HTTPCode.INTERNAL_SERVER_ERROR).send(response);
 			},
 		);
+
+		this.app.setNotFoundHandler(async (request, reply) => {
+			if (isApiPath(request.url)) {
+				const response: ServerCommonErrorResponse = {
+					errorType: ServerErrorType.COMMON,
+					message: API_ROUTE_NOT_FOUND_MESSAGE,
+				};
+
+				return await reply.status(HTTPCode.NOT_FOUND).send(response);
+			}
+
+			return await reply.status(HTTPCode.NOT_FOUND).send();
+		});
 	}
 
 	private initHealthCheck(): void {
@@ -265,8 +286,6 @@ class BaseServerApplication implements ServerApplication {
 		await this.initMiddlewares();
 
 		this.initValidationCompiler();
-
-		this.initErrorHandler();
 
 		this.initRoutes();
 
