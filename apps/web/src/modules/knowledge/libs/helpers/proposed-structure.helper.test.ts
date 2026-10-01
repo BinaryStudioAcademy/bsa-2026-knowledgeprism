@@ -3,20 +3,15 @@ import { describe, expect, it } from "vitest";
 
 import { type ProposedSection } from "../types/types.js";
 import {
-	addPageGroup,
-	addSectionToPage,
-	isManualPage,
 	movePageGroup,
 	moveSectionAcrossPages,
 	removePageGroup,
+	updateSectionInPages,
 } from "./proposed-structure.helper.js";
 
-const EMPTY_ITEM_COUNT = 0;
 const FIRST_PAGE_INDEX = 0;
-const ITEM_COUNT_AFTER_ADDING_ONE = 4;
 const THIRD_ITEM_ID = 3;
 const LAST_INDEX_OFFSET = 1;
-const LAST_ITEM_OFFSET = -1;
 const OUT_OF_RANGE_PAGE_INDEX = 5;
 const SECOND_PAGE_INDEX = 1;
 
@@ -71,40 +66,18 @@ const createPages = (): ProposedSection[] => [
 	},
 ];
 
-describe("addPageGroup", () => {
-	it("appends a new empty manual page group", () => {
-		const pages = createPages();
-		const nextPages = addPageGroup(pages);
-
-		expect(nextPages).toHaveLength(pages.length + LAST_INDEX_OFFSET);
-		const [newPage] = nextPages.slice(LAST_ITEM_OFFSET);
-		expect(newPage?.pages).toHaveLength(EMPTY_ITEM_COUNT);
-		expect(newPage && isManualPage(newPage)).toBe(true);
-	});
-});
-
-describe("addSectionToPage", () => {
-	it("appends a new manual item to the target page", () => {
-		const pages = createPages();
-		const nextPages = addSectionToPage(pages, FIRST_PAGE_INDEX);
-
-		expect(nextPages[FIRST_PAGE_INDEX]?.pages).toHaveLength(
-			ITEM_COUNT_AFTER_ADDING_ONE,
-		);
-		expect(nextPages[FIRST_PAGE_INDEX]?.pages.at(LAST_ITEM_OFFSET)?.title).toBe(
-			"",
-		);
-	});
-
-	it("returns the same reference for an out-of-range page index", () => {
-		const pages = createPages();
-		expect(addSectionToPage(pages, OUT_OF_RANGE_PAGE_INDEX)).toBe(pages);
-	});
-});
-
 describe("removePageGroup", () => {
 	it("removes an empty page group", () => {
-		const pages = addPageGroup(createPages());
+		const pages: ProposedSection[] = [
+			...createPages(),
+			{
+				id: "empty-page",
+				pages: [],
+				status: "created",
+				title: "Empty page",
+				type: KnowledgeNodeType.SECTION,
+			},
+		];
 		const emptyPageIndex = pages.length - LAST_INDEX_OFFSET;
 		const nextPages = removePageGroup(pages, emptyPageIndex);
 
@@ -195,5 +168,31 @@ describe("moveSectionAcrossPages", () => {
 	it("is a no-op when active and over ids are the same", () => {
 		const pages = createPages();
 		expect(moveSectionAcrossPages(pages, "1", "1")).toBe(pages);
+	});
+});
+
+describe("updateSectionInPages", () => {
+	it("keeps a duplicate a duplicate after it is edited", () => {
+		const pages = createPages();
+		const [firstPage] = pages;
+		const [firstSection] = firstPage?.pages ?? [];
+
+		if (!firstPage || !firstSection) {
+			throw new Error("Missing fixture section");
+		}
+
+		firstSection.status = "duplicate";
+
+		const nextPages = updateSectionInPages({
+			pageIndex: FIRST_PAGE_INDEX,
+			pages,
+			partialSection: { content: "Edited content" },
+			sectionIndex: FIRST_PAGE_INDEX,
+		});
+
+		const [nextPage] = nextPages;
+		const [nextSection] = nextPage?.pages ?? [];
+
+		expect(nextSection?.status).toBe("duplicate");
 	});
 });

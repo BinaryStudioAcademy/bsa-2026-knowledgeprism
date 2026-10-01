@@ -16,8 +16,6 @@ export {
 	planMoveToParent,
 } from "./plan-document-placement.helper.js";
 export {
-	addPageGroup,
-	addSectionToPage,
 	isManualPage,
 	movePageGroup,
 	moveSectionAcrossPages,

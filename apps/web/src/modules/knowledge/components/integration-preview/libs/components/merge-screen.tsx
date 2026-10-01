@@ -11,10 +11,7 @@ import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import {
 	type ConflictResolution,
 	type FieldConflict,
-	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
-
-import { applyConflictResolutions } from "../helpers/apply-conflict-resolutions.helper.js";
 
 const CHECK_ICON_SIZE = 14;
 const DUPLICATE_INCOMING_FIELD_MESSAGE =
@@ -62,11 +59,7 @@ type MergeScreenProperties = {
 	conflicts: FieldConflict[];
 	isApplying: boolean;
 	onCancel: () => void;
-	onPublish: (
-		resolvedPages: ProposedSection[],
-		resolvedConflicts: FieldConflict[],
-	) => void;
-	pages: ProposedSection[];
+	onPublish: (resolvedConflicts: FieldConflict[]) => void;
 	submitLabel: string;
 };
 
@@ -101,7 +94,6 @@ const MergeScreen = ({
 	isApplying,
 	onCancel,
 	onPublish,
-	pages,
 	submitLabel,
 }: MergeScreenProperties): JSX.Element => {
 	const [conflicts, setConflicts] = useState<FieldConflict[]>(() =>
@@ -186,10 +178,8 @@ const MergeScreen = ({
 			return;
 		}
 
-		const resolvedPages = applyConflictResolutions(pages, conflicts);
-
-		onPublish(resolvedPages, conflicts);
-	}, [conflicts, isApplying, onPublish, pages]);
+		onPublish(conflicts);
+	}, [conflicts, isApplying, onPublish]);
 
 	const hasAllResolved = conflicts.every((item) => Boolean(item.resolution));
 

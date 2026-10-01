@@ -84,7 +84,6 @@ const createDeferred = (): PromiseWithResolvers<boolean> =>
 const FAILED_PAGE_NUMBER = 4;
 const KB_PAGE_ID = 40;
 const INITIAL_ITEM_COUNT = 2;
-const LAST_BUTTON_OFFSET = -1;
 const PARAGRAPH_BLOCK_COUNT = 2;
 const REMAINING_ITEM_COUNT = 1;
 const SINGLE_CALL_COUNT = 1;
@@ -496,6 +495,61 @@ describe("IntegrationPreview extraction review", () => {
 		});
 	});
 
+	it("sends the incoming text once when a duplicate is merged with Both", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const structure: ProposedSection[] = [
+			{
+				id: "section",
+				pages: [
+					{
+						content: "Incoming content",
+						id: "page",
+						integrationChangeId: 9,
+						matchedNodeId: 3,
+						originalContent: "Live content",
+						originalTitle: "Live title",
+						status: "duplicate",
+						title: "Incoming title",
+						type: KnowledgeNodeType.PAGE,
+						wordingMatches: [{ span: "Live content" }],
+					},
+				],
+				status: "duplicate",
+				title: "Section",
+				type: KnowledgeNodeType.SECTION,
+			},
+		];
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				proposedStructure={structure}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "Both" }));
+		fireEvent.click(screen.getByRole("button", { name: "Save decisions" }));
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					contentOverrides: [
+						{
+							changeId: 9,
+							content: "Incoming content",
+							title: "Incoming title",
+						},
+					],
+					resolutions: [
+						{ changeId: 9, content: "both", matchIndex: 0, title: "use-new" },
+					],
+				}),
+			);
+		});
+	});
+
 	it("asks for conflict decisions first and publishes them on approve", async () => {
 		const approve = vi.fn().mockResolvedValue(false);
 		const structure: ProposedSection[] = [
@@ -583,43 +637,6 @@ describe("IntegrationPreview extraction review", () => {
 });
 
 describe("IntegrationPreview proposed structure editing", () => {
-	it("lets a user add a manual page group and edit its title", () => {
-		render(
-			<IntegrationPreview
-				onAddMore={vi.fn()}
-				onApprove={vi.fn().mockResolvedValue(false)}
-				onClose={vi.fn()}
-				proposedStructure={mapExtractionItemsToProposedStructure([
-					createExtractionItem(),
-				])}
-			/>,
-		);
-
-		fireEvent.click(screen.getByRole("button", { name: "Add page" }));
-
-		expect(
-			screen.getByRole("button", { name: /New page/u }),
-		).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Edit" })).toBeEnabled();
-	});
-
-	it("lets a user add a manual item under an existing page group", () => {
-		render(
-			<IntegrationPreview
-				onAddMore={vi.fn()}
-				onApprove={vi.fn().mockResolvedValue(false)}
-				onClose={vi.fn()}
-				proposedStructure={mapExtractionItemsToProposedStructure([
-					createExtractionItem(),
-				])}
-			/>,
-		);
-
-		fireEvent.click(screen.getByRole("button", { name: "Add item" }));
-
-		expect(screen.getByText("Untitled section")).toBeInTheDocument();
-	});
-
 	it("deletes an item via its row delete button", () => {
 		const structure = mapExtractionItemsToProposedStructure([
 			createExtractionItem(),
@@ -654,35 +671,7 @@ describe("IntegrationPreview proposed structure editing", () => {
 		).toHaveLength(REMAINING_ITEM_COUNT);
 	});
 
-	it("deletes an empty manual page group via its delete button", () => {
-		render(
-			<IntegrationPreview
-				onAddMore={vi.fn()}
-				onApprove={vi.fn().mockResolvedValue(false)}
-				onClose={vi.fn()}
-				proposedStructure={mapExtractionItemsToProposedStructure([
-					createExtractionItem(),
-				])}
-			/>,
-		);
-
-		fireEvent.click(screen.getByRole("button", { name: "Add page" }));
-		expect(
-			screen.getByRole("button", { name: /New page/u }),
-		).toBeInTheDocument();
-
-		const pageRemovalButtons = screen.getAllByRole("button", {
-			name: "Delete page",
-		});
-		const newPageRemovalButton = pageRemovalButtons.at(LAST_BUTTON_OFFSET);
-
-		expect(newPageRemovalButton).toBeDefined();
-		fireEvent.click(newPageRemovalButton as HTMLElement);
-
-		expect(screen.queryByText("New page")).not.toBeInTheDocument();
-	});
-
-	it("offers add and delete controls on the placement review", () => {
+	it("offers no add controls on the placement review", () => {
 		const structure: ProposedSection[] = [
 			{
 				id: "section",
@@ -711,11 +700,11 @@ describe("IntegrationPreview proposed structure editing", () => {
 		);
 
 		expect(
-			screen.getByRole("button", { name: "Add page" }),
-		).toBeInTheDocument();
+			screen.queryByRole("button", { name: "Add page" }),
+		).not.toBeInTheDocument();
 		expect(
-			screen.getByRole("button", { name: "Add item" }),
-		).toBeInTheDocument();
+			screen.queryByRole("button", { name: "Add item" }),
+		).not.toBeInTheDocument();
 		expect(
 			screen.getByRole("button", { name: /^More actions for / }),
 		).toBeInTheDocument();

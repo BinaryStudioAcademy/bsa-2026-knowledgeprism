@@ -38,8 +38,6 @@ import {
 	toGlossaryHighlights,
 } from "~/modules/glossary/libs/helpers/helpers.js";
 import {
-	addPageGroup,
-	addSectionToPage,
 	isManualPage,
 	movePageGroup,
 	moveSectionAcrossPages,
@@ -75,12 +73,11 @@ import {
 	StructureAside,
 } from "./libs/components/structure-aside.js";
 import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
+import { replaceTextInBlocks } from "./libs/helpers/replace-text-in-blocks.helper.js";
 import {
-	applyConflictResolutions,
 	hasSavedResolutions,
 	withSavedResolutions,
-} from "./libs/helpers/apply-conflict-resolutions.helper.js";
-import { replaceTextInBlocks } from "./libs/helpers/replace-text-in-blocks.helper.js";
+} from "./libs/helpers/saved-conflict-resolutions.helper.js";
 import { toFailedPagesMessage } from "./libs/helpers/to-failed-pages-message.helper.js";
 import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consistency-check.hook.js";
 
@@ -1122,11 +1119,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 				savedConflicts,
 			);
 
-			void publishPages(
-				applyConflictResolutions(pages, decidedConflicts),
-				decidedConflicts,
-				pages,
-			);
+			void publishPages(pages, decidedConflicts);
 
 			return;
 		}
@@ -1182,14 +1175,11 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, [isApplying]);
 
 	const handleSaveDecisions = useCallback(
-		(
-			resolvedPages: ProposedSection[],
-			resolvedConflicts: FieldConflict[],
-		): void => {
+		(resolvedConflicts: FieldConflict[]): void => {
 			setSavedConflicts(resolvedConflicts);
 
 			if (isPublishAfterDecision) {
-				void publishPages(resolvedPages, resolvedConflicts, pages);
+				void publishPages(pages, resolvedConflicts);
 
 				return;
 			}
@@ -1389,27 +1379,6 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		[],
 	);
 
-	const handleAddPage = useCallback((): void => {
-		const newPageIndex = pages.length;
-
-		setPages((previousPages) => addPageGroup(previousPages));
-		setActivePageIndex(newPageIndex);
-		setActiveNodeType("parent");
-	}, [pages.length]);
-
-	const handleAddSection = useCallback(
-		(pageIndex: number): void => {
-			const newSectionIndex =
-				pages[pageIndex]?.pages.length ?? DEFAULT_SECTION_INDEX;
-
-			setPages((previousPages) => addSectionToPage(previousPages, pageIndex));
-			setActivePageIndex(pageIndex);
-			setActiveSectionIndex(newSectionIndex);
-			setActiveNodeType("child");
-		},
-		[pages],
-	);
-
 	const handleDeletePage = useCallback(
 		(pageIndex: number): void => {
 			const nextPages = removePageGroup(pages, pageIndex);
@@ -1540,7 +1509,6 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					isApplying={isApplying}
 					onCancel={handleCancelMerge}
 					onPublish={handleSaveDecisions}
-					pages={pages}
 					submitLabel={
 						isPublishAfterDecision
 							? PUBLISH_RESOLUTION_LABEL
@@ -1626,8 +1594,6 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					activeSectionIndex={activeSectionIndex}
 					isExtractionValidation={IS_EXTRACTION_VALIDATION}
 					isInteractionDisabled={isApplying}
-					onAddPage={handleAddPage}
-					onAddSection={handleAddSection}
 					onDeletePage={handleDeletePage}
 					onDeleteSection={handleDeleteSection}
 					onMovePage={handleMovePage}
