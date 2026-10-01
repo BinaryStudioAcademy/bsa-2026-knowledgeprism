@@ -57,6 +57,11 @@ const isClientErrorStatus = (statusCode: unknown): statusCode is number =>
 	statusCode >= HTTPCode.BAD_REQUEST &&
 	statusCode < HTTPCode.INTERNAL_SERVER_ERROR;
 
+const STATIC_PATH = path.join(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"../../../../public",
+);
+
 class BaseServerApplication implements ServerApplication {
 	private apis: ServerApplicationApi[];
 
@@ -181,6 +186,10 @@ class BaseServerApplication implements ServerApplication {
 				return await reply.status(HTTPCode.NOT_FOUND).send(response);
 			}
 
+			if ("sendFile" in reply && typeof reply.sendFile === "function") {
+				return await reply.sendFile("index.html", STATIC_PATH);
+			}
+
 			return await reply.status(HTTPCode.NOT_FOUND).send();
 		});
 	}
@@ -199,27 +208,9 @@ class BaseServerApplication implements ServerApplication {
 	}
 
 	private async initServe(): Promise<void> {
-		const staticPath = path.join(
-			path.dirname(fileURLToPath(import.meta.url)),
-			"../../../../public",
-		);
-
 		await this.app.register(fastifyStatic, {
 			prefix: "/",
-			root: staticPath,
-		});
-
-		this.app.setNotFoundHandler(async (request, reply) => {
-			if (isApiPath(request.url)) {
-				const response: ServerCommonErrorResponse = {
-					errorType: ServerErrorType.COMMON,
-					message: API_ROUTE_NOT_FOUND_MESSAGE,
-				};
-
-				return await reply.status(HTTPCode.NOT_FOUND).send(response);
-			}
-
-			return await reply.sendFile("index.html", staticPath);
+			root: STATIC_PATH,
 		});
 	}
 
