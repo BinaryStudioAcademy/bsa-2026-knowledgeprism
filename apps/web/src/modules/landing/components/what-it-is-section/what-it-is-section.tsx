@@ -17,7 +17,7 @@ const WhatItIsSection: React.FC = () => {
 			className={getValidClassNames(
 				revealClassName,
 				LANDING_SECTION_CONTAINER_CLASS,
-				"flex flex-wrap items-center gap-x-16 gap-y-8 py-[clamp(64px,9vw,120px)]",
+				"flex flex-wrap items-center gap-x-16 gap-y-8 py-[clamp(36px,5vw,64px)]",
 			)}
 			id="what"
 			ref={sectionReference}

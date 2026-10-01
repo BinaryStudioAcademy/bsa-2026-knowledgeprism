@@ -19,39 +19,41 @@ const HeroPreview: React.FC = () => (
 			"mobile:min-w-[320px]",
 		)}
 	>
-		<div className="relative ml-auto w-full max-w-[460px] overflow-hidden rounded-xl border border-border bg-surface">
-			<div className="border-b border-border-subtle px-4 py-3 text-[12.5px] font-medium">
-				{HERO_DEMO_PANEL.TITLE}
-			</div>
-			<div className="flex flex-col gap-1.5 px-4 py-3 pb-52">
-				{HERO_TREE_SECTIONS.map((section) => (
-					<div key={section.title}>
-						<div className="flex items-center gap-2 text-[13px] text-text-muted">
-							<Icon name="folder" size={HERO_PREVIEW_ICON_SIZE} />
-							{section.title}
-						</div>
-						{section.pages.length > EMPTY_LENGTH && (
-							<div className="mt-1 flex flex-col gap-1 pl-5">
-								{section.pages.map((page) => (
-									<div
-										className={getValidClassNames(
-											"rounded-md px-2 py-1.5 text-[13px]",
-											section.selectedPage === page
-												? "bg-border-subtle font-medium text-text"
-												: "text-text-muted",
-										)}
-										key={`${section.title}-${page}`}
-									>
-										{page}
-									</div>
-								))}
+		<div className="relative ml-auto w-full max-w-[460px] pb-8 pr-4 mobile:pb-10 mobile:pr-6">
+			<div className="relative w-full rounded-xl border border-border bg-surface shadow-sm">
+				<div className="border-b border-border-subtle px-4 py-3 text-[12.5px] font-medium">
+					{HERO_DEMO_PANEL.TITLE}
+				</div>
+				<div className="flex flex-col gap-1.5 px-4 py-3 pb-32">
+					{HERO_TREE_SECTIONS.map((section) => (
+						<div key={section.title}>
+							<div className="flex items-center gap-2 text-[13px] text-text-muted">
+								<Icon name="folder" size={HERO_PREVIEW_ICON_SIZE} />
+								{section.title}
 							</div>
-						)}
-					</div>
-				))}
+							{section.pages.length > EMPTY_LENGTH && (
+								<div className="mt-1 flex flex-col gap-1 pl-5">
+									{section.pages.map((page) => (
+										<div
+											className={getValidClassNames(
+												"rounded-md px-2 py-1.5 text-[13px]",
+												section.selectedPage === page
+													? "bg-border-subtle font-medium text-text"
+													: "text-text-muted",
+											)}
+											key={`${section.title}-${page}`}
+										>
+											{page}
+										</div>
+									))}
+								</div>
+							)}
+						</div>
+					))}
+				</div>
 			</div>
 
-			<div className="absolute right-3 bottom-3 w-[min(calc(100%-1.5rem),280px)] rounded-xl border border-border bg-surface p-2.5">
+			<div className="absolute bottom-0 right-0 z-10 w-[min(calc(100%-1rem),290px)] rounded-xl border border-border bg-surface p-3 shadow-xl">
 				<p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.08em] text-text-faint">
 					Ask Prism
 				</p>

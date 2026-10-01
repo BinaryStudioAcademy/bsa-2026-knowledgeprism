@@ -38,7 +38,7 @@ const SocialProofSection: React.FC = () => {
 			)}
 			ref={sectionReference}
 		>
-			<div className="mx-auto max-w-[1100px] px-[clamp(20px,5vw,40px)] py-10">
+			<div className="mx-auto max-w-[1100px] px-[clamp(20px,5vw,40px)] py-6">
 				<p className="mb-6 text-center text-[12px] font-medium uppercase tracking-[0.07em] text-text-faint">
 					{SOCIAL_PROOF_SECTION_COPY.line}
 				</p>
