@@ -8,7 +8,7 @@ import Fastify, { type FastifyError, type FastifyInstance } from "fastify";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { type Config } from "~/infrastructure/config/config.js";
+import { type Config } from "~/infrastructure/config/libs/types/config.type.js";
 import { type Database } from "~/infrastructure/database/database.js";
 import { DatabaseStore } from "~/infrastructure/database/libs/packages/session/database-store.js";
 import { type Health, HealthStatus } from "~/infrastructure/health/health.js";
@@ -20,14 +20,18 @@ import {
 	type ServerCommonErrorResponse,
 	type ServerValidationErrorResponse,
 	type ValidationSchema,
+	type ValueOf,
 } from "~/shared/types/types.js";
 
+import { SERVER_BODY_LIMIT_IN_BYTES } from "./libs/constants/server-body-limit.constant.js";
 import { SESSION_COOKIE_NAME } from "./libs/constants/session-cookie-name.constant.js";
 import {
 	type ServerApplication,
 	type ServerApplicationApi,
 	type ServerApplicationRouteParameters,
 } from "./libs/types/types.js";
+
+const MAXIMUM_HTTP_STATUS_CODE = 600;
 
 type Constructor = {
 	apis: ServerApplicationApi[];
@@ -82,12 +86,19 @@ class BaseServerApplication implements ServerApplication {
 		this.initApp();
 	}
 
+	public get fastify(): FastifyInstance {
+		return this.app;
+	}
+
 	private initApp(): void {
 		this.app = Fastify({
+			bodyLimit: SERVER_BODY_LIMIT_IN_BYTES,
 			ignoreTrailingSlash: true,
 		});
 
 		this.app.decorate("s3", this.s3Client);
+
+		this.initErrorHandler();
 	}
 
 	private initErrorHandler(): void {
@@ -133,9 +144,26 @@ class BaseServerApplication implements ServerApplication {
 					message: error.message,
 				};
 
-				return reply.status(HTTPCode.INTERNAL_SERVER_ERROR).send(response);
+				const status =
+					"statusCode" in error &&
+					typeof error.statusCode === "number" &&
+					error.statusCode >= HTTPCode.BAD_REQUEST &&
+					error.statusCode < MAXIMUM_HTTP_STATUS_CODE
+						? (error.statusCode as ValueOf<typeof HTTPCode>)
+						: HTTPCode.INTERNAL_SERVER_ERROR;
+
+				return reply.status(status).send(response);
 			},
 		);
+
+		this.app.setNotFoundHandler(async (_request, reply) => {
+			const response: ServerCommonErrorResponse = {
+				errorType: ServerErrorType.COMMON,
+				message: "Route not found",
+			};
+
+			return await reply.status(HTTPCode.NOT_FOUND).send(response);
+		});
 	}
 
 	private initHealthCheck(): void {
@@ -162,7 +190,16 @@ class BaseServerApplication implements ServerApplication {
 			root: staticPath,
 		});
 
-		this.app.setNotFoundHandler(async (_request, response) => {
+		this.app.setNotFoundHandler(async (request, response) => {
+			if (request.url.startsWith("/api")) {
+				const errorResponse: ServerCommonErrorResponse = {
+					errorType: ServerErrorType.COMMON,
+					message: "Route not found",
+				};
+
+				return await response.status(HTTPCode.NOT_FOUND).send(errorResponse);
+			}
+
 			await response.sendFile("index.html", staticPath);
 		});
 	}

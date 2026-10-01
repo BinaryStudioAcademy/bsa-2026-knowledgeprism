@@ -1,6 +1,6 @@
 import swaggerJsdoc from "swagger-jsdoc";
 
-import { type Config } from "~/infrastructure/config/config.js";
+import { type Config } from "~/infrastructure/config/libs/types/config.type.js";
 import { AppEnvironment } from "~/shared/enums/enums.js";
 
 import { SESSION_COOKIE_NAME } from "./libs/constants/session-cookie-name.constant.js";
