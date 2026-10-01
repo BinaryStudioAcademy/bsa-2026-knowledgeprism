@@ -22,23 +22,6 @@ type NewExtractionItem = {
 };
 
 const EMPTY_LENGTH = 0;
-const PAGE_LABEL_PREFIX = "Page ";
-
-type DocumentNameRow = {
-	id: number;
-	name: string;
-};
-
-const isDocumentNameRow = (value: unknown): value is DocumentNameRow => {
-	if (typeof value !== "object" || value === null) {
-		return false;
-	}
-
-	const row = value as Record<string, unknown>;
-
-	return typeof row["id"] === "number" && typeof row["name"] === "string";
-};
-
 const toEntity = (item: ExtractionItemModel): ExtractionItemEntity =>
 	ExtractionItemEntity.initialize({
 		blocks: item.blocks,
@@ -114,68 +97,6 @@ class ExtractionItemRepository {
 			.execute();
 
 		return item ? toEntity(item) : null;
-	}
-
-	public async findSourceCitations(
-		knowledgeNodeIds: number[],
-	): Promise<Map<number, { documentTitle: string; pageLabel: string }>> {
-		const citations = new Map<
-			number,
-			{ documentTitle: string; pageLabel: string }
-		>();
-
-		if (knowledgeNodeIds.length === EMPTY_LENGTH) {
-			return citations;
-		}
-
-		const items = await this.extractionItemModel
-			.query()
-			.whereIn("knowledgeNodeId", knowledgeNodeIds)
-			.whereNotNull("knowledgeNodeId")
-			.orderBy("id", "asc")
-			.execute();
-		const documentIds = [...new Set(items.map((item) => item.documentId))];
-
-		if (documentIds.length === EMPTY_LENGTH) {
-			return citations;
-		}
-
-		const documentRows: unknown = await this.extractionItemModel
-			.knex()
-			.select("id", "name")
-			.from("documents")
-			.whereIn("id", documentIds);
-		const nameById = new Map<number, string>();
-
-		if (Array.isArray(documentRows)) {
-			for (const row of documentRows) {
-				if (isDocumentNameRow(row)) {
-					nameById.set(row.id, row.name);
-				}
-			}
-		}
-
-		for (const item of items) {
-			if (
-				item.knowledgeNodeId === null ||
-				citations.has(item.knowledgeNodeId)
-			) {
-				continue;
-			}
-
-			const documentTitle = nameById.get(item.documentId);
-
-			if (!documentTitle) {
-				continue;
-			}
-
-			citations.set(item.knowledgeNodeId, {
-				documentTitle,
-				pageLabel: `${PAGE_LABEL_PREFIX}${String(item.sourcePageNumber)}`,
-			});
-		}
-
-		return citations;
 	}
 
 	public async insertManyPending(
