@@ -5,6 +5,7 @@ const UserValidationMessage = {
 	EMAIL_WRONG: "Email is wrong",
 	FIRST_NAME_MAXIMUM_LENGTH: "First name must be at most 50 characters long",
 	FIRST_NAME_REQUIRE: "First name is required",
+	ID_WRONG: "User ID must be a positive integer",
 	LAST_NAME_MAXIMUM_LENGTH: "Last name must be at most 50 characters long",
 	LAST_NAME_REQUIRE: "Last name is required",
 	PASSWORD_DIGIT_REQUIRE: "Password must contain at least one digit",
