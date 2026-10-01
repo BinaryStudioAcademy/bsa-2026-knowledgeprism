@@ -9,6 +9,7 @@ import {
 	extract,
 	type ExtractionBlock,
 	parseDocument,
+	translate,
 } from "@knowledgeprism/worker";
 
 import { type Database } from "~/infrastructure/database/database.js";
@@ -94,8 +95,9 @@ class DocumentProcessor {
 			return false;
 		}
 		const pages = await this.loadPages(document);
+		const translatedPages = await translate(pages);
 		const { failedPageNumbers, items } = await extract(
-			pages,
+			translatedPages,
 			{
 				documentId,
 				processingAttempt: attempt,
@@ -144,7 +146,9 @@ class DocumentProcessor {
 
 		if (isCompleted) {
 			void this.glossaryService.addTermsFromDocument({
-				content: pages.map(({ content }) => content).join(PAGE_TEXT_SEPARATOR),
+				content: translatedPages
+					.map(({ content }) => content)
+					.join(PAGE_TEXT_SEPARATOR),
 				documentId,
 				projectId: document.toObject().projectId,
 			});

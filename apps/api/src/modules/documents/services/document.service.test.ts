@@ -1,3 +1,5 @@
+import "~/test-setup.js";
+
 import { DocumentErrorMessage } from "@knowledgeprism/constants";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
