@@ -1,10 +1,10 @@
-import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import { type IntegrationChangesApplyRequestDto } from "@knowledgeprism/types";
 import React, { useCallback, useMemo } from "react";
 
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 
 import { actions } from "../../knowledge.js";
+import { isDocumentNode } from "../../libs/helpers/helpers.js";
 import { type ProposedSection } from "../../libs/types/types.js";
 import {
 	getPipelineSessionId,
@@ -43,7 +43,7 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 	const placementTargets = useMemo(
 		() =>
 			tree
-				.filter((item) => item.type === KnowledgeNodeType.PAGE)
+				.filter((item) => isDocumentNode(item.type))
 				.map(({ id, title }) => ({ id, title })),
 		[tree],
 	);
