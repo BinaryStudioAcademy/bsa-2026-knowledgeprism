@@ -1,16 +1,20 @@
 import { flattenContentToText } from "@knowledgeprism/config";
 import {
 	IntegrationChangeType,
+	IntegrationResolution,
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
 import {
+	type ExtractionContentBlock,
 	type IntegrationChangeContentOverrideDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeNodeContentDto,
 } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
+import { appendIncomingAtSpan } from "~/modules/documents/libs/helpers/append-incoming-at-span.helper.js";
 import { getIncomingFields } from "~/modules/documents/libs/helpers/get-incoming-fields.helper.js";
+import { toKnowledgeContentJson } from "~/modules/documents/libs/helpers/to-knowledge-content-json.helper.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type IntegrationChangeEntity } from "~/modules/documents/models/integration-change.entity.js";
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
@@ -31,6 +35,7 @@ type Constructor = {
 };
 
 const EMPTY_LENGTH = 0;
+const FIRST_MATCH_INDEX = 0;
 const PARAGRAPH_BLOCK_TYPE = "paragraph";
 
 const toContentJson = (text: string): KnowledgeNodeContentDto => [
@@ -78,12 +83,14 @@ class IntegrationApplier {
 
 	private async applyToMatchedNode(
 		{
+			blocksByItemId,
 			change,
 			node,
 			override,
 			resolution,
 			userId,
 		}: {
+			blocksByItemId: Map<number, ExtractionContentBlock[]>;
 			change: IntegrationChangeEntity;
 			node: KnowledgeNodeEntity;
 			override: IntegrationChangeContentOverrideDto | undefined;
@@ -92,20 +99,55 @@ class IntegrationApplier {
 		},
 		transaction: Transaction,
 	): Promise<KnowledgeNodeEntity> {
-		const { extractionItemId, type } = change.toObject();
+		const { extractionItemId, placement, type } = change.toObject();
 		const { incomingContent, incomingTitle } = resolveIncoming(
 			change,
 			override,
 		);
 		const { contentJson, id, title } = node.toObject();
+
+		if (resolution?.content === IntegrationResolution.BOTH) {
+			const liveText = flattenContentToText(contentJson);
+			const span =
+				placement.matches[resolution.matchIndex ?? FIRST_MATCH_INDEX]?.span ??
+				placement.matches[FIRST_MATCH_INDEX]?.span ??
+				"";
+			const nextText = appendIncomingAtSpan(liveText, incomingContent, span);
+			const appliedNode =
+				nextText === liveText
+					? node
+					: await this.knowledgeNodeRepository.update(
+							{
+								contentJson: toContentJson(nextText),
+								id,
+								title,
+								updatedBy: userId,
+							},
+							transaction,
+						);
+
+			await this.extractionItemRepository.linkKnowledgeNode(
+				{ id: extractionItemId, knowledgeNodeId: id },
+				transaction,
+			);
+
+			return appliedNode;
+		}
+
 		const { content: isUseIncomingContent, title: isUseIncomingTitle } =
 			getIncomingFields(type, resolution);
+		const incomingBlocks = blocksByItemId.get(extractionItemId) ?? [];
+		const incomingContentJson = toKnowledgeContentJson({
+			blocks: incomingBlocks,
+			fallbackText: incomingContent,
+			title: incomingTitle,
+		});
 		const appliedNode =
 			isUseIncomingTitle || isUseIncomingContent
 				? await this.knowledgeNodeRepository.update(
 						{
 							contentJson: isUseIncomingContent
-								? toContentJson(incomingContent)
+								? incomingContentJson
 								: contentJson,
 							id,
 							title: isUseIncomingTitle ? incomingTitle : title,
@@ -125,11 +167,13 @@ class IntegrationApplier {
 
 	private async createEntries(
 		{
+			blocksByItemId,
 			changes,
 			document,
 			overrideByChangeId,
 			userId,
 		}: Pick<ApplyParameters, "changes" | "document" | "userId"> & {
+			blocksByItemId: Map<number, ExtractionContentBlock[]>;
 			overrideByChangeId: Map<number, IntegrationChangeContentOverrideDto>;
 		},
 		transaction: Transaction,
@@ -138,6 +182,8 @@ class IntegrationApplier {
 			return;
 		}
 
+		// Proposed headings and parents stay on the review record.
+		// Approved new items still land as entries under the uploaded document.
 		const { name, projectId } = document.toObject();
 		const pagePosition =
 			await this.knowledgeNodeRepository.findNextRootPosition(
@@ -165,10 +211,16 @@ class IntegrationApplier {
 				change,
 				overrideByChangeId.get(id),
 			);
+			const blocks = blocksByItemId.get(extractionItemId) ?? [];
+			const contentJson = toKnowledgeContentJson({
+				blocks,
+				fallbackText: incomingContent,
+				title: incomingTitle,
+			});
 			const entryNode = await this.knowledgeNodeRepository.create(
 				{
 					entity: KnowledgeNodeEntity.initializeNew({
-						contentJson: toContentJson(incomingContent),
+						contentJson,
 						parentId: pageNode.toObject().id,
 						position,
 						projectId,
@@ -185,6 +237,24 @@ class IntegrationApplier {
 				transaction,
 			);
 		}
+	}
+
+	private async loadBlocksByItemId(
+		documentId: number,
+		transaction: Transaction,
+	): Promise<Map<number, ExtractionContentBlock[]>> {
+		const items = await this.extractionItemRepository.findByDocumentId(
+			documentId,
+			transaction,
+		);
+
+		return new Map(
+			items.map((item) => {
+				const { blocks, id } = item.toObject();
+
+				return [id, blocks ?? []] as const;
+			}),
+		);
 	}
 
 	private async lockUnchangedMatchedNodes(
@@ -234,7 +304,11 @@ class IntegrationApplier {
 		}: ApplyParameters,
 		transaction: Transaction,
 	): Promise<void> {
-		const { projectId } = document.toObject();
+		const { id: documentId, projectId } = document.toObject();
+		const blocksByItemId = await this.loadBlocksByItemId(
+			documentId,
+			transaction,
+		);
 		const resolutionByChangeId = new Map(
 			resolutions.map((resolution) => [resolution.changeId, resolution]),
 		);
@@ -255,6 +329,7 @@ class IntegrationApplier {
 			if (matchedNode && matchedNodeId !== null) {
 				const appliedNode = await this.applyToMatchedNode(
 					{
+						blocksByItemId,
 						change,
 						node: matchedNode,
 						override: overrideByChangeId.get(id),
@@ -271,7 +346,13 @@ class IntegrationApplier {
 		}
 
 		await this.createEntries(
-			{ changes: newChanges, document, overrideByChangeId, userId },
+			{
+				blocksByItemId,
+				changes: newChanges,
+				document,
+				overrideByChangeId,
+				userId,
+			},
 			transaction,
 		);
 	}

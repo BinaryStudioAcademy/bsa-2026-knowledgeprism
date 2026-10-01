@@ -185,6 +185,45 @@ const nextSiblingPosition = (siblings: PlacementNode[]): number => {
 	);
 };
 
+const collectRemovedDocumentIds = (
+	nodes: PlacementNode[],
+	nodeId: number,
+	seen: Set<number>,
+): number[] => {
+	if (seen.has(nodeId)) {
+		throw new DocumentPlacementError(KnowledgeValidationMessage.DOCUMENT_CYCLE);
+	}
+
+	const nextSeen = new Set(seen);
+	nextSeen.add(nodeId);
+	const removedIds: number[] = [];
+	const children = nodes
+		.filter((node) => node.parentId === nodeId)
+		.toSorted(compareSiblings);
+
+	for (const child of children) {
+		removedIds.push(...collectRemovedDocumentIds(nodes, child.id, nextSeen));
+	}
+
+	removedIds.push(nodeId);
+
+	return removedIds;
+};
+
+const planDocumentRemove = ({
+	nodeId,
+	nodes,
+}: {
+	nodeId: number;
+	nodes: PlacementNode[];
+}): number[] => {
+	if (nodes.every((item) => item.id !== nodeId)) {
+		throw new DocumentPlacementError(KnowledgeValidationMessage.NOT_FOUND);
+	}
+
+	return collectRemovedDocumentIds(nodes, nodeId, new Set());
+};
+
 const planDocumentCreate = ({
 	nodes,
 	parentId,
@@ -298,4 +337,5 @@ export {
 	DocumentPlacementError,
 	planDocumentCreate,
 	planDocumentMove,
+	planDocumentRemove,
 };

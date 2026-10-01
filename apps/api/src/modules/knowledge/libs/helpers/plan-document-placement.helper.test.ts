@@ -10,6 +10,7 @@ import {
 	type PlacementNode,
 	planDocumentCreate,
 	planDocumentMove,
+	planDocumentRemove,
 } from "./plan-document-placement.helper.js";
 
 const DETAILS_ID = 3;
@@ -348,5 +349,95 @@ void describe("planDocumentMove", () => {
 				position: POSITION_FIRST,
 			},
 		);
+	});
+});
+
+void describe("planDocumentRemove", () => {
+	void it("removes a document and its nested documents, leaving siblings out", () => {
+		const removedIds = planDocumentRemove({
+			nodeId: GUIDE_ID,
+			nodes: [
+				node({
+					id: GUIDE_ID,
+					parentId: ROOT_PARENT_ID,
+					position: POSITION_FIRST,
+				}),
+				node({
+					id: NOTES_ID,
+					parentId: ROOT_PARENT_ID,
+					position: POSITION_SECOND,
+					type: KnowledgeNodeType.SECTION,
+				}),
+				node({
+					id: DETAILS_ID,
+					parentId: GUIDE_ID,
+					position: POSITION_FIRST,
+				}),
+				node({
+					id: FACT_ID,
+					parentId: GUIDE_ID,
+					position: POSITION_SECOND,
+					type: KnowledgeNodeType.ENTRY,
+				}),
+				node({
+					id: NESTED_ID,
+					parentId: NOTES_ID,
+					position: POSITION_FIRST,
+				}),
+			],
+		});
+
+		assert.deepEqual(removedIds, [DETAILS_ID, FACT_ID, GUIDE_ID]);
+	});
+
+	void it("rejects a missing document", () => {
+		expectPlacementError(() => {
+			planDocumentRemove({
+				nodeId: MISSING_PARENT_ID,
+				nodes: [
+					node({
+						id: GUIDE_ID,
+						parentId: ROOT_PARENT_ID,
+						position: POSITION_FIRST,
+					}),
+				],
+			});
+		}, KnowledgeValidationMessage.NOT_FOUND);
+	});
+
+	void it("removes a nested section and its children, leaving siblings", () => {
+		const removedIds = planDocumentRemove({
+			nodeId: FACT_ID,
+			nodes: [
+				node({
+					id: GUIDE_ID,
+					parentId: ROOT_PARENT_ID,
+					position: POSITION_FIRST,
+				}),
+				node({
+					id: NOTES_ID,
+					parentId: ROOT_PARENT_ID,
+					position: POSITION_SECOND,
+				}),
+				node({
+					id: FACT_ID,
+					parentId: GUIDE_ID,
+					position: POSITION_FIRST,
+					type: KnowledgeNodeType.ENTRY,
+				}),
+				node({
+					id: NESTED_ID,
+					parentId: FACT_ID,
+					position: POSITION_FIRST,
+				}),
+				node({
+					id: DETAILS_ID,
+					parentId: GUIDE_ID,
+					position: POSITION_SECOND,
+				}),
+			],
+		});
+
+		assert.deepEqual(removedIds, [NESTED_ID, FACT_ID]);
 	});
 });

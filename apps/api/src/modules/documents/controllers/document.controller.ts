@@ -166,6 +166,19 @@ class DocumentController extends BaseController {
 		});
 		this.addRoute({
 			handler: (options) =>
+				this.cancelProcessing(
+					options as APIHandlerOptions<{
+						params: DocumentRouteParametersDto;
+					}>,
+				),
+			method: "POST",
+			path: DocumentsApiPath.DOCUMENT_CANCEL,
+			validation: {
+				params: documentRouteParametersValidationSchema,
+			},
+		});
+		this.addRoute({
+			handler: (options) =>
 				this.retryProcessing(
 					options as APIHandlerOptions<{
 						params: DocumentRouteParametersDto;
@@ -179,11 +192,28 @@ class DocumentController extends BaseController {
 		});
 	}
 
+	private async cancelManualText(
+		options: APIHandlerOptions<{
+			params: ManualTextRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		const { id, projectId } = this.getRouteContext(options);
+
+		return {
+			payload: await this.documentService.cancelManualText({
+				context: this.getAuthenticatedSessionContext(options),
+				id,
+				projectId,
+			}),
+			status: HTTPCode.OK,
+		};
+	}
+
 	/**
 	 * @swagger
 	 * /projects/{projectId}/manual-text/{id}/cancel:
 	 *    post:
-	 *      description: Cancel a processing or failed manual text document
+	 *      description: Cancel a manual text document at any stage before it is approved
 	 *      parameters:
 	 *        - in: path
 	 *          name: projectId
@@ -199,18 +229,40 @@ class DocumentController extends BaseController {
 	 *        200:
 	 *          description: Document cancelled
 	 */
-	private async cancelManualText(
+	/**
+	 * @swagger
+	 * /projects/{projectId}/documents/{documentId}/cancel:
+	 *    post:
+	 *      description: Cancel a document at any stage before it is approved. Running processing stops and its proposals never reach the Knowledge Base.
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: documentId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      responses:
+	 *        200:
+	 *          description: Document cancelled
+	 *        404:
+	 *          description: Document not found
+	 *        409:
+	 *          description: Document is already approved, completed or cancelled
+	 */
+	private async cancelProcessing(
 		options: APIHandlerOptions<{
-			params: ManualTextRouteParametersDto;
+			params: DocumentRouteParametersDto;
 		}>,
 	): Promise<APIHandlerResponse> {
-		const { id, projectId } = this.getRouteContext(options);
-
 		return {
-			payload: await this.documentService.cancelManualText({
+			payload: await this.documentService.cancelProcessing({
 				context: this.getAuthenticatedSessionContext(options),
-				id,
-				projectId,
+				documentId: parseIdentifier(options.params.documentId),
+				projectId: Number(options.params.projectId),
 			}),
 			status: HTTPCode.OK,
 		};

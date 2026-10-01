@@ -5,6 +5,7 @@ import {
 	DocumentSourceType,
 	DocumentStatus,
 	ExtractionItemStatus,
+	IntegrationChangeType,
 } from "@knowledgeprism/constants";
 import {
 	type DocumentProcessingProgressDto,
@@ -42,6 +43,7 @@ const createItem = (
 		confidence: 1,
 		documentId: DOCUMENT_ID,
 		extractionSectionId: null,
+		heading: null,
 		id,
 		knowledgeNodeId: null,
 		position: id,
@@ -95,6 +97,25 @@ const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
 		},
 	} as unknown as DocumentRepository;
 	const analyzer = new IntegrationAnalyzer({
+		analyze: ({ itemText }) => {
+			if (itemText.trim() === "") {
+				return Promise.reject(
+					new Error("Cannot analyze an empty knowledge item"),
+				);
+			}
+
+			return Promise.resolve({
+				explanation: "No related knowledge.",
+				matchedItem: null,
+				matches: [],
+				parentIndex: null,
+				parentPriorIndex: null,
+				proposesParent: true,
+				score: null,
+				siblingOrder: 0,
+				type: IntegrationChangeType.NEW,
+			});
+		},
 		database: {
 			transaction: <T>(callback: (transaction: Transaction) => Promise<T>) =>
 				callback({} as Transaction),

@@ -200,6 +200,20 @@ class KnowledgeController extends BaseController {
 				params: knowledgeEntryRouteParametersValidationSchema,
 			},
 		});
+
+		this.addRoute({
+			handler: (options) =>
+				this.removeDocument(
+					options as APIHandlerOptions<{
+						params: KnowledgeEntryRouteParametersDto;
+					}>,
+				),
+			method: "DELETE",
+			path: KnowledgeApiPath.ENTRY_$ID,
+			validation: {
+				params: knowledgeEntryRouteParametersValidationSchema,
+			},
+		});
 	}
 
 	/**
@@ -334,6 +348,49 @@ class KnowledgeController extends BaseController {
 				projectId: Number(options.params.projectId),
 			}),
 			status: HTTPCode.OK,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/knowledge/{id}:
+	 *    delete:
+	 *      description: Remove a document or nested section and anything nested under it
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: id
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      responses:
+	 *        204:
+	 *          description: Document removed
+	 *        401:
+	 *          description: Unauthorized
+	 *        403:
+	 *          description: Forbidden (Viewer role or non-member)
+	 *        404:
+	 *          description: Document not found
+	 */
+	private async removeDocument(
+		options: APIHandlerOptions<{
+			params: KnowledgeEntryRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		await this.knowledgeService.removeDocument({
+			context: this.getAuthenticatedSessionContext(options),
+			nodeId: Number(options.params.id),
+			projectId: Number(options.params.projectId),
+		});
+
+		return {
+			payload: null,
+			status: HTTPCode.NO_CONTENT,
 		};
 	}
 

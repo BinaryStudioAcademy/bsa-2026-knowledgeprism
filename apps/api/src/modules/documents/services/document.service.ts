@@ -25,6 +25,7 @@ import { type Logger } from "~/infrastructure/logger/logger.js";
 import { PRESIGNED_URL_EXPIRY_SECONDS } from "~/infrastructure/s3/libs/helpers/helpers.js";
 import { type GeneratePresignedUploadUrl } from "~/infrastructure/s3/libs/types/types.js";
 import { type CheckDocumentObjectExists } from "~/infrastructure/s3/verify-object.js";
+import { CANCELLABLE_DOCUMENT_STATUSES } from "~/modules/documents/libs/constants/cancellable-document-statuses.constant.js";
 import { ProcessingSweep } from "~/modules/documents/libs/constants/processing-sweep.constant.js";
 import { createContentHash } from "~/modules/documents/libs/helpers/create-content-hash.helper.js";
 import { buildDocumentStorageKey } from "~/modules/documents/libs/helpers/helpers.js";
@@ -53,6 +54,13 @@ type Constructor = {
 	generatePresignedUploadUrl: GeneratePresignedUploadUrl;
 	logger: Logger;
 	projectService: ProjectService;
+};
+
+const createCancelNotAllowedError = (): HTTPError => {
+	return new HTTPError({
+		message: DocumentErrorMessage.CANCEL_NOT_ALLOWED,
+		status: HTTPCode.CONFLICT,
+	});
 };
 
 const createRetryNotAllowedError = (): HTTPError => {
@@ -131,6 +139,22 @@ class DocumentService {
 				status: HTTPCode.SERVICE_UNAVAILABLE,
 			});
 		}
+	}
+
+	private async cancelDocument(id: number): Promise<DocumentEntity> {
+		const cancelledDocument =
+			await this.documentRepository.updateStatusIfCurrentIn({
+				allowedStatuses: CANCELLABLE_DOCUMENT_STATUSES,
+				errorMessage: null,
+				id,
+				status: DocumentStatus.CANCELLED,
+			});
+
+		if (!cancelledDocument) {
+			throw createCancelNotAllowedError();
+		}
+
+		return cancelledDocument;
 	}
 
 	private async failAndThrow(
@@ -296,22 +320,22 @@ class DocumentService {
 			projectId: numericProjectId,
 		});
 
-		const cancelledDocument =
-			await this.documentRepository.updateStatusIfCurrentIn({
-				allowedStatuses: [DocumentStatus.FAILED, DocumentStatus.PROCESSING],
-				errorMessage: null,
-				id,
-				status: DocumentStatus.CANCELLED,
-			});
-
-		if (!cancelledDocument) {
-			throw new HTTPError({
-				message: DocumentErrorMessage.CANCEL_NOT_ALLOWED,
-				status: HTTPCode.CONFLICT,
-			});
-		}
+		const cancelledDocument = await this.cancelDocument(id);
 
 		return this.toManualTextResponse(cancelledDocument);
+	}
+
+	public async cancelProcessing({
+		context,
+		documentId,
+		projectId,
+	}: DocumentReference): Promise<DocumentStatusResponseDto> {
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
+		await this.findOwnedDocument({ id: documentId, projectId });
+
+		const cancelledDocument = await this.cancelDocument(documentId);
+
+		return toDocumentStatusResponse(cancelledDocument);
 	}
 
 	public async confirmUpload({
@@ -610,6 +634,46 @@ class DocumentService {
 		});
 
 		return this.toManualTextResponse(document);
+	}
+
+	public async promoteAwaitingValidation(): Promise<void> {
+		const documents = await this.documentRepository.findByStatuses([
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		]);
+
+		for (const document of documents) {
+			const { id } = document.toObject();
+
+			await this.extractionItemRepository.markPendingApproved(id);
+
+			const items = await this.extractionItemRepository.findByDocumentId(id);
+			const hasApprovedItems = items.some(
+				(item) => item.toObject().status === ExtractionItemStatus.APPROVED,
+			);
+
+			if (!hasApprovedItems) {
+				await this.documentRepository.compareAndSwapStatus({
+					errorMessage: null,
+					expectedStatus: DocumentStatus.WAITING_FOR_VALIDATION,
+					id,
+					status: DocumentStatus.WAITING_FOR_APPROVAL,
+				});
+				continue;
+			}
+
+			const processing = await this.documentRepository.startProcessing({
+				allowedStatuses: [DocumentStatus.WAITING_FOR_VALIDATION],
+				id,
+				status: DocumentStatus.INTEGRATING,
+			});
+
+			if (processing) {
+				this.documentJobScheduler.scheduleIntegration({
+					attempt: processing.attempt,
+					documentId: id,
+				});
+			}
+		}
 	}
 
 	public async retryManualText({

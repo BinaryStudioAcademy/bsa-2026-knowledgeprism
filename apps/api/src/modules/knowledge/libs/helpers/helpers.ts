@@ -3,4 +3,5 @@ export {
 	DocumentPlacementError,
 	planDocumentCreate,
 	planDocumentMove,
+	planDocumentRemove,
 } from "./plan-document-placement.helper.js";

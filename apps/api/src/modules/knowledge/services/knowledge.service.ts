@@ -26,6 +26,7 @@ import {
 	DocumentPlacementError,
 	planDocumentCreate,
 	planDocumentMove,
+	planDocumentRemove,
 } from "../libs/helpers/helpers.js";
 import { KnowledgeNodeEntity } from "../models/knowledge-node.entity.js";
 import { type KnowledgeNodeRepository } from "../repositories/knowledge-node.repository.js";
@@ -279,6 +280,58 @@ class KnowledgeService {
 		);
 
 		return moved;
+	}
+
+	public async removeDocument({
+		context,
+		nodeId,
+		projectId,
+	}: {
+		context: ProjectAccessContext;
+		nodeId: number;
+		projectId: number;
+	}): Promise<void> {
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
+
+		await this.database.transaction(async (transaction) => {
+			const nodes = await this.knowledgeNodeRepository.lockByProjectId(
+				projectId,
+				transaction,
+			);
+			let removedIds: number[];
+
+			try {
+				removedIds = planDocumentRemove({
+					nodeId,
+					nodes: nodes.map((node) => {
+						const { id, parentId, position, type } = node.toObject();
+
+						return { id, parentId, position, type };
+					}),
+				});
+			} catch (error) {
+				this.throwPlacementError(error);
+			}
+
+			for (const removedId of removedIds) {
+				const isDeleted =
+					await this.knowledgeNodeRepository.deleteByIdAndProjectId(
+						{ id: removedId, projectId },
+						transaction,
+					);
+
+				if (!isDeleted) {
+					throw new HTTPError({
+						message: KnowledgeValidationMessage.NOT_FOUND,
+						status: HTTPCode.NOT_FOUND,
+					});
+				}
+			}
+		});
+
+		this.logger.info(
+			`User ${String(context.userId)} removed knowledge document ${String(nodeId)} from project ${String(projectId)}`,
+		);
 	}
 
 	public async search({

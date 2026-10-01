@@ -1,13 +1,18 @@
 import { ExtractionItemStatus } from "@knowledgeprism/constants";
-import { type ValueOf } from "@knowledgeprism/types";
+import {
+	type ExtractionContentBlock,
+	type ValueOf,
+} from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
 import { ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
 import { type ExtractionItemModel } from "~/modules/documents/models/extraction-item.model.js";
 
 type NewExtractionItem = {
+	blocks?: ExtractionContentBlock[];
 	confidence: number;
 	extractionSectionId?: null | number;
+	heading: null | string;
 	position?: number;
 	rationale: string;
 	sourceExcerpt: string;
@@ -17,12 +22,13 @@ type NewExtractionItem = {
 };
 
 const EMPTY_LENGTH = 0;
-
 const toEntity = (item: ExtractionItemModel): ExtractionItemEntity =>
 	ExtractionItemEntity.initialize({
+		blocks: item.blocks,
 		confidence: item.confidence,
 		documentId: item.documentId,
 		extractionSectionId: item.extractionSectionId,
+		heading: item.heading ?? null,
 		id: item.id,
 		knowledgeNodeId: item.knowledgeNodeId,
 		position: item.position,
@@ -137,6 +143,17 @@ class ExtractionItemRepository {
 		);
 	}
 
+	public async markPendingApproved(
+		documentId: number,
+		transaction?: Transaction,
+	): Promise<void> {
+		await this.extractionItemModel
+			.query(transaction)
+			.patch({ status: ExtractionItemStatus.APPROVED })
+			.where({ documentId, status: ExtractionItemStatus.PENDING })
+			.execute();
+	}
+
 	public async markRejected(
 		ids: number[],
 		transaction: Transaction,
@@ -173,6 +190,40 @@ class ExtractionItemRepository {
 			.execute();
 	}
 
+	public async updateApprovedContent(
+		{
+			blocks,
+			documentId,
+			id,
+			text,
+			title,
+		}: {
+			blocks?: ExtractionContentBlock[];
+			documentId: number;
+			id: number;
+			text: string;
+			title: string;
+		},
+		transaction?: Transaction,
+	): Promise<ExtractionItemEntity | null> {
+		const updated = await this.extractionItemModel
+			.query(transaction)
+			.patch({
+				text,
+				title,
+				...(blocks && { blocks }),
+			})
+			.where({
+				documentId,
+				id,
+				status: ExtractionItemStatus.APPROVED,
+			})
+			.returning("*")
+			.first();
+
+		return updated ? toEntity(updated) : null;
+	}
+
 	public async updatePendingContent(
 		{
 			documentId,
@@ -197,6 +248,7 @@ class ExtractionItemRepository {
 
 	public async updatePendingReviewPlacement(
 		{
+			blocks,
 			documentId,
 			extractionSectionId,
 			id,
@@ -204,6 +256,7 @@ class ExtractionItemRepository {
 			text,
 			title,
 		}: {
+			blocks?: ExtractionContentBlock[];
 			documentId: number;
 			extractionSectionId: number;
 			id: number;
@@ -216,6 +269,7 @@ class ExtractionItemRepository {
 		const updated = await this.extractionItemModel
 			.query(transaction)
 			.patch({
+				...(blocks && { blocks }),
 				extractionSectionId,
 				position,
 				text,

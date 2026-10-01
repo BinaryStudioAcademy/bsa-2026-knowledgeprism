@@ -3,9 +3,11 @@ import {
 	DocumentStatus,
 	ExtractionItemStatus,
 	IntegrationChangeType,
+	IntegrationResolution,
 } from "@knowledgeprism/constants";
 import {
 	type DocumentStatusResponseDto,
+	type ExtractionContentBlock,
 	type ExtractionItemResponseDto,
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
@@ -91,8 +93,10 @@ const toExtractionItemResponse = (
 	> = new Map(),
 ): ExtractionItemResponseDto => {
 	const {
+		blocks,
 		confidence,
 		extractionSectionId,
+		heading,
 		id,
 		position,
 		rationale,
@@ -108,6 +112,7 @@ const toExtractionItemResponse = (
 	const response: ExtractionItemResponseDto = {
 		confidence,
 		extractionSectionId,
+		heading,
 		id,
 		position,
 		rationale,
@@ -117,6 +122,10 @@ const toExtractionItemResponse = (
 		text,
 		title,
 	};
+
+	if (blocks && blocks.length > EMPTY_LENGTH) {
+		response.blocks = blocks;
+	}
 
 	if (section) {
 		response.sectionPosition = section.position;
@@ -163,6 +172,7 @@ const toIntegrationChangeResponse = (
 		liveContent,
 		liveTitle,
 		matchedNodeId,
+		placement,
 		score,
 		type,
 	} = change.toObject();
@@ -176,6 +186,7 @@ const toIntegrationChangeResponse = (
 		liveContent,
 		liveTitle,
 		matchedNodeId,
+		placement,
 		score,
 		type,
 	};
@@ -224,7 +235,11 @@ const assertResolutionsCoverConflicts = (
 ): void => {
 	const conflictIds = changes
 		.map((change) => change.toObject())
-		.filter(({ type }) => type === IntegrationChangeType.CONFLICT)
+		.filter(
+			({ type }) =>
+				type === IntegrationChangeType.CONFLICT ||
+				type === IntegrationChangeType.DUPLICATE,
+		)
 		.map(({ id }) => id);
 	const resolvedIds = resolutions.map(({ changeId }) => changeId);
 
@@ -266,12 +281,16 @@ const assertSingleWritePerEntryField = (
 			continue;
 		}
 
-		const incomingFields = getIncomingFields(
-			type,
-			resolutionByChangeId.get(id),
-		);
+		const resolution = resolutionByChangeId.get(id);
+		const incomingFields = getIncomingFields(type, resolution);
+		const written = {
+			content:
+				incomingFields.content ||
+				resolution?.content === IntegrationResolution.BOTH,
+			title: incomingFields.title,
+		};
 
-		for (const [field, isWritten] of Object.entries(incomingFields)) {
+		for (const [field, isWritten] of Object.entries(written)) {
 			const fieldKey = `${String(matchedNodeId)}:${field}`;
 
 			if (isWritten && writtenFields.has(fieldKey)) {
@@ -330,32 +349,83 @@ class DocumentReviewService {
 		this.projectService = projectService;
 	}
 
-	private async applyInTransaction({
-		changes,
+	private async applyPublishedItems({
 		contentOverrides,
 		document,
+		items,
 		resolutions,
 		userId,
 	}: {
-		changes: IntegrationChangeEntity[];
 		contentOverrides: IntegrationChangesApplyRequestDto["contentOverrides"];
 		document: DocumentEntity;
+		items: IntegrationChangesApplyRequestDto["items"];
 		resolutions: IntegrationChangesApplyRequestDto["resolutions"];
 		userId: number;
 	}): Promise<DocumentEntity> {
+		const documentId = document.toObject().id;
+		const publishedIds = new Set(items.map((item) => item.id));
+
 		return await this.database.transaction(async (transaction) => {
-			const approvedDocument =
+			for (const item of items) {
+				const updated =
+					await this.extractionItemRepository.updateApprovedContent(
+						{
+							...(item.blocks && { blocks: item.blocks }),
+							documentId,
+							id: item.id,
+							text: item.text,
+							title: item.title,
+						},
+						transaction,
+					);
+
+				if (!updated) {
+					throw new HTTPError({
+						message: DocumentErrorMessage.REVIEW_ITEMS_MISMATCH,
+						status: HTTPCode.BAD_REQUEST,
+					});
+				}
+
+				const didUpdateIncoming =
+					await this.integrationChangeRepository.updateIncoming(
+						{
+							documentId,
+							extractionItemId: item.id,
+							incomingContent: item.text,
+							incomingTitle: item.title,
+						},
+						transaction,
+					);
+
+				if (!didUpdateIncoming) {
+					throw new HTTPError({
+						message: DocumentErrorMessage.REVIEW_ITEMS_MISMATCH,
+						status: HTTPCode.BAD_REQUEST,
+					});
+				}
+			}
+
+			const storedChanges =
+				await this.integrationChangeRepository.findByDocumentId(
+					documentId,
+					transaction,
+				);
+			const changes = storedChanges.filter((change) =>
+				publishedIds.has(change.toObject().extractionItemId),
+			);
+
+			const completedDocument =
 				await this.documentRepository.compareAndSwapStatus(
 					{
 						errorMessage: null,
 						expectedStatus: DocumentStatus.WAITING_FOR_APPROVAL,
-						id: document.toObject().id,
+						id: documentId,
 						status: DocumentStatus.COMPLETED,
 					},
 					transaction,
 				);
 
-			if (!approvedDocument) {
+			if (!completedDocument) {
 				throw createApplyNotAllowedError();
 			}
 
@@ -364,7 +434,26 @@ class DocumentReviewService {
 				transaction,
 			);
 
-			return approvedDocument;
+			const extractionItems =
+				await this.extractionItemRepository.findByDocumentId(
+					documentId,
+					transaction,
+				);
+			const rejectedIds = extractionItems
+				.map((item) => item.toObject())
+				.filter(
+					(item) =>
+						item.status === ExtractionItemStatus.APPROVED &&
+						!publishedIds.has(item.id),
+				)
+				.map((item) => item.id);
+
+			await this.extractionItemRepository.markRejected(
+				rejectedIds,
+				transaction,
+			);
+
+			return completedDocument;
 		});
 	}
 
@@ -455,16 +544,25 @@ class DocumentReviewService {
 		transaction: Transaction,
 	): Promise<number[]> {
 		const approvedIds: number[] = [];
-		const manualItems: { itemPosition: number; text: string; title: string }[] =
-			[];
+		const manualItems: {
+			blocks?: ExtractionContentBlock[];
+			itemPosition: number;
+			text: string;
+			title: string;
+		}[] = [];
 
 		for (const [itemPosition, item] of section.items.entries()) {
 			const text = item.text.trim();
 			const title = item.title.trim();
+			const blocks =
+				item.blocks && item.blocks.length > EMPTY_LENGTH
+					? item.blocks
+					: undefined;
 
 			if (item.id) {
 				const approvedId = await this.updateExistingStructuredReviewItem(
 					{
+						...(blocks && { blocks }),
 						documentId,
 						id: item.id,
 						itemPosition,
@@ -481,7 +579,12 @@ class DocumentReviewService {
 				continue;
 			}
 
-			manualItems.push({ itemPosition, text, title });
+			manualItems.push({
+				...(blocks && { blocks }),
+				itemPosition,
+				text,
+				title,
+			});
 		}
 
 		if (manualItems.length > EMPTY_LENGTH) {
@@ -489,9 +592,11 @@ class DocumentReviewService {
 				await this.extractionItemRepository.insertManyPending(
 					{
 						documentId,
-						items: manualItems.map(({ itemPosition, text, title }) => ({
+						items: manualItems.map(({ blocks, itemPosition, text, title }) => ({
+							...(blocks && { blocks }),
 							confidence: MANUAL_ITEM_CONFIDENCE,
 							extractionSectionId: sectionId,
+							heading: null,
 							position: itemPosition,
 							rationale: MANUAL_ITEM_RATIONALE,
 							sourceExcerpt: MANUAL_ITEM_SOURCE_EXCERPT,
@@ -509,6 +614,52 @@ class DocumentReviewService {
 		}
 
 		return approvedIds;
+	}
+
+	private async completeWithoutPublishing(
+		documentId: number,
+	): Promise<DocumentEntity> {
+		return await this.database.transaction(async (transaction) => {
+			const completedDocument =
+				(await this.documentRepository.compareAndSwapStatus(
+					{
+						errorMessage: null,
+						expectedStatus: DocumentStatus.WAITING_FOR_APPROVAL,
+						id: documentId,
+						status: DocumentStatus.COMPLETED,
+					},
+					transaction,
+				)) ??
+				(await this.documentRepository.compareAndSwapStatus(
+					{
+						errorMessage: null,
+						expectedStatus: DocumentStatus.INTEGRATING,
+						id: documentId,
+						status: DocumentStatus.COMPLETED,
+					},
+					transaction,
+				));
+
+			if (!completedDocument) {
+				throw createApplyNotAllowedError();
+			}
+
+			const items = await this.extractionItemRepository.findByDocumentId(
+				documentId,
+				transaction,
+			);
+			const rejectedIds = items
+				.map((item) => item.toObject())
+				.filter((item) => item.status !== ExtractionItemStatus.REJECTED)
+				.map((item) => item.id);
+
+			await this.extractionItemRepository.markRejected(
+				rejectedIds,
+				transaction,
+			);
+
+			return completedDocument;
+		});
 	}
 
 	private async executeCompletionWithoutApprovals(
@@ -539,35 +690,6 @@ class DocumentReviewService {
 		await this.extractionItemRepository.markRejected(rejectedIds, transaction);
 
 		return completedDocument;
-	}
-
-	private async executeIntegrationStart(
-		{
-			approvedIds,
-			documentId,
-			rejectedIds,
-		}: ExtractionItemsReviewRequestDto & {
-			documentId: number;
-		},
-		transaction: Transaction,
-	): Promise<{ attempt: number; document: DocumentEntity }> {
-		const integration = await this.documentRepository.startProcessing(
-			{
-				allowedStatuses: [DocumentStatus.WAITING_FOR_VALIDATION],
-				id: documentId,
-				status: DocumentStatus.INTEGRATING,
-			},
-			transaction,
-		);
-
-		if (!integration) {
-			throw createReviewNotAllowedError();
-		}
-
-		await this.extractionItemRepository.markApproved(approvedIds, transaction);
-		await this.extractionItemRepository.markRejected(rejectedIds, transaction);
-
-		return integration;
 	}
 
 	private async findProjectDocument(
@@ -609,6 +731,7 @@ class DocumentReviewService {
 
 	private async updateExistingStructuredReviewItem(
 		{
+			blocks,
 			documentId,
 			id,
 			itemPosition,
@@ -618,6 +741,7 @@ class DocumentReviewService {
 			title,
 			usedPendingIds,
 		}: {
+			blocks?: ExtractionContentBlock[];
 			documentId: number;
 			id: number;
 			itemPosition: number;
@@ -639,6 +763,7 @@ class DocumentReviewService {
 		const updated =
 			await this.extractionItemRepository.updatePendingReviewPlacement(
 				{
+					...(blocks && { blocks }),
 					documentId,
 					extractionSectionId: sectionId,
 					id,
@@ -673,24 +798,51 @@ class DocumentReviewService {
 		);
 
 		const document = await this.findProjectDocument(reference);
+		const status = document.toObject().status;
 
-		if (document.toObject().status !== DocumentStatus.WAITING_FOR_APPROVAL) {
+		if (payload.items.length === EMPTY_LENGTH) {
+			if (
+				status !== DocumentStatus.WAITING_FOR_APPROVAL &&
+				status !== DocumentStatus.INTEGRATING
+			) {
+				throw createApplyNotAllowedError();
+			}
+
+			const completedDocument = await this.completeWithoutPublishing(
+				reference.documentId,
+			);
+
+			return toDocumentStatusResponse(completedDocument);
+		}
+
+		if (status !== DocumentStatus.WAITING_FOR_APPROVAL) {
 			throw createApplyNotAllowedError();
 		}
 
 		const changes = await this.integrationChangeRepository.findByDocumentId(
 			reference.documentId,
 		);
+		const publishedIds = new Set(payload.items.map((item) => item.id));
+		const keptChanges = changes.filter((change) =>
+			publishedIds.has(change.toObject().extractionItemId),
+		);
 
-		assertResolutionsCoverConflicts(changes, payload);
-		assertSingleWritePerEntryField(changes, payload);
-		assertOverridesReferenceKnownChanges(changes, payload);
+		if (keptChanges.length !== publishedIds.size) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.REVIEW_ITEMS_MISMATCH,
+				status: HTTPCode.BAD_REQUEST,
+			});
+		}
+
+		assertResolutionsCoverConflicts(keptChanges, payload);
+		assertSingleWritePerEntryField(keptChanges, payload);
+		assertOverridesReferenceKnownChanges(keptChanges, payload);
 
 		try {
-			const completedDocument = await this.applyInTransaction({
-				changes,
+			const completedDocument = await this.applyPublishedItems({
 				contentOverrides: payload.contentOverrides,
 				document,
+				items: payload.items,
 				resolutions: payload.resolutions,
 				userId: reference.context.userId,
 			});
@@ -764,6 +916,7 @@ class DocumentReviewService {
 		const documents = await this.documentRepository.findByProjectIdAndStatuses({
 			projectId,
 			statuses: [
+				DocumentStatus.INTEGRATING,
 				DocumentStatus.WAITING_FOR_VALIDATION,
 				DocumentStatus.WAITING_FOR_APPROVAL,
 			],
@@ -798,8 +951,8 @@ class DocumentReviewService {
 			reference.context,
 		);
 
-		const { attempt, documentId, shouldSchedule, status } =
-			await this.database.transaction(async (transaction) => {
+		const { documentId, status } = await this.database.transaction(
+			async (transaction) => {
 				const document = await this.findProjectDocument(reference, {
 					forUpdate: true,
 					transaction,
@@ -848,35 +1001,26 @@ class DocumentReviewService {
 						);
 
 					return {
-						attempt: null,
 						documentId: reference.documentId,
-						shouldSchedule: false,
 						status: completedDocument.toObject().status,
 					};
 				}
 
-				const integration = await this.executeIntegrationStart(
-					{
-						...review,
-						documentId: reference.documentId,
-					},
+				await this.extractionItemRepository.markApproved(
+					review.approvedIds,
+					transaction,
+				);
+				await this.extractionItemRepository.markRejected(
+					review.rejectedIds,
 					transaction,
 				);
 
 				return {
-					attempt: integration.attempt,
 					documentId: reference.documentId,
-					shouldSchedule: true,
-					status: integration.document.toObject().status,
+					status: document.toObject().status,
 				};
-			});
-
-		if (shouldSchedule && attempt !== null) {
-			this.documentJobScheduler.scheduleIntegration({
-				attempt,
-				documentId,
-			});
-		}
+			},
+		);
 
 		return {
 			documentId,

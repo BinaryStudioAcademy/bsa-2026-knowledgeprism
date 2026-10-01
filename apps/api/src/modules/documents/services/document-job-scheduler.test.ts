@@ -8,6 +8,7 @@ import { describe, it } from "node:test";
 
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { ProcessingSweep } from "~/modules/documents/libs/constants/processing-sweep.constant.js";
+import { ProcessingSupersededError } from "~/modules/documents/libs/exceptions/processing-superseded-error.exception.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 
@@ -67,6 +68,7 @@ const waitForScheduledWork = async (): Promise<void> => {
 const createTestSetup = (): {
 	compareAndSwapCalls: CompareAndSwapParameters[];
 	getClearedCount: () => number;
+	getIntegrationCallCount: () => number;
 	getIntervalMs: () => number | undefined;
 	heartbeatCalls: HeartbeatParameters[];
 	integration: Deferred<boolean>;
@@ -74,6 +76,7 @@ const createTestSetup = (): {
 	scheduler: DocumentJobScheduler;
 	setHeartbeatError: (error: Error | null) => void;
 	setIsHeartbeatCurrent: (isCurrent: boolean) => void;
+	setPlacedStatus: (status: null | ValueOf<typeof DocumentStatus>) => void;
 	triggerHeartbeat: () => void;
 } => {
 	const compareAndSwapCalls: CompareAndSwapParameters[] = [];
@@ -81,6 +84,7 @@ const createTestSetup = (): {
 	const integration = createDeferred<boolean>();
 	const processing = createDeferred<boolean>();
 	let clearedCount = 0;
+	let integrationCallCount = 0;
 	let heartbeatCallback: (() => void) | undefined;
 	let heartbeatError: Error | null = null;
 	let isHeartbeatCurrent = true;
@@ -92,8 +96,13 @@ const createTestSetup = (): {
 		process: (): Promise<boolean> => processing.promise,
 	} as unknown as DocumentProcessor;
 	const integrationAnalyzer = {
-		process: (): Promise<boolean> => integration.promise,
+		process: (): Promise<boolean> => {
+			integrationCallCount += SINGLE_CALL;
+
+			return integration.promise;
+		},
 	} as unknown as IntegrationAnalyzer;
+	let placedStatus: null | ValueOf<typeof DocumentStatus> = null;
 	const documentRepository = {
 		compareAndSwapStatus: (
 			parameters: CompareAndSwapParameters,
@@ -101,6 +110,19 @@ const createTestSetup = (): {
 			compareAndSwapCalls.push(parameters);
 
 			return Promise.resolve(null);
+		},
+		findById: (): Promise<null | {
+			toObject: () => { status: ValueOf<typeof DocumentStatus> };
+		}> => {
+			if (placedStatus === null) {
+				return Promise.resolve(null);
+			}
+
+			return Promise.resolve({
+				toObject: () => ({
+					status: placedStatus as ValueOf<typeof DocumentStatus>,
+				}),
+			});
 		},
 		touchProcessingAttempt: (
 			parameters: HeartbeatParameters,
@@ -140,6 +162,7 @@ const createTestSetup = (): {
 	return {
 		compareAndSwapCalls,
 		getClearedCount: () => clearedCount,
+		getIntegrationCallCount: () => integrationCallCount,
 		getIntervalMs: () => intervalMs,
 		heartbeatCalls,
 		integration,
@@ -150,6 +173,9 @@ const createTestSetup = (): {
 		},
 		setIsHeartbeatCurrent: (isCurrent) => {
 			isHeartbeatCurrent = isCurrent;
+		},
+		setPlacedStatus: (status: null | ValueOf<typeof DocumentStatus>) => {
+			placedStatus = status;
 		},
 		triggerHeartbeat: () => {
 			if (!heartbeatCallback) {
@@ -195,6 +221,20 @@ void describe("DocumentJobScheduler heartbeat", () => {
 		await waitForScheduledWork();
 
 		assert.equal(setup.getClearedCount(), SINGLE_CALL);
+		assert.equal(setup.getIntegrationCallCount(), NO_CALLS);
+	});
+
+	void it("starts placement when extraction finishes while the document is integrating", async () => {
+		const setup = createTestSetup();
+
+		setup.setPlacedStatus(DocumentStatus.INTEGRATING);
+		setup.scheduler.scheduleProcessing(PROCESSING_ATTEMPT);
+		await waitForScheduledWork();
+		setup.processing.resolve(true);
+		await waitForScheduledWork();
+		await waitForScheduledWork();
+
+		assert.equal(setup.getIntegrationCallCount(), SINGLE_CALL);
 	});
 
 	void it("heartbeats integration attempts with their expected status", async () => {
@@ -275,6 +315,18 @@ void describe("DocumentJobScheduler heartbeat", () => {
 				status: DocumentStatus.FAILED,
 			},
 		]);
+		assert.equal(setup.getClearedCount(), SINGLE_CALL);
+	});
+
+	void it("stops a cancelled attempt without marking it failed", async () => {
+		const setup = createTestSetup();
+
+		setup.scheduler.scheduleProcessing(PROCESSING_ATTEMPT);
+		await waitForScheduledWork();
+		setup.processing.reject(new ProcessingSupersededError());
+		await waitForScheduledWork();
+
+		assert.deepStrictEqual(setup.compareAndSwapCalls, []);
 		assert.equal(setup.getClearedCount(), SINGLE_CALL);
 	});
 });

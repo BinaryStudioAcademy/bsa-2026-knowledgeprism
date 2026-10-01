@@ -67,6 +67,19 @@ class KnowledgeNodeRepository {
 		});
 	}
 
+	public async deleteByIdAndProjectId(
+		{ id, projectId }: { id: number; projectId: number },
+		transaction: Transaction,
+	): Promise<boolean> {
+		const deletedCount = await this.knowledgeNodeModel
+			.query(transaction)
+			.delete()
+			.where({ id, projectId })
+			.execute();
+
+		return deletedCount > EMPTY_LENGTH;
+	}
+
 	public async findAllByProjectId(
 		projectId: number,
 	): Promise<KnowledgeNodeEntity[]> {
