@@ -1,5 +1,11 @@
 import { ProjectMemberRole } from "@knowledgeprism/constants";
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, {
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 
 import { Button, Heading, Icon, Modal } from "~/components/components.js";
 import { useNavigate } from "~/hooks/hooks.js";
@@ -28,7 +34,6 @@ const ALL_ROLES_FILTER: RoleFilter = "ALL";
 
 const ROLE_FILTERS: { label: string; value: RoleFilter }[] = [
 	{ label: "All roles", value: ALL_ROLES_FILTER },
-	{ label: "Admin", value: ProjectMemberRole.ADMIN },
 	{ label: "Editor", value: ProjectMemberRole.EDITOR },
 	{ label: "Viewer", value: ProjectMemberRole.VIEWER },
 ];
@@ -350,6 +355,23 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		setIsFilterOpen(false);
 	}, []);
 
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent): void => {
+			if (
+				filterContainerReference.current &&
+				!filterContainerReference.current.contains(event.target as Node)
+			) {
+				setIsFilterOpen(false);
+			}
+		};
+
+		document.addEventListener("mousedown", handleClickOutside);
+
+		return () => {
+			document.removeEventListener("mousedown", handleClickOutside);
+		};
+	}, []);
+
 	const handleOpenCreateModal = useCallback((): void => {
 		setIsCreateModalOpen(true);
 	}, []);
@@ -456,39 +478,41 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 
 					{hasProjects && (
 						<div className="flex w-full flex-col gap-2.5 sm:w-auto sm:flex-row sm:items-center sm:gap-3">
-							<div
-								className="relative w-full sm:w-auto"
-								ref={filterContainerReference}
-							>
-								<Button
-									aria-expanded={isFilterOpen}
-									aria-haspopup="menu"
-									className="w-full cursor-pointer justify-center sm:w-auto"
-									onClick={handleToggleFilter}
-									variant="secondary"
+							{!isOrgAdmin && (
+								<div
+									className="relative w-full sm:w-auto"
+									ref={filterContainerReference}
 								>
-									<span className="flex items-center gap-2">
-										<Icon name="filter" size={14} />
-										<span>{filterLabel}</span>
-									</span>
-								</Button>
-
-								{isFilterOpen && (
-									<div
-										className="dropdown-menu absolute left-0 right-0 top-full z-20 mt-1 rounded-md border border-border bg-surface py-1 shadow-lg sm:left-auto sm:right-0 sm:min-w-36"
-										role="menu"
+									<Button
+										aria-expanded={isFilterOpen}
+										aria-haspopup="menu"
+										className="w-full cursor-pointer justify-center sm:w-auto"
+										onClick={handleToggleFilter}
+										variant="secondary"
 									>
-										{ROLE_FILTERS.map((filter) => (
-											<FilterOption
-												filter={filter}
-												isSelected={selectedRole === filter.value}
-												key={filter.value}
-												onSelect={handleSelectRole}
-											/>
-										))}
-									</div>
-								)}
-							</div>
+										<span className="flex items-center gap-2">
+											<Icon name="filter" size={14} />
+											<span>{filterLabel}</span>
+										</span>
+									</Button>
+
+									{isFilterOpen && (
+										<div
+											className="dropdown-menu absolute left-0 right-0 top-full z-20 mt-1 rounded-md border border-border bg-surface py-1 shadow-lg sm:left-auto sm:right-0 sm:min-w-36"
+											role="menu"
+										>
+											{ROLE_FILTERS.map((filter) => (
+												<FilterOption
+													filter={filter}
+													isSelected={selectedRole === filter.value}
+													key={filter.value}
+													onSelect={handleSelectRole}
+												/>
+											))}
+										</div>
+									)}
+								</div>
+							)}
 
 							{isOrgAdmin && (
 								<div className="flex items-center gap-3">
