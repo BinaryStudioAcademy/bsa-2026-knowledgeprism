@@ -339,6 +339,7 @@ const planDocumentMove = ({
 export {
 	type PlacementNode,
 	DocumentPlacementError,
+	isDocumentNode,
 	planDocumentCreate,
 	planDocumentMove,
 	planDocumentRemove,

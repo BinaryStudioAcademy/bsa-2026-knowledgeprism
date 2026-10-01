@@ -25,6 +25,7 @@ const DOCUMENT_ID = 9;
 const PROJECT_ID = 4;
 const USER_ID = 2;
 const EXISTING_PAGE_ID = 50;
+const EXISTING_SECTION_ID = 70;
 const EXISTING_ENTRY_ID = 51;
 const LAST_EXISTING_CHILD_POSITION = 3;
 const NEXT_ROOT_POSITION = 7;
@@ -70,6 +71,12 @@ const EXISTING_NODES = [
 		parentId: EXISTING_PAGE_ID,
 		position: LAST_EXISTING_CHILD_POSITION,
 		type: KnowledgeNodeType.ENTRY,
+	}),
+	toNode({
+		id: EXISTING_SECTION_ID,
+		parentId: null,
+		position: LAST_EXISTING_CHILD_POSITION,
+		type: KnowledgeNodeType.SECTION,
 	}),
 ];
 
@@ -237,6 +244,19 @@ void describe("IntegrationApplier placements", () => {
 				["Glossary", EXISTING_PAGE_ID, FIRST_APPENDED_POSITION],
 				["Roles", EXISTING_PAGE_ID, SECOND_APPENDED_POSITION],
 			],
+		);
+	});
+
+	void it("files sections under a chosen section-type document", async () => {
+		const { applier, created } = createSetup();
+
+		await apply(applier, [
+			{ changeId: FIRST_CHANGE_ID, parentId: EXISTING_SECTION_ID, position: 0 },
+		]);
+
+		assert.equal(
+			created.find(({ title }) => title === "Glossary")?.parentId,
+			EXISTING_SECTION_ID,
 		);
 	});
 

@@ -20,6 +20,7 @@ import { getIncomingFields } from "~/modules/documents/libs/helpers/get-incoming
 import { toKnowledgeContentJson } from "~/modules/documents/libs/helpers/to-knowledge-content-json.helper.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type IntegrationChangeEntity } from "~/modules/documents/models/integration-change.entity.js";
+import { isDocumentNode } from "~/modules/knowledge/libs/helpers/plan-document-placement.helper.js";
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
 import { KnowledgeNodeEntity } from "~/modules/knowledge/models/knowledge-node.entity.js";
 import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/knowledge-node.repository.js";
@@ -339,7 +340,7 @@ class IntegrationApplier {
 		for (const parentId of parentIds) {
 			const parent = nodes.find((node) => node.toObject().id === parentId);
 
-			if (parent?.toObject().type !== KnowledgeNodeType.PAGE) {
+			if (!parent || !isDocumentNode(parent.toObject().type)) {
 				throw createInvalidPlacementError();
 			}
 
