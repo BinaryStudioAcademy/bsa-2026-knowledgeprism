@@ -437,6 +437,10 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 		[navigate],
 	);
 
+	const handleOpenOrganisationUsers = useCallback((): void => {
+		void navigate(buildUserManagementPath(null));
+	}, [navigate]);
+
 	const hasProjects = localProjects.length > EMPTY_LENGTH;
 
 	return (
@@ -487,15 +491,24 @@ const WorkspacePage: React.FC<WorkspacePageProperties> = ({
 							</div>
 
 							{isOrgAdmin && (
-								<Button
-									className="w-full justify-center bg-neutral-900 text-white hover:bg-neutral-800 sm:w-auto"
-									onClick={handleOpenCreateModal}
-								>
-									<span className="flex items-center gap-1.5">
-										<Icon name="plus" size={12} />
-										<span>New Project</span>
-									</span>
-								</Button>
+								<div className="flex items-center gap-3">
+									<Button
+										className="w-auto justify-center whitespace-nowrap"
+										onClick={handleOpenOrganisationUsers}
+										variant="secondary"
+									>
+										Organisation users
+									</Button>
+									<Button
+										className="w-full justify-center bg-neutral-900 text-white hover:bg-neutral-800 sm:w-auto"
+										onClick={handleOpenCreateModal}
+									>
+										<span className="flex items-center gap-1.5">
+											<Icon name="plus" size={12} />
+											<span>New Project</span>
+										</span>
+									</Button>
+								</div>
 							)}
 						</div>
 					)}

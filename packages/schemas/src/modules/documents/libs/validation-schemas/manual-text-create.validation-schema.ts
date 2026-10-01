@@ -12,6 +12,9 @@ const manualTextCreate = z
 			.min(DocumentValidationRule.CONTENT_MINIMUM_LENGTH, {
 				message: DocumentValidationMessage.CONTENT_REQUIRED,
 			})
+			.min(DocumentValidationRule.MANUAL_TEXT_CONTENT_MINIMUM_LENGTH, {
+				message: DocumentValidationMessage.CONTENT_TOO_SHORT,
+			})
 			.max(DocumentValidationRule.CONTENT_MAXIMUM_LENGTH, {
 				message: DocumentValidationMessage.CONTENT_MAXIMUM_LENGTH,
 			}),

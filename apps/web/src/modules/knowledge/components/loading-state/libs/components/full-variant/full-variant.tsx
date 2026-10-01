@@ -8,6 +8,7 @@ import { ProcessingProgress } from "../processing-progress.js";
 
 const FullVariant = ({
 	currentStatus,
+	errorMessage,
 	isError,
 	onCancel,
 	onRetry,
@@ -31,6 +32,9 @@ const FullVariant = ({
 						? "Review the extracted knowledge before integration."
 						: "Review and approve the proposed changes before publication."}
 				</p>
+			)}
+			{isError && errorMessage && (
+				<p className="text-sm text-text-muted">{errorMessage}</p>
 			)}
 			{isError && (
 				<div className="flex gap-3">

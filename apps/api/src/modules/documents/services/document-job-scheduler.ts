@@ -6,6 +6,7 @@ import { type ValueOf } from "@knowledgeprism/types";
 
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { ProcessingSweep } from "~/modules/documents/libs/constants/processing-sweep.constant.js";
+import { DocumentProcessingError } from "~/modules/documents/libs/exceptions/document-processing.exception.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 
@@ -23,7 +24,7 @@ type Constructor = {
 };
 
 type DocumentJob = {
-	errorMessage: ValueOf<typeof DocumentErrorMessage>;
+	errorMessage: string;
 	run: (processingAttempt: ProcessingAttempt) => Promise<boolean>;
 	status: ValueOf<typeof DocumentStatus>;
 };
@@ -34,6 +35,8 @@ type IntervalScheduler = {
 };
 
 type ScheduledInterval = ReturnType<typeof setInterval>;
+
+const EMPTY_MESSAGE_LENGTH = 0;
 
 const DEFAULT_INTERVAL_SCHEDULER: IntervalScheduler = {
 	clear: clearInterval,
@@ -51,6 +54,26 @@ const isDocumentParseFailedError = (
 		"message" in error &&
 		typeof (error as { message: unknown }).message === "string"
 	);
+};
+
+const resolveFailureMessage = (error: unknown, fallback: string): string => {
+	if (error instanceof DocumentProcessingError) {
+		return error.documentErrorMessage;
+	}
+
+	if (isDocumentParseFailedError(error)) {
+		return error.message;
+	}
+
+	if (error instanceof Error) {
+		const message = error.message.trim();
+
+		if (message.length > EMPTY_MESSAGE_LENGTH) {
+			return message;
+		}
+	}
+
+	return fallback;
 };
 
 class DocumentJobScheduler {
@@ -121,11 +144,11 @@ class DocumentJobScheduler {
 				status: job.status,
 			});
 
-			const failureMessage = isDocumentParseFailedError(error)
-				? error.message
-				: job.errorMessage;
-
-			await this.fail(job, processingAttempt, failureMessage);
+			await this.fail(
+				job,
+				processingAttempt,
+				resolveFailureMessage(error, job.errorMessage),
+			);
 		} finally {
 			this.intervalScheduler.clear(heartbeatInterval);
 		}

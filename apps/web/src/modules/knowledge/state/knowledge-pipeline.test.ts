@@ -1,4 +1,5 @@
 import {
+	DocumentErrorMessage,
 	DocumentProcessingPhase,
 	DocumentSourceType,
 	DocumentStatus,
@@ -410,6 +411,29 @@ describe("knowledge pipeline lifecycle", () => {
 		expect(store.instance.getState().knowledge.pipelineErrors).toMatchObject({
 			[DOCUMENT_A_ID]: "A failed",
 		});
+	});
+
+	it("keeps an empty extraction failure message from the status poll", () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
+		const request = createRequest(DOCUMENT_A_ID);
+
+		store.instance.dispatch(pollDocumentStatus.pending("poll-a", request));
+		store.instance.dispatch(
+			pollDocumentStatus.fulfilled(
+				{
+					...createStatusResponse(DOCUMENT_A_ID, DocumentStatus.FAILED),
+					errorMessage: DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED,
+				},
+				"poll-a",
+				request,
+			),
+		);
+
+		const state = store.instance.getState().knowledge;
+		expect(state.activeDocumentStatus).toBe(DocumentStatus.FAILED);
+		expect(state.pipelineErrors[DOCUMENT_A_ID]).toBe(
+			DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED,
+		);
 	});
 
 	it("keeps Knowledge Entry failures separate from pipeline health", () => {

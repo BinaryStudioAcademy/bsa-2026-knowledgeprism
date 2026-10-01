@@ -1,7 +1,8 @@
 const ADD_KNOWLEDGE_ICON_SIZE = 16;
 const ADD_KNOWLEDGE_LABEL = "Add Knowledge";
 const APP_SIDEBAR_ID = "app-sidebar";
-const BACK_TO_PROJECTS_LABEL = "Back to the projects";
+const BACK_CONTROL_ICON_SIZE = 12;
+const BACK_TO_PROJECTS_LABEL = "Back to projects";
 const CHEVRON_ICON_SIZE = 10;
 const COLLAPSE_SIDEBAR_LABEL = "Collapse sidebar";
 const EXPANDED_NAV_ITEM_CLASS = "h-auto w-full justify-start px-3 py-2.5";
@@ -19,12 +20,12 @@ const SIDEBAR_EXPANDED_MEDIA_QUERY =
 	`(min-width: ${String(SIDEBAR_EXPANDED_MIN_WIDTH_PX)}px)` as const;
 const SIDEBAR_RAIL_MEDIA_QUERY =
 	`(min-width: ${String(SIDEBAR_RAIL_MIN_WIDTH_PX)}px)` as const;
-const WORKSPACES_LABEL = "Workspaces";
 
 export {
 	ADD_KNOWLEDGE_ICON_SIZE,
 	ADD_KNOWLEDGE_LABEL,
 	APP_SIDEBAR_ID,
+	BACK_CONTROL_ICON_SIZE,
 	BACK_TO_PROJECTS_LABEL,
 	CHEVRON_ICON_SIZE,
 	COLLAPSE_SIDEBAR_LABEL,
@@ -38,5 +39,4 @@ export {
 	SIDEBAR_EXPANDED_MEDIA_QUERY,
 	SIDEBAR_FOCUS_DELAY_MS,
 	SIDEBAR_RAIL_MEDIA_QUERY,
-	WORKSPACES_LABEL,
 };

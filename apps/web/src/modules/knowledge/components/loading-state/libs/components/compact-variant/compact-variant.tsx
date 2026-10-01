@@ -8,6 +8,7 @@ import { ProcessingProgress } from "../processing-progress.js";
 
 const CompactVariant = ({
 	currentStatus,
+	errorMessage,
 	isError,
 	onCancel,
 	onPreview,
@@ -23,6 +24,9 @@ const CompactVariant = ({
 				currentStatus={isError ? DocumentStatus.FAILED : currentStatus}
 				progress={progress ?? null}
 			/>
+			{isError && errorMessage && (
+				<p className="text-sm font-medium text-error">{errorMessage}</p>
+			)}
 			{isError ? (
 				<div className="flex gap-2">
 					<Button onClick={onRetry} variant="secondary">

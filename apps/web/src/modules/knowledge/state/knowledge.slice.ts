@@ -584,6 +584,12 @@ const { actions, name, reducer } = createSlice({
 				state,
 				status: action.payload.status,
 			});
+
+			const { errorMessage, status } = action.payload;
+
+			if (errorMessage && status === DocumentStatus.FAILED) {
+				setPipelineError(state, action.meta.arg.documentId, errorMessage);
+			}
 		});
 		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
 			if (

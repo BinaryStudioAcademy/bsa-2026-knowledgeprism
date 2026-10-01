@@ -12,12 +12,14 @@ import {
 } from "@knowledgeprism/worker";
 
 import { type Database } from "~/infrastructure/database/database.js";
+import { DocumentProcessingError } from "~/modules/documents/libs/exceptions/document-processing.exception.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
 import { type GlossaryService } from "~/modules/glossary/services/glossary.service.js";
 
+const EMPTY_EXTRACTION_ITEM_COUNT = 0;
 const MANUAL_TEXT_PAGE_NUMBER = 1;
 const PAGE_TEXT_SEPARATOR = "\n\n";
 
@@ -107,6 +109,12 @@ class DocumentProcessor {
 				});
 			},
 		);
+
+		if (items.length === EMPTY_EXTRACTION_ITEM_COUNT) {
+			throw new DocumentProcessingError(
+				DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED,
+			);
+		}
 
 		const isCompleted = await this.database.transaction(async (transaction) => {
 			const completedDocument =

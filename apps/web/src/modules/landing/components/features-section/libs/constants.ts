@@ -31,7 +31,7 @@ const FEATURES_LIST = [
 		title: "Unified knowledge base",
 	},
 	{
-		body: "Review extracted knowledge and its proposed structure before approving it into the Knowledge Base.",
+		body: "Preview where new content will appear in your knowledge base, then edit the proposed structure as needed before approving.",
 		iconName: "eye",
 		id: FeatureId.INTEGRATION,
 		title: "Smart integration preview",

@@ -15,6 +15,7 @@ type CompactSuccessProperties = {
 
 type ErrorProperties = {
 	currentStatus: "IDLE" | "UPLOADED" | ValueOf<typeof DocumentStatus>;
+	errorMessage?: null | string;
 	hasError: true;
 	onCancel: () => void;
 	onFinish?: never;
@@ -35,6 +36,7 @@ type FullSuccessProperties = {
 
 type InternalStatusProperties = {
 	currentStatus: ValueOf<typeof DocumentStatus>;
+	errorMessage?: null | string;
 	isError: boolean;
 };
 

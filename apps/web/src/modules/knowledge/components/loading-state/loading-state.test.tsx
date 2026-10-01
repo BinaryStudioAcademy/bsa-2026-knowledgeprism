@@ -1,4 +1,5 @@
 import {
+	DocumentErrorMessage,
 	DocumentProcessingPhase,
 	DocumentSourceType,
 	DocumentStatus,
@@ -187,5 +188,26 @@ describe("document processing progress", () => {
 			screen.getByText("Ready for review: 0 of 0 chunks processed"),
 		).toBeInTheDocument();
 		expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+	});
+});
+
+describe("LoadingState", () => {
+	it("shows the document failure message instead of a generic processing error", () => {
+		render(
+			<LoadingState
+				currentStatus={DocumentStatus.FAILED}
+				errorMessage={DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED}
+				hasError
+				onCancel={vi.fn()}
+				onRetry={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.getByText(DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByText("Something went wrong. Please try again."),
+		).not.toBeInTheDocument();
 	});
 });
