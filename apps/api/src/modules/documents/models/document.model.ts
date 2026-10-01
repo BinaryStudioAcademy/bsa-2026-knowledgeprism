@@ -2,7 +2,10 @@ import {
 	type DocumentSourceType,
 	type DocumentStatus,
 } from "@knowledgeprism/constants";
-import { type ValueOf } from "@knowledgeprism/types";
+import {
+	type DocumentProcessingProgressDto,
+	type ValueOf,
+} from "@knowledgeprism/types";
 
 import {
 	AbstractModel,
@@ -23,6 +26,7 @@ class DocumentModel extends AbstractModel {
 	public name!: string;
 
 	public processingAttempt!: number;
+	public processingProgress!: DocumentProcessingProgressDto | null;
 
 	public projectId!: number;
 
@@ -35,6 +39,10 @@ class DocumentModel extends AbstractModel {
 	public status!: ValueOf<typeof DocumentStatus>;
 
 	public uploadedBy!: null | number;
+
+	public static override get jsonAttributes(): string[] {
+		return ["processingProgress"];
+	}
 
 	public static override get tableName(): string {
 		return DatabaseTableName.DOCUMENTS;

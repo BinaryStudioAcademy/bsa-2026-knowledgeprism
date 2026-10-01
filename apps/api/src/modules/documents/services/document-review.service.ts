@@ -236,6 +236,20 @@ const assertResolutionsCoverConflicts = (
 	}
 };
 
+const assertOverridesReferenceKnownChanges = (
+	changes: IntegrationChangeEntity[],
+	{ contentOverrides }: IntegrationChangesApplyRequestDto,
+): void => {
+	const changeIds = new Set(changes.map((change) => change.toObject().id));
+
+	if (contentOverrides.some((override) => !changeIds.has(override.changeId))) {
+		throw new HTTPError({
+			message: DocumentErrorMessage.CONTENT_OVERRIDE_UNKNOWN_CHANGE,
+			status: HTTPCode.BAD_REQUEST,
+		});
+	}
+};
+
 const assertSingleWritePerEntryField = (
 	changes: IntegrationChangeEntity[],
 	{ resolutions }: IntegrationChangesApplyRequestDto,
@@ -318,11 +332,13 @@ class DocumentReviewService {
 
 	private async applyInTransaction({
 		changes,
+		contentOverrides,
 		document,
 		resolutions,
 		userId,
 	}: {
 		changes: IntegrationChangeEntity[];
+		contentOverrides: IntegrationChangesApplyRequestDto["contentOverrides"];
 		document: DocumentEntity;
 		resolutions: IntegrationChangesApplyRequestDto["resolutions"];
 		userId: number;
@@ -344,7 +360,7 @@ class DocumentReviewService {
 			}
 
 			await this.integrationApplier.apply(
-				{ changes, document, resolutions, userId },
+				{ changes, contentOverrides, document, resolutions, userId },
 				transaction,
 			);
 
@@ -668,10 +684,12 @@ class DocumentReviewService {
 
 		assertResolutionsCoverConflicts(changes, payload);
 		assertSingleWritePerEntryField(changes, payload);
+		assertOverridesReferenceKnownChanges(changes, payload);
 
 		try {
 			const completedDocument = await this.applyInTransaction({
 				changes,
+				contentOverrides: payload.contentOverrides,
 				document,
 				resolutions: payload.resolutions,
 				userId: reference.context.userId,

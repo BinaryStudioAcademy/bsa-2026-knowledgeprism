@@ -20,6 +20,7 @@ export {
 	updateSectionInPages,
 } from "./proposed-structure.helper.js";
 export { toConflictResolutions } from "./to-conflict-resolutions.helper.js";
+export { toContentOverrides } from "./to-content-overrides.helper.js";
 export {
 	addTrackedDocumentId,
 	readTrackedDocumentIds,

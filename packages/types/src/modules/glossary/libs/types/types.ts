@@ -1,5 +1,6 @@
 export { type GlossaryConsistencyCheckRequestDto } from "./glossary-consistency-check-request-dto.type.js";
 export { type GlossaryConsistencyCheckResponseDto } from "./glossary-consistency-check-response-dto.type.js";
+export { type GlossaryConsistencyMatchDto } from "./glossary-consistency-match-dto.type.js";
 export { type GlossaryRelatedTermDto } from "./glossary-related-term-dto.type.js";
 export { type GlossaryRouteParametersDto } from "./glossary-route-parameters-dto.type.js";
 export { type GlossarySearchQueryDto } from "./glossary-search-query-dto.type.js";

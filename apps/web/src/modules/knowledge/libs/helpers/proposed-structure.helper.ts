@@ -1,6 +1,10 @@
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
 
-import { type ProposedPage, type ProposedSection } from "../types/types.js";
+import {
+	type ChangeStatus,
+	type ProposedPage,
+	type ProposedSection,
+} from "../types/types.js";
 
 const DEFAULT_INDEX = 0;
 const EMPTY_LENGTH = 0;
@@ -24,6 +28,9 @@ type UpdateSectionParameters = {
 	partialSection: Partial<ProposedPage>;
 	sectionIndex: number;
 };
+
+const getEditedStatus = (status: ChangeStatus): ChangeStatus =>
+	status === "created" || status === "conflict" ? status : "modified";
 
 const isManualPage = (page: ProposedSection): boolean =>
 	page.id.startsWith(MANUAL_PAGE_ID_PREFIX);
@@ -106,14 +113,13 @@ const updateSectionInPages = ({
 	updatedSections[sectionIndex] = {
 		...targetSection,
 		...partialSection,
-		status:
-			targetSection.status === "created" ? targetSection.status : "modified",
+		status: getEditedStatus(targetSection.status),
 	};
 
 	updatedPages[pageIndex] = {
 		...targetPage,
 		pages: updatedSections,
-		status: targetPage.status === "created" ? targetPage.status : "modified",
+		status: getEditedStatus(targetPage.status),
 	};
 
 	return updatedPages;
@@ -135,7 +141,7 @@ const updatePageInPages = ({
 	updatedPages[pageIndex] = {
 		...targetPage,
 		...partialPage,
-		status: targetPage.status === "created" ? targetPage.status : "modified",
+		status: getEditedStatus(targetPage.status),
 	};
 
 	return updatedPages;

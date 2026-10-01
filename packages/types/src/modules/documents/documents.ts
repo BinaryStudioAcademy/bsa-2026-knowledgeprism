@@ -1,6 +1,7 @@
 export {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentConfirmUploadRouteParametersDto,
+	type DocumentProcessingProgressDto,
 	type DocumentRouteParametersDto,
 	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
@@ -14,6 +15,7 @@ export {
 	type ExtractionItemsReviewSectionDto,
 	type ExtractionItemUpdateRequestDto,
 	type ExtractionSectionResponseDto,
+	type IntegrationChangeContentOverrideDto,
 	type IntegrationChangeResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
