@@ -13,6 +13,7 @@ type CreateParameters = {
 type FindDueCleanupsParameters = {
 	limit: number;
 	maxAttempts: number;
+	staleProcessingBefore: Date;
 };
 
 type UpdateStatusParameters = {
@@ -58,14 +59,26 @@ class ProjectStorageCleanupRepository {
 	public async findDueCleanups({
 		limit,
 		maxAttempts,
+		staleProcessingBefore,
 	}: FindDueCleanupsParameters): Promise<ProjectStorageCleanupEntity[]> {
 		const cleanups = await this.projectStorageCleanupModel
 			.query()
-			.where("execute_after", "<=", new Date())
-			.whereIn("status", [
-				ProjectStorageCleanupStatus.PENDING,
-				ProjectStorageCleanupStatus.FAILED,
-			])
+			.where((dueOrStale) => {
+				void dueOrStale
+					.where((due) => {
+						void due
+							.where("execute_after", "<=", new Date())
+							.whereIn("status", [
+								ProjectStorageCleanupStatus.PENDING,
+								ProjectStorageCleanupStatus.FAILED,
+							]);
+					})
+					.orWhere((stale) => {
+						void stale
+							.where("status", ProjectStorageCleanupStatus.PROCESSING)
+							.where("updated_at", "<", staleProcessingBefore);
+					});
+			})
 			.where("attempts", "<", maxAttempts)
 			.orderBy("execute_after", "asc")
 			.limit(limit)
