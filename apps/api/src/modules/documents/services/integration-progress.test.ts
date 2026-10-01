@@ -5,6 +5,7 @@ import {
 	DocumentSourceType,
 	DocumentStatus,
 	ExtractionItemStatus,
+	IntegrationChangeType,
 } from "@knowledgeprism/constants";
 import {
 	type DocumentProcessingProgressDto,
@@ -32,17 +33,26 @@ const SECOND_ITEM_ID = 2;
 const THIRD_ITEM_ID = 3;
 const ZERO_COUNT = 0;
 const SINGLE_COUNT = 1;
+const FIRST_SECTION_ID = 10;
+const SECOND_SECTION_ID = 20;
 const FIRST_PARAMETER_INDEX = 0;
 
 const createItem = (
 	id: number,
 	text: string,
-	status: ValueOf<typeof ExtractionItemStatus> = ExtractionItemStatus.APPROVED,
+	{
+		extractionSectionId = null,
+		status = ExtractionItemStatus.APPROVED,
+	}: {
+		extractionSectionId?: null | number;
+		status?: ValueOf<typeof ExtractionItemStatus>;
+	} = {},
 ): ExtractionItemEntity =>
 	ExtractionItemEntity.initialize({
 		confidence: 1,
 		documentId: DOCUMENT_ID,
-		extractionSectionId: null,
+		extractionSectionId,
+		heading: null,
 		id,
 		knowledgeNodeId: null,
 		position: id,
@@ -55,6 +65,7 @@ const createItem = (
 	});
 
 const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
+	const priorCountByText = new Map<string, number>();
 	const updates: Parameters<
 		DocumentRepository["updateProcessingProgress"]
 	>[typeof FIRST_PARAMETER_INDEX][] = [];
@@ -96,6 +107,27 @@ const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
 		},
 	} as unknown as DocumentRepository;
 	const analyzer = new IntegrationAnalyzer({
+		analyze: ({ itemText, priorPlacements = [] }) => {
+			priorCountByText.set(itemText, priorPlacements.length);
+
+			if (itemText.trim() === "") {
+				return Promise.reject(
+					new Error("Cannot analyze an empty knowledge item"),
+				);
+			}
+
+			return Promise.resolve({
+				explanation: "No related knowledge.",
+				matchedItem: null,
+				matches: [],
+				parentIndex: null,
+				parentPriorIndex: null,
+				proposesParent: true,
+				score: null,
+				siblingOrder: 0,
+				type: IntegrationChangeType.NEW,
+			});
+		},
 		database: {
 			transaction: <T>(callback: (transaction: Transaction) => Promise<T>) =>
 				callback({} as Transaction),
@@ -121,7 +153,14 @@ const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
 			},
 		} as unknown as KnowledgeNodeRepository,
 	});
-	return { analyzer, persistedCounts, projects, transitions, updates };
+	return {
+		analyzer,
+		persistedCounts,
+		priorCountByText,
+		projects,
+		transitions,
+		updates,
+	};
 };
 
 const progress = (
@@ -139,7 +178,9 @@ void describe("integration progress", () => {
 	void it("counts approved items and stops at approval rather than publishing", async () => {
 		const setup = createSetup([
 			createItem(FIRST_ITEM_ID, "First"),
-			createItem(SECOND_ITEM_ID, "Rejected", ExtractionItemStatus.REJECTED),
+			createItem(SECOND_ITEM_ID, "Rejected", {
+				status: ExtractionItemStatus.REJECTED,
+			}),
 			createItem(THIRD_ITEM_ID, "Last"),
 		]);
 		assert.equal(
@@ -204,5 +245,28 @@ void describe("integration progress", () => {
 		assert.deepEqual(setup.projects, []);
 		assert.deepEqual(setup.transitions, []);
 		assert.deepEqual(setup.persistedCounts, []);
+	});
+
+	void it("places each section's items in order while sections run independently", async () => {
+		const setup = createSetup([
+			createItem(FIRST_ITEM_ID, "Section one start", {
+				extractionSectionId: FIRST_SECTION_ID,
+			}),
+			createItem(SECOND_ITEM_ID, "Section two start", {
+				extractionSectionId: SECOND_SECTION_ID,
+			}),
+			createItem(THIRD_ITEM_ID, "Section one follow-up", {
+				extractionSectionId: FIRST_SECTION_ID,
+			}),
+		]);
+
+		await setup.analyzer.process({ attempt: ATTEMPT, documentId: DOCUMENT_ID });
+
+		assert.equal(setup.priorCountByText.get("Section one start"), ZERO_COUNT);
+		assert.equal(setup.priorCountByText.get("Section two start"), ZERO_COUNT);
+		assert.equal(
+			setup.priorCountByText.get("Section one follow-up"),
+			SINGLE_COUNT,
+		);
 	});
 });

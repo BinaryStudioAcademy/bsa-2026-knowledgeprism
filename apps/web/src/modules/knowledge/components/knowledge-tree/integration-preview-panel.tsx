@@ -1,68 +1,55 @@
-import {
-	type IntegrationChangeContentOverrideDto,
-	type IntegrationConflictResolutionDto,
-} from "@knowledgeprism/types";
-import React, { useCallback, useEffect } from "react";
+import { type IntegrationChangesApplyRequestDto } from "@knowledgeprism/types";
+import React, { useCallback, useMemo } from "react";
 
-import {
-	Button,
-	Loader,
-	Paragraph,
-	ParagraphSize,
-} from "~/components/components.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 
 import { actions } from "../../knowledge.js";
-import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
+import { isDocumentNode } from "../../libs/helpers/helpers.js";
+import { type ProposedSection } from "../../libs/types/types.js";
 import {
 	getPipelineSessionId,
 	isPipelineSessionCurrent,
 } from "../../state/session-guards.js";
 import { IntegrationPreview } from "../integration-preview/integration-preview.js";
 
-const EMPTY_INTEGRATION_CHANGES_MESSAGE =
-	"No integration changes were returned for this document.";
-const MISSING_DOCUMENT_MESSAGE =
-	"No document is available for integration preview.";
-
 type Properties = {
 	documentId: number | undefined;
+	extractionStructure: ProposedSection[];
+	failedPageNumbers: number[];
 	onAddMore: () => void;
 	onApplyingChange: (isApplying: boolean) => void;
 	onApprove: () => void;
+	onCancelDocument: () => void;
 	onClose: () => void;
+	pipelineErrorMessage: null | string;
 	projectId: null | string;
 };
 
 const IntegrationPreviewPanel: React.FC<Properties> = ({
 	documentId,
+	extractionStructure,
+	failedPageNumbers,
 	onAddMore,
 	onApplyingChange,
 	onApprove,
+	onCancelDocument,
 	onClose,
+	pipelineErrorMessage,
 	projectId,
 }: Properties) => {
 	const dispatch = useAppDispatch();
-	const {
-		integrationPreviewDocumentId,
-		integrationPreviewError,
-		integrationPreviewSections,
-		isIntegrationPreviewLoading,
-	} = useAppSelector((state) => state.knowledge);
-
-	useEffect(() => {
-		if (!projectId || documentId === undefined) {
-			return;
-		}
-
-		void dispatch(actions.fetchIntegrationChanges({ documentId, projectId }));
-	}, [dispatch, documentId, projectId]);
+	const { integrationPreviewError, integrationPreviewSections, tree } =
+		useAppSelector((state) => state.knowledge);
+	const placementTargets = useMemo(
+		() =>
+			tree
+				.filter((item) => isDocumentNode(item.type))
+				.map(({ id, title }) => ({ id, title })),
+		[tree],
+	);
 
 	const handleApply = useCallback(
-		async (
-			resolutions: IntegrationConflictResolutionDto[],
-			contentOverrides: IntegrationChangeContentOverrideDto[],
-		): Promise<boolean> => {
+		async (payload: IntegrationChangesApplyRequestDto): Promise<boolean> => {
 			if (!projectId || documentId === undefined) {
 				return false;
 			}
@@ -73,7 +60,7 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 				await dispatch(
 					actions.applyIntegrationChanges({
 						documentId,
-						payload: { contentOverrides, resolutions },
+						payload,
 						pipelineSessionId,
 						projectId,
 					}),
@@ -93,70 +80,20 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 		[dispatch, documentId, onApprove, projectId],
 	);
 
-	const displayedDocumentId =
-		documentId ?? integrationPreviewDocumentId ?? undefined;
-
-	if (displayedDocumentId === undefined) {
-		return (
-			<div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-bg p-4">
-				<Paragraph size={ParagraphSize.BODY_SMALL}>
-					{MISSING_DOCUMENT_MESSAGE}
-				</Paragraph>
-				<Button onClick={onClose} variant="secondary">
-					Back
-				</Button>
-			</div>
-		);
-	}
-
-	if (
-		isIntegrationPreviewLoading ||
-		integrationPreviewDocumentId !== displayedDocumentId
-	) {
-		return (
-			<div className="flex h-full w-full items-center justify-center bg-bg">
-				<Loader size="lg" />
-			</div>
-		);
-	}
-
-	if (integrationPreviewError) {
-		return (
-			<div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-bg p-4">
-				<Paragraph size={ParagraphSize.BODY_SMALL}>
-					{integrationPreviewError}
-				</Paragraph>
-				<Button onClick={onClose} variant="secondary">
-					Back
-				</Button>
-			</div>
-		);
-	}
-
-	if (integrationPreviewSections.length === EMPTY_LENGTH) {
-		return (
-			<div className="flex h-full w-full flex-col items-center justify-center gap-4 bg-bg p-4">
-				<Paragraph size={ParagraphSize.BODY_SMALL}>
-					{EMPTY_INTEGRATION_CHANGES_MESSAGE}
-				</Paragraph>
-				<Button onClick={onClose} variant="secondary">
-					Back
-				</Button>
-			</div>
-		);
-	}
-
-	const previewKey = `${String(displayedDocumentId)}-${String(integrationPreviewSections.length)}`;
-
 	return (
 		<div className="h-full w-full bg-bg">
 			<IntegrationPreview
-				key={previewKey}
+				errorMessage={pipelineErrorMessage ?? integrationPreviewError}
+				failedPageNumbers={failedPageNumbers}
+				key={String(documentId)}
 				onAddMore={onAddMore}
 				onApplyingChange={onApplyingChange}
 				onApprove={handleApply}
+				onCancelDocument={onCancelDocument}
 				onClose={onClose}
-				proposedStructure={integrationPreviewSections}
+				placementStructure={integrationPreviewSections}
+				placementTargets={placementTargets}
+				proposedStructure={extractionStructure}
 			/>
 		</div>
 	);

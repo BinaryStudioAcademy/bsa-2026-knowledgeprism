@@ -9,9 +9,22 @@ import { type ExtractionResult } from "../types/extraction-result.type.js";
 import { type KnowledgeItem } from "../types/knowledge-item.type.js";
 import { extractChunk } from "./extract-chunk.helper.js";
 import { isBlankPageContent } from "./is-blank-page-content.helper.js";
+import { withInheritedHeading } from "./map-extraction-output.helper.js";
+import { readPreviousHeading } from "./read-previous-heading.helper.js";
 import { splitIntoChunks } from "./split-into-chunks.helper.js";
 
 const EMPTY_COUNT = 0;
+const LAST_ITEM_INDEX = -1;
+const LINE_BREAK = /\r?\n/u;
+const TITLE_MAXIMUM_LENGTH = 80;
+const TITLE_START = 0;
+const FIRST_FOLLOWING_CHUNK = 1;
+const PREVIOUS_CHUNK_OFFSET = 1;
+
+type ChunkOutcome = {
+	chunk: IndexedChunk;
+	result: Awaited<ReturnType<typeof extractChunk>>;
+};
 
 type IndexedChunk = ExtractionBlock & { chunkIndex: number };
 
@@ -22,6 +35,73 @@ const toNonBlankChunks = (blocks: ExtractionBlock[]): IndexedChunk[] =>
 		)
 		.map((chunk, chunkIndex) => ({ ...chunk, chunkIndex }))
 		.filter((chunk) => !isBlankPageContent(chunk.content));
+
+const readOpenHeading = (outcome: ChunkOutcome | undefined): null | string => {
+	if (!outcome || outcome.result.hasFailures) {
+		return null;
+	}
+
+	return readPreviousHeading(outcome.chunk.content, outcome.result.items);
+};
+
+const carryOpenHeadings = async (
+	outcomes: ChunkOutcome[],
+	dependencies: ExtractionDependencies,
+): Promise<ChunkOutcome[]> => {
+	const carried = [...outcomes];
+
+	for (let index = FIRST_FOLLOWING_CHUNK; index < carried.length; index++) {
+		const current = carried[index];
+		const previousHeading = readOpenHeading(
+			carried[index - PREVIOUS_CHUNK_OFFSET],
+		);
+
+		if (previousHeading === null || !current || current.result.hasFailures) {
+			continue;
+		}
+
+		const result = await extractChunk(
+			{ ...current.chunk, previousHeading },
+			dependencies,
+		);
+
+		if (!result.hasFailures) {
+			carried[index] = { chunk: current.chunk, result };
+		}
+	}
+
+	return carried;
+};
+
+const readFirstSourceLine = (content: string): string => {
+	const firstLine =
+		content
+			.split(LINE_BREAK)
+			.map((line) => line.trim())
+			.find((line) => line !== "") ?? "";
+
+	return firstLine.slice(TITLE_START, TITLE_MAXIMUM_LENGTH);
+};
+
+const inheritOpenHeadings = (outcomes: ChunkOutcome[]): ChunkOutcome[] => {
+	let openHeading: null | string = null;
+
+	return outcomes.map(({ chunk, result }) => {
+		const items = result.items.map((item) =>
+			item.isHeadingInherited
+				? withInheritedHeading(
+						item,
+						openHeading ?? readFirstSourceLine(chunk.content),
+					)
+				: item,
+		);
+		openHeading = result.hasFailures
+			? null
+			: (items.at(LAST_ITEM_INDEX)?.heading ?? null);
+
+		return { chunk, result: { ...result, items } };
+	});
+};
 
 const extractBlocks = async (
 	blocks: ExtractionBlock[],
@@ -41,7 +121,7 @@ const extractBlocks = async (
 	const outcomes = await mapWithConcurrency(
 		chunks,
 		ExtractionChunk.MAXIMUM_CONCURRENT_REQUESTS,
-		async (chunk) => {
+		async (chunk): Promise<ChunkOutcome> => {
 			let result: Awaited<ReturnType<typeof extractChunk>>;
 			try {
 				result = await extractChunk(chunk, dependencies);
@@ -61,7 +141,11 @@ const extractBlocks = async (
 		},
 	);
 
-	for (const { chunk, result } of outcomes) {
+	const carriedOutcomes = inheritOpenHeadings(
+		await carryOpenHeadings(outcomes, dependencies),
+	);
+
+	for (const { chunk, result } of carriedOutcomes) {
 		successfulChunkCount += result.successfulChunkCount;
 		items.push(...result.items);
 

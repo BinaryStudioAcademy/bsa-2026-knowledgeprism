@@ -22,8 +22,11 @@ import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import {
 	type ActiveNodeType,
 	type ChangeStatus,
+	type PlacementTarget,
 	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
+
+import { SectionRowMenu } from "./section-row-menu.js";
 
 const EMPTY_LENGTH = 0;
 const EMPTY_DROP_ZONE_ID_PREFIX = "empty-drop-";
@@ -39,15 +42,20 @@ type StructureAsideProperties = {
 	activeSectionIndex: number;
 	isExtractionValidation: boolean;
 	isInteractionDisabled: boolean;
-	onAddPage: () => void;
-	onAddSection: (pageIndex: number) => void;
 	onDeletePage: (pageIndex: number) => void;
 	onDeleteSection: (pageIndex: number, sectionIndex: number) => void;
 	onMovePage: (activeId: string, overId: string) => void;
 	onMoveSection: (activeId: string, overId: string) => void;
+	onMoveSectionTo: (
+		pageIndex: number,
+		sectionIndex: number,
+		targetId: null | number,
+	) => void;
+	onRenameSection: (pageIndex: number, sectionIndex: number) => void;
 	onSelectPage: (event: MouseEvent<HTMLButtonElement>) => void;
 	onSelectSection: (event: MouseEvent<HTMLButtonElement>) => void;
 	pages: ProposedSection[];
+	placementTargets: PlacementTarget[];
 };
 
 const formatChangeStatusLabel = (status: ChangeStatus): string => status;
@@ -195,8 +203,11 @@ const SortableSectionRow = ({
 	isReorderable,
 	isSelected,
 	onDeleteSection,
+	onMoveSectionTo,
+	onRenameSection,
 	onSelectSection,
 	pageIndex,
+	placementTargets,
 	section,
 	sectionIndex,
 }: {
@@ -204,8 +215,15 @@ const SortableSectionRow = ({
 	isReorderable: boolean;
 	isSelected: boolean;
 	onDeleteSection: (pageIndex: number, sectionIndex: number) => void;
+	onMoveSectionTo: (
+		pageIndex: number,
+		sectionIndex: number,
+		targetId: null | number,
+	) => void;
+	onRenameSection: (pageIndex: number, sectionIndex: number) => void;
 	onSelectSection: (event: MouseEvent<HTMLButtonElement>) => void;
 	pageIndex: number;
+	placementTargets: PlacementTarget[];
 	section: ProposedSection["pages"][number];
 	sectionIndex: number;
 }): JSX.Element => {
@@ -228,6 +246,15 @@ const SortableSectionRow = ({
 	const handleDeleteClick = useCallback((): void => {
 		onDeleteSection(pageIndex, sectionIndex);
 	}, [onDeleteSection, pageIndex, sectionIndex]);
+	const handleRename = useCallback((): void => {
+		onRenameSection(pageIndex, sectionIndex);
+	}, [onRenameSection, pageIndex, sectionIndex]);
+	const handleMoveTo = useCallback(
+		(targetId: null | number): void => {
+			onMoveSectionTo(pageIndex, sectionIndex, targetId);
+		},
+		[onMoveSectionTo, pageIndex, sectionIndex],
+	);
 
 	return (
 		<div
@@ -284,15 +311,14 @@ const SortableSectionRow = ({
 			</button>
 
 			{isReorderable && (
-				<button
-					aria-label="Delete item"
-					className="flex shrink-0 items-center justify-center rounded p-1 text-text-faint hover:bg-error-bg hover:text-error disabled:cursor-not-allowed disabled:opacity-40"
-					disabled={isInteractionDisabled}
-					onClick={handleDeleteClick}
-					type="button"
-				>
-					<Icon name="close" size={ICON_SIZE_TINY} />
-				</button>
+				<SectionRowMenu
+					isDisabled={isInteractionDisabled}
+					onDiscard={handleDeleteClick}
+					onMoveTo={handleMoveTo}
+					onRename={handleRename}
+					placementTargets={placementTargets}
+					title={sectionTitle}
+				/>
 			)}
 		</div>
 	);
@@ -304,32 +330,37 @@ const PageGroup = ({
 	activeSectionIndex,
 	isExtractionValidation,
 	isInteractionDisabled,
-	onAddSection,
 	onDeletePage,
 	onDeleteSection,
+	onMoveSectionTo,
+	onRenameSection,
 	onSelectPage,
 	onSelectSection,
 	page,
 	pageIndex,
+	placementTargets,
 }: {
 	activeNodeType: ActiveNodeType;
 	activePageIndex: number;
 	activeSectionIndex: number;
 	isExtractionValidation: boolean;
 	isInteractionDisabled: boolean;
-	onAddSection: (pageIndex: number) => void;
 	onDeletePage: (pageIndex: number) => void;
 	onDeleteSection: (pageIndex: number, sectionIndex: number) => void;
+	onMoveSectionTo: (
+		pageIndex: number,
+		sectionIndex: number,
+		targetId: null | number,
+	) => void;
+	onRenameSection: (pageIndex: number, sectionIndex: number) => void;
 	onSelectPage: (event: MouseEvent<HTMLButtonElement>) => void;
 	onSelectSection: (event: MouseEvent<HTMLButtonElement>) => void;
 	page: ProposedSection;
 	pageIndex: number;
+	placementTargets: PlacementTarget[];
 }): JSX.Element => {
 	const isPageSelected =
 		pageIndex === activePageIndex && activeNodeType === "parent";
-	const handleAddSectionClick = useCallback((): void => {
-		onAddSection(pageIndex);
-	}, [onAddSection, pageIndex]);
 
 	return (
 		<div className="flex w-full min-w-0 flex-col gap-1">
@@ -362,8 +393,11 @@ const PageGroup = ({
 									isSelected={isSelected}
 									key={section.id}
 									onDeleteSection={onDeleteSection}
+									onMoveSectionTo={onMoveSectionTo}
+									onRenameSection={onRenameSection}
 									onSelectSection={onSelectSection}
 									pageIndex={pageIndex}
+									placementTargets={placementTargets}
 									section={section}
 									sectionIndex={sectionIndex}
 								/>
@@ -372,18 +406,6 @@ const PageGroup = ({
 					</SortableContext>
 				) : (
 					isExtractionValidation && <EmptyPageDropZone pageId={page.id} />
-				)}
-
-				{isExtractionValidation && (
-					<button
-						className="flex w-full items-center gap-1.5 rounded-md py-1.5 pl-3 pr-1.5 text-left font-sans text-2xs font-medium text-text-muted transition-colors hover:bg-secondary hover:text-text disabled:cursor-not-allowed disabled:opacity-40"
-						disabled={isInteractionDisabled}
-						onClick={handleAddSectionClick}
-						type="button"
-					>
-						<Icon name="plus" size={ICON_SIZE_TINY} />
-						Add item
-					</button>
 				)}
 			</div>
 		</div>
@@ -396,15 +418,16 @@ const StructureAside = ({
 	activeSectionIndex,
 	isExtractionValidation,
 	isInteractionDisabled,
-	onAddPage,
-	onAddSection,
 	onDeletePage,
 	onDeleteSection,
 	onMovePage,
 	onMoveSection,
+	onMoveSectionTo,
+	onRenameSection,
 	onSelectPage,
 	onSelectSection,
 	pages,
+	placementTargets,
 }: StructureAsideProperties): JSX.Element => {
 	const sensors = useSensors(
 		useSensor(PointerSensor, {
@@ -458,18 +481,6 @@ const StructureAside = ({
 				<div className="font-sans text-2xs font-bold uppercase tracking-wider text-text-muted">
 					Proposed Structure
 				</div>
-
-				{isExtractionValidation && (
-					<button
-						className="flex items-center gap-1 rounded-md px-1.5 py-1 font-sans text-2xs font-semibold text-accent transition-colors hover:bg-success-bg disabled:cursor-not-allowed disabled:opacity-40"
-						disabled={isInteractionDisabled}
-						onClick={onAddPage}
-						type="button"
-					>
-						<Icon name="plus" size={ICON_SIZE_TINY} />
-						Add page
-					</button>
-				)}
 			</div>
 
 			<DndContext
@@ -490,13 +501,15 @@ const StructureAside = ({
 								isExtractionValidation={isExtractionValidation}
 								isInteractionDisabled={isInteractionDisabled}
 								key={page.id}
-								onAddSection={onAddSection}
 								onDeletePage={onDeletePage}
 								onDeleteSection={onDeleteSection}
+								onMoveSectionTo={onMoveSectionTo}
+								onRenameSection={onRenameSection}
 								onSelectPage={onSelectPage}
 								onSelectSection={onSelectSection}
 								page={page}
 								pageIndex={pageIndex}
+								placementTargets={placementTargets}
 							/>
 						))}
 					</div>

@@ -1,5 +1,7 @@
 import { APIPath, HTTPCode, KnowledgeApiPath } from "@knowledgeprism/constants";
 import {
+	knowledgeDocumentCreateValidationSchema,
+	knowledgeDocumentMoveValidationSchema,
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
 	knowledgeSearchQueryValidationSchema,
@@ -7,6 +9,8 @@ import {
 	knowledgeTreeRouteParametersValidationSchema,
 } from "@knowledgeprism/schemas";
 import {
+	type KnowledgeDocumentCreateRequestDto,
+	type KnowledgeDocumentMoveRequestDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,
@@ -121,6 +125,22 @@ class KnowledgeController extends BaseController {
 
 		this.addRoute({
 			handler: (options) =>
+				this.createDocument(
+					options as APIHandlerOptions<{
+						body: KnowledgeDocumentCreateRequestDto;
+						params: KnowledgeTreeRouteParametersDto;
+					}>,
+				),
+			method: "POST",
+			path: KnowledgeApiPath.ROOT,
+			validation: {
+				body: knowledgeDocumentCreateValidationSchema,
+				params: knowledgeTreeRouteParametersValidationSchema,
+			},
+		});
+
+		this.addRoute({
+			handler: (options) =>
 				this.findEntry(
 					options as APIHandlerOptions<{
 						params: KnowledgeEntryRouteParametersDto;
@@ -164,6 +184,86 @@ class KnowledgeController extends BaseController {
 				params: knowledgeEntryRouteParametersValidationSchema,
 			},
 		});
+
+		this.addRoute({
+			handler: (options) =>
+				this.moveDocument(
+					options as APIHandlerOptions<{
+						body: KnowledgeDocumentMoveRequestDto;
+						params: KnowledgeEntryRouteParametersDto;
+					}>,
+				),
+			method: "PATCH",
+			path: KnowledgeApiPath.PLACEMENT_$ID,
+			validation: {
+				body: knowledgeDocumentMoveValidationSchema,
+				params: knowledgeEntryRouteParametersValidationSchema,
+			},
+		});
+
+		this.addRoute({
+			handler: (options) =>
+				this.removeDocument(
+					options as APIHandlerOptions<{
+						params: KnowledgeEntryRouteParametersDto;
+					}>,
+				),
+			method: "DELETE",
+			path: KnowledgeApiPath.ENTRY_$ID,
+			validation: {
+				params: knowledgeEntryRouteParametersValidationSchema,
+			},
+		});
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/knowledge:
+	 *    post:
+	 *      description: Create a document page in the knowledge tree
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      requestBody:
+	 *        required: true
+	 *        content:
+	 *          application/json:
+	 *            schema:
+	 *              type: object
+	 *              required:
+	 *                - parentId
+	 *                - title
+	 *              properties:
+	 *                parentId:
+	 *                  type: integer
+	 *                  nullable: true
+	 *                title:
+	 *                  type: string
+	 *      responses:
+	 *        201:
+	 *          description: Document created
+	 *          content:
+	 *            application/json:
+	 *              schema:
+	 *                $ref: "#/components/schemas/KnowledgeEntryResponse"
+	 */
+	private async createDocument(
+		options: APIHandlerOptions<{
+			body: KnowledgeDocumentCreateRequestDto;
+			params: KnowledgeTreeRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.knowledgeService.createDocument({
+				context: this.getAuthenticatedSessionContext(options),
+				payload: options.body,
+				projectId: Number(options.params.projectId),
+			}),
+			status: HTTPCode.CREATED,
+		};
 	}
 
 	private async findEntry(
@@ -192,6 +292,105 @@ class KnowledgeController extends BaseController {
 				projectId: Number(options.params.projectId),
 			}),
 			status: HTTPCode.OK,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/knowledge/{id}/placement:
+	 *    patch:
+	 *      description: Move or reorder a document page within three levels
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: id
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      requestBody:
+	 *        required: true
+	 *        content:
+	 *          application/json:
+	 *            schema:
+	 *              type: object
+	 *              required:
+	 *                - parentId
+	 *                - position
+	 *              properties:
+	 *                parentId:
+	 *                  type: integer
+	 *                  nullable: true
+	 *                position:
+	 *                  type: integer
+	 *      responses:
+	 *        200:
+	 *          description: Document moved
+	 *          content:
+	 *            application/json:
+	 *              schema:
+	 *                $ref: "#/components/schemas/KnowledgeEntryResponse"
+	 */
+	private async moveDocument(
+		options: APIHandlerOptions<{
+			body: KnowledgeDocumentMoveRequestDto;
+			params: KnowledgeEntryRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.knowledgeService.moveDocument({
+				context: this.getAuthenticatedSessionContext(options),
+				nodeId: Number(options.params.id),
+				payload: options.body,
+				projectId: Number(options.params.projectId),
+			}),
+			status: HTTPCode.OK,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/knowledge/{id}:
+	 *    delete:
+	 *      description: Remove a document or nested section and anything nested under it
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: id
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      responses:
+	 *        204:
+	 *          description: Document removed
+	 *        401:
+	 *          description: Unauthorized
+	 *        403:
+	 *          description: Forbidden (Viewer role or non-member)
+	 *        404:
+	 *          description: Document not found
+	 */
+	private async removeDocument(
+		options: APIHandlerOptions<{
+			params: KnowledgeEntryRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		await this.knowledgeService.removeDocument({
+			context: this.getAuthenticatedSessionContext(options),
+			nodeId: Number(options.params.id),
+			projectId: Number(options.params.projectId),
+		});
+
+		return {
+			payload: null,
+			status: HTTPCode.NO_CONTENT,
 		};
 	}
 

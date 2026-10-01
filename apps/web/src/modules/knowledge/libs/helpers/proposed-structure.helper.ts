@@ -1,5 +1,3 @@
-import { KnowledgeNodeType } from "@knowledgeprism/constants";
-
 import {
 	type ChangeStatus,
 	type ProposedPage,
@@ -9,10 +7,7 @@ import {
 const DEFAULT_INDEX = 0;
 const EMPTY_LENGTH = 0;
 const LAST_INDEX_OFFSET = 1;
-const MANUAL_ENTRY_CHANGE_ID = -1;
 const MANUAL_PAGE_ID_PREFIX = "manual-page";
-const MANUAL_SECTION_ID_PREFIX = "manual-section";
-const NEW_PAGE_TITLE = "New page";
 const NOT_FOUND_INDEX = -1;
 const SINGLE_ITEM_COUNT = 1;
 
@@ -29,53 +24,17 @@ type UpdateSectionParameters = {
 	sectionIndex: number;
 };
 
+const STATUSES_KEPT_ON_EDIT = new Set<ChangeStatus>([
+	"conflict",
+	"created",
+	"duplicate",
+]);
+
 const getEditedStatus = (status: ChangeStatus): ChangeStatus =>
-	status === "created" || status === "conflict" ? status : "modified";
+	STATUSES_KEPT_ON_EDIT.has(status) ? status : "modified";
 
 const isManualPage = (page: ProposedSection): boolean =>
 	page.id.startsWith(MANUAL_PAGE_ID_PREFIX);
-
-const createManualPage = (): ProposedSection => ({
-	id: `${MANUAL_PAGE_ID_PREFIX}-${crypto.randomUUID()}`,
-	pages: [],
-	status: "created",
-	title: NEW_PAGE_TITLE,
-	type: KnowledgeNodeType.SECTION,
-});
-
-const createManualSection = (): ProposedPage => ({
-	content: "",
-	id: `${MANUAL_SECTION_ID_PREFIX}-${crypto.randomUUID()}`,
-	integrationChangeId: MANUAL_ENTRY_CHANGE_ID,
-	status: "created",
-	title: "",
-	type: KnowledgeNodeType.PAGE,
-});
-
-const addPageGroup = (pages: ProposedSection[]): ProposedSection[] => [
-	...pages,
-	createManualPage(),
-];
-
-const addSectionToPage = (
-	pages: ProposedSection[],
-	pageIndex: number,
-): ProposedSection[] => {
-	const targetPage = pages[pageIndex];
-
-	if (!targetPage) {
-		return pages;
-	}
-
-	const updatedPages = [...pages];
-
-	updatedPages[pageIndex] = {
-		...targetPage,
-		pages: [...targetPage.pages, createManualSection()],
-	};
-
-	return updatedPages;
-};
 
 const removePageGroup = (
 	pages: ProposedSection[],
@@ -322,8 +281,6 @@ const moveSectionAcrossPages = (
 };
 
 export {
-	addPageGroup,
-	addSectionToPage,
 	isManualPage,
 	movePageGroup,
 	moveSectionAcrossPages,

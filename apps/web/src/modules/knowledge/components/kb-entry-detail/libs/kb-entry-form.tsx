@@ -16,6 +16,7 @@ import {
 import { useController, useWatch } from "react-hook-form";
 
 import {
+	Button,
 	Input,
 	KnowledgeEditor,
 	type KnowledgeEditorApi,
@@ -43,6 +44,7 @@ import { kbEntryValidationSchema } from "./validation-schema.js";
 type EditorBlock = Block<BlockSchemaFromSpecs<BlockSpecs>>;
 
 const EMPTY_COUNT = 0;
+const PAGE_FORM_ID = "kb-entry-form";
 
 const MAX_TITLE_CHARACTERS = 255;
 
@@ -218,12 +220,22 @@ const GlossaryWarningTooltipContent = ({
 };
 
 interface KbEntryFormProperties {
+	closesAfterSave?: boolean;
 	entry: KbEntry;
-	onCancel: () => void;
+	formId?: string;
+	onCancel?: () => void;
 	onSave: (payload: KnowledgeEntryUpdateRequestDto) => Promise<boolean>;
+	showSubmit?: boolean;
 }
 
-const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
+const KbEntryForm = ({
+	closesAfterSave = true,
+	entry,
+	formId = PAGE_FORM_ID,
+	onCancel,
+	onSave,
+	showSubmit = false,
+}: KbEntryFormProperties) => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isMaxTitleReached, setIsMaxTitleReached] = useState(false);
 	const [glossaryTermMatch, setGlossaryTermMatch] =
@@ -352,14 +364,14 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 				setIsSubmitting(true);
 				const isSuccess = await onSave(values);
 
-				if (isSuccess) {
-					onCancel();
+				if (isSuccess && closesAfterSave) {
+					onCancel?.();
 				}
 			} finally {
 				setIsSubmitting(false);
 			}
 		},
-		[onCancel, onSave],
+		[closesAfterSave, onCancel, onSave],
 	);
 
 	const handleFormSubmit = useCallback(
@@ -403,7 +415,7 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 		<>
 			<form
 				className="flex flex-col gap-4"
-				id="kb-entry-form"
+				id={formId}
 				onSubmit={handleFormSubmit}
 			>
 				<div className="kb-body flex flex-col gap-4">
@@ -461,6 +473,11 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 						/>
 					</div>
 				</div>
+				{showSubmit && (
+					<Button disabled={isSubmitting} type="submit" variant="primary">
+						Save
+					</Button>
+				)}
 			</form>
 			{glossaryTermMatch && (
 				<AddToGlossaryModal

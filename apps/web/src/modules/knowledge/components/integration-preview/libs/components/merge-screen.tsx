@@ -11,69 +11,56 @@ import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import {
 	type ConflictResolution,
 	type FieldConflict,
-	type ProposedPage,
-	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
 
 const CHECK_ICON_SIZE = 14;
 const DUPLICATE_INCOMING_FIELD_MESSAGE =
 	"Two conflicts cannot both apply incoming values to the same field on the same knowledge entry. Change at least one resolution to Keep Live Version.";
+const FIRST_MATCH_INDEX = 0;
+const MATCH_LABEL_OFFSET = 1;
+const NEXT_MATCH_STEP = 1;
+const NOT_FOUND_INDEX = -1;
+const PREVIOUS_MATCH_STEP = -1;
+const SECTIONS_LABEL = "sections to decide";
+const SINGLE_MATCH_COUNT = 1;
 const VALID_RESOLUTIONS: readonly ConflictResolution[] = [
+	"both",
 	"keep",
 	"use-new",
 ] as const;
 
+const HighlightedSpan = ({
+	span,
+	text,
+}: {
+	span: string;
+	text: string;
+}): JSX.Element => {
+	const spanIndex =
+		span.length === FIRST_MATCH_INDEX ? NOT_FOUND_INDEX : text.indexOf(span);
+
+	if (spanIndex < FIRST_MATCH_INDEX) {
+		return <>{text}</>;
+	}
+
+	const spanEnd = spanIndex + span.length;
+
+	return (
+		<>
+			{text.slice(FIRST_MATCH_INDEX, spanIndex)}
+			<mark className="rounded-sm bg-warning-bg px-0.5 text-text">{span}</mark>
+			{text.slice(spanEnd)}
+		</>
+	);
+};
+
 type MergeScreenProperties = {
+	cancelLabel: string;
 	conflicts: FieldConflict[];
 	isApplying: boolean;
 	onCancel: () => void;
-	onPublish: (
-		resolvedPages: ProposedSection[],
-		resolvedConflicts: FieldConflict[],
-	) => void;
-	pages: ProposedSection[];
-};
-
-const resolveSectionField = (
-	conflict: FieldConflict,
-	resolutionMap: Map<string, ConflictResolution>,
-): string => {
-	const choice = resolutionMap.get(conflict.id) ?? "use-new";
-
-	return choice === "keep" ? conflict.currentValue : conflict.incomingValue;
-};
-
-const resolveSection = (
-	section: ProposedPage,
-	conflicts: FieldConflict[],
-	resolutionMap: Map<string, ConflictResolution>,
-): ProposedPage => {
-	const titleConflict = conflicts.find(
-		(conflict) =>
-			conflict.field === "title" &&
-			conflict.changeId === section.integrationChangeId,
-	);
-
-	const contentConflict = conflicts.find(
-		(conflict) =>
-			conflict.field === "content" &&
-			conflict.changeId === section.integrationChangeId,
-	);
-
-	const resolvedTitle = titleConflict
-		? resolveSectionField(titleConflict, resolutionMap)
-		: section.title;
-
-	const resolvedContent = contentConflict
-		? resolveSectionField(contentConflict, resolutionMap)
-		: section.content;
-
-	return {
-		...section,
-		content: resolvedContent,
-		status: titleConflict || contentConflict ? "modified" : section.status,
-		title: resolvedTitle,
-	};
+	onPublish: (resolvedConflicts: FieldConflict[]) => void;
+	submitLabel: string;
 };
 
 const hasDuplicateIncomingFieldConflict = (
@@ -82,7 +69,10 @@ const hasDuplicateIncomingFieldConflict = (
 	const incomingFields = new Set<string>();
 
 	for (const conflict of conflicts) {
-		if (conflict.resolution !== "use-new" || conflict.matchedNodeId === null) {
+		const isIncomingWrite =
+			conflict.resolution === "use-new" || conflict.resolution === "both";
+
+		if (!isIncomingWrite || conflict.matchedNodeId === null) {
 			continue;
 		}
 
@@ -99,11 +89,12 @@ const hasDuplicateIncomingFieldConflict = (
 };
 
 const MergeScreen = ({
+	cancelLabel,
 	conflicts: initialConflicts,
 	isApplying,
 	onCancel,
 	onPublish,
-	pages,
+	submitLabel,
 }: MergeScreenProperties): JSX.Element => {
 	const [conflicts, setConflicts] = useState<FieldConflict[]>(() =>
 		initialConflicts.map((conflict) => ({
@@ -138,6 +129,44 @@ const MergeScreen = ({
 		[isApplying],
 	);
 
+	const handleMatchStep = useCallback(
+		(event: MouseEvent<HTMLButtonElement>): void => {
+			if (isApplying) {
+				return;
+			}
+
+			const conflictId = event.currentTarget.dataset["conflictId"];
+			const step = event.currentTarget.dataset["matchStep"];
+
+			if (!conflictId || (step !== "next" && step !== "previous")) {
+				return;
+			}
+
+			setConflicts((previousConflicts) =>
+				previousConflicts.map((item) => {
+					if (item.id !== conflictId) {
+						return item;
+					}
+
+					const matchCount = item.wordingMatches?.length ?? FIRST_MATCH_INDEX;
+
+					if (matchCount <= SINGLE_MATCH_COUNT) {
+						return item;
+					}
+
+					const currentIndex = item.matchIndex ?? FIRST_MATCH_INDEX;
+					const stepDelta =
+						step === "next" ? NEXT_MATCH_STEP : PREVIOUS_MATCH_STEP;
+					const nextIndex =
+						(currentIndex + stepDelta + matchCount) % matchCount;
+
+					return { ...item, matchIndex: nextIndex };
+				}),
+			);
+		},
+		[isApplying],
+	);
+
 	const handleConsolidatedPublish = useCallback((): void => {
 		if (isApplying) {
 			return;
@@ -149,22 +178,8 @@ const MergeScreen = ({
 			return;
 		}
 
-		const resolutionMap = new Map<string, ConflictResolution>();
-		for (const item of conflicts) {
-			if (item.resolution) {
-				resolutionMap.set(item.id, item.resolution);
-			}
-		}
-
-		const resolvedPages = pages.map((page) => ({
-			...page,
-			pages: page.pages.map((section) =>
-				resolveSection(section, conflicts, resolutionMap),
-			),
-		}));
-
-		onPublish(resolvedPages, conflicts);
-	}, [conflicts, isApplying, onPublish, pages]);
+		onPublish(conflicts);
+	}, [conflicts, isApplying, onPublish]);
 
 	const hasAllResolved = conflicts.every((item) => Boolean(item.resolution));
 
@@ -176,18 +191,19 @@ const MergeScreen = ({
 						className="font-serif text-lg tablet:text-2xl font-bold tracking-tight text-text leading-tight"
 						level="2"
 					>
-						Conflict Resolution
+						Decide on existing knowledge
 					</Heading>
 					<span className="inline-flex self-start sm:self-auto shrink-0 items-center justify-center rounded-full border border-warning/40 bg-warning-bg px-2.5 py-0.5 font-mono text-2xs font-semibold uppercase tracking-wider text-warning whitespace-nowrap">
-						Concurrent changes detected
+						{String(new Set(conflicts.map((item) => item.changeId)).size)}{" "}
+						{SECTIONS_LABEL}
 					</span>
 				</div>
 				<Paragraph
 					className="text-text-muted font-sans text-xs tablet:text-sm"
 					size={ParagraphSize.BODY_SMALL}
 				>
-					Review differences below and choose which version to apply for each
-					field.
+					These sections overlap entries already in the knowledge base. Choose
+					what to keep for each field before anything is published.
 				</Paragraph>
 				{validationError && (
 					<Paragraph
@@ -203,6 +219,16 @@ const MergeScreen = ({
 				{conflicts.map((conflict) => {
 					const isKeepActive = conflict.resolution === "keep";
 					const isUseNewActive = conflict.resolution === "use-new";
+					const isBothActive = conflict.resolution === "both";
+					const wordingMatches = conflict.wordingMatches ?? [];
+					const matchCount = wordingMatches.length;
+					const matchIndex = conflict.matchIndex ?? FIRST_MATCH_INDEX;
+					const activeSpan =
+						wordingMatches[matchIndex]?.span ??
+						wordingMatches[FIRST_MATCH_INDEX]?.span ??
+						"";
+					const hasWordingMatches =
+						conflict.field === "content" && matchCount > FIRST_MATCH_INDEX;
 
 					return (
 						<div
@@ -238,8 +264,15 @@ const MergeScreen = ({
 												</span>
 											)}
 										</div>
-										<div className="font-sans text-sm leading-relaxed text-text">
-											{conflict.currentValue}
+										<div className="whitespace-pre-line font-sans text-sm leading-relaxed text-text">
+											{hasWordingMatches ? (
+												<HighlightedSpan
+													span={activeSpan}
+													text={conflict.currentValue}
+												/>
+											) : (
+												conflict.currentValue
+											)}
 										</div>
 									</div>
 
@@ -301,6 +334,53 @@ const MergeScreen = ({
 									</button>
 								</div>
 							</div>
+
+							{hasWordingMatches && (
+								<div className="flex flex-col gap-2">
+									{matchCount > SINGLE_MATCH_COUNT && (
+										<div className="flex items-center justify-between gap-2">
+											<button
+												className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-muted hover:bg-secondary hover:text-text"
+												data-conflict-id={conflict.id}
+												data-match-step="previous"
+												disabled={isApplying}
+												onClick={handleMatchStep}
+												type="button"
+											>
+												Previous
+											</button>
+											<span className="font-mono text-2xs font-semibold uppercase tracking-wider text-text-muted">
+												item {matchIndex + MATCH_LABEL_OFFSET} of {matchCount}
+											</span>
+											<button
+												className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-muted hover:bg-secondary hover:text-text"
+												data-conflict-id={conflict.id}
+												data-match-step="next"
+												disabled={isApplying}
+												onClick={handleMatchStep}
+												type="button"
+											>
+												Next
+											</button>
+										</div>
+									)}
+									<button
+										className={getValidClassNames(
+											"w-full rounded-lg border py-2 text-xs font-semibold transition-colors",
+											isBothActive
+												? "border-accent bg-accent text-white"
+												: "border-border bg-surface text-text-muted hover:bg-secondary hover:text-text",
+										)}
+										data-conflict-id={conflict.id}
+										data-resolution="both"
+										disabled={isApplying}
+										onClick={handleResolveConflict}
+										type="button"
+									>
+										Both{isBothActive ? " · Selected" : ""}
+									</button>
+								</div>
+							)}
 						</div>
 					);
 				})}
@@ -308,7 +388,7 @@ const MergeScreen = ({
 
 			<div className="mt-auto flex shrink-0 items-center justify-between border-t border-border-subtle pt-2.5 px-1">
 				<Button disabled={isApplying} onClick={onCancel} variant="secondary">
-					Cancel
+					{cancelLabel}
 				</Button>
 				<Button
 					disabled={!hasAllResolved || isApplying}
@@ -316,7 +396,7 @@ const MergeScreen = ({
 					variant="primary"
 				>
 					<Icon name="checkbox-tick" size={CHECK_ICON_SIZE} />
-					<span>Publish resolution</span>
+					<span>{submitLabel}</span>
 				</Button>
 			</div>
 		</div>

@@ -1,12 +1,17 @@
 import { type ExtractionItemStatus } from "@knowledgeprism/constants";
-import { type ValueOf } from "@knowledgeprism/types";
+import {
+	type ExtractionContentBlock,
+	type ValueOf,
+} from "@knowledgeprism/types";
 
 import { type Entity } from "~/shared/types/types.js";
 
 type ExtractionItemObject = {
+	blocks?: ExtractionContentBlock[];
 	confidence: number;
 	documentId: number;
 	extractionSectionId: null | number;
+	heading: null | string;
 	id: number;
 	knowledgeNodeId: null | number;
 	position: number;
@@ -19,11 +24,15 @@ type ExtractionItemObject = {
 };
 
 class ExtractionItemEntity implements Entity {
+	private blocks: ExtractionContentBlock[];
+
 	private confidence: number;
 
 	private documentId: number;
 
 	private extractionSectionId: null | number;
+
+	private heading: null | string;
 
 	private id: number;
 
@@ -44,9 +53,11 @@ class ExtractionItemEntity implements Entity {
 	private title: string;
 
 	private constructor({
+		blocks = [],
 		confidence,
 		documentId,
 		extractionSectionId,
+		heading,
 		id,
 		knowledgeNodeId,
 		position,
@@ -57,9 +68,11 @@ class ExtractionItemEntity implements Entity {
 		text,
 		title,
 	}: ExtractionItemObject) {
+		this.blocks = blocks;
 		this.confidence = confidence;
 		this.documentId = documentId;
 		this.extractionSectionId = extractionSectionId;
+		this.heading = heading;
 		this.id = id;
 		this.knowledgeNodeId = knowledgeNodeId;
 		this.position = position;
@@ -77,9 +90,11 @@ class ExtractionItemEntity implements Entity {
 
 	public toNewObject(): Omit<ExtractionItemObject, "id"> {
 		return {
+			blocks: this.blocks,
 			confidence: this.confidence,
 			documentId: this.documentId,
 			extractionSectionId: this.extractionSectionId,
+			heading: this.heading,
 			knowledgeNodeId: this.knowledgeNodeId,
 			position: this.position,
 			rationale: this.rationale,

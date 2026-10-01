@@ -1,0 +1,5 @@
+div:has(> .analyzing-full-state) {
+	flex-grow: 1;
+	justify-content: center;
+	width: 100%;
+}

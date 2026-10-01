@@ -1,5 +1,8 @@
 import { type ExtractionItemStatus } from "@knowledgeprism/constants";
-import { type ValueOf } from "@knowledgeprism/types";
+import {
+	type ExtractionContentBlock,
+	type ValueOf,
+} from "@knowledgeprism/types";
 
 import {
 	AbstractModel,
@@ -7,11 +10,15 @@ import {
 } from "~/infrastructure/database/database.js";
 
 class ExtractionItemModel extends AbstractModel {
+	public blocks!: ExtractionContentBlock[];
+
 	public confidence!: number;
 
 	public documentId!: number;
 
 	public extractionSectionId!: null | number;
+
+	public heading!: null | string;
 
 	public knowledgeNodeId!: null | number;
 
@@ -28,6 +35,10 @@ class ExtractionItemModel extends AbstractModel {
 	public text!: string;
 
 	public title!: string;
+
+	public static override get jsonAttributes(): string[] {
+		return ["blocks"];
+	}
 
 	public static override get tableName(): string {
 		return DatabaseTableName.EXTRACTION_ITEMS;

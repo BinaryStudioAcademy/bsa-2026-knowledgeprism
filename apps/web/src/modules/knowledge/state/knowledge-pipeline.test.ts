@@ -898,6 +898,11 @@ describe("knowledge pipeline lifecycle", () => {
 			({ documentId }) =>
 				documentId === DOCUMENT_B_ID ? switchToB.promise : switchToC.promise,
 		);
+		vi.spyOn(documentsApi, "getExtractionItems").mockResolvedValue({
+			failedPageNumbers: [],
+			items: [],
+			sections: [],
+		});
 
 		const olderSwitch = store.instance.dispatch(
 			switchActiveDocument(createRequest(DOCUMENT_B_ID)),
@@ -942,6 +947,11 @@ describe("knowledge pipeline lifecycle", () => {
 							),
 						),
 		);
+		vi.spyOn(documentsApi, "getExtractionItems").mockResolvedValue({
+			failedPageNumbers: [],
+			items: [],
+			sections: [],
+		});
 
 		const olderSwitch = store.instance.dispatch(
 			switchActiveDocument(createRequest(DOCUMENT_B_ID)),
@@ -958,7 +968,7 @@ describe("knowledge pipeline lifecycle", () => {
 		expect(notificationListener).not.toHaveBeenCalled();
 	});
 
-	it("does not activate a switch target that is now INTEGRATING", async () => {
+	it("opens the placement review when a switch target is integrating", async () => {
 		trackDocumentWithStatus(
 			DOCUMENT_A_ID,
 			DocumentStatus.WAITING_FOR_VALIDATION,
@@ -970,14 +980,19 @@ describe("knowledge pipeline lifecycle", () => {
 		vi.spyOn(documentsApi, "getDocumentStatus").mockResolvedValue(
 			createStatusResponse(DOCUMENT_B_ID, DocumentStatus.INTEGRATING),
 		);
+		vi.spyOn(documentsApi, "getExtractionItems").mockResolvedValue({
+			failedPageNumbers: [],
+			items: [],
+			sections: [],
+		});
 
 		const result = await store.instance
 			.dispatch(switchActiveDocument(createRequest(DOCUMENT_B_ID)))
 			.unwrap();
 
-		expect(result).toEqual({ isLatest: true, isSwitched: false });
+		expect(result).toEqual({ isLatest: true, isSwitched: true });
 		expect(store.instance.getState().knowledge.activeDocumentId).toBe(
-			DOCUMENT_A_ID,
+			DOCUMENT_B_ID,
 		);
 	});
 
@@ -1090,7 +1105,7 @@ describe("knowledge pipeline lifecycle", () => {
 		).toEqual([]);
 	});
 
-	it("invalidates extraction readiness when the document advances", () => {
+	it("keeps extraction items while placement is running", () => {
 		trackDocumentWithStatus(
 			DOCUMENT_A_ID,
 			DocumentStatus.WAITING_FOR_VALIDATION,
@@ -1114,12 +1129,9 @@ describe("knowledge pipeline lifecycle", () => {
 			}),
 		);
 
-		expect(
-			store.instance.getState().knowledge.extractionItemsDocumentId,
-		).toBeNull();
-		expect(
-			store.instance.getState().knowledge.extractionFailedPageNumbers,
-		).toEqual([]);
+		expect(store.instance.getState().knowledge.extractionItemsDocumentId).toBe(
+			DOCUMENT_A_ID,
+		);
 	});
 
 	it("resyncs an outdated integration apply to INTEGRATING", async () => {
@@ -1134,7 +1146,7 @@ describe("knowledge pipeline lifecycle", () => {
 		await store.instance.dispatch(
 			applyIntegrationChanges({
 				...createRequest(DOCUMENT_A_ID),
-				payload: { contentOverrides: [], resolutions: [] },
+				payload: { contentOverrides: [], items: [], resolutions: [] },
 			}),
 		);
 

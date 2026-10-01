@@ -10,7 +10,7 @@ import { store } from "~/lib/store/store.js";
 
 import { knowledgeApi } from "../knowledge.js";
 import { useProjectKnowledgePipeline } from "../libs/hooks/use-project-knowledge-pipeline.hook.js";
-import { fetchKnowledgeTree } from "../state/actions.js";
+import { fetchKnowledgeTree, removeDocumentNode } from "../state/actions.js";
 import { actions } from "../state/knowledge.slice.js";
 import { KnowledgeTreePage } from "./knowledge-tree-page.js";
 
@@ -44,7 +44,9 @@ vi.mock("./knowledge-tree/knowledge-tree-layout.js", () => ({
 					Select B
 				</button>
 				<div data-testid="selected-entry">
-					{selectedEntry?.title ?? "loading"}
+					{selectedPageId === undefined
+						? "none"
+						: (selectedEntry?.title ?? "loading")}
 				</div>
 			</>
 		);
@@ -149,6 +151,7 @@ describe("KnowledgeTreePage project races", () => {
 
 	afterEach(() => {
 		store.instance.dispatch(actions.resetState(null));
+		vi.restoreAllMocks();
 	});
 
 	it("keeps fast project B ready after slow project A settles", async () => {
@@ -324,5 +327,77 @@ describe("KnowledgeTreePage project races", () => {
 		expect(
 			getEntry.mock.calls.filter(([{ entryId }]) => entryId === SECOND_PAGE_ID),
 		).toHaveLength(REMOVED_PAGE_REQUEST_COUNT);
+	});
+
+	it("shows an empty page after the open document is removed", async () => {
+		const nestedChildId = 30;
+		const treeWithNestedDocument: KnowledgeTreeResponseDto = {
+			items: [
+				...createSelectableTree().items,
+				{
+					id: nestedChildId,
+					parentId: SECOND_PAGE_ID,
+					position: 0,
+					title: "Child",
+					type: KnowledgeNodeType.PAGE,
+					updatedAt: "2026-09-28T00:00:00.000Z",
+				},
+			],
+		};
+		const treeAfterRemove = createSelectableTree(false);
+		vi.spyOn(knowledgeApi, "removeDocumentNode").mockResolvedValue();
+		vi.spyOn(knowledgeApi, "getKnowledgeTree")
+			.mockResolvedValueOnce(treeWithNestedDocument)
+			.mockResolvedValueOnce(treeAfterRemove);
+		vi.spyOn(knowledgeApi, "getKnowledgeEntry").mockImplementation(
+			({ entryId }) =>
+				Promise.resolve(
+					createEntry(
+						entryId,
+						entryId === SECOND_PAGE_ID ? "B entry" : "A entry",
+					),
+				),
+		);
+
+		render(
+			<Provider store={store.instance}>
+				<MemoryRouter
+					initialEntries={[`/workspaces/${PROJECT_ID}/knowledge-tree`]}
+				>
+					<ProjectRoute projectId={PROJECT_ID} />
+				</MemoryRouter>
+			</Provider>,
+		);
+
+		await waitFor(() => {
+			expect(screen.getByTestId("tree-state")).toHaveTextContent("ready");
+		});
+		act(() => {
+			screen.getByRole("button", { name: "Select B" }).click();
+		});
+		await waitFor(() => {
+			expect(screen.getByTestId("selected-entry")).toHaveTextContent("B entry");
+		});
+
+		await act(async () => {
+			await store.instance.dispatch(
+				removeDocumentNode({
+					documentId: SECOND_PAGE_ID,
+					projectId: PROJECT_ID,
+					queryNodeId: null,
+				}),
+			);
+		});
+
+		await waitFor(() => {
+			const treeText = screen.getByTestId("tree-state").textContent;
+
+			expect(screen.getByTestId("selected-entry")).toHaveTextContent("none");
+			expect(treeText.startsWith("ready:")).toBe(true);
+			expect(treeText).toContain("Section");
+			expect(treeText).toContain("A");
+			expect(treeText).not.toContain("Child");
+			expect(treeText).not.toContain("B");
+		});
 	});
 });

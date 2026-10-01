@@ -27,7 +27,7 @@ type ErrorProperties = {
 type FullSuccessProperties = {
 	currentStatus: "IDLE" | "UPLOADED" | ValueOf<typeof DocumentStatus>;
 	hasError?: false;
-	onCancel?: never;
+	onCancel?: () => void;
 	onFinish?: () => void;
 	onPreview?: never;
 	onRetry?: never;

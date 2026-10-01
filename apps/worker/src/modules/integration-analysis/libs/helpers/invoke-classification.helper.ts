@@ -6,37 +6,29 @@ import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
 import { toResponseText } from "~/bedrock/to-response-text.helper.js";
 import { logger } from "~/logger/logger.js";
 
+import { CLASSIFICATION_SYSTEM_PROMPT } from "../constants/classification-prompt.constant.js";
 import {
-	CANDIDATES_TAG,
-	CLASSIFICATION_SYSTEM_PROMPT,
-	ITEM_TAG,
-} from "../constants/classification-prompt.constant.js";
+	type ClassificationRequest,
+	toClassificationPrompt,
+} from "./to-classification-prompt.helper.js";
 
-const toCandidateLines = (candidateTexts: string[]): string => {
-	return candidateTexts
-		.map((text, index) => {
-			return `${index.toString()}: ${text}`;
-		})
-		.join("\n");
-};
-
-const toClassificationPrompt = (
-	itemText: string,
-	candidateTexts: string[],
-): string => {
-	return `<${ITEM_TAG}>\n${itemText}\n</${ITEM_TAG}>\n<${CANDIDATES_TAG}>\n${toCandidateLines(candidateTexts)}\n</${CANDIDATES_TAG}>`;
-};
-
-const invokeClassification = async (
-	itemText: string,
-	candidateTexts: string[],
-): Promise<unknown> => {
+const invokeClassification = async ({
+	candidateTexts,
+	itemText,
+	priorPlacements,
+	tree,
+}: ClassificationRequest): Promise<unknown> => {
 	const body = JSON.stringify({
 		anthropic_version: BedrockRequest.ANTHROPIC_VERSION,
 		max_tokens: BedrockRequest.MAX_TOKENS,
 		messages: [
 			{
-				content: toClassificationPrompt(itemText, candidateTexts),
+				content: toClassificationPrompt({
+					candidateTexts,
+					itemText,
+					priorPlacements,
+					tree,
+				}),
 				role: "user",
 			},
 		],

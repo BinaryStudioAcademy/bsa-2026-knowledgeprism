@@ -3,6 +3,7 @@ import { useFocusReturn, useFocusTrap, useMergedRef } from "@mantine/hooks";
 import React, { useCallback, useEffect, useRef } from "react";
 import { generatePath, Link } from "react-router-dom";
 
+import { useKnowledgeTreePanel } from "~/app/layouts/knowledge-tree-panel-context.js";
 import { Icon } from "~/components/icon/icon.js";
 import {
 	useAppSelector,
@@ -43,12 +44,16 @@ const buildProjectLink = (
 	return projectId ? generatePath(route, { projectId }) : undefined;
 };
 
-const buildPrimaryNavItems = (projectId: string | undefined): NavItem[] => {
+const buildPrimaryNavItems = (
+	projectId: string | undefined,
+	openKnowledgeTree: () => void,
+): NavItem[] => {
 	return [
 		{
 			icon: <Icon name="knowledge-tree" />,
 			id: "knowledge-tree",
 			label: "Knowledge Tree",
+			onNavigate: openKnowledgeTree,
 			to: buildProjectLink(projectId, AppRoute.PROJECT_KNOWLEDGE_TREE),
 		},
 		{
@@ -85,12 +90,16 @@ const buildUtilityNavItems = (
 	];
 };
 
-const buildMobileNavItems = (projectId: string | undefined): NavItem[] => {
+const buildMobileNavItems = (
+	projectId: string | undefined,
+	openKnowledgeTree: () => void,
+): NavItem[] => {
 	return [
 		{
 			icon: <Icon name="knowledge-tree" size={MOBILE_NAV_ICON_SIZE} />,
 			id: "knowledge-tree",
 			label: "Tree",
+			onNavigate: openKnowledgeTree,
 			to: buildProjectLink(projectId, AppRoute.PROJECT_KNOWLEDGE_TREE),
 		},
 		{
@@ -123,6 +132,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 			pathname,
 			search,
 		}) ?? undefined;
+	const { openKnowledgeTree } = useKnowledgeTreePanel();
 	const { hideModal, isOpen, showModal } = useModal();
 	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 	const canAddKnowledge = useCanWriteKnowledge();
@@ -133,7 +143,7 @@ const Sidebar: React.FC<SidebarProperties> = ({
 
 	useFocusReturn({ opened: isOverlayOpen });
 
-	const primaryNavItems = buildPrimaryNavItems(projectId);
+	const primaryNavItems = buildPrimaryNavItems(projectId, openKnowledgeTree);
 	const utilityNavItems = buildUtilityNavItems(role, isAdmin, projectId);
 
 	const handleAddClick = useCallback((): void => {
@@ -204,11 +214,12 @@ const Sidebar: React.FC<SidebarProperties> = ({
 const MobileNav: React.FC = () => {
 	const { pathname } = useLocation();
 	const projectId = useOptionalCurrentProjectId();
-	const mobileNavItems = buildMobileNavItems(projectId);
+	const { openKnowledgeTree } = useKnowledgeTreePanel();
+	const mobileNavItems = buildMobileNavItems(projectId, openKnowledgeTree);
 
 	return (
 		<nav className="flex h-14 w-full shrink-0 items-center justify-around border-t border-border bg-surface">
-			{mobileNavItems.map(({ icon, id, label, to }) => {
+			{mobileNavItems.map(({ icon, id, label, onNavigate, to }) => {
 				const isActive = Boolean(to) && pathname === to;
 				const className = getValidClassNames(
 					"flex h-full flex-1 flex-col items-center justify-center gap-1 py-2 text-2xs transition-colors",
@@ -224,6 +235,7 @@ const MobileNav: React.FC = () => {
 							aria-current={isActive ? "page" : undefined}
 							className={className}
 							key={id}
+							onClick={onNavigate}
 							to={to}
 						>
 							{icon}

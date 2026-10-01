@@ -1,5 +1,5 @@
 import { type IntegrationChangeType } from "@knowledgeprism/constants";
-import { type ValueOf } from "@knowledgeprism/types";
+import { type DocumentPlacementDto, type ValueOf } from "@knowledgeprism/types";
 
 import {
 	AbstractModel,
@@ -22,6 +22,8 @@ class IntegrationChangeModel extends AbstractModel {
 	public liveTitle!: null | string;
 
 	public matchedNodeId!: null | number;
+
+	public placement!: DocumentPlacementDto;
 
 	public score!: null | number;
 

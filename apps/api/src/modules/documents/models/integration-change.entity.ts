@@ -1,6 +1,7 @@
 import { type IntegrationChangeType } from "@knowledgeprism/constants";
-import { type ValueOf } from "@knowledgeprism/types";
+import { type DocumentPlacementDto, type ValueOf } from "@knowledgeprism/types";
 
+import { toDocumentPlacement } from "~/modules/documents/libs/helpers/to-document-placement.helper.js";
 import { type Entity } from "~/shared/types/types.js";
 
 type IntegrationChangeObject = {
@@ -13,6 +14,7 @@ type IntegrationChangeObject = {
 	liveContent: null | string;
 	liveTitle: null | string;
 	matchedNodeId: null | number;
+	placement: DocumentPlacementDto;
 	score: null | number;
 	type: ValueOf<typeof IntegrationChangeType>;
 };
@@ -38,6 +40,8 @@ class IntegrationChangeEntity implements Entity {
 
 	private matchedNodeId: null | number;
 
+	private placement: DocumentPlacementDto;
+
 	private score: null | number;
 
 	private type: ValueOf<typeof IntegrationChangeType>;
@@ -52,6 +56,7 @@ class IntegrationChangeEntity implements Entity {
 		liveContent,
 		liveTitle,
 		matchedNodeId,
+		placement,
 		score,
 		type,
 	}: NewIntegrationChangeObject & { id: null | number }) {
@@ -64,6 +69,7 @@ class IntegrationChangeEntity implements Entity {
 		this.liveContent = liveContent;
 		this.liveTitle = liveTitle;
 		this.matchedNodeId = matchedNodeId;
+		this.placement = toDocumentPlacement(placement);
 		this.score = score;
 		this.type = type;
 	}
@@ -90,6 +96,7 @@ class IntegrationChangeEntity implements Entity {
 			liveContent: this.liveContent,
 			liveTitle: this.liveTitle,
 			matchedNodeId: this.matchedNodeId,
+			placement: this.placement,
 			score: this.score,
 			type: this.type,
 		};

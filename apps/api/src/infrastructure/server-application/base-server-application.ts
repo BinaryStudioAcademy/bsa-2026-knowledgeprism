@@ -48,6 +48,7 @@ declare module "fastify" {
 }
 
 const API_ROUTE_NOT_FOUND_MESSAGE = "API route not found.";
+const SPA_INDEX_FILE = "index.html";
 
 const isApiPath = (url: string): boolean =>
 	url === API_PATH_PREFIX || url.startsWith(`${API_PATH_PREFIX}/`);
@@ -56,11 +57,6 @@ const isClientErrorStatus = (statusCode: unknown): statusCode is number =>
 	typeof statusCode === "number" &&
 	statusCode >= HTTPCode.BAD_REQUEST &&
 	statusCode < HTTPCode.INTERNAL_SERVER_ERROR;
-
-const STATIC_PATH = path.join(
-	path.dirname(fileURLToPath(import.meta.url)),
-	"../../../../public",
-);
 
 class BaseServerApplication implements ServerApplication {
 	private apis: ServerApplicationApi[];
@@ -76,6 +72,8 @@ class BaseServerApplication implements ServerApplication {
 	private logger: Logger;
 
 	private s3Client: S3Client;
+
+	private spaStaticPath: null | string = null;
 
 	private title: string;
 
@@ -186,8 +184,8 @@ class BaseServerApplication implements ServerApplication {
 				return await reply.status(HTTPCode.NOT_FOUND).send(response);
 			}
 
-			if ("sendFile" in reply && typeof reply.sendFile === "function") {
-				return await reply.sendFile("index.html", STATIC_PATH);
+			if (this.spaStaticPath) {
+				return await reply.sendFile(SPA_INDEX_FILE, this.spaStaticPath);
 			}
 
 			return await reply.status(HTTPCode.NOT_FOUND).send();
@@ -208,10 +206,17 @@ class BaseServerApplication implements ServerApplication {
 	}
 
 	private async initServe(): Promise<void> {
+		const staticPath = path.join(
+			path.dirname(fileURLToPath(import.meta.url)),
+			"../../../../public",
+		);
+
 		await this.app.register(fastifyStatic, {
 			prefix: "/",
-			root: STATIC_PATH,
+			root: staticPath,
 		});
+
+		this.spaStaticPath = staticPath;
 	}
 
 	private async initSession(): Promise<void> {

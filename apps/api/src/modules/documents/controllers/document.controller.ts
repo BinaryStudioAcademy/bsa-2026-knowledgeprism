@@ -155,7 +155,7 @@ class DocumentController extends BaseController {
 	 * @swagger
 	 * /projects/{projectId}/documents/{documentId}/cancel:
 	 *    post:
-	 *      description: Cancel processing of a document (upload or manual text) that is still processing or has failed
+	 *      description: Cancel a document (upload or manual text) at any stage before it is approved. Running processing stops and its proposals never reach the Knowledge Base.
 	 *      parameters:
 	 *        - in: path
 	 *          name: projectId
@@ -173,7 +173,7 @@ class DocumentController extends BaseController {
 	 *        404:
 	 *          description: Document not found
 	 *        409:
-	 *          description: Document is neither processing nor failed
+	 *          description: Document is already approved, completed or cancelled
 	 */
 	private async cancelProcessing(
 		options: APIHandlerOptions<{

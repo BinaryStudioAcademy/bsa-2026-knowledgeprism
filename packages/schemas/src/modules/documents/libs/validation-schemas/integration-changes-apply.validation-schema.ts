@@ -5,18 +5,37 @@ import {
 } from "@knowledgeprism/constants";
 import { z } from "zod";
 
-const resolutionChoice = z.enum([
+import { reviewContentBlock } from "./extraction-items-review.validation-schema.js";
+
+const minimumTextLength = 1;
+const minimumTitleLength = 1;
+const textMaximumLength = 50_000;
+const titleMaximumLength = 255;
+
+const contentResolution = z.enum([
+	IntegrationResolution.BOTH,
 	IntegrationResolution.KEEP,
 	IntegrationResolution.USE_NEW,
 ]);
 
-const conflictResolution = z
-	.object({
-		changeId: z.number().int().positive(),
-		content: resolutionChoice,
-		title: resolutionChoice,
-	})
-	.required();
+const titleResolution = z.enum([
+	IntegrationResolution.KEEP,
+	IntegrationResolution.USE_NEW,
+]);
+
+const conflictResolution = z.object({
+	changeId: z.number().int().positive(),
+	content: contentResolution,
+	matchIndex: z.number().int().nonnegative().optional(),
+	title: titleResolution,
+});
+
+const publishedItem = z.object({
+	blocks: z.array(reviewContentBlock).optional(),
+	id: z.number().int().positive(),
+	text: z.string().trim().min(minimumTextLength).max(textMaximumLength),
+	title: z.string().trim().min(minimumTitleLength).max(titleMaximumLength),
+});
 
 const contentOverride = z
 	.object({
@@ -42,11 +61,21 @@ const contentOverride = z
 	})
 	.required();
 
+const placement = z
+	.object({
+		changeId: z.number().int().positive(),
+		parentId: z.number().int().positive().nullable(),
+		position: z.number().int().nonnegative(),
+	})
+	.required();
+
 const integrationChangesApply = z
 	.object({
 		contentOverrides: z.array(contentOverride),
+		items: z.array(publishedItem),
 		resolutions: z.array(conflictResolution),
 	})
-	.required();
+	.required()
+	.extend({ placements: z.array(placement).optional() });
 
 export { integrationChangesApply };

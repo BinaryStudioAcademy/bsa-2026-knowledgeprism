@@ -155,6 +155,18 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 		return documents.map((document) => DocumentEntity.initialize(document));
 	}
 
+	public async findByStatuses(
+		statuses: ValueOf<typeof DocumentStatus>[],
+	): Promise<DocumentEntity[]> {
+		const documents = await this.documentModel
+			.query()
+			.whereIn("status", statuses)
+			.orderBy("updatedAt", "asc")
+			.execute();
+
+		return documents.map((document) => DocumentEntity.initialize(document));
+	}
+
 	public async findProcessingByHash({
 		contentHash,
 		projectId,
@@ -264,19 +276,43 @@ class DocumentRepository implements Pick<Repository<DocumentEntity>, "create"> {
 			.where({ id, processingAttempt, status })
 			.where((query) => {
 				query
-					.whereNull("processingProgress")
-					.orWhereJsonPath("processingProgress", "$.phase", "=", progress.phase)
-					.orWhereJsonPath(
-						"processingProgress",
-						"$.phase",
-						"=",
-						DocumentProcessingPhase.READING,
-					);
+					.where((continuing) => {
+						continuing
+							.where((phase) => {
+								phase
+									.whereNull("processingProgress")
+									.orWhereJsonPath(
+										"processingProgress",
+										"$.phase",
+										"=",
+										progress.phase,
+									)
+									.orWhereJsonPath(
+										"processingProgress",
+										"$.phase",
+										"=",
+										DocumentProcessingPhase.READING,
+									);
+							})
+							.whereRaw(
+								"COALESCE((processing_progress->>'processedUnits')::integer, 0) <= ?",
+								[progress.processedUnits],
+							);
+					})
+					.orWhere((extractionToIntegration) => {
+						extractionToIntegration
+							.whereJsonPath(
+								"processingProgress",
+								"$.phase",
+								"=",
+								DocumentProcessingPhase.EXTRACTING,
+							)
+							.whereRaw("? = ?", [
+								progress.phase,
+								DocumentProcessingPhase.INTEGRATING,
+							]);
+					});
 			})
-			.whereRaw(
-				"COALESCE((processing_progress->>'processedUnits')::integer, 0) <= ?",
-				[progress.processedUnits],
-			)
 			.execute();
 		return Boolean(updatedCount);
 	}

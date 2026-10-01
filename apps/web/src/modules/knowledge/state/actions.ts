@@ -96,6 +96,7 @@ type ProcessDocumentRejection = {
 };
 
 type ReviewableDocumentStatus =
+	| typeof DocumentStatus.INTEGRATING
 	| typeof DocumentStatus.WAITING_FOR_APPROVAL
 	| typeof DocumentStatus.WAITING_FOR_VALIDATION;
 
@@ -140,13 +141,16 @@ const POLLING_TERMINAL_DOCUMENT_STATUSES = new Set<
 	DocumentStatus.WAITING_FOR_VALIDATION,
 ]);
 
+const REVIEWABLE_DOCUMENT_STATUSES = new Set<ReviewableDocumentStatus>([
+	DocumentStatus.INTEGRATING,
+	DocumentStatus.WAITING_FOR_APPROVAL,
+	DocumentStatus.WAITING_FOR_VALIDATION,
+]);
+
 const isReviewableDocumentStatus = (
-	status: ValueOf<typeof DocumentStatus>,
+	status: "IDLE" | ValueOf<typeof DocumentStatus>,
 ): status is ReviewableDocumentStatus => {
-	return (
-		status === DocumentStatus.WAITING_FOR_VALIDATION ||
-		status === DocumentStatus.WAITING_FOR_APPROVAL
-	);
+	return REVIEWABLE_DOCUMENT_STATUSES.has(status as ReviewableDocumentStatus);
 };
 
 const isTrackedDocumentRequestCurrent = (
@@ -471,6 +475,158 @@ const updateKnowledgeEntry = createAsyncThunk<
 	},
 );
 
+type DocumentStructureResult = {
+	entry: KnowledgeEntryResponseDto;
+	tree: KnowledgeTreeResponseDto;
+};
+
+const isCurrentDocumentStructureRequest = (
+	requestId: string,
+	state: AsyncThunkConfig["state"],
+): boolean => {
+	return state.knowledge.documentStructureRequestId === requestId;
+};
+
+const createDocumentNode = createAsyncThunk<
+	DocumentStructureResult,
+	{ parentId: null | number; projectId: string; title: string },
+	AsyncThunkConfig
+>(
+	`${sliceName}/create-document-node`,
+	async (payload, { extra, getState, requestId, signal }) => {
+		const entry = await extra.knowledgeApi.createDocumentNode({
+			parentId: payload.parentId,
+			projectId: payload.projectId,
+			signal,
+			title: payload.title,
+		});
+		const tree = await extra.knowledgeApi.getKnowledgeTree({
+			projectId: payload.projectId,
+			signal,
+		});
+
+		if (isCurrentDocumentStructureRequest(requestId, getState())) {
+			notificationService.notify({
+				message: KnowledgeNotificationMessage.DOCUMENT_CREATED,
+				variant: NotificationVariant.SUCCESS,
+			});
+		}
+
+		return { entry, tree };
+	},
+	{
+		condition: (_payload, { getState }) =>
+			!getState().knowledge.isDocumentStructurePending,
+	},
+);
+
+const moveDocumentNode = createAsyncThunk<
+	DocumentStructureResult,
+	{
+		documentId: number;
+		parentId: null | number;
+		position: number;
+		projectId: string;
+	},
+	AsyncThunkConfig
+>(
+	`${sliceName}/move-document-node`,
+	async (payload, { extra, getState, requestId, signal }) => {
+		const entry = await extra.knowledgeApi.moveDocumentNode({
+			documentId: payload.documentId,
+			parentId: payload.parentId,
+			position: payload.position,
+			projectId: payload.projectId,
+			signal,
+		});
+		const tree = await extra.knowledgeApi.getKnowledgeTree({
+			projectId: payload.projectId,
+			signal,
+		});
+
+		if (isCurrentDocumentStructureRequest(requestId, getState())) {
+			notificationService.notify({
+				message: KnowledgeNotificationMessage.DOCUMENT_MOVED,
+				variant: NotificationVariant.SUCCESS,
+			});
+		}
+
+		return { entry, tree };
+	},
+	{
+		condition: (_payload, { getState }) =>
+			!getState().knowledge.isDocumentStructurePending,
+	},
+);
+
+const removeKnowledgeSection = createAsyncThunk<
+	KnowledgeTreeResponseDto,
+	{ projectId: string; sectionId: number },
+	AsyncThunkConfig
+>(
+	`${sliceName}/remove-knowledge-section`,
+	async (payload, { extra, getState, requestId, signal }) => {
+		await extra.knowledgeApi.removeDocumentNode({
+			documentId: payload.sectionId,
+			projectId: payload.projectId,
+			signal,
+		});
+		const tree = await extra.knowledgeApi.getKnowledgeTree({
+			projectId: payload.projectId,
+			signal,
+		});
+
+		if (isCurrentDocumentStructureRequest(requestId, getState())) {
+			notificationService.notify({
+				message: KnowledgeNotificationMessage.SECTION_REMOVED,
+				variant: NotificationVariant.SUCCESS,
+			});
+		}
+
+		return tree;
+	},
+	{
+		condition: (_payload, { getState }) =>
+			!getState().knowledge.isDocumentStructurePending,
+	},
+);
+
+const removeDocumentNode = createAsyncThunk<
+	KnowledgeTreeResponseDto,
+	{
+		documentId: number;
+		projectId: string;
+		queryNodeId: null | string;
+	},
+	AsyncThunkConfig
+>(
+	`${sliceName}/remove-document-node`,
+	async (payload, { extra, getState, requestId, signal }) => {
+		await extra.knowledgeApi.removeDocumentNode({
+			documentId: payload.documentId,
+			projectId: payload.projectId,
+			signal,
+		});
+		const tree = await extra.knowledgeApi.getKnowledgeTree({
+			projectId: payload.projectId,
+			signal,
+		});
+
+		if (isCurrentDocumentStructureRequest(requestId, getState())) {
+			notificationService.notify({
+				message: KnowledgeNotificationMessage.DOCUMENT_REMOVED,
+				variant: NotificationVariant.SUCCESS,
+			});
+		}
+
+		return tree;
+	},
+	{
+		condition: (_payload, { getState }) =>
+			!getState().knowledge.isDocumentStructurePending,
+	},
+);
+
 const submitManualText = createAsyncThunk<
 	ManualTextResponseDto,
 	SubmitManualTextPayload,
@@ -644,8 +800,7 @@ const fetchPendingReviewDocuments = createAppAsyncThunk<
 			...currentTrackedDocuments
 				.filter(
 					(document) =>
-						(document.status === DocumentStatus.WAITING_FOR_VALIDATION ||
-							document.status === DocumentStatus.WAITING_FOR_APPROVAL) &&
+						isReviewableDocumentStatus(document.status) &&
 						!pendingDocumentIds.has(document.documentId),
 				)
 				.map((document) => document.documentId),
@@ -851,37 +1006,25 @@ const resumeNextPendingReview = createAppAsyncThunk<
 			return { openPreview: false };
 		}
 
-		if (status === DocumentStatus.WAITING_FOR_VALIDATION) {
-			try {
-				await dispatch(fetchExtractionItems({ ...scope, documentId })).unwrap();
-			} catch {
-				return { openPreview: false };
-			}
-
-			const state = getState().knowledge;
-
-			return {
-				openPreview:
-					isSessionCurrent() &&
-					state.activeDocumentId === documentId &&
-					state.activeDocumentStatus ===
-						DocumentStatus.WAITING_FOR_VALIDATION &&
-					state.extractionItemsDocumentId === documentId,
-			};
+		if (!isReviewableDocumentStatus(status)) {
+			return { openPreview: false };
 		}
 
-		if (status === DocumentStatus.WAITING_FOR_APPROVAL) {
-			const state = getState().knowledge;
-
-			return {
-				openPreview:
-					isSessionCurrent() &&
-					state.activeDocumentId === documentId &&
-					state.activeDocumentStatus === DocumentStatus.WAITING_FOR_APPROVAL,
-			};
+		try {
+			await dispatch(fetchExtractionItems({ ...scope, documentId })).unwrap();
+		} catch {
+			return { openPreview: false };
 		}
 
-		return { openPreview: false };
+		const state = getState().knowledge;
+
+		return {
+			openPreview:
+				isSessionCurrent() &&
+				state.activeDocumentId === documentId &&
+				state.activeDocumentStatus === status &&
+				state.extractionItemsDocumentId === documentId,
+		};
 	},
 );
 
@@ -947,7 +1090,7 @@ const switchActiveDocument = createAppAsyncThunk<
 		let extractionItems: ExtractionItemResponseDto[] = [];
 		let extractionSections: ExtractionItemsResponseDto["sections"] = [];
 
-		if (statusResponse.status === DocumentStatus.WAITING_FOR_VALIDATION) {
+		if (isReviewableDocumentStatus(statusResponse.status)) {
 			const extractionResponse = await extra.documentsApi.getExtractionItems({
 				documentId,
 				projectId,
@@ -1132,14 +1275,18 @@ export {
 	cancelDocument,
 	checkGlossaryConsistency,
 	confirmDocumentUpload,
+	createDocumentNode,
 	fetchExtractionItems,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
 	fetchKnowledgeTree,
 	fetchPendingReviewDocuments,
 	initializeProjectKnowledgePipeline,
+	moveDocumentNode,
 	pollDocumentStatus,
 	processDocument,
+	removeDocumentNode,
+	removeKnowledgeSection,
 	resumeNextPendingReview,
 	retryDocumentProcessing,
 	searchKnowledgeEntries,

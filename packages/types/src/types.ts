@@ -19,12 +19,15 @@ export {
 export {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentConfirmUploadRouteParametersDto,
+	type DocumentPlacementDto,
 	type DocumentProcessingProgressDto,
 	type DocumentRouteParametersDto,
 	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
+	type ExtractionBlockBackgroundValue,
+	type ExtractionContentBlock,
 	type ExtractionItemResponseDto,
 	type ExtractionItemRouteParametersDto,
 	type ExtractionItemsResponseDto,
@@ -41,6 +44,8 @@ export {
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
 	type PendingReviewDocumentsResponseDto,
+	ExtractionBlockBackground,
+	ExtractionHeadingLevel,
 } from "./modules/documents/documents.js";
 export {
 	type GlossaryConsistencyCheckRequestDto,
@@ -57,6 +62,8 @@ export {
 } from "./modules/glossary/glossary.js";
 
 export {
+	type KnowledgeDocumentCreateRequestDto,
+	type KnowledgeDocumentMoveRequestDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,

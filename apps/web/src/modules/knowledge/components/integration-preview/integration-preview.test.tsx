@@ -3,7 +3,10 @@ import {
 	ExtractionItemStatus,
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
-import { type ExtractionItemResponseDto } from "@knowledgeprism/types";
+import {
+	ExtractionHeadingLevel,
+	type ExtractionItemResponseDto,
+} from "@knowledgeprism/types";
 import {
 	act,
 	fireEvent,
@@ -46,12 +49,25 @@ const renderPreview = (ui: ReactElement): ReturnType<typeof render> =>
 	);
 
 vi.mock("~/components/knowledge-editor/knowledge-editor.js", () => ({
-	KnowledgeEditor: (): JSX.Element => <div data-testid="knowledge-editor" />,
+	KnowledgeEditor: ({
+		initialContent,
+	}: {
+		initialContent?: { content?: unknown; type?: string }[];
+	}): JSX.Element => (
+		<div data-testid="knowledge-editor">
+			{initialContent?.map((block, index) => (
+				<span key={`${block.type ?? "block"}-${String(index)}`}>
+					{block.type}
+				</span>
+			))}
+		</div>
+	),
 }));
 
 const createExtractionItem = (): ExtractionItemResponseDto => ({
 	confidence: 0.92,
 	extractionSectionId: null,
+	heading: null,
 	id: 17,
 	position: 0,
 	rationale: "The source explicitly states this fact.",
@@ -66,10 +82,11 @@ const createDeferred = (): PromiseWithResolvers<boolean> =>
 	Promise.withResolvers<boolean>();
 
 const FAILED_PAGE_NUMBER = 4;
+const KB_PAGE_ID = 40;
 const INITIAL_ITEM_COUNT = 2;
+const PARAGRAPH_BLOCK_COUNT = 2;
 const REMAINING_ITEM_COUNT = 1;
-const LAST_BUTTON_OFFSET = -1;
-
+const SINGLE_CALL_COUNT = 1;
 describe("IntegrationPreview extraction review", () => {
 	beforeEach(() => {
 		store.instance.dispatch(actions.resetState(null));
@@ -92,12 +109,11 @@ describe("IntegrationPreview extraction review", () => {
 		renderPreview(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onApprove={vi.fn().mockResolvedValue(false)}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -107,6 +123,61 @@ describe("IntegrationPreview extraction review", () => {
 				"Source excerpt: KnowledgePrism keeps approved knowledge traceable.",
 			),
 		).toBeInTheDocument();
+	});
+
+	it("shows extracted section blocks in the review editor", () => {
+		const item = {
+			...createExtractionItem(),
+			blocks: [
+				{
+					content: [{ text: "Overview", type: "text" as const }],
+					props: { level: ExtractionHeadingLevel.SECTION },
+					type: "heading" as const,
+				},
+				{
+					content: [{ text: "The limit is 10.", type: "text" as const }],
+					type: "paragraph" as const,
+				},
+				{
+					content: [{ text: "Keep a backup.", type: "text" as const }],
+					type: "bulletListItem" as const,
+				},
+				{
+					content: [{ text: "Confirm the backup.", type: "text" as const }],
+					props: { checked: false },
+					type: "checkListItem" as const,
+				},
+				{
+					content: [
+						{
+							styles: { bold: true as const },
+							text: "Decision",
+							type: "text" as const,
+						},
+						{ text: " Use Postgres.", type: "text" as const },
+					],
+					type: "paragraph" as const,
+				},
+			],
+		};
+
+		const structure = mapExtractionItemsToProposedStructure([item]);
+
+		render(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={vi.fn().mockResolvedValue(false)}
+				onClose={vi.fn()}
+				proposedStructure={structure}
+			/>,
+		);
+
+		expect(screen.getByText("heading")).toBeInTheDocument();
+		expect(screen.getByText("bulletListItem")).toBeInTheDocument();
+		expect(screen.getByText("checkListItem")).toBeInTheDocument();
+		expect(screen.getAllByText("paragraph")).toHaveLength(
+			PARAGRAPH_BLOCK_COUNT,
+		);
 	});
 
 	it("keeps empty extraction sections returned by the API", () => {
@@ -134,12 +205,11 @@ describe("IntegrationPreview extraction review", () => {
 		renderPreview(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onApprove={vi.fn().mockResolvedValue(false)}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -169,12 +239,11 @@ describe("IntegrationPreview extraction review", () => {
 		renderPreview(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onApprove={vi.fn().mockResolvedValue(false)}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -202,12 +271,11 @@ describe("IntegrationPreview extraction review", () => {
 			<IntegrationPreview
 				onAddMore={vi.fn()}
 				onApplyingChange={handleApplyingChange}
-				onApproveExtraction={approve}
+				onApprove={approve}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -235,12 +303,11 @@ describe("IntegrationPreview extraction review", () => {
 			<IntegrationPreview
 				failedPageNumbers={[]}
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn()}
+				onApprove={vi.fn()}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 		expect(
@@ -253,12 +320,11 @@ describe("IntegrationPreview extraction review", () => {
 			<IntegrationPreview
 				failedPageNumbers={[FAILED_PAGE_NUMBER]}
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn()}
+				onApprove={vi.fn()}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -277,12 +343,11 @@ describe("IntegrationPreview extraction review", () => {
 			<IntegrationPreview
 				errorMessage="Extraction update failed"
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn()}
+				onApprove={vi.fn()}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -323,6 +388,9 @@ describe("IntegrationPreview extraction review", () => {
 			/>,
 		);
 
+		fireEvent.click(
+			screen.getByRole("button", { name: "Review sections first" }),
+		);
 		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
 		fireEvent.click(screen.getByRole("button", { name: "Publish resolution" }));
 		await waitFor(() => {
@@ -394,17 +462,142 @@ describe("IntegrationPreview extraction review", () => {
 			/>,
 		);
 
+		fireEvent.click(
+			screen.getByRole("button", { name: "Review sections first" }),
+		);
 		fireEvent.click(screen.getByRole("button", { name: "Accept" }));
 		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
-		fireEvent.click(
-			screen.getByRole("button", { name: "Use Incoming Version" }),
+		const [titleIncomingButton, contentIncomingButton] = screen.getAllByRole(
+			"button",
+			{ name: "Use Incoming Version" },
 		);
+		const [titleKeepButton] = screen.getAllByRole("button", {
+			name: "Keep Live Version",
+		});
+
+		expect(titleIncomingButton).toHaveAttribute(
+			"data-conflict-id",
+			"conf-title-9",
+		);
+		fireEvent.click(titleKeepButton as HTMLElement);
+		fireEvent.click(contentIncomingButton as HTMLElement);
 		fireEvent.click(screen.getByRole("button", { name: "Publish resolution" }));
 
 		await waitFor(() => {
 			expect(approve).toHaveBeenCalledWith(
-				[{ changeId: 9, content: "use-new", title: "keep" }],
-				[{ changeId: 9, content: "Use the API.", title: "Title" }],
+				expect.objectContaining({
+					contentOverrides: [
+						{ changeId: 9, content: "Use the API.", title: "Title" },
+					],
+					resolutions: [{ changeId: 9, content: "use-new", title: "keep" }],
+				}),
+			);
+		});
+	});
+
+	it("sends the incoming text once when a duplicate is merged with Both", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const structure: ProposedSection[] = [
+			{
+				id: "section",
+				pages: [
+					{
+						content: "Incoming content",
+						id: "page",
+						integrationChangeId: 9,
+						matchedNodeId: 3,
+						originalContent: "Live content",
+						originalTitle: "Live title",
+						status: "duplicate",
+						title: "Incoming title",
+						type: KnowledgeNodeType.PAGE,
+						wordingMatches: [{ span: "Live content" }],
+					},
+				],
+				status: "duplicate",
+				title: "Section",
+				type: KnowledgeNodeType.SECTION,
+			},
+		];
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				proposedStructure={structure}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "Both" }));
+		fireEvent.click(screen.getByRole("button", { name: "Save decisions" }));
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					contentOverrides: [
+						{
+							changeId: 9,
+							content: "Incoming content",
+							title: "Incoming title",
+						},
+					],
+					resolutions: [
+						{ changeId: 9, content: "both", matchIndex: 0, title: "use-new" },
+					],
+				}),
+			);
+		});
+	});
+
+	it("asks for conflict decisions first and publishes them on approve", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const structure: ProposedSection[] = [
+			{
+				id: "section",
+				pages: [
+					{
+						content: "Incoming content",
+						id: "page",
+						integrationChangeId: 9,
+						matchedNodeId: 3,
+						originalContent: "Live content",
+						originalTitle: "Live title",
+						status: "duplicate",
+						title: "Incoming title",
+						type: KnowledgeNodeType.PAGE,
+					},
+				],
+				status: "duplicate",
+				title: "Section",
+				type: KnowledgeNodeType.SECTION,
+			},
+		];
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				proposedStructure={structure}
+			/>,
+		);
+
+		const [titleKeepButton] = screen.getAllByRole("button", {
+			name: "Keep Live Version",
+		});
+		fireEvent.click(titleKeepButton as HTMLElement);
+		fireEvent.click(screen.getByRole("button", { name: "Save decisions" }));
+
+		expect(
+			screen.getByRole("button", { name: "Change decisions" }),
+		).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					resolutions: [{ changeId: 9, content: "use-new", title: "keep" }],
+				}),
 			);
 		});
 	});
@@ -444,45 +637,6 @@ describe("IntegrationPreview extraction review", () => {
 });
 
 describe("IntegrationPreview proposed structure editing", () => {
-	it("lets a user add a manual page group and edit its title", () => {
-		render(
-			<IntegrationPreview
-				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
-				onClose={vi.fn()}
-				proposedStructure={mapExtractionItemsToProposedStructure([
-					createExtractionItem(),
-				])}
-				variant="extraction-validation"
-			/>,
-		);
-
-		fireEvent.click(screen.getByRole("button", { name: "Add page" }));
-
-		expect(
-			screen.getByRole("button", { name: /New page/u }),
-		).toBeInTheDocument();
-		expect(screen.getByRole("button", { name: "Edit" })).toBeEnabled();
-	});
-
-	it("lets a user add a manual item under an existing page group", () => {
-		render(
-			<IntegrationPreview
-				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
-				onClose={vi.fn()}
-				proposedStructure={mapExtractionItemsToProposedStructure([
-					createExtractionItem(),
-				])}
-				variant="extraction-validation"
-			/>,
-		);
-
-		fireEvent.click(screen.getByRole("button", { name: "Add item" }));
-
-		expect(screen.getByText("Untitled section")).toBeInTheDocument();
-	});
-
 	it("deletes an item via its row delete button", () => {
 		const structure = mapExtractionItemsToProposedStructure([
 			createExtractionItem(),
@@ -491,62 +645,33 @@ describe("IntegrationPreview proposed structure editing", () => {
 		render(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onApprove={vi.fn().mockResolvedValue(false)}
 				onClose={vi.fn()}
 				proposedStructure={structure}
-				variant="extraction-validation"
 			/>,
 		);
 
-		expect(screen.getAllByRole("button", { name: "Delete item" })).toHaveLength(
-			INITIAL_ITEM_COUNT,
-		);
+		expect(
+			screen.getAllByRole("button", { name: /^More actions for / }),
+		).toHaveLength(INITIAL_ITEM_COUNT);
 
-		const [firstDeleteButton] = screen.getAllByRole("button", {
-			name: "Delete item",
+		const [firstMenuButton] = screen.getAllByRole("button", {
+			name: /^More actions for /,
 		});
 
-		if (!firstDeleteButton) {
-			throw new Error("Expected a delete button to be rendered");
+		if (!firstMenuButton) {
+			throw new Error("Expected an item menu to be rendered");
 		}
 
-		fireEvent.click(firstDeleteButton);
+		fireEvent.click(firstMenuButton);
+		fireEvent.click(screen.getByRole("menuitem", { name: "Discard" }));
 
-		expect(screen.getAllByRole("button", { name: "Delete item" })).toHaveLength(
-			REMAINING_ITEM_COUNT,
-		);
-	});
-
-	it("deletes an empty manual page group via its delete button", () => {
-		render(
-			<IntegrationPreview
-				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
-				onClose={vi.fn()}
-				proposedStructure={mapExtractionItemsToProposedStructure([
-					createExtractionItem(),
-				])}
-				variant="extraction-validation"
-			/>,
-		);
-
-		fireEvent.click(screen.getByRole("button", { name: "Add page" }));
 		expect(
-			screen.getByRole("button", { name: /New page/u }),
-		).toBeInTheDocument();
-
-		const pageRemovalButtons = screen.getAllByRole("button", {
-			name: "Delete page",
-		});
-		const newPageRemovalButton = pageRemovalButtons.at(LAST_BUTTON_OFFSET);
-
-		expect(newPageRemovalButton).toBeDefined();
-		fireEvent.click(newPageRemovalButton as HTMLElement);
-
-		expect(screen.queryByText("New page")).not.toBeInTheDocument();
+			screen.getAllByRole("button", { name: /^More actions for / }),
+		).toHaveLength(REMAINING_ITEM_COUNT);
 	});
 
-	it("does not offer add/delete/reorder controls for the integration merge variant", () => {
+	it("offers no add controls on the placement review", () => {
 		const structure: ProposedSection[] = [
 			{
 				id: "section",
@@ -581,7 +706,260 @@ describe("IntegrationPreview proposed structure editing", () => {
 			screen.queryByRole("button", { name: "Add item" }),
 		).not.toBeInTheDocument();
 		expect(
-			screen.queryByRole("button", { name: "Delete item" }),
+			screen.getByRole("button", { name: /^More actions for / }),
+		).toBeInTheDocument();
+	});
+
+	it("moves an item under a chosen knowledge base page from its menu", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				placementTargets={[{ id: KB_PAGE_ID, title: "Requirements" }]}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					createExtractionItem(),
+				])}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: /^More actions for / }));
+		fireEvent.click(screen.getByRole("menuitem", { name: "Move to…" }));
+		fireEvent.click(screen.getByRole("menuitem", { name: "Requirements" }));
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					placements: [expect.objectContaining({ parentId: KB_PAGE_ID })],
+				}),
+			);
+		});
+	});
+});
+
+const DISCARD_DIALOG_TITLE = "Discard this document?";
+
+const closeTestDialogs = (): void => {
+	for (const dialog of document.querySelectorAll("dialog")) {
+		dialog.removeAttribute("open");
+	}
+};
+
+const openDiscardTestDialog = (): void => {
+	for (const dialog of document.querySelectorAll("dialog")) {
+		if (dialog.textContent.includes(DISCARD_DIALOG_TITLE)) {
+			dialog.setAttribute("open", "");
+		}
+	}
+};
+
+const restoreDialogMethod = (
+	name: "close" | "showModal",
+	descriptor: PropertyDescriptor | undefined,
+): void => {
+	if (descriptor) {
+		Object.defineProperty(HTMLDialogElement.prototype, name, descriptor);
+
+		return;
+	}
+
+	Reflect.deleteProperty(HTMLDialogElement.prototype, name);
+};
+
+describe("IntegrationPreview document discard", () => {
+	const originalShowModal = Object.getOwnPropertyDescriptor(
+		HTMLDialogElement.prototype,
+		"showModal",
+	);
+	const originalClose = Object.getOwnPropertyDescriptor(
+		HTMLDialogElement.prototype,
+		"close",
+	);
+
+	afterEach(() => {
+		restoreDialogMethod("showModal", originalShowModal);
+		restoreDialogMethod("close", originalClose);
+	});
+
+	beforeEach(() => {
+		HTMLDialogElement.prototype.showModal = openDiscardTestDialog;
+		HTMLDialogElement.prototype.close = closeTestDialogs;
+		store.instance.dispatch(actions.resetState(null));
+		store.instance.dispatch(
+			workspacesActions.setLastActiveProject(TEST_PROJECT_ID),
+		);
+	});
+
+	it("confirms before discarding the document", () => {
+		const onCancelDocument = vi.fn();
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={vi.fn().mockResolvedValue(false)}
+				onCancelDocument={onCancelDocument}
+				onClose={vi.fn()}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					createExtractionItem(),
+				])}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "Discard document" }));
+		const dialog = screen.getByRole("dialog", {
+			name: DISCARD_DIALOG_TITLE,
+		});
+		fireEvent.click(
+			within(dialog).getByRole("button", { name: "Keep reviewing" }),
+		);
+
+		expect(onCancelDocument).not.toHaveBeenCalled();
+		expect(
+			screen.queryByRole("dialog", { name: DISCARD_DIALOG_TITLE }),
 		).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Discard document" }));
+		fireEvent.click(
+			within(
+				screen.getByRole("dialog", { name: DISCARD_DIALOG_TITLE }),
+			).getByRole("button", { name: "Discard document" }),
+		);
+
+		expect(onCancelDocument).toHaveBeenCalledTimes(SINGLE_CALL_COUNT);
+		expect(
+			screen.queryByRole("dialog", { name: DISCARD_DIALOG_TITLE }),
+		).not.toBeInTheDocument();
+	});
+
+	it("hides the discard action without a cancel handler", () => {
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={vi.fn().mockResolvedValue(false)}
+				onClose={vi.fn()}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					createExtractionItem(),
+				])}
+			/>,
+		);
+
+		expect(
+			screen.queryByRole("button", { name: "Discard document" }),
+		).not.toBeInTheDocument();
+	});
+});
+
+describe("IntegrationPreview focus mode", () => {
+	const SECOND_ITEM_ID = 18;
+	const THIRD_ITEM_ID = 19;
+
+	const renderTwoItems = (): void => {
+		const first = createExtractionItem();
+		const second = {
+			...first,
+			id: SECOND_ITEM_ID,
+			position: 1,
+			title: "Second item",
+		};
+		const third = {
+			...first,
+			id: THIRD_ITEM_ID,
+			position: 2,
+			title: "Third item",
+		};
+
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={vi.fn().mockResolvedValue(false)}
+				onClose={vi.fn()}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					first,
+					second,
+					third,
+				])}
+			/>,
+		);
+	};
+
+	it("shows the navigator with the section position when editing", () => {
+		renderTwoItems();
+
+		expect(screen.queryByText(/ \/ /u)).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+
+		expect(screen.getByText("1 / 3")).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: /Previous section/u }),
+		).toBeDisabled();
+	});
+
+	it("moves to the next section and stays in edit mode", () => {
+		renderTwoItems();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.click(screen.getByRole("button", { name: /Next section/u }));
+
+		expect(screen.getByText("2 / 3")).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+		expect(screen.getByDisplayValue("Second item")).toBeInTheDocument();
+	});
+
+	it("supports Alt+Arrow keys and disables Next on the last section", () => {
+		renderTwoItems();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.keyDown(screen.getByDisplayValue("Source traceability"), {
+			altKey: true,
+			key: "ArrowDown",
+		});
+		fireEvent.keyDown(screen.getByDisplayValue("Second item"), {
+			altKey: true,
+			key: "ArrowDown",
+		});
+
+		expect(screen.getByText("3 / 3")).toBeInTheDocument();
+		expect(
+			screen.getByRole("button", { name: /Next section/u }),
+		).toBeDisabled();
+
+		fireEvent.keyDown(screen.getByDisplayValue("Third item"), {
+			altKey: true,
+			key: "ArrowUp",
+		});
+
+		expect(screen.getByText("2 / 3")).toBeInTheDocument();
+	});
+
+	it("keeps edits made before navigating", () => {
+		renderTwoItems();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.change(screen.getByDisplayValue("Source traceability"), {
+			target: { value: "Edited title" },
+		});
+		fireEvent.click(screen.getByRole("button", { name: /Next section/u }));
+		fireEvent.click(screen.getByRole("button", { name: /Previous section/u }));
+
+		expect(screen.getByDisplayValue("Edited title")).toBeInTheDocument();
+	});
+
+	it("leaves edit mode on Done and on Escape", () => {
+		renderTwoItems();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.click(screen.getByRole("button", { name: "Done" }));
+
+		expect(screen.queryByText("1 / 3")).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.keyDown(screen.getByDisplayValue("Source traceability"), {
+			key: "Escape",
+		});
+
+		expect(screen.queryByText("1 / 3")).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
 	});
 });

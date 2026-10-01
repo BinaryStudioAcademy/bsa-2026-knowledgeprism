@@ -21,6 +21,8 @@ export {
 	glossaryTermRouteParametersValidationSchema,
 } from "./modules/glossary/glossary.js";
 export {
+	knowledgeDocumentCreateValidationSchema,
+	knowledgeDocumentMoveValidationSchema,
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
 	knowledgeSearchQueryValidationSchema,

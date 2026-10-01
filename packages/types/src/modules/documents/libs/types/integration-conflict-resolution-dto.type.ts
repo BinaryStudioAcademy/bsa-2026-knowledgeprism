@@ -5,6 +5,7 @@ import { type ValueOf } from "../../../../libs/types/value-of.type.js";
 type IntegrationConflictResolutionDto = {
 	changeId: number;
 	content: ValueOf<typeof IntegrationResolution>;
+	matchIndex?: number;
 	title: ValueOf<typeof IntegrationResolution>;
 };
 
