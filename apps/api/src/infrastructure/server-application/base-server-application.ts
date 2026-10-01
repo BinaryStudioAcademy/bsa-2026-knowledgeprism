@@ -20,9 +20,9 @@ import {
 	type ServerCommonErrorResponse,
 	type ServerValidationErrorResponse,
 	type ValidationSchema,
-	type ValueOf,
 } from "~/shared/types/types.js";
 
+import { API_PATH_PREFIX } from "./libs/constants/api-path-prefix.constant.js";
 import { SERVER_BODY_LIMIT_IN_BYTES } from "./libs/constants/server-body-limit.constant.js";
 import { SESSION_COOKIE_NAME } from "./libs/constants/session-cookie-name.constant.js";
 import {
@@ -30,8 +30,6 @@ import {
 	type ServerApplicationApi,
 	type ServerApplicationRouteParameters,
 } from "./libs/types/types.js";
-
-const MAXIMUM_HTTP_STATUS_CODE = 600;
 
 type Constructor = {
 	apis: ServerApplicationApi[];
@@ -48,6 +46,16 @@ declare module "fastify" {
 		s3: S3Client;
 	}
 }
+
+const API_ROUTE_NOT_FOUND_MESSAGE = "API route not found.";
+
+const isApiPath = (url: string): boolean =>
+	url === API_PATH_PREFIX || url.startsWith(`${API_PATH_PREFIX}/`);
+
+const isClientErrorStatus = (statusCode: unknown): statusCode is number =>
+	typeof statusCode === "number" &&
+	statusCode >= HTTPCode.BAD_REQUEST &&
+	statusCode < HTTPCode.INTERNAL_SERVER_ERROR;
 
 class BaseServerApplication implements ServerApplication {
 	private apis: ServerApplicationApi[];
@@ -137,6 +145,21 @@ class BaseServerApplication implements ServerApplication {
 					return reply.status(error.status).send(response);
 				}
 
+				const statusCode = "statusCode" in error ? error.statusCode : undefined;
+
+				if (isClientErrorStatus(statusCode)) {
+					this.logger.warn(
+						`[Client Error]: ${statusCode.toString()} – ${error.message}`,
+					);
+
+					const response: ServerCommonErrorResponse = {
+						errorType: ServerErrorType.COMMON,
+						message: error.message,
+					};
+
+					return reply.status(statusCode).send(response);
+				}
+
 				this.logger.error(error.message);
 
 				const response: ServerCommonErrorResponse = {
@@ -144,22 +167,14 @@ class BaseServerApplication implements ServerApplication {
 					message: error.message,
 				};
 
-				const status =
-					"statusCode" in error &&
-					typeof error.statusCode === "number" &&
-					error.statusCode >= HTTPCode.BAD_REQUEST &&
-					error.statusCode < MAXIMUM_HTTP_STATUS_CODE
-						? (error.statusCode as ValueOf<typeof HTTPCode>)
-						: HTTPCode.INTERNAL_SERVER_ERROR;
-
-				return reply.status(status).send(response);
+				return reply.status(HTTPCode.INTERNAL_SERVER_ERROR).send(response);
 			},
 		);
 
 		this.app.setNotFoundHandler(async (_request, reply) => {
 			const response: ServerCommonErrorResponse = {
 				errorType: ServerErrorType.COMMON,
-				message: "Route not found",
+				message: API_ROUTE_NOT_FOUND_MESSAGE,
 			};
 
 			return await reply.status(HTTPCode.NOT_FOUND).send(response);
@@ -190,17 +205,17 @@ class BaseServerApplication implements ServerApplication {
 			root: staticPath,
 		});
 
-		this.app.setNotFoundHandler(async (request, response) => {
-			if (request.url.startsWith("/api")) {
-				const errorResponse: ServerCommonErrorResponse = {
+		this.app.setNotFoundHandler(async (request, reply) => {
+			if (isApiPath(request.url)) {
+				const response: ServerCommonErrorResponse = {
 					errorType: ServerErrorType.COMMON,
-					message: "Route not found",
+					message: API_ROUTE_NOT_FOUND_MESSAGE,
 				};
 
-				return await response.status(HTTPCode.NOT_FOUND).send(errorResponse);
+				return await reply.status(HTTPCode.NOT_FOUND).send(response);
 			}
 
-			await response.sendFile("index.html", staticPath);
+			return await reply.sendFile("index.html", staticPath);
 		});
 	}
 

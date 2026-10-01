@@ -27,6 +27,7 @@ export {
 } from "./modules/documents/documents.js";
 export {
 	GlossaryApiPath,
+	GlossaryTermOrigin,
 	GlossaryValidationMessage,
 	GlossaryValidationRule,
 } from "./modules/glossary/glossary.js";

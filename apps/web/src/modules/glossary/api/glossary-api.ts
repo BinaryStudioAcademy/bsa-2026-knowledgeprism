@@ -45,6 +45,29 @@ class GlossaryApi extends BaseHTTPApi {
 		return await response.json<GlossaryConsistencyCheckResponseDto>();
 	}
 
+	public async confirm({
+		id,
+		projectId,
+	}: {
+		id: number;
+		projectId: string;
+	}): Promise<GlossaryTermResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(GlossaryApiPath.TERM_$ID_CONFIRM, {
+				id: String(id),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify({}),
+			},
+		);
+
+		return await response.json<GlossaryTermResponseDto>();
+	}
+
 	public async create({
 		payload,
 		projectId,

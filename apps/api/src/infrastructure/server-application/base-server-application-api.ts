@@ -3,6 +3,7 @@ import swaggerJsdoc from "swagger-jsdoc";
 import { type Config } from "~/infrastructure/config/libs/types/config.type.js";
 import { AppEnvironment } from "~/shared/enums/enums.js";
 
+import { API_PATH_PREFIX } from "./libs/constants/api-path-prefix.constant.js";
 import { SESSION_COOKIE_NAME } from "./libs/constants/session-cookie-name.constant.js";
 import {
 	type ServerApplicationApi,
@@ -25,7 +26,7 @@ class BaseServerApplicationApi implements ServerApplicationApi {
 		this.config = config;
 		this.routes = handlers.map((handler) => ({
 			...handler,
-			path: `/api/${this.version}${handler.path}`,
+			path: `${API_PATH_PREFIX}/${this.version}${handler.path}`,
 		}));
 	}
 

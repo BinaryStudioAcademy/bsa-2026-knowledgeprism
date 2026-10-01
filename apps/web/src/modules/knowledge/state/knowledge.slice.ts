@@ -555,16 +555,7 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.uploadErrorMessage = null;
 			reconcileActiveDocument(state);
-		});
-		builder.addCase(submitManualText.rejected, (state, action) => {
-			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
-				return;
-			}
-
-			state.uploadErrorMessage =
-				action.error.message ?? "Failed to submit text";
 		});
 		builder.addCase(pollDocumentStatus.pending, (state, action) => {
 			if (
@@ -988,6 +979,9 @@ const { actions, name, reducer } = createSlice({
 		},
 		clearUploadError(state) {
 			state.uploadErrorMessage = null;
+			if (state.selectedFiles.length === EMPTY_FILES_COUNT) {
+				state.processingStatus = DocumentProcessingStatus.IDLE;
+			}
 		},
 		reconcilePendingReviewDocuments(
 			state,

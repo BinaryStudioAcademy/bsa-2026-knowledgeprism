@@ -2,6 +2,7 @@ import { database } from "~/infrastructure/database/database.js";
 import { logger } from "~/infrastructure/logger/logger.js";
 import { generatePresignedUploadUrl } from "~/infrastructure/s3/presigned-url.js";
 import { checkDocumentObjectExists } from "~/infrastructure/s3/verify-object.js";
+import { glossaryService } from "~/modules/glossary/glossary.js";
 import { knowledgeNodeRepository } from "~/modules/knowledge/knowledge.js";
 import { projectService } from "~/modules/projects/projects.js";
 
@@ -37,6 +38,7 @@ const documentProcessor = new DocumentProcessor({
 	database,
 	documentRepository,
 	extractionItemRepository,
+	glossaryService,
 });
 const integrationAnalyzer = new IntegrationAnalyzer({
 	database,

@@ -141,7 +141,7 @@ void describe("BaseServerApplication body limit and error handling", () => {
 			message: string;
 		};
 		assert.strictEqual(json.errorType, ServerErrorType.COMMON);
-		assert.strictEqual(json.message, "Route not found");
+		assert.strictEqual(json.message, "API route not found.");
 	});
 
 	void it("configures body limit up to SERVER_BODY_LIMIT_IN_BYTES", () => {
