@@ -11,6 +11,7 @@ import {
 	isMatchingPipelineSession,
 	mapIntegrationChangesToProposedStructure,
 } from "../libs/helpers/helpers.js";
+import { isDocumentStatusCurrent } from "../libs/helpers/is-document-status-current.helper.js";
 import {
 	type KnowledgeState,
 	type PipelineSessionScope,
@@ -40,8 +41,6 @@ type State = KnowledgeState;
 
 const IDLE_DOCUMENT_STATUS = "IDLE" as const;
 const NOT_FOUND_INDEX = -1;
-const INITIAL_PROGRESS = 15;
-const IN_PROGRESS_PERCENTAGE = 50;
 const EMPTY_FILES_COUNT = 0;
 const FIRST_TRACKED_DOCUMENT_INDEX = 0;
 const SESSION_COUNTER_STEP = 1;
@@ -52,6 +51,7 @@ const initialState: State = {
 	activeDocumentStatus: IDLE_DOCUMENT_STATUS,
 	activeDocumentSwitchRequestId: null,
 	contentSearchRequestId: null,
+	documentStatuses: {},
 	entryRequestId: null,
 	extractionFailedPageNumbers: [],
 	extractionItems: [],
@@ -246,6 +246,11 @@ const removeTrackedDocument = (state: State, documentId: number): void => {
 	clearPollTimer(documentId);
 	clearDocumentPipelineError(state, documentId);
 	clearDocumentStatusRequest(state, documentId);
+	state.documentStatuses = Object.fromEntries(
+		Object.entries(state.documentStatuses).filter(
+			([id]) => Number(id) !== documentId,
+		),
+	);
 	state.trackedDocuments = state.trackedDocuments.filter(
 		(document) => document.documentId !== documentId,
 	);
@@ -259,10 +264,12 @@ const applyTrackedDocumentStatus = ({
 	documentId,
 	pipelineSessionId,
 	projectId,
+	snapshot,
 	state,
 	status,
 }: PipelineSessionScope & {
 	documentId: number;
+	snapshot?: DocumentStatusResponseDto;
 	state: State;
 	status: TrackedDocument["status"];
 }): void => {
@@ -274,7 +281,20 @@ const applyTrackedDocumentStatus = ({
 		return;
 	}
 
+	if (snapshot) {
+		if (
+			!isDocumentStatusCurrent(snapshot, state.documentStatuses[documentId])
+		) {
+			return;
+		}
+		state.documentStatuses[documentId] = snapshot;
+		const document = findTrackedDocument(state, documentId);
+		if (document) {
+			document.label = snapshot.name;
+		}
+	}
 	clearDocumentStatusRequest(state, documentId);
+	clearDocumentPipelineError(state, documentId);
 
 	if (FINISHED_DOCUMENT_STATUSES.has(status)) {
 		removeTrackedDocument(state, documentId);
@@ -326,7 +346,6 @@ const { actions, name, reducer } = createSlice({
 			);
 			if (targetFile) {
 				targetFile.status = DocumentProcessingStatus.PROCESSING;
-				targetFile.progress = IN_PROGRESS_PERCENTAGE;
 			}
 		});
 		builder.addCase(processDocument.fulfilled, (state, action) => {
@@ -536,16 +555,7 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.uploadErrorMessage = null;
 			reconcileActiveDocument(state);
-		});
-		builder.addCase(submitManualText.rejected, (state, action) => {
-			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
-				return;
-			}
-
-			state.uploadErrorMessage =
-				action.error.message ?? "Failed to submit text";
 		});
 		builder.addCase(pollDocumentStatus.pending, (state, action) => {
 			if (
@@ -568,19 +578,18 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
+			applyTrackedDocumentStatus({
+				...action.meta.arg,
+				snapshot: action.payload,
+				state,
+				status: action.payload.status,
+			});
+
 			const { errorMessage, status } = action.payload;
 
 			if (errorMessage && status === DocumentStatus.FAILED) {
 				setPipelineError(state, action.meta.arg.documentId, errorMessage);
-			} else {
-				clearDocumentPipelineError(state, action.meta.arg.documentId);
 			}
-
-			applyTrackedDocumentStatus({
-				...action.meta.arg,
-				state,
-				status: action.payload.status,
-			});
 		});
 		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
 			if (
@@ -700,7 +709,6 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			clearDocumentPipelineError(state, action.meta.arg.documentId);
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
 				state,
@@ -723,9 +731,9 @@ const { actions, name, reducer } = createSlice({
 			if (state.integrationPreviewDocumentId === action.meta.arg.documentId) {
 				state.integrationPreviewError = null;
 			}
-			clearDocumentPipelineError(state, action.meta.arg.documentId);
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
+				snapshot: action.payload,
 				state,
 				status: action.payload.status,
 			});
@@ -796,9 +804,9 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			clearDocumentPipelineError(state, action.meta.arg.documentId);
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
+				snapshot: action.payload,
 				state,
 				status: action.payload.status,
 			});
@@ -899,6 +907,7 @@ const { actions, name, reducer } = createSlice({
 					extractionFailedPageNumbers: KnowledgeState["extractionFailedPageNumbers"];
 					extractionItems: KnowledgeState["extractionItems"];
 					extractionSections: KnowledgeState["extractionSections"];
+					snapshot: DocumentStatusResponseDto;
 					status:
 						| typeof DocumentStatus.WAITING_FOR_APPROVAL
 						| typeof DocumentStatus.WAITING_FOR_VALIDATION;
@@ -923,6 +932,15 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
+			if (
+				!isDocumentStatusCurrent(
+					action.payload.snapshot,
+					state.documentStatuses[documentId],
+				)
+			) {
+				return;
+			}
+			state.documentStatuses[documentId] = action.payload.snapshot;
 			upsertTrackedDocumentStatus(state, documentId, status);
 			state.activeDocumentId = documentId;
 			state.activeDocumentStatus = status;
@@ -967,6 +985,9 @@ const { actions, name, reducer } = createSlice({
 		},
 		clearUploadError(state) {
 			state.uploadErrorMessage = null;
+			if (state.selectedFiles.length === EMPTY_FILES_COUNT) {
+				state.processingStatus = DocumentProcessingStatus.IDLE;
+			}
 		},
 		reconcilePendingReviewDocuments(
 			state,
@@ -1007,6 +1028,7 @@ const { actions, name, reducer } = createSlice({
 					continue;
 				}
 
+				state.documentStatuses[document.id] = document;
 				state.trackedDocuments.push({
 					documentId: document.id,
 					label: document.name,
@@ -1074,6 +1096,7 @@ const { actions, name, reducer } = createSlice({
 			state.activeDocumentStatus = IDLE_DOCUMENT_STATUS;
 			state.activeDocumentSwitchRequestId = null;
 			state.entryRequestId = null;
+			state.documentStatuses = {};
 			clearExtractionReview(state);
 			state.integrationPreviewDocumentId = null;
 			state.integrationPreviewError = null;
@@ -1118,7 +1141,6 @@ const { actions, name, reducer } = createSlice({
 			const processingItem = {
 				id,
 				name,
-				progress: INITIAL_PROGRESS,
 				size,
 				sizeLabel: formatFileSize(size),
 				status: DocumentProcessingStatus.PROCESSING,
@@ -1135,6 +1157,7 @@ const { actions, name, reducer } = createSlice({
 			action: PayloadAction<
 				PipelineSessionScope & {
 					documentId: number;
+					snapshot?: DocumentStatusResponseDto;
 					status: ValueOf<typeof DocumentStatus>;
 				}
 			>,

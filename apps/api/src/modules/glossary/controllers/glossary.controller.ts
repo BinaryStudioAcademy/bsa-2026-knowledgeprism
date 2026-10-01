@@ -207,6 +207,20 @@ class GlossaryController extends BaseController {
 
 		this.addRoute({
 			handler: (options) =>
+				this.confirm(
+					options as APIHandlerOptions<{
+						params: GlossaryTermRouteParametersDto;
+					}>,
+				),
+			method: "POST",
+			path: GlossaryApiPath.TERM_$ID_CONFIRM,
+			validation: {
+				params: glossaryTermRouteParametersValidationSchema,
+			},
+		});
+
+		this.addRoute({
+			handler: (options) =>
 				this.delete(
 					options as APIHandlerOptions<{
 						params: GlossaryTermRouteParametersDto;
@@ -259,6 +273,49 @@ class GlossaryController extends BaseController {
 			payload: await this.glossaryService.checkConsistency({
 				content: options.body.content,
 				context: this.getAuthenticatedSessionContext(options),
+				projectId: Number(options.params.projectId),
+			}),
+			status: HTTPCode.OK,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/glossary/{id}/confirm:
+	 *    post:
+	 *      description: Confirm a glossary term that was added by AI (project Admin or Editor)
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: id
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      responses:
+	 *        200:
+	 *          description: Confirmed term
+	 *          content:
+	 *            application/json:
+	 *              schema:
+	 *                $ref: "#/components/schemas/GlossaryTermResponse"
+	 *        403:
+	 *          description: Forbidden (Viewer role or non-member)
+	 *        404:
+	 *          description: Term not found
+	 */
+	private async confirm(
+		options: APIHandlerOptions<{
+			params: GlossaryTermRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.glossaryService.confirm({
+				context: this.getAuthenticatedSessionContext(options),
+				id: Number(options.params.id),
 				projectId: Number(options.params.projectId),
 			}),
 			status: HTTPCode.OK,

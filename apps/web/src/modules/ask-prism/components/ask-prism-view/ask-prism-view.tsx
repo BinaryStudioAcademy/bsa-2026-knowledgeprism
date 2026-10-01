@@ -15,6 +15,7 @@ import { generatePath, useNavigate, useParams } from "react-router-dom";
 import { Heading, Icon, Paragraph } from "~/components/components.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
+import { actions as knowledgeActions } from "~/modules/knowledge/state/state.js";
 
 import { DEFAULT_SUGGESTED_QUESTIONS } from "../../libs/constants.js";
 import {
@@ -25,6 +26,7 @@ import { AnswerCard } from "../answer-card/answer-card.js";
 import { PromptButton } from "../prompt-button/prompt-button.js";
 
 const EMPTY_COUNT = 0;
+const EMPTY_TREE_REVISION = 0;
 const QUESTION_PLACEHOLDER = "Ask anything about your knowledge base...";
 
 const AskPrismView = (): JSX.Element => {
@@ -43,6 +45,8 @@ const AskPrismView = (): JSX.Element => {
 		suggestedQuestions,
 	} = useAppSelector(({ askPrism }) => askPrism);
 
+	const { tree, treeRevision } = useAppSelector(({ knowledge }) => knowledge);
+
 	const isCurrentProject = currentProjectId === numericProjectId;
 	const isSuggestionsActuallyLoading =
 		!isCurrentProject || isSuggestionsLoading;
@@ -58,7 +62,7 @@ const AskPrismView = (): JSX.Element => {
 	);
 
 	useEffect(() => {
-		if (!numericProjectId) {
+		if (!numericProjectId || !projectId) {
 			return;
 		}
 
@@ -66,7 +70,8 @@ const AskPrismView = (): JSX.Element => {
 		void dispatch(
 			askPrismActions.loadSuggestedQuestions({ projectId: numericProjectId }),
 		);
-	}, [dispatch, numericProjectId]);
+		void dispatch(knowledgeActions.fetchKnowledgeTree({ projectId }));
+	}, [dispatch, numericProjectId, projectId]);
 
 	useEffect(() => {
 		messagesEndReference.current?.scrollIntoView({ behavior: "smooth" });
@@ -187,8 +192,12 @@ const AskPrismView = (): JSX.Element => {
 		);
 	}, [messages, suggestedQuestions]);
 
+	const isKnowledgeTreeEmpty =
+		treeRevision > EMPTY_TREE_REVISION && tree.length === EMPTY_COUNT;
+	const isChatDisabled = isLoading || isKnowledgeTreeEmpty;
+
 	return (
-		<div className="mx-auto flex h-full w-full max-w-[680px] min-h-0 flex-col px-4 pt-6 tablet:pt-8 desktop:max-w-4xl desktop:px-6">
+		<div className="mx-auto flex h-full w-full max-w-7xl min-h-0 flex-col px-4 pt-6 tablet:px-7 tablet:pt-7 desktop:px-11 desktop:pt-10">
 			<div className="flex shrink-0 items-center justify-between border-b border-border pb-4">
 				<div className="flex flex-col gap-1.5">
 					<div className="flex items-center gap-2 text-accent">
@@ -216,65 +225,90 @@ const AskPrismView = (): JSX.Element => {
 			</div>
 
 			<div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4">
-				{messages.length === EMPTY_COUNT ? (
-					<div className="flex h-full flex-col items-center justify-center gap-3 text-center text-text-muted">
-						<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/80 text-accent">
-							<Icon name="prism" size={24} />
+				{(() => {
+					if (isKnowledgeTreeEmpty) {
+						return (
+							<div className="flex h-full flex-col items-center justify-center gap-3 text-center text-text-muted">
+								<div className="mb-4 flex justify-center text-text-faint">
+									<Icon name="ask-prism" size={36} />
+								</div>
+								<div className="flex max-w-sm flex-col gap-1">
+									<span className="font-sans text-sm font-medium text-text">
+										Prism needs knowledge to answer questions.
+									</span>
+									<span className="font-sans text-xs text-text-faint">
+										Add documents or text to the Knowledge Tree to get started.
+									</span>
+								</div>
+							</div>
+						);
+					}
+
+					if (messages.length === EMPTY_COUNT) {
+						return (
+							<div className="flex h-full flex-col items-center justify-center gap-3 text-center text-text-muted">
+								<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/80 text-accent">
+									<Icon name="prism" size={24} />
+								</div>
+								<div className="flex max-w-sm flex-col gap-1">
+									<span className="font-sans text-sm font-medium text-text">
+										How can Prism help you today?
+									</span>
+									<span className="font-sans text-xs text-text-faint">
+										Ask questions about your project documents, architecture, or
+										requirements.
+									</span>
+								</div>
+							</div>
+						);
+					}
+
+					return (
+						<div className="flex flex-col gap-6">
+							{messages.map((message) => (
+								<AnswerCard
+									answer={message.answer}
+									dataStatus={message.dataStatus}
+									errorType={message.errorType}
+									key={message.id}
+									onRetry={handleRetry(message)}
+									onSourceSelect={handleSourceSelect}
+									query={message.query}
+									sources={message.sources}
+								/>
+							))}
+							<div ref={messagesEndReference} />
 						</div>
-						<div className="flex max-w-sm flex-col gap-1">
-							<span className="font-sans text-sm font-medium text-text">
-								How can Prism help you today?
-							</span>
-							<span className="font-sans text-xs text-text-faint">
-								Ask questions about your project documents, architecture, or
-								requirements.
-							</span>
-						</div>
-					</div>
-				) : (
-					<div className="flex flex-col gap-6">
-						{messages.map((message) => (
-							<AnswerCard
-								answer={message.answer}
-								dataStatus={message.dataStatus}
-								errorType={message.errorType}
-								key={message.id}
-								onRetry={handleRetry(message)}
-								onSourceSelect={handleSourceSelect}
-								query={message.query}
-								sources={message.sources}
-							/>
-						))}
-						<div ref={messagesEndReference} />
-					</div>
-				)}
+					);
+				})()}
 			</div>
 
 			<div className="shrink-0 bg-bg pt-2 pb-6">
 				<div className="flex flex-col gap-2">
-					{(isSuggestionsActuallyLoading ||
-						visibleSuggestedQuestions.length > EMPTY_COUNT) && (
-						<div className="flex flex-wrap items-center gap-1.5">
-							<span className="font-sans text-xs text-text-faint">
-								Suggested questions:
-							</span>
-							{isSuggestionsActuallyLoading ? (
-								<div className="flex animate-pulse gap-2">
-									<span className="h-6 w-28 rounded-md bg-surface" />
-									<span className="h-6 w-36 rounded-md bg-surface" />
-								</div>
-							) : (
-								visibleSuggestedQuestions.map((prompt) => (
-									<PromptButton
-										isDisabled={isLoading}
-										key={prompt}
-										onClick={handlePromptClick}
-										prompt={prompt}
-									/>
-								))
-							)}
-						</div>
-					)}
+					{!isKnowledgeTreeEmpty &&
+						(isSuggestionsActuallyLoading ||
+							visibleSuggestedQuestions.length > EMPTY_COUNT) && (
+							<div className="flex flex-wrap items-center gap-1.5">
+								<span className="font-sans text-xs text-text-faint">
+									Suggested questions:
+								</span>
+								{isSuggestionsActuallyLoading ? (
+									<div className="flex animate-pulse gap-2">
+										<span className="h-6 w-28 rounded-md bg-surface" />
+										<span className="h-6 w-36 rounded-md bg-surface" />
+									</div>
+								) : (
+									visibleSuggestedQuestions.map((prompt: string) => (
+										<PromptButton
+											isDisabled={isLoading}
+											key={prompt}
+											onClick={handlePromptClick}
+											prompt={prompt}
+										/>
+									))
+								)}
+							</div>
+						)}
 
 					<form
 						className="flex items-center gap-2.5 rounded-2xl border border-border bg-surface p-2 shadow-xs transition-all duration-200 focus-within:border-accent focus-within:ring-2 focus-within:ring-accent/15"
@@ -284,7 +318,8 @@ const AskPrismView = (): JSX.Element => {
 							<Icon name="search" size={16} />
 						</span>
 						<input
-							className="flex-1 border-0 bg-transparent font-sans text-sm text-text placeholder:text-text-faint focus:outline-hidden"
+							className="flex-1 border-0 bg-transparent font-sans text-sm text-text placeholder:text-text-faint focus:outline-hidden disabled:opacity-50"
+							disabled={isKnowledgeTreeEmpty}
 							onChange={handleQueryChange}
 							onKeyDown={handleKeyDown}
 							placeholder={QUESTION_PLACEHOLDER}
@@ -294,7 +329,7 @@ const AskPrismView = (): JSX.Element => {
 						<button
 							aria-label="Send question"
 							className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-lg bg-accent text-white shadow-2xs transition-all duration-200 hover:scale-105 hover:bg-accent-hover active:scale-95 disabled:scale-100 disabled:opacity-40"
-							disabled={!query.trim() || isLoading}
+							disabled={!query.trim() || isChatDisabled}
 							title="Send question"
 							type="submit"
 						>
@@ -302,7 +337,7 @@ const AskPrismView = (): JSX.Element => {
 						</button>
 					</form>
 
-					<div className="flex items-center justify-between font-sans text-[11px] text-text-faint">
+					<div className="flex items-center justify-between px-1 font-sans text-[11px] text-text-faint">
 						<span>Prism retrieves verified facts from the knowledge tree.</span>
 						<span>Enter to send</span>
 					</div>

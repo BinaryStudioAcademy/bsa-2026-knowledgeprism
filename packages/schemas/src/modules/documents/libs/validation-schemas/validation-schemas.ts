@@ -7,4 +7,3 @@ export { extractionItemUpdate as extractionItemUpdateValidationSchema } from "./
 export { extractionItemsReview as extractionItemsReviewValidationSchema } from "./extraction-items-review.validation-schema.js";
 export { integrationChangesApply as integrationChangesApplyValidationSchema } from "./integration-changes-apply.validation-schema.js";
 export { manualTextCreate as manualTextCreateValidationSchema } from "./manual-text-create.validation-schema.js";
-export { manualTextRouteParameters as manualTextRouteParametersValidationSchema } from "./manual-text-route-parameters.validation-schema.js";

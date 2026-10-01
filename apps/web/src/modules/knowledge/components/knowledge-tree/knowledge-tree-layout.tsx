@@ -3,6 +3,7 @@ import {
 	ExtractionItemStatus,
 } from "@knowledgeprism/constants";
 import {
+	type DocumentProcessingProgressDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
 } from "@knowledgeprism/types";
@@ -33,6 +34,7 @@ import {
 } from "../../state/session-guards.js";
 import { AddKnowledgeModal } from "../add-knowledge-modal/add-knowledge-modal.js";
 import { IntegrationPreview } from "../integration-preview/integration-preview.js";
+import { DocumentProcessingList } from "../loading-state/document-processing-list.js";
 import { LoadingState } from "../loading-state/loading-state.js";
 import { IntegrationPreviewPanel } from "./integration-preview-panel.js";
 import { KnowledgeTreeContent } from "./knowledge-tree-content.js";
@@ -128,6 +130,7 @@ type EmptyPipelineProperties = {
 	onPreview: () => void;
 	onRetry: () => void;
 	pipelineErrorMessage: null | string;
+	progress: DocumentProcessingProgressDto | null;
 };
 
 const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
@@ -140,6 +143,7 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 	onPreview,
 	onRetry,
 	pipelineErrorMessage,
+	progress,
 }: EmptyPipelineProperties) => {
 	if (!isShowDocumentPipelineUi) {
 		return knowledgeErrorMessage ? (
@@ -155,6 +159,7 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 		<LoadingState
 			currentStatus={activeDocumentStatus}
 			onFinish={onFinish}
+			progress={progress}
 			variant="full"
 		/>
 	);
@@ -167,6 +172,7 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 				hasError={true}
 				onCancel={onCancel}
 				onRetry={onRetry}
+				progress={progress}
 				variant="full"
 			/>
 		);
@@ -175,6 +181,7 @@ const KnowledgeTreeEmptyPipeline: React.FC<EmptyPipelineProperties> = ({
 			<LoadingState
 				currentStatus={activeDocumentStatus}
 				onPreview={onPreview}
+				progress={progress}
 				variant="compact"
 			/>
 		);
@@ -255,11 +262,11 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 		<>
 			<div className="flex h-full w-full flex-col bg-bg">
 				{pendingReviewDocuments.length > EMPTY_LENGTH && (
-					<div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface px-4 py-2 text-sm">
+					<div className="flex max-h-24 shrink-0 flex-wrap overflow-y-auto items-center gap-2 border-b border-border bg-surface px-4 py-2 text-sm">
 						<span className="text-text-muted">Also waiting for review:</span>
 						{pendingReviewDocuments.map((document) => (
 							<button
-								className="rounded-md border border-border px-2 py-1 text-text hover:bg-secondary"
+								className="cursor-pointer disabled:cursor-not-allowed rounded-md border border-border px-2 py-1 text-text hover:bg-secondary"
 								data-document-id={document.documentId}
 								disabled={isReviewMutationPending}
 								key={document.documentId}
@@ -271,6 +278,7 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 						))}
 					</div>
 				)}
+				<DocumentProcessingList />
 				<div className="min-h-0 flex-1">{previewContent}</div>
 			</div>
 			<AddKnowledgeModal isOpen={isAddModalOpen} onClose={onCloseAddModal} />
@@ -291,6 +299,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	const {
 		activeDocumentId,
 		activeDocumentStatus,
+		documentStatuses,
 		extractionFailedPageNumbers,
 		extractionItems,
 		extractionItemsDocumentId,
@@ -304,6 +313,10 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		pipelineSessionId,
 		trackedDocuments,
 	} = useAppSelector((state) => state.knowledge);
+	const progress =
+		activeDocumentId === null
+			? null
+			: (documentStatuses[activeDocumentId]?.processingProgress ?? null);
 	const [isEditing, setIsEditing] = useState<boolean>(false);
 	const [reviewMutationSessionId, setReviewMutationSessionId] = useState<
 		null | number
@@ -456,7 +469,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	const handleResetState = useCallback((): void => {
 		if (projectId && activeDocumentId) {
 			void dispatch(
-				actions.untrackDocument({ documentId: activeDocumentId, projectId }),
+				actions.cancelDocument({ documentId: activeDocumentId, projectId }),
 			);
 		}
 	}, [activeDocumentId, dispatch, projectId]);
@@ -675,7 +688,8 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 			dismissedPreview.pipelineSessionId === pipelineSessionId;
 
 		return (
-			<div className="flex h-full w-full items-center justify-center bg-bg">
+			<div className="flex h-full w-full flex-col items-center overflow-y-auto bg-bg">
+				<DocumentProcessingList />
 				<KnowledgeTreeEmptyPipeline
 					activeDocumentStatus={activeDocumentStatus}
 					isPreviewDismissed={canResumePreview && isActivePreviewDismissed}
@@ -686,6 +700,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					onPreview={handleOpenPreview}
 					onRetry={handleRetry}
 					pipelineErrorMessage={activePipelineError}
+					progress={progress}
 				/>
 				<AddKnowledgeModal
 					isOpen={isAddModalOpen}
@@ -744,6 +759,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					onPreview={handleOpenPreview}
 					onResetState={handleResetState}
 					onRetry={handleRetry}
+					progress={progress}
 					showCompactLoading={isShowDocumentPipelineUi || canResumePreview}
 				/>
 				{(isShowDocumentPipelineUi || canResumePreview) && (
@@ -756,17 +772,20 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 								hasError={true}
 								onCancel={handleResetState}
 								onRetry={handleRetry}
+								progress={progress}
 								variant="compact"
 							/>
 						) : (
 							<LoadingState
 								currentStatus={activeDocumentStatus}
 								onPreview={handleOpenPreview}
+								progress={progress}
 								variant="compact"
 							/>
 						)}
 					</div>
 				)}
+				<DocumentProcessingList />
 				{mainContent}
 			</div>
 			<AddKnowledgeModal

@@ -9,7 +9,6 @@ const config: KnipConfig = {
 		".": {},
 		"apps/api": {
 			entry: [
-				"src/infrastructure/bedrock/bedrock.ts",
 				"src/infrastructure/database/migrations/*.ts",
 				"src/**/*.test.ts",
 			],

@@ -20,6 +20,8 @@ export {
 	type GlossaryConsistencyTerm,
 } from "./modules/glossary-consistency/libs/types/types.js";
 export { checkGlossaryConsistency } from "./modules/glossary-consistency/services/glossary-consistency.service.js";
+export { type GlossaryTermCandidate } from "./modules/glossary-extraction/libs/types/types.js";
+export { extractGlossaryTerms } from "./modules/glossary-extraction/services/glossary-extraction.service.js";
 export { type IntegrationAnalysisParameters } from "./modules/integration-analysis/libs/types/integration-analysis-parameters.type.js";
 export { type IntegrationAnalysisResult } from "./modules/integration-analysis/libs/types/integration-analysis-result.type.js";
 export { type IntegrationChangeTypeValue } from "./modules/integration-analysis/libs/types/integration-change-type-value.type.js";
@@ -29,5 +31,6 @@ export { type ExtractionBlock } from "./modules/knowledge-extraction/libs/types/
 export { type ExtractionResult } from "./modules/knowledge-extraction/libs/types/extraction-result.type.js";
 export { type KnowledgeItem } from "./modules/knowledge-extraction/libs/types/knowledge-item.type.js";
 export { extract } from "./modules/knowledge-extraction/services/knowledge-extraction.service.js";
+export { DocumentParseFailedError } from "./parsers/libs/exceptions/document-parse-failed.exception.js";
 export { type ParsedPageBlock } from "./parsers/libs/types/parsed-page-block.type.js";
 export { parseDocument } from "./parsers/parse-document.js";

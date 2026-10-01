@@ -1,5 +1,6 @@
 import { APIPath, GlossaryApiPath } from "@knowledgeprism/constants";
 import {
+	type GlossaryConsistencyCheckResponseDto,
 	type GlossaryTermRequestDto,
 	type GlossaryTermResponseDto,
 	type GlossaryTermsResponseDto,
@@ -19,6 +20,52 @@ type Constructor = {
 class GlossaryApi extends BaseHTTPApi {
 	public constructor({ baseUrl, http, storage }: Constructor) {
 		super({ baseUrl, http, path: APIPath.PROJECTS, storage });
+	}
+
+	public async checkConsistency({
+		content,
+		projectId,
+		signal,
+	}: {
+		content: string;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<GlossaryConsistencyCheckResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(GlossaryApiPath.CHECK_CONSISTENCY, { projectId }),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify({ content }),
+				signal,
+			},
+		);
+
+		return await response.json<GlossaryConsistencyCheckResponseDto>();
+	}
+
+	public async confirm({
+		id,
+		projectId,
+	}: {
+		id: number;
+		projectId: string;
+	}): Promise<GlossaryTermResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(GlossaryApiPath.TERM_$ID_CONFIRM, {
+				id: String(id),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify({}),
+			},
+		);
+
+		return await response.json<GlossaryTermResponseDto>();
 	}
 
 	public async create({

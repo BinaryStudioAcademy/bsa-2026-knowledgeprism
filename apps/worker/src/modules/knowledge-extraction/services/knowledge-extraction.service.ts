@@ -1,3 +1,4 @@
+import { type DocumentProcessingProgressDto } from "@knowledgeprism/types";
 import { setTimeout } from "node:timers/promises";
 
 import { logger } from "~/logger/logger.js";
@@ -11,11 +12,13 @@ import { type ExtractionResult } from "../libs/types/extraction-result.type.js";
 const extract = async (
 	blocks: ExtractionBlock[],
 	context: ExtractionContext = {},
+	onProgress?: (progress: DocumentProcessingProgressDto) => Promise<void>,
 ): Promise<ExtractionResult> => {
 	return await extractBlocks(blocks, {
 		context,
 		invoke: invokePageExtraction,
 		logger,
+		...(onProgress && { onProgress }),
 		pause: setTimeout,
 	});
 };

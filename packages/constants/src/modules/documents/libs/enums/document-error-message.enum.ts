@@ -5,6 +5,8 @@ const DocumentErrorMessage = {
 	CANCEL_NOT_ALLOWED: "Document cannot be cancelled in its current state",
 	CONFIRM_NOT_ALLOWED: "Document cannot be confirmed in its current state",
 	CONFLICT_RESOLUTIONS_MISMATCH: "Every conflict must be resolved exactly once",
+	CONTENT_OVERRIDE_UNKNOWN_CHANGE:
+		"A content override refers to a change that isn't part of this document",
 	DUPLICATE_ENTRY_WRITES:
 		"Two changes cannot write the same field of one knowledge entry",
 	EXTRACTION_ITEM_NOT_FOUND: "Extraction item not found",

@@ -1,5 +1,6 @@
 import {
 	DocumentErrorMessage,
+	DocumentProcessingPhase,
 	DocumentSourceType,
 	DocumentStatus,
 	KnowledgeNodeType,
@@ -12,17 +13,21 @@ import {
 } from "@knowledgeprism/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ServerErrorType } from "~/lib/enums/enums.js";
+import { HTTPCode, HTTPError } from "~/lib/http/http.js";
 import { notificationService } from "~/lib/notifications/notification.service.js";
 import { store } from "~/lib/store/store.js";
 import { type AppNotification } from "~/lib/types/types.js";
 
 import { documentsApi, knowledgeApi } from "../knowledge.js";
+import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import {
 	addTrackedDocumentId,
 	readTrackedDocumentIds,
 } from "../libs/helpers/helpers.js";
 import {
 	applyIntegrationChanges,
+	cancelDocument,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchKnowledgeEntry,
@@ -62,6 +67,8 @@ const createStatusResponse = (
 	errorMessage: null,
 	id: documentId,
 	name: `Document ${String(documentId)}`,
+	processingAttempt: 1,
+	processingProgress: null,
 	projectId: 1,
 	sourceType: DocumentSourceType.UPLOAD,
 	status,
@@ -140,6 +147,163 @@ describe("knowledge pipeline lifecycle", () => {
 		unsubscribeNotifications();
 		vi.clearAllTimers();
 		vi.useRealTimers();
+	});
+
+	it("keeps independent progress and partial failures for simultaneous documents", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
+		trackDocumentWithStatus(DOCUMENT_B_ID, DocumentStatus.PROCESSING);
+		const first = {
+			...createStatusResponse(DOCUMENT_A_ID, DocumentStatus.PROCESSING),
+			processingProgress: {
+				failedUnits: 0,
+				phase: DocumentProcessingPhase.EXTRACTING,
+				processedUnits: 1,
+				totalUnits: 4,
+			},
+		};
+		const second = {
+			...createStatusResponse(DOCUMENT_B_ID, DocumentStatus.PROCESSING),
+			processingProgress: {
+				failedUnits: 1,
+				phase: DocumentProcessingPhase.EXTRACTING,
+				processedUnits: 2,
+				totalUnits: 3,
+			},
+		};
+		vi.spyOn(documentsApi, "getDocumentStatus").mockImplementation(
+			({ documentId }) =>
+				Promise.resolve(documentId === DOCUMENT_A_ID ? first : second),
+		);
+		const requestA = createRequest(DOCUMENT_A_ID);
+		const requestB = createRequest(DOCUMENT_B_ID);
+		await Promise.all([
+			store.instance.dispatch(pollDocumentStatus(requestA)),
+			store.instance.dispatch(pollDocumentStatus(requestB)),
+		]);
+		expect(store.instance.getState().knowledge.documentStatuses).toEqual({
+			[DOCUMENT_A_ID]: first,
+			[DOCUMENT_B_ID]: second,
+		});
+	});
+
+	it("restores persisted progress after project re-entry or reload", async () => {
+		addTrackedDocumentId(PROJECT_ID, DOCUMENT_A_ID);
+		store.instance.dispatch(actions.resetState(PROJECT_ID));
+		const response = {
+			...createStatusResponse(DOCUMENT_A_ID, DocumentStatus.PROCESSING),
+			processingProgress: {
+				failedUnits: 1,
+				phase: DocumentProcessingPhase.EXTRACTING,
+				processedUnits: 3,
+				totalUnits: 4,
+			},
+		};
+		vi.spyOn(documentsApi, "getPendingReviewDocuments").mockResolvedValue({
+			items: [],
+		});
+		vi.spyOn(documentsApi, "getDocumentStatus").mockResolvedValue(response);
+		await store.instance
+			.dispatch(initializeProjectKnowledgePipeline({ projectId: PROJECT_ID }))
+			.unwrap();
+		expect(
+			store.instance.getState().knowledge.documentStatuses[DOCUMENT_A_ID],
+		).toEqual(response);
+	});
+
+	it("resets progress on retry and ignores a later response from the old attempt", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.FAILED);
+		const oldResponse = {
+			...createStatusResponse(DOCUMENT_A_ID, DocumentStatus.FAILED),
+			processingProgress: {
+				failedUnits: 1,
+				phase: DocumentProcessingPhase.EXTRACTING,
+				processedUnits: 3,
+				totalUnits: 4,
+			},
+		};
+		const retried = {
+			...createStatusResponse(DOCUMENT_A_ID, DocumentStatus.PROCESSING),
+			processingAttempt: 2,
+			processingProgress: {
+				failedUnits: 0,
+				phase: DocumentProcessingPhase.READING,
+				processedUnits: 0,
+				totalUnits: null,
+			},
+		};
+		vi.spyOn(documentsApi, "getDocumentStatus").mockResolvedValue(oldResponse);
+		await store.instance.dispatch(
+			pollDocumentStatus(createRequest(DOCUMENT_A_ID)),
+		);
+		vi.spyOn(documentsApi, "retryProcessing").mockResolvedValue(retried);
+		await store.instance
+			.dispatch(retryDocumentProcessing(createRequest(DOCUMENT_A_ID)))
+			.unwrap();
+		await store.instance.dispatch(
+			pollDocumentStatus(createRequest(DOCUMENT_A_ID)),
+		);
+		expect(
+			store.instance.getState().knowledge.documentStatuses[DOCUMENT_A_ID],
+		).toEqual(retried);
+		expect(store.instance.getState().knowledge.activeDocumentStatus).toBe(
+			DocumentStatus.PROCESSING,
+		);
+	});
+
+	it("ignores regressing counters even when the newest polling request returned them", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
+		const response = {
+			...createStatusResponse(DOCUMENT_A_ID, DocumentStatus.PROCESSING),
+			processingProgress: {
+				failedUnits: 1,
+				phase: DocumentProcessingPhase.EXTRACTING,
+				processedUnits: 3,
+				totalUnits: 4,
+			},
+		};
+		const getStatus = vi
+			.spyOn(documentsApi, "getDocumentStatus")
+			.mockResolvedValue(response);
+		await store.instance.dispatch(
+			pollDocumentStatus(createRequest(DOCUMENT_A_ID)),
+		);
+		getStatus.mockResolvedValue({
+			...response,
+			processingProgress: {
+				...response.processingProgress,
+				failedUnits: 0,
+				processedUnits: 1,
+			},
+		});
+		await store.instance.dispatch(
+			pollDocumentStatus(createRequest(DOCUMENT_A_ID)),
+		);
+		expect(
+			store.instance.getState().knowledge.documentStatuses[DOCUMENT_A_ID],
+		).toEqual(response);
+	});
+
+	it("clears progress on project change and ignores the old project's in-flight response", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
+		const deferred = createDeferred<DocumentStatusResponseDto>();
+		vi.spyOn(documentsApi, "getDocumentStatus").mockReturnValue(
+			deferred.promise,
+		);
+		const request = store.instance.dispatch(
+			pollDocumentStatus(createRequest(DOCUMENT_A_ID)),
+		);
+		store.instance.dispatch(actions.resetState(SECOND_PROJECT_ID));
+		deferred.resolve({
+			...createStatusResponse(DOCUMENT_A_ID, DocumentStatus.PROCESSING),
+			processingProgress: {
+				failedUnits: 1,
+				phase: DocumentProcessingPhase.EXTRACTING,
+				processedUnits: 3,
+				totalUnits: 4,
+			},
+		});
+		await request;
+		expect(store.instance.getState().knowledge.documentStatuses).toEqual({});
 	});
 
 	it("clears a scheduled retry when the document is untracked", async () => {
@@ -603,6 +767,66 @@ describe("knowledge pipeline lifecycle", () => {
 		);
 	});
 
+	it("cancels the document on the server and stops tracking it", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.FAILED);
+		const cancel = vi
+			.spyOn(documentsApi, "cancelProcessing")
+			.mockResolvedValue(
+				createStatusResponse(DOCUMENT_A_ID, DocumentStatus.CANCELLED),
+			);
+
+		await store.instance.dispatch(
+			cancelDocument({ documentId: DOCUMENT_A_ID, projectId: PROJECT_ID }),
+		);
+
+		expect(cancel).toHaveBeenCalledWith(
+			expect.objectContaining({
+				documentId: DOCUMENT_A_ID,
+				projectId: PROJECT_ID,
+			}),
+		);
+		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
+	});
+
+	it("still stops tracking a document the server refuses to cancel", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.FAILED);
+		vi.spyOn(documentsApi, "cancelProcessing").mockRejectedValue(
+			new HTTPError({
+				details: [],
+				errorType: ServerErrorType.COMMON,
+				message: "Document cannot be cancelled in its current state",
+				status: HTTPCode.CONFLICT,
+			}),
+		);
+
+		await store.instance.dispatch(
+			cancelDocument({ documentId: DOCUMENT_A_ID, projectId: PROJECT_ID }),
+		);
+
+		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
+	});
+
+	it("keeps tracking the document when the session has expired", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.FAILED);
+		vi.spyOn(documentsApi, "cancelProcessing").mockRejectedValue(
+			new HTTPError({
+				details: [],
+				errorType: ServerErrorType.COMMON,
+				message: "Unauthorized",
+				status: HTTPCode.UNAUTHORIZED,
+			}),
+		);
+
+		const result = await store.instance.dispatch(
+			cancelDocument({ documentId: DOCUMENT_A_ID, projectId: PROJECT_ID }),
+		);
+
+		expect(cancelDocument.rejected.match(result)).toBe(true);
+		expect(store.instance.getState().knowledge.trackedDocuments).not.toEqual(
+			[],
+		);
+	});
+
 	it("reconciles a rejected retry to server PROCESSING without fabricating FAILED", async () => {
 		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.FAILED);
 		vi.spyOn(documentsApi, "retryProcessing").mockRejectedValue(
@@ -910,7 +1134,7 @@ describe("knowledge pipeline lifecycle", () => {
 		await store.instance.dispatch(
 			applyIntegrationChanges({
 				...createRequest(DOCUMENT_A_ID),
-				payload: { resolutions: [] },
+				payload: { contentOverrides: [], resolutions: [] },
 			}),
 		);
 
@@ -1085,6 +1309,45 @@ describe("knowledge pipeline lifecycle", () => {
 
 		expect(readTrackedDocumentIds(PROJECT_ID)).toContain(DOCUMENT_A_ID);
 		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
+	});
+
+	it("does not populate uploadErrorMessage when manual text submission fails", async () => {
+		store.instance.dispatch(actions.acquireUploadSession(PROJECT_ID));
+		const uploadSessionId =
+			store.instance.getState().knowledge.uploadSession?.id;
+		expect(uploadSessionId).toBeDefined();
+
+		vi.spyOn(documentsApi, "createManualText").mockRejectedValue(
+			new Error("Unexpected token '<', \"<!doctype \"... is not valid JSON"),
+		);
+
+		const result = await store.instance.dispatch(
+			submitManualText({
+				payload: { content: "Knowledge", title: "Manual note" },
+				projectId: PROJECT_ID,
+				uploadSessionId: uploadSessionId as number,
+			}),
+		);
+
+		expect(submitManualText.rejected.match(result)).toBe(true);
+		expect(store.instance.getState().knowledge.uploadErrorMessage).toBeNull();
+	});
+
+	it("clears upload error and resets idle status when clearUploadError is dispatched", () => {
+		store.instance.dispatch(actions.setUploadError("Some upload error"));
+		expect(store.instance.getState().knowledge.uploadErrorMessage).toBe(
+			"Some upload error",
+		);
+		expect(store.instance.getState().knowledge.processingStatus).toBe(
+			DocumentProcessingStatus.FAILED,
+		);
+
+		store.instance.dispatch(actions.clearUploadError());
+
+		expect(store.instance.getState().knowledge.uploadErrorMessage).toBeNull();
+		expect(store.instance.getState().knowledge.processingStatus).toBe(
+			DocumentProcessingStatus.IDLE,
+		);
 	});
 
 	it("does not throw while untracking when storage removal fails", () => {

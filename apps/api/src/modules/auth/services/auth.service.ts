@@ -100,7 +100,7 @@ class AuthService {
 		if (userDetails.status === UserStatus.INACTIVE) {
 			throw new HTTPError({
 				message: UserValidationMessage.USER_INACTIVE,
-				status: HTTPCode.FORBIDDEN,
+				status: HTTPCode.UNAUTHORIZED,
 			});
 		}
 

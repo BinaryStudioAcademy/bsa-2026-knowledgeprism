@@ -1,5 +1,7 @@
 import {
 	applyIntegrationChanges,
+	cancelDocument,
+	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchIntegrationChanges,
@@ -24,6 +26,8 @@ import { actions as sliceActions } from "./knowledge.slice.js";
 const allActions = {
 	...sliceActions,
 	applyIntegrationChanges,
+	cancelDocument,
+	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchIntegrationChanges,

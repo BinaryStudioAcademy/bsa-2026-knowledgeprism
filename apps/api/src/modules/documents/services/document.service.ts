@@ -174,22 +174,6 @@ class DocumentService {
 		return document;
 	}
 
-	private async findOwnedManualDocument(reference: {
-		id: number;
-		projectId: number;
-	}): Promise<DocumentEntity> {
-		const document = await this.findOwnedDocument(reference);
-
-		if (document.toObject().sourceType !== DocumentSourceType.MANUAL) {
-			throw new HTTPError({
-				message: DocumentErrorMessage.NOT_FOUND,
-				status: HTTPCode.NOT_FOUND,
-			});
-		}
-
-		return document;
-	}
-
 	private async hasApprovedItems(documentId: number): Promise<boolean> {
 		const items =
 			await this.extractionItemRepository.findByDocumentId(documentId);
@@ -276,31 +260,19 @@ class DocumentService {
 		}
 	}
 
-	public async cancelManualText({
+	public async cancelProcessing({
 		context,
-		id,
+		documentId,
 		projectId,
-	}: {
-		context: ProjectAccessContext;
-		id: number;
-		projectId: string;
-	}): Promise<ManualTextResponseDto> {
-		const numericProjectId = Number(projectId);
-
-		await this.projectService.assertCanWriteKnowledge(
-			numericProjectId,
-			context,
-		);
-		await this.findOwnedManualDocument({
-			id,
-			projectId: numericProjectId,
-		});
+	}: DocumentReference): Promise<DocumentStatusResponseDto> {
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
+		await this.findOwnedDocument({ id: documentId, projectId });
 
 		const cancelledDocument =
 			await this.documentRepository.updateStatusIfCurrentIn({
 				allowedStatuses: [DocumentStatus.FAILED, DocumentStatus.PROCESSING],
 				errorMessage: null,
-				id,
+				id: documentId,
 				status: DocumentStatus.CANCELLED,
 			});
 
@@ -311,7 +283,7 @@ class DocumentService {
 			});
 		}
 
-		return this.toManualTextResponse(cancelledDocument);
+		return toDocumentStatusResponse(cancelledDocument);
 	}
 
 	public async confirmUpload({
@@ -589,53 +561,6 @@ class DocumentService {
 				error,
 			});
 		}
-	}
-
-	public async findManualText({
-		context,
-		id,
-		projectId,
-	}: {
-		context: ProjectAccessContext;
-		id: number;
-		projectId: string;
-	}): Promise<ManualTextResponseDto> {
-		const numericProjectId = Number(projectId);
-
-		await this.projectService.assertProjectAccess(numericProjectId, context);
-
-		const document = await this.findOwnedManualDocument({
-			id,
-			projectId: numericProjectId,
-		});
-
-		return this.toManualTextResponse(document);
-	}
-
-	public async retryManualText({
-		context,
-		id,
-		projectId,
-	}: {
-		context: ProjectAccessContext;
-		id: number;
-		projectId: string;
-	}): Promise<ManualTextResponseDto> {
-		const numericProjectId = Number(projectId);
-
-		await this.projectService.assertCanWriteKnowledge(
-			numericProjectId,
-			context,
-		);
-
-		const document = await this.findOwnedManualDocument({
-			id,
-			projectId: numericProjectId,
-		});
-
-		const retriedDocument = await this.restartFailedProcessing(document);
-
-		return this.toManualTextResponse(retriedDocument);
 	}
 
 	public async retryProcessing({

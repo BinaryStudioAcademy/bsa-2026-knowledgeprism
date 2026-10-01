@@ -11,7 +11,11 @@ const ProtectedRoute: React.FC = () => {
 	const { pathname, search } = useLocation();
 
 	if (!isInitialized) {
-		return <Loader />;
+		return (
+			<div className="flex min-h-screen items-center justify-center">
+				<Loader size="lg" />
+			</div>
+		);
 	}
 
 	if (!hasUser) {

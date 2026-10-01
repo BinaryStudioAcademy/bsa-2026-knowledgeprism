@@ -1,15 +1,46 @@
-import { type SyntheticEvent, useCallback, useMemo, useState } from "react";
+import {
+	type Block,
+	type BlockSchemaFromSpecs,
+	type BlockSpecs,
+} from "@blocknote/core";
+import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
+import {
+	type JSX,
+	type ReactNode,
+	type SyntheticEvent,
+	useCallback,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { useController, useWatch } from "react-hook-form";
 
-import { Input, KnowledgeEditor } from "~/components/components.js";
-import { useAppForm } from "~/hooks/hooks.js";
+import {
+	Input,
+	KnowledgeEditor,
+	type KnowledgeEditorApi,
+	Paragraph,
+	ParagraphSize,
+} from "~/components/components.js";
+import { TextHighlightVariant } from "~/components/knowledge-editor/libs/enums/enums.js";
+import { useAppForm, useCurrentProjectId } from "~/hooks/hooks.js";
+import { AddToGlossaryModal } from "~/modules/glossary/components/add-to-glossary-modal/add-to-glossary-modal.js";
+import { GlossarySuggestionActions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestion-actions.js";
+import { GlossarySuggestions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestions.js";
+import {
+	toGlossaryHighlightId,
+	toGlossaryHighlights,
+} from "~/modules/glossary/libs/helpers/helpers.js";
 import {
 	type KbEntry,
 	type KnowledgeEntryUpdateRequestDto,
 } from "~/modules/knowledge/libs/types/types.js";
 
 import { parseInitialContent } from "./helpers/parse-initial-content.helper.js";
+import { useGlossaryEditorWarnings } from "./hooks/use-glossary-editor-warnings.hook.js";
 import { kbEntryValidationSchema } from "./validation-schema.js";
+
+type EditorBlock = Block<BlockSchemaFromSpecs<BlockSpecs>>;
 
 const EMPTY_COUNT = 0;
 
@@ -147,6 +178,45 @@ const isBlockNoteEmpty = (document: unknown): boolean => {
 	return extractPlainText(document).trim().length === EMPTY_COUNT;
 };
 
+type GlossaryWarningTooltipContentProperties = {
+	match: GlossaryConsistencyMatchDto;
+	onAddToGlossary: (match: GlossaryConsistencyMatchDto) => void;
+	onReplace: (replacement: string) => void;
+};
+
+const GlossaryWarningTooltipContent = ({
+	match,
+	onAddToGlossary,
+	onReplace,
+}: GlossaryWarningTooltipContentProperties): JSX.Element => {
+	const handleAccept = useCallback(
+		(acceptedMatch: GlossaryConsistencyMatchDto): void => {
+			onReplace(acceptedMatch.suggestedText);
+		},
+		[onReplace],
+	);
+
+	return (
+		<div className="flex flex-col gap-1.5">
+			<Paragraph className="text-xs text-text" size={ParagraphSize.BODY_SMALL}>
+				Glossary term:{" "}
+				<span className="font-medium">{match.canonicalName}</span>
+			</Paragraph>
+			<Paragraph
+				className="text-2xs text-text-faint"
+				size={ParagraphSize.BODY_SMALL}
+			>
+				{match.explanation}
+			</Paragraph>
+			<GlossarySuggestionActions
+				match={match}
+				onAccept={handleAccept}
+				onAddToGlossary={onAddToGlossary}
+			/>
+		</div>
+	);
+};
+
 interface KbEntryFormProperties {
 	entry: KbEntry;
 	onCancel: () => void;
@@ -156,6 +226,10 @@ interface KbEntryFormProperties {
 const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isMaxTitleReached, setIsMaxTitleReached] = useState(false);
+	const [glossaryTermMatch, setGlossaryTermMatch] =
+		useState<GlossaryConsistencyMatchDto | null>(null);
+	const projectId = useCurrentProjectId();
+	const editorApiReference = useRef<KnowledgeEditorApi | null>(null);
 
 	const initialContent = useMemo(
 		() => parseInitialContent(entry.contentJson),
@@ -189,10 +263,87 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 	} = useController({ control, name: "contentJson" });
 
 	const handleEditorChange = useCallback(
-		(blocks: unknown): void => {
+		(blocks: EditorBlock[]): void => {
 			contentField.onChange(blocks);
 		},
 		[contentField],
+	);
+
+	const handleEditorReady = useCallback((api: KnowledgeEditorApi): void => {
+		editorApiReference.current = api;
+	}, []);
+
+	const editorBlocks = useMemo(
+		() => currentContentJson as unknown as EditorBlock[],
+		[currentContentJson],
+	);
+
+	const {
+		isChecking: isCheckingGlossaryWarnings,
+		matches: glossaryWarningMatches,
+	} = useGlossaryEditorWarnings({ blocks: editorBlocks });
+
+	const glossaryHighlights = useMemo(
+		() =>
+			toGlossaryHighlights(
+				glossaryWarningMatches,
+				TextHighlightVariant.WARNING,
+			),
+		[glossaryWarningMatches],
+	);
+
+	const glossaryMatchesById = useMemo(
+		() =>
+			new Map(
+				glossaryWarningMatches.map((match) => [
+					toGlossaryHighlightId(match),
+					match,
+				]),
+			),
+		[glossaryWarningMatches],
+	);
+
+	const handleAddGlossaryWarningToGlossary = useCallback(
+		(match: GlossaryConsistencyMatchDto): void => {
+			setGlossaryTermMatch(match);
+		},
+		[],
+	);
+
+	const handleCloseAddToGlossary = useCallback((): void => {
+		setGlossaryTermMatch(null);
+	}, []);
+
+	const handleAcceptGlossaryWarningFromList = useCallback(
+		(match: GlossaryConsistencyMatchDto): void => {
+			editorApiReference.current?.replace(
+				toGlossaryHighlightId(match),
+				match.suggestedText,
+			);
+		},
+		[],
+	);
+
+	const renderGlossaryWarningTooltip = useCallback(
+		(
+			highlightId: string,
+			tooltipActions: { replace: (replacement: string) => void },
+		): ReactNode => {
+			const match = glossaryMatchesById.get(highlightId);
+
+			if (!match) {
+				return null;
+			}
+
+			return (
+				<GlossaryWarningTooltipContent
+					match={match}
+					onAddToGlossary={handleAddGlossaryWarningToGlossary}
+					onReplace={tooltipActions.replace}
+				/>
+			);
+		},
+		[glossaryMatchesById, handleAddGlossaryWarningToGlossary],
 	);
 
 	const handleValidSubmit = useCallback(
@@ -249,54 +400,77 @@ const KbEntryForm = ({ entry, onCancel, onSave }: KbEntryFormProperties) => {
 	const isContentEmpty = isBlockNoteEmpty(currentContentJson);
 
 	return (
-		<form
-			className="flex flex-col gap-4"
-			id="kb-entry-form"
-			onSubmit={handleFormSubmit}
-		>
-			<div className="kb-body flex flex-col gap-4">
-				<div className="flex flex-col gap-1" onInput={handleTitleInput}>
-					<Input
-						control={control}
-						disabled={isSubmitting}
-						label="Title"
-						name="title"
-						placeholder="Enter title..."
-					/>
-					{isMaxTitleReached && !titleError && (
-						<span className="font-sans text-xs text-warning">
-							Maximum length of 255 characters reached
-						</span>
-					)}
-				</div>
+		<>
+			<form
+				className="flex flex-col gap-4"
+				id="kb-entry-form"
+				onSubmit={handleFormSubmit}
+			>
+				<div className="kb-body flex flex-col gap-4">
+					<div className="flex flex-col gap-1" onInput={handleTitleInput}>
+						<Input
+							control={control}
+							disabled={isSubmitting}
+							label="Title"
+							name="title"
+							placeholder="Enter title..."
+						/>
+						{isMaxTitleReached && !titleError && (
+							<span className="font-sans text-xs text-warning">
+								Maximum length of 255 characters reached
+							</span>
+						)}
+					</div>
 
-				<div className="flex flex-col gap-2">
-					<span
-						className={`font-sans text-sm font-medium ${
-							contentError || isContentEmpty ? "text-error" : "text-text"
-						}`}
-					>
-						Description
-					</span>
-					<div
-						className={`min-h-64 rounded-md border p-2 shadow-sm transition-colors ${
-							contentError || isContentEmpty ? "border-error" : "border-border"
-						}`}
-					>
-						<KnowledgeEditor
-							initialContent={initialContent}
-							isEditable={!isSubmitting}
-							onChange={handleEditorChange}
+					<div className="flex flex-col gap-2">
+						<span
+							className={`font-sans text-sm font-medium ${
+								contentError || isContentEmpty ? "text-error" : "text-text"
+							}`}
+						>
+							Description
+						</span>
+						<div
+							className={`min-h-64 rounded-md border p-2 shadow-sm transition-colors ${
+								contentError || isContentEmpty
+									? "border-error"
+									: "border-border"
+							}`}
+						>
+							<KnowledgeEditor
+								highlights={glossaryHighlights}
+								initialContent={initialContent}
+								isEditable={!isSubmitting}
+								onChange={handleEditorChange}
+								onReady={handleEditorReady}
+								renderHighlightTooltip={renderGlossaryWarningTooltip}
+							/>
+						</div>
+						{(contentError || isContentEmpty) && (
+							<span className="font-sans text-xs text-error">
+								{contentError?.message || "Description cannot be empty"}
+							</span>
+						)}
+
+						<GlossarySuggestions
+							isChecking={isCheckingGlossaryWarnings}
+							matches={glossaryWarningMatches}
+							onAccept={handleAcceptGlossaryWarningFromList}
+							onAddToGlossary={handleAddGlossaryWarningToGlossary}
+							variant={TextHighlightVariant.WARNING}
 						/>
 					</div>
-					{(contentError || isContentEmpty) && (
-						<span className="font-sans text-xs text-error">
-							{contentError?.message || "Description cannot be empty"}
-						</span>
-					)}
 				</div>
-			</div>
-		</form>
+			</form>
+			{glossaryTermMatch && (
+				<AddToGlossaryModal
+					match={glossaryTermMatch}
+					onAdded={handleCloseAddToGlossary}
+					onCancel={handleCloseAddToGlossary}
+					projectId={projectId}
+				/>
+			)}
+		</>
 	);
 };
 

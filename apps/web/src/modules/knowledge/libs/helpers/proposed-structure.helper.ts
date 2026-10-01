@@ -1,6 +1,10 @@
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
 
-import { type ProposedPage, type ProposedSection } from "../types/types.js";
+import {
+	type ChangeStatus,
+	type ProposedPage,
+	type ProposedSection,
+} from "../types/types.js";
 
 const DEFAULT_INDEX = 0;
 const EMPTY_LENGTH = 0;
@@ -24,6 +28,9 @@ type UpdateSectionParameters = {
 	partialSection: Partial<ProposedPage>;
 	sectionIndex: number;
 };
+
+const getEditedStatus = (status: ChangeStatus): ChangeStatus =>
+	status === "created" || status === "conflict" ? status : "modified";
 
 const isManualPage = (page: ProposedSection): boolean =>
 	page.id.startsWith(MANUAL_PAGE_ID_PREFIX);
@@ -106,14 +113,13 @@ const updateSectionInPages = ({
 	updatedSections[sectionIndex] = {
 		...targetSection,
 		...partialSection,
-		status:
-			targetSection.status === "created" ? targetSection.status : "modified",
+		status: getEditedStatus(targetSection.status),
 	};
 
 	updatedPages[pageIndex] = {
 		...targetPage,
 		pages: updatedSections,
-		status: targetPage.status === "created" ? targetPage.status : "modified",
+		status: getEditedStatus(targetPage.status),
 	};
 
 	return updatedPages;
@@ -135,7 +141,7 @@ const updatePageInPages = ({
 	updatedPages[pageIndex] = {
 		...targetPage,
 		...partialPage,
-		status: targetPage.status === "created" ? targetPage.status : "modified",
+		status: getEditedStatus(targetPage.status),
 	};
 
 	return updatedPages;
@@ -246,11 +252,20 @@ const moveSectionAcrossPages = (
 
 	const sourcePageIndex = findPageIndexBySectionId(pages, activeId);
 	const sourcePage = pages[sourcePageIndex];
+	const sourceSectionIndex = sourcePage?.pages.findIndex(
+		(section) => section.id === activeId,
+	);
 	const movedSection = sourcePage?.pages.find(
 		(section) => section.id === activeId,
 	);
 
-	if (sourcePageIndex === NOT_FOUND_INDEX || !sourcePage || !movedSection) {
+	if (
+		sourcePageIndex === NOT_FOUND_INDEX ||
+		sourceSectionIndex === undefined ||
+		sourceSectionIndex === NOT_FOUND_INDEX ||
+		!sourcePage ||
+		!movedSection
+	) {
 		return pages;
 	}
 
@@ -276,19 +291,28 @@ const moveSectionAcrossPages = (
 		return pages;
 	}
 
-	const insertionIndex =
+	const targetSectionIndex =
 		destinationPageIndexById === NOT_FOUND_INDEX
 			? destinationPage.pages.findIndex((section) => section.id === overId)
 			: destinationPage.pages.length;
+	const originalTargetSectionIndex = sourcePage.pages.findIndex(
+		(section) => section.id === overId,
+	);
+	const isMovingDownWithinPage =
+		destinationPageIndexById === NOT_FOUND_INDEX &&
+		sourcePageIndex === destinationPageIndex &&
+		originalTargetSectionIndex !== NOT_FOUND_INDEX &&
+		sourceSectionIndex < originalTargetSectionIndex;
+	const downwardOffset = isMovingDownWithinPage
+		? SINGLE_ITEM_COUNT
+		: EMPTY_LENGTH;
+	const insertionIndex =
+		targetSectionIndex === NOT_FOUND_INDEX
+			? destinationPage.pages.length
+			: targetSectionIndex + downwardOffset;
 	const updatedDestinationSections = [...destinationPage.pages];
 
-	updatedDestinationSections.splice(
-		insertionIndex === NOT_FOUND_INDEX
-			? updatedDestinationSections.length
-			: insertionIndex,
-		EMPTY_LENGTH,
-		movedSection,
-	);
+	updatedDestinationSections.splice(insertionIndex, EMPTY_LENGTH, movedSection);
 
 	return pagesWithoutMoved.map((page, pageIndex) =>
 		pageIndex === destinationPageIndex

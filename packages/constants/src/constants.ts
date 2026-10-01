@@ -15,6 +15,7 @@ export { AuthApiPath, AuthValidationMessage } from "./modules/auth/auth.js";
 export {
 	DocumentContentType,
 	DocumentErrorMessage,
+	DocumentProcessingPhase,
 	DocumentsApiPath,
 	DocumentSourceType,
 	DocumentStatus,
@@ -26,6 +27,7 @@ export {
 } from "./modules/documents/documents.js";
 export {
 	GlossaryApiPath,
+	GlossaryTermOrigin,
 	GlossaryValidationMessage,
 	GlossaryValidationRule,
 } from "./modules/glossary/glossary.js";
