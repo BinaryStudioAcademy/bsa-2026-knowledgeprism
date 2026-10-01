@@ -19,6 +19,7 @@ export {
 export {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentConfirmUploadRouteParametersDto,
+	type DocumentProcessingProgressDto,
 	type DocumentRouteParametersDto,
 	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
@@ -32,6 +33,7 @@ export {
 	type ExtractionItemsReviewSectionDto,
 	type ExtractionItemUpdateRequestDto,
 	type ExtractionSectionResponseDto,
+	type IntegrationChangeContentOverrideDto,
 	type IntegrationChangeResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
@@ -44,6 +46,7 @@ export {
 export {
 	type GlossaryConsistencyCheckRequestDto,
 	type GlossaryConsistencyCheckResponseDto,
+	type GlossaryConsistencyMatchDto,
 	type GlossaryRelatedTermDto,
 	type GlossaryRouteParametersDto,
 	type GlossarySearchQueryDto,

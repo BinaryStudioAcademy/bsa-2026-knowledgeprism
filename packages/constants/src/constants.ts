@@ -15,6 +15,7 @@ export { AuthApiPath, AuthValidationMessage } from "./modules/auth/auth.js";
 export {
 	DocumentContentType,
 	DocumentErrorMessage,
+	DocumentProcessingPhase,
 	DocumentsApiPath,
 	DocumentSourceType,
 	DocumentStatus,

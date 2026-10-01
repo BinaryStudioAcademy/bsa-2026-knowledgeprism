@@ -1,3 +1,6 @@
+import { DocumentProcessingPhase } from "@knowledgeprism/constants";
+import { type DocumentProcessingProgressDto } from "@knowledgeprism/types";
+
 import { type ExtractionBlock } from "../types/extraction-block.type.js";
 import { type ExtractionDependencies } from "../types/extraction-dependencies.type.js";
 import { type ExtractionResult } from "../types/extraction-result.type.js";
@@ -15,16 +18,34 @@ const extractBlocks = async (
 	const items: KnowledgeItem[] = [];
 	const failedPageNumbers = new Set<number>();
 	let successfulChunkCount = 0;
-	const chunks = blocks.flatMap((block) =>
-		splitIntoChunks(block.content).map((content) => ({ ...block, content })),
-	);
+	const chunks = blocks
+		.flatMap((block) =>
+			splitIntoChunks(block.content).map((content) => ({ ...block, content })),
+		)
+		.filter((chunk) => !isBlankPageContent(chunk.content));
+	const progress: DocumentProcessingProgressDto = {
+		failedUnits: 0,
+		phase: DocumentProcessingPhase.EXTRACTING,
+		processedUnits: 0,
+		totalUnits: chunks.length,
+	};
+	await dependencies.onProgress?.({ ...progress });
 
 	for (const [chunkIndex, chunk] of chunks.entries()) {
-		if (isBlankPageContent(chunk.content)) {
-			continue;
+		let result: Awaited<ReturnType<typeof extractChunk>>;
+		try {
+			result = await extractChunk({ ...chunk, chunkIndex }, dependencies);
+		} catch (error) {
+			progress.processedUnits++;
+			progress.failedUnits++;
+			await dependencies.onProgress?.({ ...progress });
+			throw error;
 		}
-
-		const result = await extractChunk({ ...chunk, chunkIndex }, dependencies);
+		progress.processedUnits++;
+		if (result.hasFailures) {
+			progress.failedUnits++;
+		}
+		await dependencies.onProgress?.({ ...progress });
 		successfulChunkCount += result.successfulChunkCount;
 		items.push(...result.items);
 

@@ -1,24 +1,3 @@
-import { DocumentStatus } from "@knowledgeprism/constants";
-
-import { type ValueOf } from "~/lib/types/types.js";
-
-const STATUS_PROGRESSION: ValueOf<typeof DocumentStatus>[] = [
-	DocumentStatus.UPLOADED,
-	DocumentStatus.PROCESSING,
-	DocumentStatus.WAITING_FOR_VALIDATION,
-	DocumentStatus.INTEGRATING,
-	DocumentStatus.WAITING_FOR_APPROVAL,
-];
-
-const FULL_PERCENTAGE = 100;
-const HALF_PERCENTAGE = 50;
-const PERCENTAGE_OFFSET = 1;
 const LOADING_FINISH_DELAY_MS = 1000;
 
-export {
-	FULL_PERCENTAGE,
-	HALF_PERCENTAGE,
-	LOADING_FINISH_DELAY_MS,
-	PERCENTAGE_OFFSET,
-	STATUS_PROGRESSION,
-};
+export { LOADING_FINISH_DELAY_MS };
