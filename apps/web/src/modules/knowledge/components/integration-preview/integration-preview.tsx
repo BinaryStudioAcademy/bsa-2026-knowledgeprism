@@ -408,6 +408,7 @@ const SectionDetails = ({
 	} = useGlossaryConsistencyCheck({
 		content: isParentSelected ? "" : (activeSection?.content ?? ""),
 		onContentChange,
+		sectionId: selectedNode?.id ?? "",
 	});
 
 	const handleEditGlossarySuggestion = useCallback(

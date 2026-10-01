@@ -8,6 +8,7 @@ import { DataStatus } from "~/lib/enums/enums.js";
 import { type ValueOf } from "~/lib/types/types.js";
 
 import {
+	createTerm,
 	deleteTerm,
 	loadTerm,
 	loadTermOptions,
@@ -18,15 +19,20 @@ import {
 type State = {
 	dataStatus: ValueOf<typeof DataStatus>;
 	projectId: null | string;
+	revision: number;
 	selectedTerm: GlossaryTermResponseDto | null;
 	selectedTermStatus: ValueOf<typeof DataStatus>;
 	termOptions: GlossaryTermItemDto[];
 	terms: GlossaryTermItemDto[];
 };
 
+const INITIAL_REVISION = 0;
+const REVISION_STEP = 1;
+
 const initialState: State = {
 	dataStatus: DataStatus.IDLE,
 	projectId: null,
+	revision: INITIAL_REVISION,
 	selectedTerm: null,
 	selectedTermStatus: DataStatus.IDLE,
 	termOptions: [],
@@ -73,11 +79,17 @@ const { name, reducer } = createSlice({
 			}
 		});
 
+		builder.addCase(createTerm.fulfilled, (state) => {
+			state.revision += REVISION_STEP;
+		});
+
 		builder.addCase(updateTerm.fulfilled, (state, action) => {
+			state.revision += REVISION_STEP;
 			state.selectedTerm = action.payload;
 		});
 
 		builder.addCase(deleteTerm.fulfilled, (state, action) => {
+			state.revision += REVISION_STEP;
 			state.selectedTerm = null;
 			state.terms = state.terms.filter((term) => term.id !== action.payload);
 		});

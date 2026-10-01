@@ -1,8 +1,19 @@
 import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
 import { useCallback, useEffect, useState } from "react";
 
-import { useAppDispatch, useCurrentProjectId } from "~/hooks/hooks.js";
+import {
+	useAppDispatch,
+	useAppSelector,
+	useCurrentProjectId,
+} from "~/hooks/hooks.js";
 import { useDebouncedValue } from "~/hooks/use-debounced-value/use-debounced-value.hook.js";
+import {
+	getCachedGlossaryMatches,
+	isGlossarySuggestionKept,
+	keepGlossarySuggestion,
+	setCachedGlossaryMatches,
+	toGlossaryHighlightId,
+} from "~/modules/glossary/libs/helpers/helpers.js";
 import { actions } from "~/modules/knowledge/knowledge.js";
 import { GLOSSARY_CHECK_DEBOUNCE_MS } from "~/modules/knowledge/libs/constants/constants.js";
 
@@ -10,25 +21,26 @@ type GlossaryCheck = {
 	content: string;
 	matches: GlossaryConsistencyMatchDto[];
 	projectId: string;
+	revision: number;
 };
+
+const INITIAL_REVISION = 0;
 
 const INITIAL_GLOSSARY_CHECK: GlossaryCheck = {
 	content: "",
 	matches: [],
 	projectId: "",
+	revision: INITIAL_REVISION,
 };
-
-const glossaryCheckCache = new Map<string, GlossaryConsistencyMatchDto[]>();
-
-const getGlossaryCheckCacheKey = (projectId: string, content: string): string =>
-	JSON.stringify([projectId, content]);
 
 const useGlossaryConsistencyCheck = ({
 	content,
 	onContentChange,
+	sectionId,
 }: {
 	content: string;
 	onContentChange: (content: string) => void;
+	sectionId: string;
 }): {
 	glossaryMatches: GlossaryConsistencyMatchDto[];
 	isCheckingGlossary: boolean;
@@ -37,6 +49,7 @@ const useGlossaryConsistencyCheck = ({
 } => {
 	const dispatch = useAppDispatch();
 	const projectId = useCurrentProjectId();
+	const revision = useAppSelector(({ glossary }) => glossary.revision);
 	const [glossaryCheck, setGlossaryCheck] = useState<GlossaryCheck>(
 		INITIAL_GLOSSARY_CHECK,
 	);
@@ -45,11 +58,20 @@ const useGlossaryConsistencyCheck = ({
 		content,
 		GLOSSARY_CHECK_DEBOUNCE_MS,
 	);
-	const glossaryMatches =
+	const isCheckCurrent =
 		glossaryCheck.content === debouncedContent &&
-		glossaryCheck.projectId === projectId
-			? glossaryCheck.matches
-			: [];
+		glossaryCheck.projectId === projectId &&
+		glossaryCheck.revision === revision;
+	const glossaryMatches = isCheckCurrent
+		? glossaryCheck.matches.filter(
+				(match) =>
+					!isGlossarySuggestionKept(
+						projectId,
+						sectionId,
+						toGlossaryHighlightId(match),
+					),
+			)
+		: [];
 
 	useEffect(() => {
 		let isCancelled = false;
@@ -60,14 +82,18 @@ const useGlossaryConsistencyCheck = ({
 				return;
 			}
 
-			const cacheKey = getGlossaryCheckCacheKey(projectId, debouncedContent);
-			const cachedMatches = glossaryCheckCache.get(cacheKey);
+			const cachedMatches = getCachedGlossaryMatches({
+				projectId,
+				revision,
+				text: debouncedContent,
+			});
 
 			if (cachedMatches) {
 				setGlossaryCheck({
 					content: debouncedContent,
 					matches: cachedMatches,
 					projectId,
+					revision,
 				});
 				return;
 			}
@@ -83,11 +109,17 @@ const useGlossaryConsistencyCheck = ({
 				).unwrap();
 
 				if (!isCancelled) {
-					glossaryCheckCache.set(cacheKey, response.matches);
+					setCachedGlossaryMatches({
+						matches: response.matches,
+						projectId,
+						revision,
+						text: debouncedContent,
+					});
 					setGlossaryCheck({
 						content: debouncedContent,
 						matches: response.matches,
 						projectId,
+						revision,
 					});
 				}
 			} catch {
@@ -96,6 +128,7 @@ const useGlossaryConsistencyCheck = ({
 						content: debouncedContent,
 						matches: [],
 						projectId,
+						revision,
 					});
 				}
 			} finally {
@@ -110,7 +143,7 @@ const useGlossaryConsistencyCheck = ({
 		return () => {
 			isCancelled = true;
 		};
-	}, [debouncedContent, dispatch, projectId]);
+	}, [debouncedContent, dispatch, projectId, revision]);
 
 	const onAcceptGlossarySuggestion = useCallback(
 		(match: GlossaryConsistencyMatchDto): void => {
@@ -127,18 +160,17 @@ const useGlossaryConsistencyCheck = ({
 
 	const onKeepGlossarySuggestion = useCallback(
 		(match: GlossaryConsistencyMatchDto): void => {
-			const matches = glossaryCheck.matches.filter((item) => item !== match);
-
-			glossaryCheckCache.set(
-				getGlossaryCheckCacheKey(
-					glossaryCheck.projectId,
-					glossaryCheck.content,
-				),
-				matches,
+			keepGlossarySuggestion(
+				projectId,
+				sectionId,
+				toGlossaryHighlightId(match),
 			);
-			setGlossaryCheck({ ...glossaryCheck, matches });
+			setGlossaryCheck((previousCheck) => ({
+				...previousCheck,
+				matches: previousCheck.matches.filter((item) => item !== match),
+			}));
 		},
-		[glossaryCheck],
+		[projectId, sectionId],
 	);
 
 	return {
