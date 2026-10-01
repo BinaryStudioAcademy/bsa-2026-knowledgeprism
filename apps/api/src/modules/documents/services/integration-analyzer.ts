@@ -24,7 +24,7 @@ import {
 } from "@knowledgeprism/worker";
 
 import { type Database } from "~/infrastructure/database/database.js";
-import { ProcessingSupersededError } from "~/modules/documents/libs/exceptions/processing-superseded-error.exception.js";
+import { createOrderedProgressReporter } from "~/modules/documents/libs/helpers/create-ordered-progress-reporter.helper.js";
 import { toResolvableChanges } from "~/modules/documents/libs/helpers/to-resolvable-changes.helper.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
@@ -284,21 +284,14 @@ class IntegrationAnalyzer {
 		const approvedItems = items.filter(
 			(item) => item.toObject().status === ExtractionItemStatus.APPROVED,
 		);
-		const onProgress = async (
-			progress: DocumentProcessingProgressDto,
-		): Promise<void> => {
-			const isStillCurrent =
-				await this.documentRepository.updateProcessingProgress({
-					id: documentId,
-					processingAttempt: attempt,
-					progress,
-					status: DocumentStatus.INTEGRATING,
-				});
-
-			if (!isStillCurrent) {
-				throw new ProcessingSupersededError();
-			}
-		};
+		const onProgress = createOrderedProgressReporter((progress) =>
+			this.documentRepository.updateProcessingProgress({
+				id: documentId,
+				processingAttempt: attempt,
+				progress,
+				status: DocumentStatus.INTEGRATING,
+			}),
+		);
 		const isCurrent = await this.documentRepository.updateProcessingProgress({
 			id: documentId,
 			processingAttempt: attempt,

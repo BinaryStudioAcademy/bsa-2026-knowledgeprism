@@ -12,7 +12,7 @@ import {
 } from "@knowledgeprism/worker";
 
 import { type Database } from "~/infrastructure/database/database.js";
-import { ProcessingSupersededError } from "~/modules/documents/libs/exceptions/processing-superseded-error.exception.js";
+import { createOrderedProgressReporter } from "~/modules/documents/libs/helpers/create-ordered-progress-reporter.helper.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
@@ -100,19 +100,14 @@ class DocumentProcessor {
 				documentId,
 				processingAttempt: attempt,
 			},
-			async (progress) => {
-				const isStillCurrent =
-					await this.documentRepository.updateProcessingProgress({
-						id: documentId,
-						processingAttempt: attempt,
-						progress,
-						status: DocumentStatus.PROCESSING,
-					});
-
-				if (!isStillCurrent) {
-					throw new ProcessingSupersededError();
-				}
-			},
+			createOrderedProgressReporter((progress) =>
+				this.documentRepository.updateProcessingProgress({
+					id: documentId,
+					processingAttempt: attempt,
+					progress,
+					status: DocumentStatus.PROCESSING,
+				}),
+			),
 		);
 
 		const hasExtractedItems = items.length > EMPTY_EXTRACTED_ITEMS;
