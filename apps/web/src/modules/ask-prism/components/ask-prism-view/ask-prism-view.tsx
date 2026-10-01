@@ -17,7 +17,6 @@ import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 import { AppRoute, DataStatus } from "~/lib/enums/enums.js";
 import { actions as knowledgeActions } from "~/modules/knowledge/state/state.js";
 
-import { DEFAULT_SUGGESTED_QUESTIONS } from "../../libs/constants.js";
 import {
 	actions as askPrismActions,
 	type AskPrismMessage,
@@ -179,15 +178,7 @@ const AskPrismView = (): JSX.Element => {
 			messages.map((item) => item.query.trim().toLowerCase()).filter(Boolean),
 		);
 
-		const remainingCustomSuggestions = suggestedQuestions.filter(
-			(prompt) => !normalizedAskedQueries.has(prompt.trim().toLowerCase()),
-		);
-
-		if (remainingCustomSuggestions.length > EMPTY_COUNT) {
-			return remainingCustomSuggestions;
-		}
-
-		return DEFAULT_SUGGESTED_QUESTIONS.filter(
+		return suggestedQuestions.filter(
 			(prompt) => !normalizedAskedQueries.has(prompt.trim().toLowerCase()),
 		);
 	}, [messages, suggestedQuestions]);

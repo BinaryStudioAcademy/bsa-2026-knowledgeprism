@@ -150,7 +150,7 @@ describe("AskPrismView suggested questions behavior", () => {
 		).not.toBeInTheDocument();
 	});
 
-	it("falls back to unasked default questions when all custom suggestions are asked", async () => {
+	it("hides suggested questions when all custom suggestions are asked", async () => {
 		renderAskPrismView();
 
 		await waitFor(() => {
@@ -178,10 +178,13 @@ describe("AskPrismView suggested questions behavior", () => {
 
 		await waitFor(() => {
 			expect(
-				screen.getByRole("button", {
+				screen.queryByText(/suggested questions:/i),
+			).not.toBeInTheDocument();
+			expect(
+				screen.queryByRole("button", {
 					name: FIRST_DEFAULT_QUESTION,
 				}),
-			).toBeInTheDocument();
+			).not.toBeInTheDocument();
 		});
 	});
 
