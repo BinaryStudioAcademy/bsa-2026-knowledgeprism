@@ -235,7 +235,37 @@ void describe("planDocumentMove", () => {
 		]);
 	});
 
-	void it("rejects moving a fact entry", () => {
+	void it("moves a section into another document", () => {
+		const updates = planDocumentMove({
+			nodeId: FACT_ID,
+			nodes: [
+				node({
+					id: GUIDE_ID,
+					parentId: ROOT_PARENT_ID,
+					position: POSITION_FIRST,
+				}),
+				node({
+					id: NOTES_ID,
+					parentId: ROOT_PARENT_ID,
+					position: POSITION_SECOND,
+				}),
+				node({
+					id: FACT_ID,
+					parentId: GUIDE_ID,
+					position: POSITION_FIRST,
+					type: KnowledgeNodeType.ENTRY,
+				}),
+			],
+			parentId: NOTES_ID,
+			position: POSITION_FIRST,
+		});
+
+		assert.deepEqual(updates, [
+			{ id: FACT_ID, parentId: NOTES_ID, position: POSITION_FIRST },
+		]);
+	});
+
+	void it("rejects moving a section out of every document", () => {
 		expectPlacementError(() => {
 			planDocumentMove({
 				nodeId: NOTES_ID,
@@ -255,7 +285,7 @@ void describe("planDocumentMove", () => {
 				parentId: ROOT_PARENT_ID,
 				position: POSITION_SECOND,
 			});
-		}, KnowledgeValidationMessage.DOCUMENT_MOVE_INVALID);
+		}, KnowledgeValidationMessage.SECTION_PARENT_REQUIRED);
 	});
 
 	void it("rejects a move under the document's own child", () => {

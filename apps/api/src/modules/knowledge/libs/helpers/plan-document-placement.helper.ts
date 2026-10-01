@@ -282,9 +282,11 @@ const planDocumentMove = ({
 		throw new DocumentPlacementError(KnowledgeValidationMessage.NOT_FOUND);
 	}
 
-	if (!isDocumentNode(node.type)) {
+	const isSection = !isDocumentNode(node.type);
+
+	if (isSection && parentId === null) {
 		throw new DocumentPlacementError(
-			KnowledgeValidationMessage.DOCUMENT_MOVE_INVALID,
+			KnowledgeValidationMessage.SECTION_PARENT_REQUIRED,
 		);
 	}
 
@@ -298,9 +300,11 @@ const planDocumentMove = ({
 		}
 	}
 
-	const parentDepth =
-		parentId === null ? ROOT_PARENT_DEPTH : getDepth(nodes, parentId);
-	assertWithinDepth(parentDepth, getSubtreeSpan(nodes, nodeId, new Set()));
+	if (!isSection) {
+		const parentDepth =
+			parentId === null ? ROOT_PARENT_DEPTH : getDepth(nodes, parentId);
+		assertWithinDepth(parentDepth, getSubtreeSpan(nodes, nodeId, new Set()));
+	}
 
 	const destination = getSiblings(nodes, parentId, nodeId);
 
