@@ -144,6 +144,23 @@ void describe("BaseServerApplication body limit and error handling", () => {
 		assert.strictEqual(json.message, "API route not found.");
 	});
 
+	void it("does not return API JSON 404 response for unmatched non-API routes before serve init", async () => {
+		const dependencies = createMockDependencies();
+		const server = new BaseServerApplication({
+			...dependencies,
+			apis: [],
+			title: "Test API",
+		});
+
+		const response = await server.fastify.inject({
+			method: "GET",
+			url: "/non-api-route",
+		});
+
+		assert.strictEqual(response.statusCode, HTTPCode.NOT_FOUND);
+		assert.strictEqual(response.body, "");
+	});
+
 	void it("configures body limit up to SERVER_BODY_LIMIT_IN_BYTES", () => {
 		const dependencies = createMockDependencies();
 		const server = new BaseServerApplication({

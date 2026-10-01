@@ -171,13 +171,17 @@ class BaseServerApplication implements ServerApplication {
 			},
 		);
 
-		this.app.setNotFoundHandler(async (_request, reply) => {
-			const response: ServerCommonErrorResponse = {
-				errorType: ServerErrorType.COMMON,
-				message: API_ROUTE_NOT_FOUND_MESSAGE,
-			};
+		this.app.setNotFoundHandler(async (request, reply) => {
+			if (isApiPath(request.url)) {
+				const response: ServerCommonErrorResponse = {
+					errorType: ServerErrorType.COMMON,
+					message: API_ROUTE_NOT_FOUND_MESSAGE,
+				};
 
-			return await reply.status(HTTPCode.NOT_FOUND).send(response);
+				return await reply.status(HTTPCode.NOT_FOUND).send(response);
+			}
+
+			return await reply.status(HTTPCode.NOT_FOUND).send();
 		});
 	}
 
@@ -282,8 +286,6 @@ class BaseServerApplication implements ServerApplication {
 		await this.initMiddlewares();
 
 		this.initValidationCompiler();
-
-		this.initErrorHandler();
 
 		this.initRoutes();
 
