@@ -293,7 +293,6 @@ const KbEntryForm = ({
 	const {
 		isChecking: isCheckingGlossaryWarnings,
 		matches: glossaryWarningMatches,
-		recheck: recheckGlossaryWarnings,
 	} = useGlossaryEditorWarnings({ blocks: editorBlocks });
 
 	const glossaryHighlights = useMemo(
@@ -326,11 +325,6 @@ const KbEntryForm = ({
 	const handleCloseAddToGlossary = useCallback((): void => {
 		setGlossaryTermMatch(null);
 	}, []);
-
-	const handleGlossaryTermAdded = useCallback((): void => {
-		setGlossaryTermMatch(null);
-		recheckGlossaryWarnings();
-	}, [recheckGlossaryWarnings]);
 
 	const handleAcceptGlossaryWarningFromList = useCallback(
 		(match: GlossaryConsistencyMatchDto): void => {
@@ -488,7 +482,7 @@ const KbEntryForm = ({
 			{glossaryTermMatch && (
 				<AddToGlossaryModal
 					match={glossaryTermMatch}
-					onAdded={handleGlossaryTermAdded}
+					onAdded={handleCloseAddToGlossary}
 					onCancel={handleCloseAddToGlossary}
 					projectId={projectId}
 				/>

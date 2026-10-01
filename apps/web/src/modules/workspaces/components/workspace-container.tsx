@@ -19,6 +19,7 @@ import {
 } from "~/modules/workspaces/state/workspaces.slice.js";
 import { workspacesApi } from "~/modules/workspaces/workspaces.js";
 
+import { RecentDocumentItem } from "../types/types.js";
 import { WelcomePage } from "./welcome-page.js";
 import { WorkspacePage } from "./workspace-page.js";
 
@@ -73,6 +74,17 @@ const WorkspaceContainer: React.FC = () => {
 			}
 		},
 		[dispatch],
+	);
+
+	const handleSelectDocument = useCallback(
+		(document: RecentDocumentItem): void => {
+			void navigate(
+				`${generatePath(AppRoute.PROJECT_KNOWLEDGE_TREE, {
+					projectId: document.projectId,
+				})}?nodeId=${document.id}`,
+			);
+		},
+		[navigate],
 	);
 
 	const handleSelectProject = useCallback(
@@ -130,6 +142,7 @@ const WorkspaceContainer: React.FC = () => {
 			onCreateProject={handleCreateProject}
 			onDeleteProject={handleDeleteProject}
 			onEditProject={handleEditProject}
+			onSelectDocument={handleSelectDocument}
 			onSelectProject={handleSelectProject}
 			projects={projects}
 			recentDocuments={recentDocuments}

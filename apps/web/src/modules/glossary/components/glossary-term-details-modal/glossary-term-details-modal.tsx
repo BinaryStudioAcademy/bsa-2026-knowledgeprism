@@ -1,7 +1,9 @@
+import { GlossaryTermOrigin } from "@knowledgeprism/constants";
 import { type GlossaryTermResponseDto } from "@knowledgeprism/types";
 
 import { Button, Loader, Modal } from "~/components/components.js";
 
+import { AiTermBadge } from "../ai-term-badge/ai-term-badge.js";
 import { RelatedTermChip } from "./related-term-chip.js";
 
 const DEFAULT_TITLE = "Glossary term";
@@ -10,7 +12,9 @@ const EMPTY_LENGTH = 0;
 type Properties = {
 	canEdit: boolean;
 	hasFailed: boolean;
+	isConfirming: boolean;
 	onClose: () => void;
+	onConfirm: () => void;
 	onDelete: () => void;
 	onEdit: () => void;
 	onSelectTerm: (id: number) => void;
@@ -20,7 +24,9 @@ type Properties = {
 const GlossaryTermDetailsModal: React.FC<Properties> = ({
 	canEdit,
 	hasFailed,
+	isConfirming,
 	onClose,
+	onConfirm,
 	onDelete,
 	onEdit,
 	onSelectTerm,
@@ -43,8 +49,21 @@ const GlossaryTermDetailsModal: React.FC<Properties> = ({
 			);
 		}
 
+		const isAddedByAi = term.origin === GlossaryTermOrigin.AI;
+
 		return (
 			<div className="flex flex-col gap-6">
+				{isAddedByAi && (
+					<div className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
+						<AiTermBadge />
+						<span>
+							{term.sourceDocumentName
+								? `From "${term.sourceDocumentName}". Check it and confirm, edit or delete it.`
+								: "Check it and confirm, edit or delete it."}
+						</span>
+					</div>
+				)}
+
 				<p className="whitespace-pre-line break-words text-[14px] leading-[1.65] text-text">
 					{term.definition}
 				</p>
@@ -73,6 +92,15 @@ const GlossaryTermDetailsModal: React.FC<Properties> = ({
 						<Button onClick={onDelete} variant="secondary">
 							Delete
 						</Button>
+						{isAddedByAi && (
+							<Button
+								isLoading={isConfirming}
+								onClick={onConfirm}
+								variant="secondary"
+							>
+								Confirm
+							</Button>
+						)}
 						<Button onClick={onEdit}>Edit</Button>
 					</div>
 				)}

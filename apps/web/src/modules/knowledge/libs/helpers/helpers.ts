@@ -2,6 +2,7 @@ export { mapExtractionItemsToProposedStructure } from "./extraction-review.helpe
 export { filterKnowledgeTree } from "./filter-knowledge-tree.helper.js";
 export { formatFileSize } from "./format-file-size.helper.js";
 export { getFileContentType } from "./get-file-content-type.helper.js";
+export { getTreeItemElement } from "./get-tree-item-element.helper.js";
 export { mapIntegrationChangesToProposedStructure } from "./map-integration-changes-to-proposed-structure.helper.js";
 export { isMatchingPipelineSession } from "./pipeline-session.helper.js";
 export {

@@ -14,6 +14,8 @@ const DEFAULT_MAX_RETRIES = 3;
 const EMPTY_COUNT = 0;
 const MILLISECONDS_IN_SECOND = 1000;
 const RETRY_ATTEMPT_INCREMENT = 1;
+const STALE_PROCESSING_MINUTES = 30;
+const STALE_PROCESSING_AFTER_MS = STALE_PROCESSING_MINUTES * TimeMs.MINUTE;
 
 const DEFAULT_DELAYED_SWEEP_DELAY_MS =
 	PRESIGNED_URL_EXPIRY_SECONDS * MILLISECONDS_IN_SECOND;
@@ -60,46 +62,12 @@ class ProjectStorageCleanupService {
 		return `projects/${projectId.toString()}/`;
 	}
 
-	public async createCleanupTasks(
-		projectId: number,
-		transaction?: Transaction,
-	): Promise<void> {
-		const prefix = this.getProjectPrefix(projectId);
-		const now = new Date();
-		const delayedExecutionTime = new Date(
-			now.getTime() + this.delayedSweepDelayMs,
-		);
-
-		const immediateEntity = ProjectStorageCleanupEntity.initializeNew({
-			executeAfter: now,
-			prefix,
-			projectId,
-			status: ProjectStorageCleanupStatus.PENDING,
-		});
-
-		const delayedEntity = ProjectStorageCleanupEntity.initializeNew({
-			executeAfter: delayedExecutionTime,
-			prefix,
-			projectId,
-			status: ProjectStorageCleanupStatus.PENDING,
-		});
-
-		await this.projectStorageCleanupRepository.create({
-			entity: immediateEntity,
-			transaction,
-		});
-
-		await this.projectStorageCleanupRepository.create({
-			entity: delayedEntity,
-			transaction,
-		});
-	}
-
-	public async processDueCleanups(): Promise<void> {
+	private async processCleanupBatch(): Promise<void> {
 		const dueCleanups =
 			await this.projectStorageCleanupRepository.findDueCleanups({
 				limit: DEFAULT_BATCH_SIZE,
 				maxAttempts: this.maxRetries,
+				staleProcessingBefore: new Date(Date.now() - STALE_PROCESSING_AFTER_MS),
 			});
 
 		for (const cleanup of dueCleanups) {
@@ -152,6 +120,51 @@ class ProjectStorageCleanupService {
 						: ProjectStorageCleanupStatus.PENDING,
 				});
 			}
+		}
+	}
+
+	public async createCleanupTasks(
+		projectId: number,
+		transaction?: Transaction,
+	): Promise<void> {
+		const prefix = this.getProjectPrefix(projectId);
+		const now = new Date();
+		const delayedExecutionTime = new Date(
+			now.getTime() + this.delayedSweepDelayMs,
+		);
+
+		const immediateEntity = ProjectStorageCleanupEntity.initializeNew({
+			executeAfter: now,
+			prefix,
+			projectId,
+			status: ProjectStorageCleanupStatus.PENDING,
+		});
+
+		const delayedEntity = ProjectStorageCleanupEntity.initializeNew({
+			executeAfter: delayedExecutionTime,
+			prefix,
+			projectId,
+			status: ProjectStorageCleanupStatus.PENDING,
+		});
+
+		await this.projectStorageCleanupRepository.create({
+			entity: immediateEntity,
+			transaction,
+		});
+
+		await this.projectStorageCleanupRepository.create({
+			entity: delayedEntity,
+			transaction,
+		});
+	}
+
+	public async processDueCleanups(): Promise<void> {
+		try {
+			await this.processCleanupBatch();
+		} catch (error) {
+			this.logger.error("Failed to sweep project storage cleanups.", {
+				error,
+			});
 		}
 	}
 

@@ -520,6 +520,7 @@ const SectionDetails = ({
 	} = useGlossaryConsistencyCheck({
 		content: isParentSelected ? "" : (activeSection?.content ?? ""),
 		onContentChange: handleGlossaryContentChange,
+		sectionId: selectedNode?.id ?? "",
 	});
 
 	const handleAcceptGlossarySuggestion = useCallback(

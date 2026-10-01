@@ -17,14 +17,17 @@ import { type ProcessingAttempt } from "~/modules/documents/libs/types/processin
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
+import { type GlossaryService } from "~/modules/glossary/services/glossary.service.js";
 
 const EMPTY_EXTRACTED_ITEMS = 0;
 const MANUAL_TEXT_PAGE_NUMBER = 1;
+const PAGE_TEXT_SEPARATOR = "\n\n";
 
 type Constructor = {
 	database: Database;
 	documentRepository: DocumentRepository;
 	extractionItemRepository: ExtractionItemRepository;
+	glossaryService: GlossaryService;
 };
 
 class DocumentProcessor {
@@ -34,14 +37,18 @@ class DocumentProcessor {
 
 	private extractionItemRepository: ExtractionItemRepository;
 
+	private glossaryService: GlossaryService;
+
 	public constructor({
 		database,
 		documentRepository,
 		extractionItemRepository,
+		glossaryService,
 	}: Constructor) {
 		this.database = database;
 		this.documentRepository = documentRepository;
 		this.extractionItemRepository = extractionItemRepository;
+		this.glossaryService = glossaryService;
 	}
 
 	private async loadPages(
@@ -113,7 +120,7 @@ class DocumentProcessor {
 			? DocumentStatus.INTEGRATING
 			: DocumentStatus.WAITING_FOR_APPROVAL;
 
-		return await this.database.transaction(async (transaction) => {
+		const isCompleted = await this.database.transaction(async (transaction) => {
 			const completedDocument =
 				await this.documentRepository.compareAndSwapStatus(
 					{
@@ -145,6 +152,16 @@ class DocumentProcessor {
 
 			return true;
 		});
+
+		if (isCompleted) {
+			void this.glossaryService.addTermsFromDocument({
+				content: pages.map(({ content }) => content).join(PAGE_TEXT_SEPARATOR),
+				documentId,
+				projectId: document.toObject().projectId,
+			});
+		}
+
+		return isCompleted;
 	}
 }
 

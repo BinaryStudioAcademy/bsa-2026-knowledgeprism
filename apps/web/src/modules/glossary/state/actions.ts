@@ -37,6 +37,13 @@ const loadTerm = createAsyncThunk<
 	return await extra.glossaryApi.getById({ id, projectId, signal });
 });
 
+const confirmTerm = createAppAsyncThunk<
+	GlossaryTermResponseDto,
+	{ id: number; projectId: string }
+>(`${sliceName}/confirm-term`, async ({ id, projectId }, { extra }) => {
+	return await extra.glossaryApi.confirm({ id, projectId });
+});
+
 const createTerm = createAppAsyncThunk<
 	GlossaryTermResponseDto,
 	{ payload: GlossaryTermRequestDto; projectId: string }
@@ -62,6 +69,7 @@ const deleteTerm = createAsyncThunk<
 });
 
 export {
+	confirmTerm,
 	createTerm,
 	deleteTerm,
 	loadTerm,
