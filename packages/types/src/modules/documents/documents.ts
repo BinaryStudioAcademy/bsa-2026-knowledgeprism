@@ -22,6 +22,5 @@ export {
 	type IntegrationConflictResolutionDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
-	type ManualTextRouteParametersDto,
 	type PendingReviewDocumentsResponseDto,
 } from "./libs/types/types.js";

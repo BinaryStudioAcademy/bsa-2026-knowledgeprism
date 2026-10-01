@@ -40,7 +40,6 @@ export {
 	type IntegrationConflictResolutionDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
-	type ManualTextRouteParametersDto,
 	type PendingReviewDocumentsResponseDto,
 } from "./modules/documents/documents.js";
 export {

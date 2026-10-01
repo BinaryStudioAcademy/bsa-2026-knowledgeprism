@@ -62,6 +62,32 @@ class DocumentsApi extends BaseHTTPApi {
 		return await response.json<DocumentStatusResponseDto>();
 	}
 
+	public async cancelProcessing({
+		documentId,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<DocumentStatusResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(DocumentsApiPath.DOCUMENT_CANCEL, {
+				documentId: String(documentId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "POST",
+				payload: JSON.stringify({}),
+				signal,
+			},
+		);
+
+		return await response.json<DocumentStatusResponseDto>();
+	}
+
 	public async confirmUpload({
 		documentId,
 		projectId,

@@ -468,7 +468,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 	const handleResetState = useCallback((): void => {
 		if (projectId && activeDocumentId) {
 			void dispatch(
-				actions.untrackDocument({ documentId: activeDocumentId, projectId }),
+				actions.cancelDocument({ documentId: activeDocumentId, projectId }),
 			);
 		}
 	}, [activeDocumentId, dispatch, projectId]);
