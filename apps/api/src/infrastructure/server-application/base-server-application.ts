@@ -48,6 +48,7 @@ declare module "fastify" {
 }
 
 const API_ROUTE_NOT_FOUND_MESSAGE = "API route not found.";
+const SPA_INDEX_FILE = "index.html";
 
 const isApiPath = (url: string): boolean =>
 	url === API_PATH_PREFIX || url.startsWith(`${API_PATH_PREFIX}/`);
@@ -71,6 +72,8 @@ class BaseServerApplication implements ServerApplication {
 	private logger: Logger;
 
 	private s3Client: S3Client;
+
+	private spaStaticPath: null | string = null;
 
 	private title: string;
 
@@ -181,6 +184,10 @@ class BaseServerApplication implements ServerApplication {
 				return await reply.status(HTTPCode.NOT_FOUND).send(response);
 			}
 
+			if (this.spaStaticPath) {
+				return await reply.sendFile(SPA_INDEX_FILE, this.spaStaticPath);
+			}
+
 			return await reply.status(HTTPCode.NOT_FOUND).send();
 		});
 	}
@@ -209,18 +216,7 @@ class BaseServerApplication implements ServerApplication {
 			root: staticPath,
 		});
 
-		this.app.setNotFoundHandler(async (request, reply) => {
-			if (isApiPath(request.url)) {
-				const response: ServerCommonErrorResponse = {
-					errorType: ServerErrorType.COMMON,
-					message: API_ROUTE_NOT_FOUND_MESSAGE,
-				};
-
-				return await reply.status(HTTPCode.NOT_FOUND).send(response);
-			}
-
-			return await reply.sendFile("index.html", staticPath);
-		});
+		this.spaStaticPath = staticPath;
 	}
 
 	private async initSession(): Promise<void> {
