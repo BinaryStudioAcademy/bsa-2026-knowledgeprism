@@ -413,8 +413,8 @@ describe("knowledge pipeline lifecycle", () => {
 		});
 	});
 
-	it("keeps a failed document message from the status poll", () => {
-		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.INTEGRATING);
+	it("keeps an empty extraction failure message from the status poll", () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
 		const request = createRequest(DOCUMENT_A_ID);
 
 		store.instance.dispatch(pollDocumentStatus.pending("poll-a", request));
@@ -422,7 +422,7 @@ describe("knowledge pipeline lifecycle", () => {
 			pollDocumentStatus.fulfilled(
 				{
 					...createStatusResponse(DOCUMENT_A_ID, DocumentStatus.FAILED),
-					errorMessage: DocumentErrorMessage.INTEGRATION_FAILED,
+					errorMessage: DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED,
 				},
 				"poll-a",
 				request,
@@ -432,7 +432,7 @@ describe("knowledge pipeline lifecycle", () => {
 		const state = store.instance.getState().knowledge;
 		expect(state.activeDocumentStatus).toBe(DocumentStatus.FAILED);
 		expect(state.pipelineErrors[DOCUMENT_A_ID]).toBe(
-			DocumentErrorMessage.INTEGRATION_FAILED,
+			DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED,
 		);
 	});
 

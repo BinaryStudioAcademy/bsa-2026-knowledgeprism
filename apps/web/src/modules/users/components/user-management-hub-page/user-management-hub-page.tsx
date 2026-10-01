@@ -39,7 +39,7 @@ const GO_BACK_CHEVRON_SIZE = 10;
 const UserManagementHubPage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const navigate = useNavigate();
-	const { search } = useLocation();
+	const { pathname, search } = useLocation();
 	const selectedProjectId = getUserManagementProjectId(search);
 	const pageCopy = getUserManagementCopy(selectedProjectId !== null);
 	const [nameQuery, setNameQuery] = useState("");
@@ -106,10 +106,14 @@ const UserManagementHubPage: React.FC = () => {
 			const id = event_.currentTarget.dataset["id"];
 
 			if (id) {
-				void navigate(AppRoute.USERS_EDIT.split(":id").join(id));
+				void navigate(AppRoute.USERS_EDIT.split(":id").join(id), {
+					state: {
+						from: `${pathname}${search}`,
+					},
+				});
 			}
 		},
-		[navigate],
+		[navigate, pathname, search],
 	);
 
 	const renderProjectsCount = useCallback(
@@ -151,7 +155,7 @@ const UserManagementHubPage: React.FC = () => {
 					)}
 					<Heading level="2">{pageCopy.TITLE}</Heading>
 					<Paragraph
-						className="mt-1.5 hidden text-text-muted desktop:block"
+						className="mt-1.5 text-text-muted"
 						size={ParagraphSize.BODY_SMALL}
 					>
 						{pageCopy.SUBTITLE}

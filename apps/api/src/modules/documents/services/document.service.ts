@@ -17,6 +17,7 @@ import {
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
 } from "@knowledgeprism/types";
+import { translateFileName } from "@knowledgeprism/worker";
 import { ForeignKeyViolationError } from "objection";
 
 import { DatabaseConstraintName } from "~/infrastructure/database/libs/enums/database-constraint-name.enum.js";
@@ -198,6 +199,22 @@ class DocumentService {
 		return document;
 	}
 
+	private async findOwnedManualDocument(reference: {
+		id: number;
+		projectId: number;
+	}): Promise<DocumentEntity> {
+		const document = await this.findOwnedDocument(reference);
+
+		if (document.toObject().sourceType !== DocumentSourceType.MANUAL) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
+		return document;
+	}
+
 	private async hasApprovedItems(documentId: number): Promise<boolean> {
 		const items =
 			await this.extractionItemRepository.findByDocumentId(documentId);
@@ -282,6 +299,45 @@ class DocumentService {
 		if (objectSizeInBytes > DocumentValidationRule.MAXIMUM_FILE_SIZE_IN_BYTES) {
 			throw new S3ObjectTooLargeError("S3 object exceeds maximum file size");
 		}
+	}
+
+	public async cancelManualText({
+		context,
+		id,
+		projectId,
+	}: {
+		context: ProjectAccessContext;
+		id: number;
+		projectId: string;
+	}): Promise<ManualTextResponseDto> {
+		const numericProjectId = Number(projectId);
+
+		await this.projectService.assertCanWriteKnowledge(
+			numericProjectId,
+			context,
+		);
+
+		await this.findOwnedManualDocument({
+			id,
+			projectId: numericProjectId,
+		});
+
+		const cancelledDocument =
+			await this.documentRepository.updateStatusIfCurrentIn({
+				allowedStatuses: [DocumentStatus.FAILED, DocumentStatus.PROCESSING],
+				errorMessage: null,
+				id,
+				status: DocumentStatus.CANCELLED,
+			});
+
+		if (!cancelledDocument) {
+			throw new HTTPError({
+				message: DocumentErrorMessage.CANCEL_NOT_ALLOWED,
+				status: HTTPCode.CONFLICT,
+			});
+		}
+
+		return this.toManualTextResponse(cancelledDocument);
 	}
 
 	public async cancelProcessing({
@@ -406,6 +462,7 @@ class DocumentService {
 
 		const title = this.normalizeTitle(payload.title);
 		const contentHash = createContentHash(title, payload.content);
+
 		const inFlightDocument = await this.documentRepository.findProcessingByHash(
 			{
 				contentHash,
@@ -483,6 +540,8 @@ class DocumentService {
 			projectId: routeParameters.projectId,
 		});
 
+		const translatedFileName = await translateFileName(payload.fileName);
+
 		let uploadUrl: string;
 
 		try {
@@ -512,7 +571,7 @@ class DocumentService {
 					contentHash: null,
 					errorMessage: null,
 					mimeType: payload.contentType,
-					name: payload.fileName,
+					name: translatedFileName,
 					projectId,
 					s3Key: storageKey,
 					sizeInBytes: payload.sizeInBytes ?? null,
@@ -574,6 +633,27 @@ class DocumentService {
 		}
 	}
 
+	public async findManualText({
+		context,
+		id,
+		projectId,
+	}: {
+		context: ProjectAccessContext;
+		id: number;
+		projectId: string;
+	}): Promise<ManualTextResponseDto> {
+		const numericProjectId = Number(projectId);
+
+		await this.projectService.assertProjectAccess(numericProjectId, context);
+
+		const document = await this.findOwnedManualDocument({
+			id,
+			projectId: numericProjectId,
+		});
+
+		return this.toManualTextResponse(document);
+	}
+
 	public async promoteAwaitingValidation(): Promise<void> {
 		const documents = await this.documentRepository.findByStatuses([
 			DocumentStatus.WAITING_FOR_VALIDATION,
@@ -612,6 +692,32 @@ class DocumentService {
 				});
 			}
 		}
+	}
+
+	public async retryManualText({
+		context,
+		id,
+		projectId,
+	}: {
+		context: ProjectAccessContext;
+		id: number;
+		projectId: string;
+	}): Promise<ManualTextResponseDto> {
+		const numericProjectId = Number(projectId);
+
+		await this.projectService.assertCanWriteKnowledge(
+			numericProjectId,
+			context,
+		);
+
+		const document = await this.findOwnedManualDocument({
+			id,
+			projectId: numericProjectId,
+		});
+
+		const retriedDocument = await this.restartFailedProcessing(document);
+
+		return this.toManualTextResponse(retriedDocument);
 	}
 
 	public async retryProcessing({

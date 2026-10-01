@@ -1020,6 +1020,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 						activeDocumentStatus === DocumentStatus.FAILED ? (
 							<LoadingState
 								currentStatus={activeDocumentStatus}
+								errorMessage={activePipelineError}
 								hasError={true}
 								onCancel={handleCancelDocument}
 								onRetry={handleRetry}

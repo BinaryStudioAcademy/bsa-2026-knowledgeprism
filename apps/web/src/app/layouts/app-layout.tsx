@@ -32,8 +32,13 @@ const AppLayout: React.FC = () => {
 		userResponse?.user.organisationRole === OrganisationRole.ADMIN;
 
 	const handleLogOut = useCallback((): void => {
-		void dispatch(authActions.logout());
-		void navigate(AppRoute.ROOT);
+		void (async (): Promise<void> => {
+			try {
+				await dispatch(authActions.logout()).unwrap();
+			} finally {
+				void navigate(AppRoute.ROOT);
+			}
+		})();
 	}, [dispatch, navigate]);
 
 	const handleOpenSettings = useCallback((): void => {

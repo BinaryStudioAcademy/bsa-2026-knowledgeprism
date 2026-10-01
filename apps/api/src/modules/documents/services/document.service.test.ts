@@ -1,3 +1,5 @@
+import "~/test-setup.js";
+
 import {
 	DocumentErrorMessage,
 	DocumentSourceType,

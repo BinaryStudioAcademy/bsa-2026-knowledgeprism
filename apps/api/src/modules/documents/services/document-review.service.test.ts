@@ -46,6 +46,7 @@ const FIRST_POSITION = 0;
 const MIN_EXPECTED_CALLS = 2;
 const NO_POSITION_OFFSET = 0;
 const SECOND_POSITION = 1;
+const LARGE_PAGE_COUNT = 189;
 
 type FindCallOptions = {
 	forUpdate?: boolean | undefined;
@@ -663,5 +664,55 @@ void describe("DocumentReviewService Concurrency", () => {
 		assert.strictEqual(createdManual.position, SECOND_POSITION);
 		assert.strictEqual(createdManual.title, "Manual title");
 		assert.strictEqual(createdManual.text, "Manual text");
+	});
+
+	void it("handles large document reviews with numerous pages and items", async () => {
+		const { getItems, service } = createTestSetup();
+		const largeSections = Array.from(
+			{ length: LARGE_PAGE_COUNT },
+			(_, index) => ({
+				items: [
+					...(index === FIRST_POSITION
+						? [
+								{
+									id: ITEM_ID,
+									text: "Existing first page content",
+									title: "Existing first page title",
+								},
+							]
+						: [
+								{
+									text: `Content for page ${String(index + PAGE_NUMBER)}`,
+									title: `Title for page ${String(index + PAGE_NUMBER)}`,
+								},
+							]),
+				],
+				title: `Page ${String(index + PAGE_NUMBER)}`,
+			}),
+		);
+
+		const reviewResult = await service.review({
+			context: { organisationId: ORGANISATION_ID, userId: USER_ID },
+			documentId: DOCUMENT_ID,
+			payload: {
+				approvedIds: [],
+				rejectedIds: [],
+				sections: largeSections,
+			},
+			projectId: PROJECT_ID,
+		});
+
+		assert.strictEqual(
+			reviewResult.status,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		);
+
+		const reviewedItems = getItems();
+		assert.strictEqual(reviewedItems.length, LARGE_PAGE_COUNT);
+		assert.ok(
+			reviewedItems.every(
+				(item) => item.toObject().status === ExtractionItemStatus.APPROVED,
+			),
+		);
 	});
 });

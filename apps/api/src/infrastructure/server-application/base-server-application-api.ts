@@ -1,6 +1,6 @@
 import swaggerJsdoc from "swagger-jsdoc";
 
-import { type Config } from "~/infrastructure/config/config.js";
+import { type Config } from "~/infrastructure/config/libs/types/config.type.js";
 import { AppEnvironment } from "~/shared/enums/enums.js";
 
 import { API_PATH_PREFIX } from "./libs/constants/api-path-prefix.constant.js";

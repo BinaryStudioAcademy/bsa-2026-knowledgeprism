@@ -236,3 +236,24 @@ describe("document processing progress", () => {
 		).not.toBeInTheDocument();
 	});
 });
+
+describe("LoadingState", () => {
+	it("shows the document failure message instead of a generic processing error", () => {
+		render(
+			<LoadingState
+				currentStatus={DocumentStatus.FAILED}
+				errorMessage={DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED}
+				hasError
+				onCancel={vi.fn()}
+				onRetry={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.getByText(DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByText("Something went wrong. Please try again."),
+		).not.toBeInTheDocument();
+	});
+});

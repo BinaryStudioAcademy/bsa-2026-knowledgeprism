@@ -9,9 +9,11 @@ import {
 	extract,
 	type ExtractionBlock,
 	parseDocument,
+	translate,
 } from "@knowledgeprism/worker";
 
 import { type Database } from "~/infrastructure/database/database.js";
+import { DocumentProcessingError } from "~/modules/documents/libs/exceptions/document-processing.exception.js";
 import { createOrderedProgressReporter } from "~/modules/documents/libs/helpers/create-ordered-progress-reporter.helper.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
@@ -19,7 +21,7 @@ import { type DocumentRepository } from "~/modules/documents/repositories/docume
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
 import { type GlossaryService } from "~/modules/glossary/services/glossary.service.js";
 
-const EMPTY_EXTRACTED_ITEMS = 0;
+const EMPTY_EXTRACTION_ITEM_COUNT = 0;
 const MANUAL_TEXT_PAGE_NUMBER = 1;
 const PAGE_TEXT_SEPARATOR = "\n\n";
 
@@ -94,8 +96,9 @@ class DocumentProcessor {
 			return false;
 		}
 		const pages = await this.loadPages(document);
+		const translatedPages = await translate(pages);
 		const { failedPageNumbers, items } = await extract(
-			pages,
+			translatedPages,
 			{
 				documentId,
 				processingAttempt: attempt,
@@ -110,10 +113,11 @@ class DocumentProcessor {
 			),
 		);
 
-		const hasExtractedItems = items.length > EMPTY_EXTRACTED_ITEMS;
-		const nextStatus = hasExtractedItems
-			? DocumentStatus.INTEGRATING
-			: DocumentStatus.WAITING_FOR_APPROVAL;
+		if (items.length === EMPTY_EXTRACTION_ITEM_COUNT) {
+			throw new DocumentProcessingError(
+				DocumentErrorMessage.NO_KNOWLEDGE_EXTRACTED,
+			);
+		}
 
 		const isCompleted = await this.database.transaction(async (transaction) => {
 			const completedDocument =
@@ -124,7 +128,7 @@ class DocumentProcessor {
 						failedPageNumbers,
 						id: documentId,
 						processingAttempt: attempt,
-						status: nextStatus,
+						status: DocumentStatus.INTEGRATING,
 					},
 					transaction,
 				);
@@ -138,19 +142,19 @@ class DocumentProcessor {
 				transaction,
 			);
 
-			if (hasExtractedItems) {
-				await this.extractionItemRepository.markPendingApproved(
-					documentId,
-					transaction,
-				);
-			}
+			await this.extractionItemRepository.markPendingApproved(
+				documentId,
+				transaction,
+			);
 
 			return true;
 		});
 
 		if (isCompleted) {
 			void this.glossaryService.addTermsFromDocument({
-				content: pages.map(({ content }) => content).join(PAGE_TEXT_SEPARATOR),
+				content: translatedPages
+					.map(({ content }) => content)
+					.join(PAGE_TEXT_SEPARATOR),
 				documentId,
 				projectId: document.toObject().projectId,
 			});

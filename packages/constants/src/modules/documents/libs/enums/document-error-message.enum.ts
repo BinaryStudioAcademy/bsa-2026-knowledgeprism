@@ -15,6 +15,8 @@ const DocumentErrorMessage = {
 	INTEGRATION_FAILED: "Integration analysis failed",
 	INVALID_PLACEMENT:
 		"A section can only be placed under a page in this project",
+	NO_KNOWLEDGE_EXTRACTED:
+		"No knowledge could be extracted. Add more detail and try again.",
 	NOT_FOUND: "Document not found",
 	PROCESSING_FAILED: "Processing failed",
 	PROCESSING_INTERRUPTED: "Processing was interrupted. Please retry.",

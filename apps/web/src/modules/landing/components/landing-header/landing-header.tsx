@@ -27,7 +27,7 @@ import {
 
 const LandingHeader: React.FC = () => {
 	const navigate = useNavigate();
-	const user = useAppSelector(({ auth }) => auth.user);
+	const { isInitialized, user } = useAppSelector(({ auth }) => auth);
 	const hasUser = Boolean(user);
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -126,7 +126,10 @@ const LandingHeader: React.FC = () => {
 						</a>
 					))}
 					<div className={getValidClassNames("flex items-center gap-2.5")}>
-						{hasUser ? (
+						{!isInitialized && (
+							<div className="h-9.5 w-53 animate-pulse rounded-md bg-border/40" />
+						)}
+						{isInitialized && hasUser && (
 							<Button
 								className={getValidClassNames("flex-1 py-2.5")}
 								onClick={handleGoToWorkspace}
@@ -134,7 +137,8 @@ const LandingHeader: React.FC = () => {
 							>
 								{HEADER_LABEL.GO_TO_WORKSPACE}
 							</Button>
-						) : (
+						)}
+						{isInitialized && !hasUser && (
 							<>
 								<Button
 									className={getValidClassNames("px-3.5 py-2.25")}
@@ -207,7 +211,10 @@ const LandingHeader: React.FC = () => {
 						</a>
 					))}
 					<div className={getValidClassNames("mt-1.5 flex gap-2.5")}>
-						{hasUser ? (
+						{!isInitialized && (
+							<div className="h-9.5 w-full animate-pulse rounded-md bg-border/40" />
+						)}
+						{isInitialized && hasUser && (
 							<>
 								<Button
 									className={getValidClassNames("flex-1 py-2.5")}
@@ -217,7 +224,8 @@ const LandingHeader: React.FC = () => {
 									{HEADER_LABEL.GO_TO_WORKSPACE}
 								</Button>
 							</>
-						) : (
+						)}
+						{isInitialized && !hasUser && (
 							<>
 								<Button
 									className={getValidClassNames(

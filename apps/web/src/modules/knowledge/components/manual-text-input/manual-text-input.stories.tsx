@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 
+import { DocumentValidationMessage } from "@knowledgeprism/constants";
 import { expect, fn, userEvent, waitFor, within } from "@storybook/test";
 
 import { ManualTextInput } from "./manual-text-input.js";
@@ -7,6 +8,8 @@ import { ManualTextInput } from "./manual-text-input.js";
 const EXPECTED_INITIAL_SUBMISSION_COUNT = 1;
 const EXPECTED_RETRY_SUBMISSION_COUNT = 2;
 const PROCESSING_DELAY_IN_MILLISECONDS = 300;
+const FACTUAL_SENTENCE = "API tokens expire after 24 hours.";
+const SHORT_CONTENT = "test";
 const TITLE_MAXIMUM_LENGTH = 255;
 const TITLE_OVERFLOW_CHARACTER_COUNT = 1;
 const VALID_CONTENT = "Prism should preserve and submit this complete content.";
@@ -148,6 +151,41 @@ const SuccessfulSubmission: Story = {
 	},
 };
 
+const ShortContent: Story = {
+	play: async ({ args, canvasElement }) => {
+		const { canvas, contentInput, submitButton } =
+			getFormElements(canvasElement);
+
+		await userEvent.type(contentInput, SHORT_CONTENT);
+
+		await expect(
+			await canvas.findByText(DocumentValidationMessage.CONTENT_TOO_SHORT),
+		).toBeVisible();
+		await expect(submitButton).toBeDisabled();
+		await expect(args.onSubmit).not.toHaveBeenCalled();
+
+		await userEvent.clear(contentInput);
+		await userEvent.type(contentInput, FACTUAL_SENTENCE);
+
+		await waitFor(() =>
+			expect(
+				canvas.queryByText(DocumentValidationMessage.CONTENT_TOO_SHORT),
+			).not.toBeInTheDocument(),
+		);
+		await userEvent.click(submitButton);
+
+		await waitFor(() =>
+			expect(args.onSubmit).toHaveBeenCalledTimes(
+				EXPECTED_INITIAL_SUBMISSION_COUNT,
+			),
+		);
+		await expect(args.onSubmit).toHaveBeenCalledWith({
+			content: FACTUAL_SENTENCE,
+			title: "",
+		});
+	},
+};
+
 const Validation: Story = {
 	play: async ({ canvasElement }) => {
 		const { canvas, contentInput, submitButton, titleInput } =
@@ -185,6 +223,7 @@ export {
 	Loading,
 	ProcessingFailure,
 	RepeatedSubmission,
+	ShortContent,
 	SuccessfulSubmission,
 	Validation,
 };
