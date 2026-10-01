@@ -18,11 +18,7 @@ const signIn = createAppAsyncThunk<UserSignInResponseDto, UserSignInRequestDto>(
 
 		const response = await authApi.signIn(loginPayload);
 
-		try {
-			await storage.set(StorageKey.LOGGED_IN_HINT, "true");
-		} catch {
-			// Ignore
-		}
+		await storage.set(StorageKey.LOGGED_IN_HINT, "true");
 
 		return response;
 	},
@@ -35,11 +31,7 @@ const signUp = createAppAsyncThunk<UserSignUpResponseDto, UserSignUpRequestDto>(
 
 		const response = await authApi.signUp(registerPayload);
 
-		try {
-			await storage.set(StorageKey.LOGGED_IN_HINT, "true");
-		} catch {
-			// Ignore
-		}
+		await storage.set(StorageKey.LOGGED_IN_HINT, "true");
 
 		return response;
 	},
@@ -52,11 +44,7 @@ const logout = createAppAsyncThunk<null, undefined>(
 
 		await authApi.logout();
 
-		try {
-			await storage.drop(StorageKey.LOGGED_IN_HINT);
-		} catch {
-			// Ignore
-		}
+		await storage.drop(StorageKey.LOGGED_IN_HINT);
 
 		return null;
 	},
@@ -71,19 +59,11 @@ const loadCurrentUser = createAppAsyncThunk<
 	try {
 		const response = await authApi.getCurrentUser();
 
-		try {
-			await storage.set(StorageKey.LOGGED_IN_HINT, "true");
-		} catch {
-			// Ignore
-		}
+		await storage.set(StorageKey.LOGGED_IN_HINT, "true");
 
 		return response;
 	} catch (error) {
-		try {
-			await storage.drop(StorageKey.LOGGED_IN_HINT);
-		} catch {
-			// Ignore
-		}
+		await storage.drop(StorageKey.LOGGED_IN_HINT);
 
 		throw error;
 	}

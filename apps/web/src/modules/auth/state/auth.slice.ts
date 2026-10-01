@@ -15,13 +15,9 @@ type State = {
 	user: null | UserSignUpResponseDto;
 };
 
-let isProbablyLoggedIn = false;
-
-try {
-	isProbablyLoggedIn = Boolean(localStorage.getItem(StorageKey.LOGGED_IN_HINT));
-} catch {
-	// Ignore
-}
+const isProbablyLoggedIn = Boolean(
+	localStorage.getItem(StorageKey.LOGGED_IN_HINT),
+);
 
 const initialState: State = {
 	dataStatus: DataStatus.IDLE,
