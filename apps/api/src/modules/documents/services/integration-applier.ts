@@ -40,6 +40,23 @@ type Placement = NonNullable<
 const NEXT_POSITION_OFFSET = 1;
 const NO_CHILD_POSITION = -1;
 
+const toWrittenFieldKeys = (
+	matchedNodeId: number,
+	incomingFields: { content: boolean; title: boolean },
+	resolution: IntegrationConflictResolutionDto | undefined,
+): string[] => {
+	const written = {
+		content:
+			incomingFields.content ||
+			resolution?.content === IntegrationResolution.BOTH,
+		title: incomingFields.title,
+	};
+
+	return Object.entries(written)
+		.filter(([, isWritten]) => isWritten)
+		.map(([field]) => `${String(matchedNodeId)}:${field}`);
+};
+
 const createInvalidPlacementError = (): HTTPError =>
 	new HTTPError({
 		message: DocumentErrorMessage.INVALID_PLACEMENT,
@@ -425,11 +442,29 @@ class IntegrationApplier {
 			transaction,
 		);
 		const newChanges: IntegrationChangeEntity[] = [];
+		const writtenFieldKeys = new Set<string>();
 
 		for (const change of changes) {
-			const { id, matchedNodeId } = change.toObject();
+			const { id, matchedNodeId, type } = change.toObject();
 			const matchedNode =
 				matchedNodeId === null ? undefined : nodes.get(matchedNodeId);
+			const fieldKeys =
+				matchedNodeId === null
+					? []
+					: toWrittenFieldKeys(
+							matchedNodeId,
+							getIncomingFields(type, resolutionByChangeId.get(id)),
+							resolutionByChangeId.get(id),
+						);
+
+			if (fieldKeys.some((fieldKey) => writtenFieldKeys.has(fieldKey))) {
+				newChanges.push(change);
+				continue;
+			}
+
+			for (const fieldKey of fieldKeys) {
+				writtenFieldKeys.add(fieldKey);
+			}
 
 			if (matchedNode && matchedNodeId !== null) {
 				const appliedNode = await this.applyToMatchedNode(

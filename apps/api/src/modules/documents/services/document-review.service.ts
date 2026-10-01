@@ -3,7 +3,6 @@ import {
 	DocumentStatus,
 	ExtractionItemStatus,
 	IntegrationChangeType,
-	IntegrationResolution,
 } from "@knowledgeprism/constants";
 import {
 	type DocumentStatusResponseDto,
@@ -24,7 +23,6 @@ import { type Transaction } from "objection";
 
 import { type Database } from "~/infrastructure/database/database.js";
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
-import { getIncomingFields } from "~/modules/documents/libs/helpers/get-incoming-fields.helper.js";
 import { toDocumentStatusResponse } from "~/modules/documents/libs/helpers/to-document-status-response.helper.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
@@ -262,48 +260,6 @@ const assertOverridesReferenceKnownChanges = (
 			message: DocumentErrorMessage.CONTENT_OVERRIDE_UNKNOWN_CHANGE,
 			status: HTTPCode.BAD_REQUEST,
 		});
-	}
-};
-
-const assertSingleWritePerEntryField = (
-	changes: IntegrationChangeEntity[],
-	{ resolutions }: IntegrationChangesApplyRequestDto,
-): void => {
-	const resolutionByChangeId = new Map(
-		resolutions.map((resolution) => [resolution.changeId, resolution]),
-	);
-	const writtenFields = new Set<string>();
-
-	for (const change of changes) {
-		const { id, matchedNodeId, type } = change.toObject();
-
-		if (matchedNodeId === null) {
-			continue;
-		}
-
-		const resolution = resolutionByChangeId.get(id);
-		const incomingFields = getIncomingFields(type, resolution);
-		const written = {
-			content:
-				incomingFields.content ||
-				resolution?.content === IntegrationResolution.BOTH,
-			title: incomingFields.title,
-		};
-
-		for (const [field, isWritten] of Object.entries(written)) {
-			const fieldKey = `${String(matchedNodeId)}:${field}`;
-
-			if (isWritten && writtenFields.has(fieldKey)) {
-				throw new HTTPError({
-					message: DocumentErrorMessage.DUPLICATE_ENTRY_WRITES,
-					status: HTTPCode.BAD_REQUEST,
-				});
-			}
-
-			if (isWritten) {
-				writtenFields.add(fieldKey);
-			}
-		}
 	}
 };
 
@@ -844,7 +800,6 @@ class DocumentReviewService {
 		}
 
 		assertResolutionsCoverConflicts(keptChanges, payload);
-		assertSingleWritePerEntryField(keptChanges, payload);
 		assertOverridesReferenceKnownChanges(keptChanges, payload);
 
 		try {

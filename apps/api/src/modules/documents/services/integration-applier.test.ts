@@ -73,7 +73,11 @@ const EXISTING_NODES = [
 	}),
 ];
 
-const toChange = (id: number, title: string): IntegrationChangeEntity =>
+const toChange = (
+	id: number,
+	title: string,
+	matchedNodeId: null | number = null,
+): IntegrationChangeEntity =>
 	IntegrationChangeEntity.initialize({
 		documentId: DOCUMENT_ID,
 		explanation: "New knowledge.",
@@ -81,9 +85,9 @@ const toChange = (id: number, title: string): IntegrationChangeEntity =>
 		id,
 		incomingContent: `${title} content`,
 		incomingTitle: title,
-		liveContent: null,
-		liveTitle: null,
-		matchedNodeId: null,
+		liveContent: matchedNodeId === null ? null : "",
+		liveTitle: matchedNodeId === null ? null : `Node ${String(matchedNodeId)}`,
+		matchedNodeId,
 		placement: {
 			matches: [],
 			parentExtractionItemId: null,
@@ -93,7 +97,10 @@ const toChange = (id: number, title: string): IntegrationChangeEntity =>
 			siblingOrder: null,
 		},
 		score: null,
-		type: IntegrationChangeType.NEW,
+		type:
+			matchedNodeId === null
+				? IntegrationChangeType.NEW
+				: IntegrationChangeType.UPDATE,
 	});
 
 const DOCUMENT = DocumentEntity.initialize({
@@ -119,8 +126,10 @@ const DOCUMENT = DocumentEntity.initialize({
 const createSetup = (): {
 	applier: IntegrationApplier;
 	created: CreatedNode[];
+	updatedIds: number[];
 } => {
 	const created: CreatedNode[] = [];
+	const updatedIds: number[] = [];
 	let nextId = NEXT_ID_START;
 	const knowledgeNodeRepository = {
 		create: ({ entity }: { entity: KnowledgeNodeEntity }) => {
@@ -144,6 +153,15 @@ const createSetup = (): {
 		},
 		findAllByProjectId: () => Promise.resolve(EXISTING_NODES),
 		findNextRootPosition: () => Promise.resolve(NEXT_ROOT_POSITION),
+		lockByIdAndProjectId: ({ id }: { id: number }) =>
+			Promise.resolve(EXISTING_NODES.find((node) => node.toObject().id === id)),
+		update: ({ id }: { id: number }) => {
+			updatedIds.push(id);
+
+			return Promise.resolve(
+				EXISTING_NODES.find((node) => node.toObject().id === id),
+			);
+		},
 	} as unknown as KnowledgeNodeRepository;
 	const extractionItemRepository = {
 		findByDocumentId: () => Promise.resolve([]),
@@ -156,6 +174,7 @@ const createSetup = (): {
 			knowledgeNodeRepository,
 		}),
 		created,
+		updatedIds,
 	};
 };
 
@@ -247,6 +266,33 @@ void describe("IntegrationApplier placements", () => {
 			(error: unknown) =>
 				error instanceof HTTPError &&
 				error.message === DocumentErrorMessage.INVALID_PLACEMENT,
+		);
+	});
+
+	void it("files a second update of the same entry as a new section instead of rejecting", async () => {
+		const { applier, created, updatedIds } = createSetup();
+
+		await applier.apply(
+			{
+				changes: [
+					toChange(FIRST_CHANGE_ID, "Glossary", EXISTING_ENTRY_ID),
+					toChange(SECOND_CHANGE_ID, "Roles", EXISTING_ENTRY_ID),
+				],
+				contentOverrides: [],
+				document: DOCUMENT,
+				placements: [],
+				resolutions: [],
+				userId: USER_ID,
+			},
+			{} as Transaction,
+		);
+
+		assert.deepEqual(updatedIds, [EXISTING_ENTRY_ID]);
+		assert.deepEqual(
+			created
+				.filter((node) => node.type === KnowledgeNodeType.ENTRY)
+				.map(({ title }) => title),
+			["Roles"],
 		);
 	});
 });
