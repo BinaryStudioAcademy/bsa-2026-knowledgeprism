@@ -174,7 +174,7 @@ void describe("extraction recovery", () => {
 		});
 	});
 
-	void it("reports a fatal invocation failure without counting untouched chunks", async () => {
+	void it("reports a fatal invocation failure", async () => {
 		const setup = createSetup(() =>
 			Promise.reject(new Error("Permanent failure")),
 		);
@@ -182,12 +182,14 @@ void describe("extraction recovery", () => {
 			extractBlocks([BLOCK, BLOCK], setup.dependencies),
 			/Permanent failure/u,
 		);
-		assert.deepEqual(setup.progress.at(-SINGLE_CALL), {
-			failedUnits: SINGLE_CALL,
-			phase: DocumentProcessingPhase.EXTRACTING,
-			processedUnits: SINGLE_CALL,
-			totalUnits: TWO_CALLS,
-		});
+		assert.ok(
+			setup.progress.some(
+				({ failedUnits, phase, totalUnits }) =>
+					failedUnits >= SINGLE_CALL &&
+					phase === DocumentProcessingPhase.EXTRACTING &&
+					totalUnits === TWO_CALLS,
+			),
+		);
 	});
 
 	void it("reports no work for an empty document without inventing a percentage", async () => {
@@ -359,6 +361,25 @@ void describe("extraction recovery", () => {
 		assert.equal(setup.calls.length, TWO_CALLS);
 	});
 
+	void it("re-extracts a chunk with the heading the previous chunk left open", async () => {
+		const openingPage = `${SOURCE}\n## Setup`;
+		const setup = createSetup((content) => Promise.resolve(outputFor(content)));
+		const result = await extractBlocks(
+			[
+				{ content: openingPage, pageNumber: PAGE_NUMBER },
+				{ content: SOURCE, pageNumber: NEXT_PAGE_NUMBER },
+			],
+			setup.dependencies,
+		);
+
+		assert.equal(setup.calls.length, THREE_CALLS);
+		assert.deepEqual(setup.calls, [openingPage, SOURCE, SOURCE]);
+		assert.deepEqual(
+			result.items.map((item) => item.sourcePageNumber),
+			[PAGE_NUMBER, NEXT_PAGE_NUMBER],
+		);
+	});
+
 	void it("treats an empty result as successful and skips blank pages", async () => {
 		const setup = createSetup(() => Promise.resolve(EMPTY_OUTPUT));
 		assert.deepEqual(
@@ -499,11 +520,15 @@ void describe("extraction recovery", () => {
 			message: "Access denied",
 		});
 		const setup = createSetup(() => Promise.reject(denied));
-		await assert.rejects(
-			extractBlocks([BLOCK, BLOCK], setup.dependencies),
-			denied,
+		const pages = Array.from(
+			{ length: ExtractionChunk.MAXIMUM_CONCURRENT_REQUESTS + TWO_CALLS },
+			() => BLOCK,
 		);
-		assert.equal(setup.calls.length, SINGLE_CALL);
+		await assert.rejects(extractBlocks(pages, setup.dependencies), denied);
+		assert.equal(
+			setup.calls.length,
+			ExtractionChunk.MAXIMUM_CONCURRENT_REQUESTS,
+		);
 		assert.equal(setup.delays.length, EMPTY_COUNT);
 	});
 

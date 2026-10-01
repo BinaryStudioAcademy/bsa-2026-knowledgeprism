@@ -1,4 +1,7 @@
-import { flattenContentToText } from "@knowledgeprism/config";
+import {
+	flattenContentToText,
+	mapWithConcurrency,
+} from "@knowledgeprism/config";
 import {
 	DocumentErrorMessage,
 	DocumentProcessingPhase,
@@ -50,9 +53,40 @@ type KnowledgeCandidate = {
 };
 
 const ANALYSIS_TEXT_SEPARATOR = "\n";
+const MAXIMUM_CONCURRENT_ANALYSES = 8;
 
 const toAnalysisText = (title: string, content: string): string =>
 	[title, content].join(ANALYSIS_TEXT_SEPARATOR).trim();
+
+type AnalysisContext = {
+	candidates: EmbeddingCandidate<KnowledgeCandidate>[];
+	documents: PlacementTreeNode[];
+	onProgress: (progress: DocumentProcessingProgressDto) => Promise<void>;
+	progress: DocumentProcessingProgressDto;
+};
+
+const UNSECTIONED_GROUP_PREFIX = "page-";
+
+const toSectionGroupKey = (item: ExtractionItemEntity): string => {
+	const { extractionSectionId, sourcePageNumber } = item.toObject();
+
+	return extractionSectionId === null
+		? `${UNSECTIONED_GROUP_PREFIX}${String(sourcePageNumber)}`
+		: String(extractionSectionId);
+};
+
+const groupBySection = (
+	items: ExtractionItemEntity[],
+): ExtractionItemEntity[][] => {
+	const groups = new Map<string, ExtractionItemEntity[]>();
+
+	for (const item of items) {
+		const key = toSectionGroupKey(item);
+		groups.set(key, [...(groups.get(key) ?? []), item]);
+	}
+
+	return groups.values().toArray();
+};
 
 class IntegrationAnalyzer {
 	private analyze: Analyze;
@@ -83,6 +117,70 @@ class IntegrationAnalyzer {
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
 	}
 
+	private async analyzeItem(
+		item: ExtractionItemEntity,
+		priorPlacements: RecordedSectionPlacement[],
+		{ candidates, documents, onProgress, progress }: AnalysisContext,
+	): Promise<IntegrationChangeEntity> {
+		const { documentId, id, text, title } = item.toObject();
+		let result: Awaited<ReturnType<Analyze>>;
+
+		try {
+			result = await this.analyze({
+				candidates,
+				documents,
+				itemText: toAnalysisText(title, text),
+				priorPlacements,
+			});
+		} catch (error) {
+			progress.processedUnits++;
+			progress.failedUnits++;
+			await onProgress({ ...progress });
+			throw error;
+		}
+
+		progress.processedUnits++;
+		await onProgress({ ...progress });
+
+		const placed = toRecordedSectionPlacement({
+			extractionItemId: id,
+			priorPlacements,
+			result,
+			title,
+			tree: documents,
+		});
+
+		priorPlacements.push(placed.recorded);
+
+		const placement: DocumentPlacementDto = {
+			matches: result.matches.map((match) => ({
+				content: match.item.content,
+				nodeId: match.item.id,
+				span: match.span,
+				title: match.item.title,
+			})),
+			parentExtractionItemId: placed.parentExtractionItemId,
+			parentId: placed.parentId,
+			parentTitle: placed.parentTitle,
+			proposesParent: placed.proposesParent,
+			siblingOrder: placed.siblingOrder,
+		};
+
+		return IntegrationChangeEntity.initializeNew({
+			documentId,
+			explanation: result.explanation,
+			extractionItemId: id,
+			incomingContent: text,
+			incomingTitle: title,
+			liveContent: result.matchedItem?.content ?? null,
+			liveTitle: result.matchedItem?.title ?? null,
+			matchedNodeId: result.matchedItem?.id ?? null,
+			placement,
+			score: result.score,
+			type: result.type,
+		});
+	}
+
 	private async analyzeItems({
 		candidates,
 		documents,
@@ -94,73 +192,43 @@ class IntegrationAnalyzer {
 		items: ExtractionItemEntity[];
 		onProgress: (progress: DocumentProcessingProgressDto) => Promise<void>;
 	}): Promise<IntegrationChangeEntity[]> {
-		const changes: IntegrationChangeEntity[] = [];
-		const priorPlacements: RecordedSectionPlacement[] = [];
-		const progress: DocumentProcessingProgressDto = {
-			failedUnits: 0,
-			phase: DocumentProcessingPhase.INTEGRATING,
-			processedUnits: 0,
-			totalUnits: items.length,
+		const context: AnalysisContext = {
+			candidates,
+			documents,
+			onProgress,
+			progress: {
+				failedUnits: 0,
+				phase: DocumentProcessingPhase.INTEGRATING,
+				processedUnits: 0,
+				totalUnits: items.length,
+			},
 		};
+		const analyzedGroups = await mapWithConcurrency(
+			groupBySection(items),
+			MAXIMUM_CONCURRENT_ANALYSES,
+			async (group) => {
+				const priorPlacements: RecordedSectionPlacement[] = [];
+				const groupChanges: IntegrationChangeEntity[] = [];
 
-		for (const item of items) {
-			const { documentId, id, text, title } = item.toObject();
-			let result: Awaited<ReturnType<Analyze>>;
-			try {
-				result = await this.analyze({
-					candidates,
-					documents,
-					itemText: toAnalysisText(title, text),
-					priorPlacements,
-				});
-			} catch (error) {
-				progress.processedUnits++;
-				progress.failedUnits++;
-				await onProgress({ ...progress });
-				throw error;
-			}
-			const placed = toRecordedSectionPlacement({
-				extractionItemId: id,
-				priorPlacements,
-				result,
-				title,
-				tree: documents,
-			});
+				for (const item of group) {
+					groupChanges.push(
+						await this.analyzeItem(item, priorPlacements, context),
+					);
+				}
 
-			priorPlacements.push(placed.recorded);
+				return groupChanges;
+			},
+		);
+		const changeByItemId = new Map(
+			analyzedGroups
+				.flat()
+				.map((change) => [change.toObject().extractionItemId, change]),
+		);
+		const changes = items.flatMap((item) => {
+			const change = changeByItemId.get(item.toObject().id);
 
-			const placement: DocumentPlacementDto = {
-				matches: result.matches.map((match) => ({
-					content: match.item.content,
-					nodeId: match.item.id,
-					span: match.span,
-					title: match.item.title,
-				})),
-				parentExtractionItemId: placed.parentExtractionItemId,
-				parentId: placed.parentId,
-				parentTitle: placed.parentTitle,
-				proposesParent: placed.proposesParent,
-				siblingOrder: placed.siblingOrder,
-			};
-
-			changes.push(
-				IntegrationChangeEntity.initializeNew({
-					documentId,
-					explanation: result.explanation,
-					extractionItemId: id,
-					incomingContent: text,
-					incomingTitle: title,
-					liveContent: result.matchedItem?.content ?? null,
-					liveTitle: result.matchedItem?.title ?? null,
-					matchedNodeId: result.matchedItem?.id ?? null,
-					placement,
-					score: result.score,
-					type: result.type,
-				}),
-			);
-			progress.processedUnits++;
-			await onProgress({ ...progress });
-		}
+			return change ? [change] : [];
+		});
 
 		return toResolvableChanges(changes);
 	}

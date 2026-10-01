@@ -1,6 +1,6 @@
 import {
 	applyIntegrationChanges,
-	cancelDocumentProcessing,
+	cancelDocument,
 	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	createDocumentNode,
@@ -30,7 +30,7 @@ import { actions as sliceActions } from "./knowledge.slice.js";
 const allActions = {
 	...sliceActions,
 	applyIntegrationChanges,
-	cancelDocumentProcessing,
+	cancelDocument,
 	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	createDocumentNode,

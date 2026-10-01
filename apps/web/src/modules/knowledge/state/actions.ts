@@ -1220,28 +1220,9 @@ const retryDocumentProcessing = createAppAsyncThunk<
 	},
 );
 
-const isConflictError = (error: unknown): boolean => {
-	return error instanceof HTTPError && error.status === HTTPCode.CONFLICT;
-};
-
-const cancelDocumentProcessing = createAppAsyncThunk<
-	null,
-	UntrackDocumentPayload
->(
-	`${sliceName}/cancel-document-processing`,
-	async (payload, { dispatch, extra, signal }) => {
-		try {
-			await extra.documentsApi.cancelProcessing({
-				documentId: payload.documentId,
-				projectId: payload.projectId,
-				signal,
-			});
-		} catch (error) {
-			if (!isConflictError(error)) {
-				throw error;
-			}
-		}
-
+const untrackDocument = createAppAsyncThunk<null, UntrackDocumentPayload>(
+	`${sliceName}/untrack-document`,
+	(payload, { dispatch }) => {
 		removeTrackedDocumentId(payload.projectId, payload.documentId);
 		dispatch(sliceSyncActions.untrackDocumentState(payload));
 
@@ -1249,11 +1230,18 @@ const cancelDocumentProcessing = createAppAsyncThunk<
 	},
 );
 
-const untrackDocument = createAppAsyncThunk<null, UntrackDocumentPayload>(
-	`${sliceName}/untrack-document`,
-	(payload, { dispatch }) => {
-		removeTrackedDocumentId(payload.projectId, payload.documentId);
-		dispatch(sliceSyncActions.untrackDocumentState(payload));
+const cancelDocument = createAppAsyncThunk<null, UntrackDocumentPayload>(
+	`${sliceName}/cancel-document`,
+	async (payload, { dispatch, extra, signal }) => {
+		try {
+			await extra.documentsApi.cancelProcessing({ ...payload, signal });
+		} catch (error) {
+			if (isUnauthorizedError(error)) {
+				throw error;
+			}
+		}
+
+		await dispatch(untrackDocument(payload));
 
 		return null;
 	},
@@ -1284,7 +1272,7 @@ const checkGlossaryConsistency = createAsyncThunk<
 
 export {
 	applyIntegrationChanges,
-	cancelDocumentProcessing,
+	cancelDocument,
 	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	createDocumentNode,

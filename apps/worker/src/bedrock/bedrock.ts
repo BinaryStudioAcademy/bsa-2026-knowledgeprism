@@ -1,8 +1,8 @@
-import { BedrockRuntimeClient } from "@aws-sdk/client-bedrock-runtime";
-
 import { config } from "~/config/config.js";
 
-const bedrockRuntimeClient = new BedrockRuntimeClient({
+import { createBedrockRuntimeClient } from "./create-bedrock-runtime-client.helper.js";
+
+const bedrockRuntimeClient = createBedrockRuntimeClient({
 	region: config.ENV.AWS.REGION,
 });
 

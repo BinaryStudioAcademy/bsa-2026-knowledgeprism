@@ -40,22 +40,16 @@ const MobileSidebarToggle = ({
 	</Button>
 );
 
-const MobileCenteredTitle = ({
-	isEditing,
-	title,
-}: {
-	isEditing: boolean;
-	title: string | undefined;
-}) => {
+const MobileCenteredTitle = ({ title }: { title: string | undefined }) => {
 	if (!title) {
 		return null;
 	}
 
 	return (
-		<div
-			className={`absolute left-1/2 w-[calc(100%-${isEditing ? "12rem" : "10.5rem"})] -translate-x-1/2 overflow-x-auto whitespace-nowrap text-center font-medium text-text text-control @5xl:hidden`}
-		>
-			{title}
+		<div className="flex min-w-0 flex-1 justify-center @5xl:hidden">
+			<span className="block max-w-full truncate font-medium text-text text-control">
+				{title}
+			</span>
 		</div>
 	);
 };
@@ -68,20 +62,30 @@ const KnowledgeTreeBreadcrumbs = ({
 	return (
 		<nav
 			aria-label="Breadcrumb"
-			className="hidden items-center gap-2 text-[13px] text-text-muted @5xl:flex"
+			className="hidden min-w-0 flex-1 items-center gap-2 text-[13px] text-text-muted @5xl:flex"
 		>
 			{breadcrumbs.map((breadcrumb, index) => {
 				const isLast = index === breadcrumbs.length - LAST_INDEX_OFFSET;
+
 				return (
 					<React.Fragment key={`${String(index)}-${breadcrumb}`}>
 						<span
 							aria-current={isLast ? "page" : undefined}
-							className={isLast ? "font-medium text-text" : "text-text-muted"}
+							className={`block truncate ${
+								isLast ? "font-medium text-text" : "text-text-muted"
+							}`}
+							title={breadcrumb}
 						>
 							{breadcrumb}
 						</span>
 						{!isLast && (
-							<Icon aria-hidden="true" name="chevron-filled-right" size={10} />
+							<span className="shrink-0">
+								<Icon
+									aria-hidden="true"
+									name="chevron-filled-right"
+									size={10}
+								/>
+							</span>
 						)}
 					</React.Fragment>
 				);
@@ -108,12 +112,15 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 	const currentFileName = breadcrumbs.at(-LAST_INDEX_OFFSET);
 
 	return (
-		<div className="relative flex items-center justify-between border-b border-border bg-surface px-4 py-4 @5xl:px-8">
-			<MobileSidebarToggle onOpenSidebar={onOpenSidebar} />
-			<KnowledgeTreeBreadcrumbs breadcrumbs={breadcrumbs} />
-			<MobileCenteredTitle isEditing={isEditing} title={currentFileName} />
+		<div className="relative flex items-center justify-between gap-4 border-b border-border bg-surface px-4 py-4 @5xl:px-8">
+			<div className="flex min-w-0 items-center @5xl:flex-1">
+				<MobileSidebarToggle onOpenSidebar={onOpenSidebar} />
+				<KnowledgeTreeBreadcrumbs breadcrumbs={breadcrumbs} />
+			</div>
 
-			<div className="flex items-center gap-3.5">
+			<MobileCenteredTitle title={currentFileName} />
+
+			<div className="relative z-10 flex shrink-0 items-center gap-3.5">
 				{showCompactLoading && (
 					<div className="hidden @5xl:block">
 						{hasError || currentStatus === "FAILED" ? (
@@ -135,16 +142,22 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 						)}
 					</div>
 				)}
+
 				{canEdit && !isEditing && (
-					<Button onClick={onEdit} variant="primary">
+					<Button
+						className="h-10 @5xl:h-auto"
+						onClick={onEdit}
+						variant="primary"
+					>
 						Edit
 					</Button>
 				)}
+
 				{canEdit && isEditing && (
 					<>
 						<Button
 							aria-label="Cancel"
-							className="h-10 w-10 p-0! @5xl:h-auto @5xl:w-auto @5xl:px-5! @5xl:py-2.5!"
+							className="-ml-3 h-10 w-10 p-0! @5xl:ml-0 @5xl:h-auto @5xl:w-auto @5xl:px-5! @5xl:py-2.5!"
 							onClick={onCancel}
 							variant="ghost"
 						>
@@ -153,6 +166,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 								<Icon aria-hidden="true" name="close" size={16} />
 							</span>
 						</Button>
+
 						<Button
 							aria-label="Save"
 							className="h-10 w-10 p-0! @5xl:h-auto @5xl:w-auto @5xl:px-5! @5xl:py-2.5!"

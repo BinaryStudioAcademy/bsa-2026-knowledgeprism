@@ -37,5 +37,6 @@ export { type ExtractionBlock } from "./modules/knowledge-extraction/libs/types/
 export { type ExtractionResult } from "./modules/knowledge-extraction/libs/types/extraction-result.type.js";
 export { type KnowledgeItem } from "./modules/knowledge-extraction/libs/types/knowledge-item.type.js";
 export { extract } from "./modules/knowledge-extraction/services/knowledge-extraction.service.js";
+export { DocumentParseFailedError } from "./parsers/libs/exceptions/document-parse-failed.exception.js";
 export { type ParsedPageBlock } from "./parsers/libs/types/parsed-page-block.type.js";
 export { parseDocument } from "./parsers/parse-document.js";

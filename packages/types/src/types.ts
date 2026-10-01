@@ -43,7 +43,6 @@ export {
 	type IntegrationConflictResolutionDto,
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
-	type ManualTextRouteParametersDto,
 	type PendingReviewDocumentsResponseDto,
 	ExtractionBlockBackground,
 	ExtractionHeadingLevel,

@@ -61,6 +61,10 @@ const selectManagedUsers = <TUser extends ManagedUser>(
 		}
 
 		if (scope.projectIds === null) {
+			if (scope.isCurrentUserOrganisationAdmin) {
+				return true;
+			}
+
 			return user.assignedProjects.length > EMPTY_ASSIGNMENT_LENGTH;
 		}
 

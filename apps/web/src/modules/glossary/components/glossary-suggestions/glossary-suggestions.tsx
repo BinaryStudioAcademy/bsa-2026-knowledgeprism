@@ -23,18 +23,27 @@ const GLOSSARY_SUGGESTIONS_HEADING: Record<
 	[TextHighlightVariant.WARNING]: "Glossary warnings",
 };
 
+const GLOSSARY_SUGGESTIONS_HINT: Partial<
+	Record<ValueOf<typeof TextHighlightVariant>, string>
+> = {
+	[TextHighlightVariant.WARNING]:
+		"You can still save. A warning stays until the text is changed or the term is added to the glossary.",
+};
+
 type GlossarySuggestionRowProperties = {
 	canAccept: boolean;
 	match: GlossaryConsistencyMatchDto;
 	onAccept: (match: GlossaryConsistencyMatchDto) => void;
+	onAddToGlossary?: (match: GlossaryConsistencyMatchDto) => void;
 	onEdit?: (match: GlossaryConsistencyMatchDto) => void;
-	onKeep: (match: GlossaryConsistencyMatchDto) => void;
+	onKeep?: (match: GlossaryConsistencyMatchDto) => void;
 };
 
 const GlossarySuggestionRow = ({
 	canAccept,
 	match,
 	onAccept,
+	onAddToGlossary,
 	onEdit,
 	onKeep,
 }: GlossarySuggestionRowProperties): JSX.Element => {
@@ -60,8 +69,9 @@ const GlossarySuggestionRow = ({
 				canAccept={canAccept}
 				match={match}
 				onAccept={onAccept}
+				{...(onAddToGlossary === undefined ? {} : { onAddToGlossary })}
 				{...(onEdit === undefined ? {} : { onEdit })}
-				onKeep={onKeep}
+				{...(onKeep === undefined ? {} : { onKeep })}
 			/>
 		</div>
 	);
@@ -72,8 +82,9 @@ type GlossarySuggestionsProperties = {
 	isChecking: boolean;
 	matches: GlossaryConsistencyMatchDto[];
 	onAccept: (match: GlossaryConsistencyMatchDto) => void;
+	onAddToGlossary?: (match: GlossaryConsistencyMatchDto) => void;
 	onEdit?: (match: GlossaryConsistencyMatchDto) => void;
-	onKeep: (match: GlossaryConsistencyMatchDto) => void;
+	onKeep?: (match: GlossaryConsistencyMatchDto) => void;
 	variant: ValueOf<typeof TextHighlightVariant>;
 };
 
@@ -82,6 +93,7 @@ const GlossarySuggestions = ({
 	isChecking,
 	matches,
 	onAccept,
+	onAddToGlossary,
 	onEdit,
 	onKeep,
 	variant,
@@ -107,6 +119,14 @@ const GlossarySuggestions = ({
 					{GLOSSARY_SUGGESTIONS_HEADING[variant]} ({matches.length})
 				</span>
 			</div>
+			{GLOSSARY_SUGGESTIONS_HINT[variant] && (
+				<Paragraph
+					className="text-2xs text-text-faint"
+					size={ParagraphSize.BODY_SMALL}
+				>
+					{GLOSSARY_SUGGESTIONS_HINT[variant]}
+				</Paragraph>
+			)}
 
 			{matches.map((match) => (
 				<GlossarySuggestionRow
@@ -114,8 +134,9 @@ const GlossarySuggestions = ({
 					key={`${match.matchedTermId.toString()}-${match.sourceExcerpt}`}
 					match={match}
 					onAccept={onAccept}
+					{...(onAddToGlossary === undefined ? {} : { onAddToGlossary })}
 					{...(onEdit === undefined ? {} : { onEdit })}
-					onKeep={onKeep}
+					{...(onKeep === undefined ? {} : { onKeep })}
 				/>
 			))}
 		</div>

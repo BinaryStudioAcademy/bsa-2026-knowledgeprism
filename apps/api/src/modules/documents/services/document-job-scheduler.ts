@@ -13,6 +13,8 @@ import { type DocumentRepository } from "~/modules/documents/repositories/docume
 import { type DocumentProcessor } from "./document-processor.js";
 import { type IntegrationAnalyzer } from "./integration-analyzer.js";
 
+const DOCUMENT_PARSE_FAILED_ERROR_NAME = "DocumentParseFailedError";
+
 type Constructor = {
 	documentProcessor: DocumentProcessor;
 	documentRepository: DocumentRepository;
@@ -37,6 +39,19 @@ type ScheduledInterval = ReturnType<typeof setInterval>;
 const DEFAULT_INTERVAL_SCHEDULER: IntervalScheduler = {
 	clear: clearInterval,
 	repeat: setInterval,
+};
+
+const isDocumentParseFailedError = (
+	error: unknown,
+): error is { message: string } => {
+	return (
+		typeof error === "object" &&
+		error !== null &&
+		"name" in error &&
+		error.name === DOCUMENT_PARSE_FAILED_ERROR_NAME &&
+		"message" in error &&
+		typeof (error as { message: unknown }).message === "string"
+	);
 };
 
 class DocumentJobScheduler {
@@ -67,10 +82,11 @@ class DocumentJobScheduler {
 	private async fail(
 		{ errorMessage, status }: DocumentJob,
 		{ attempt, documentId }: ProcessingAttempt,
+		customErrorMessage?: string,
 	): Promise<void> {
 		try {
 			await this.documentRepository.compareAndSwapStatus({
-				errorMessage,
+				errorMessage: customErrorMessage ?? errorMessage,
 				expectedStatus: status,
 				id: documentId,
 				processingAttempt: attempt,
@@ -120,7 +136,11 @@ class DocumentJobScheduler {
 				status: job.status,
 			});
 
-			await this.fail(job, processingAttempt);
+			const failureMessage = isDocumentParseFailedError(error)
+				? error.message
+				: job.errorMessage;
+
+			await this.fail(job, processingAttempt, failureMessage);
 		} finally {
 			this.intervalScheduler.clear(heartbeatInterval);
 		}

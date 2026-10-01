@@ -32,17 +32,26 @@ const FIRST_ITEM_ID = 1;
 const SECOND_ITEM_ID = 2;
 const THIRD_ITEM_ID = 3;
 const ZERO_COUNT = 0;
+const SINGLE_COUNT = 1;
+const FIRST_SECTION_ID = 10;
+const SECOND_SECTION_ID = 20;
 const FIRST_PARAMETER_INDEX = 0;
 
 const createItem = (
 	id: number,
 	text: string,
-	status: ValueOf<typeof ExtractionItemStatus> = ExtractionItemStatus.APPROVED,
+	{
+		extractionSectionId = null,
+		status = ExtractionItemStatus.APPROVED,
+	}: {
+		extractionSectionId?: null | number;
+		status?: ValueOf<typeof ExtractionItemStatus>;
+	} = {},
 ): ExtractionItemEntity =>
 	ExtractionItemEntity.initialize({
 		confidence: 1,
 		documentId: DOCUMENT_ID,
-		extractionSectionId: null,
+		extractionSectionId,
 		heading: null,
 		id,
 		knowledgeNodeId: null,
@@ -56,6 +65,7 @@ const createItem = (
 	});
 
 const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
+	const priorCountByText = new Map<string, number>();
 	const updates: Parameters<
 		DocumentRepository["updateProcessingProgress"]
 	>[typeof FIRST_PARAMETER_INDEX][] = [];
@@ -97,7 +107,9 @@ const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
 		},
 	} as unknown as DocumentRepository;
 	const analyzer = new IntegrationAnalyzer({
-		analyze: ({ itemText }) => {
+		analyze: ({ itemText, priorPlacements = [] }) => {
+			priorCountByText.set(itemText, priorPlacements.length);
+
 			if (itemText.trim() === "") {
 				return Promise.reject(
 					new Error("Cannot analyze an empty knowledge item"),
@@ -141,7 +153,14 @@ const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
 			},
 		} as unknown as KnowledgeNodeRepository,
 	});
-	return { analyzer, persistedCounts, projects, transitions, updates };
+	return {
+		analyzer,
+		persistedCounts,
+		priorCountByText,
+		projects,
+		transitions,
+		updates,
+	};
 };
 
 const progress = (
@@ -159,7 +178,9 @@ void describe("integration progress", () => {
 	void it("counts approved items and stops at approval rather than publishing", async () => {
 		const setup = createSetup([
 			createItem(FIRST_ITEM_ID, "First"),
-			createItem(SECOND_ITEM_ID, "Rejected", ExtractionItemStatus.REJECTED),
+			createItem(SECOND_ITEM_ID, "Rejected", {
+				status: ExtractionItemStatus.REJECTED,
+			}),
 			createItem(THIRD_ITEM_ID, "Last"),
 		]);
 		assert.equal(
@@ -193,19 +214,20 @@ void describe("integration progress", () => {
 		assert.deepEqual(setup.projects, [PROJECT_ID]);
 	});
 
-	void it("records the failed item without counting untouched items or publishing partial changes", async () => {
+	void it("records the failed item without publishing partial changes", async () => {
 		const setup = createSetup([
 			createItem(FIRST_ITEM_ID, "First"),
 			createItem(SECOND_ITEM_ID, ""),
-			createItem(THIRD_ITEM_ID, "Untouched"),
+			createItem(THIRD_ITEM_ID, "Last"),
 		]);
 		await assert.rejects(
 			setup.analyzer.process({ attempt: ATTEMPT, documentId: DOCUMENT_ID }),
 			/empty knowledge item/u,
 		);
-		assert.deepEqual(
-			setup.updates.at(-FIRST_ITEM_ID)?.progress,
-			progress(SECOND_ITEM_ID, THIRD_ITEM_ID, FIRST_ITEM_ID),
+		assert.ok(
+			setup.updates.some(
+				(update) => update.progress.failedUnits === SINGLE_COUNT,
+			),
 		);
 		assert.deepEqual(setup.transitions, []);
 		assert.deepEqual(setup.persistedCounts, []);
@@ -223,5 +245,28 @@ void describe("integration progress", () => {
 		assert.deepEqual(setup.projects, []);
 		assert.deepEqual(setup.transitions, []);
 		assert.deepEqual(setup.persistedCounts, []);
+	});
+
+	void it("places each section's items in order while sections run independently", async () => {
+		const setup = createSetup([
+			createItem(FIRST_ITEM_ID, "Section one start", {
+				extractionSectionId: FIRST_SECTION_ID,
+			}),
+			createItem(SECOND_ITEM_ID, "Section two start", {
+				extractionSectionId: SECOND_SECTION_ID,
+			}),
+			createItem(THIRD_ITEM_ID, "Section one follow-up", {
+				extractionSectionId: FIRST_SECTION_ID,
+			}),
+		]);
+
+		await setup.analyzer.process({ attempt: ATTEMPT, documentId: DOCUMENT_ID });
+
+		assert.equal(setup.priorCountByText.get("Section one start"), ZERO_COUNT);
+		assert.equal(setup.priorCountByText.get("Section two start"), ZERO_COUNT);
+		assert.equal(
+			setup.priorCountByText.get("Section one follow-up"),
+			SINGLE_COUNT,
+		);
 	});
 });

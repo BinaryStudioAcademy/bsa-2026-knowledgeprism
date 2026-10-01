@@ -70,6 +70,39 @@ void describe("locateSourceSpan", () => {
 		assert.equal(locateSourceSpan(GLOSSARY_PAGE, excerpt), null);
 	});
 
+	void it("matches straight quotes and hyphens against typographic ones on the page", () => {
+		const page =
+			"Responses come from the organization’s knowledge base — errors read “User is inactive”.";
+
+		assert.equal(
+			locateSourceSpan(
+				page,
+				"Responses come from the organization's knowledge base - errors read \u{22}User is inactive\u{22}.",
+			),
+			page,
+		);
+	});
+
+	void it("matches a word that the page splits across a line break", () => {
+		assert.equal(
+			locateSourceSpan(
+				"Source: https://example.com/pulse/ai-a\nssistant-ends-chaos and more.",
+				"https://example.com/pulse/ai-assistant-ends-chaos",
+			),
+			"https://example.com/pulse/ai-a\nssistant-ends-chaos",
+		);
+	});
+
+	void it("matches an excerpt whose line breaks differ from the page", () => {
+		assert.equal(
+			locateSourceSpan(
+				"Editors may upload project\ndocuments and remove them.",
+				"Editors may upload project documents\nand remove them.",
+			),
+			"Editors may upload project\ndocuments and remove them.",
+		);
+	});
+
 	void it("rejects a blank excerpt", () => {
 		assert.equal(locateSourceSpan(GLOSSARY_PAGE, " \n "), null);
 	});

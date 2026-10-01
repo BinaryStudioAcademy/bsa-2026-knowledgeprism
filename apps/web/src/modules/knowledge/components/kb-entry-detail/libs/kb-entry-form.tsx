@@ -24,7 +24,8 @@ import {
 	ParagraphSize,
 } from "~/components/components.js";
 import { TextHighlightVariant } from "~/components/knowledge-editor/libs/enums/enums.js";
-import { useAppForm } from "~/hooks/hooks.js";
+import { useAppForm, useCurrentProjectId } from "~/hooks/hooks.js";
+import { AddToGlossaryModal } from "~/modules/glossary/components/add-to-glossary-modal/add-to-glossary-modal.js";
 import { GlossarySuggestionActions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestion-actions.js";
 import { GlossarySuggestions } from "~/modules/glossary/components/glossary-suggestions/glossary-suggestions.js";
 import {
@@ -181,13 +182,13 @@ const isBlockNoteEmpty = (document: unknown): boolean => {
 
 type GlossaryWarningTooltipContentProperties = {
 	match: GlossaryConsistencyMatchDto;
-	onKeep: (match: GlossaryConsistencyMatchDto) => void;
+	onAddToGlossary: (match: GlossaryConsistencyMatchDto) => void;
 	onReplace: (replacement: string) => void;
 };
 
 const GlossaryWarningTooltipContent = ({
 	match,
-	onKeep,
+	onAddToGlossary,
 	onReplace,
 }: GlossaryWarningTooltipContentProperties): JSX.Element => {
 	const handleAccept = useCallback(
@@ -212,7 +213,7 @@ const GlossaryWarningTooltipContent = ({
 			<GlossarySuggestionActions
 				match={match}
 				onAccept={handleAccept}
-				onKeep={onKeep}
+				onAddToGlossary={onAddToGlossary}
 			/>
 		</div>
 	);
@@ -237,6 +238,9 @@ const KbEntryForm = ({
 }: KbEntryFormProperties) => {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [isMaxTitleReached, setIsMaxTitleReached] = useState(false);
+	const [glossaryTermMatch, setGlossaryTermMatch] =
+		useState<GlossaryConsistencyMatchDto | null>(null);
+	const projectId = useCurrentProjectId();
 	const editorApiReference = useRef<KnowledgeEditorApi | null>(null);
 
 	const initialContent = useMemo(
@@ -287,9 +291,9 @@ const KbEntryForm = ({
 	);
 
 	const {
-		dismiss: dismissGlossaryWarning,
 		isChecking: isCheckingGlossaryWarnings,
 		matches: glossaryWarningMatches,
+		recheck: recheckGlossaryWarnings,
 	} = useGlossaryEditorWarnings({ blocks: editorBlocks });
 
 	const glossaryHighlights = useMemo(
@@ -312,12 +316,21 @@ const KbEntryForm = ({
 		[glossaryWarningMatches],
 	);
 
-	const handleKeepGlossaryWarning = useCallback(
+	const handleAddGlossaryWarningToGlossary = useCallback(
 		(match: GlossaryConsistencyMatchDto): void => {
-			dismissGlossaryWarning(toGlossaryHighlightId(match));
+			setGlossaryTermMatch(match);
 		},
-		[dismissGlossaryWarning],
+		[],
 	);
+
+	const handleCloseAddToGlossary = useCallback((): void => {
+		setGlossaryTermMatch(null);
+	}, []);
+
+	const handleGlossaryTermAdded = useCallback((): void => {
+		setGlossaryTermMatch(null);
+		recheckGlossaryWarnings();
+	}, [recheckGlossaryWarnings]);
 
 	const handleAcceptGlossaryWarningFromList = useCallback(
 		(match: GlossaryConsistencyMatchDto): void => {
@@ -343,12 +356,12 @@ const KbEntryForm = ({
 			return (
 				<GlossaryWarningTooltipContent
 					match={match}
-					onKeep={handleKeepGlossaryWarning}
+					onAddToGlossary={handleAddGlossaryWarningToGlossary}
 					onReplace={tooltipActions.replace}
 				/>
 			);
 		},
-		[glossaryMatchesById, handleKeepGlossaryWarning],
+		[glossaryMatchesById, handleAddGlossaryWarningToGlossary],
 	);
 
 	const handleValidSubmit = useCallback(
@@ -405,70 +418,82 @@ const KbEntryForm = ({
 	const isContentEmpty = isBlockNoteEmpty(currentContentJson);
 
 	return (
-		<form
-			className="flex flex-col gap-4"
-			id={formId}
-			onSubmit={handleFormSubmit}
-		>
-			<div className="kb-body flex flex-col gap-4">
-				<div className="flex flex-col gap-1" onInput={handleTitleInput}>
-					<Input
-						control={control}
-						disabled={isSubmitting}
-						label="Title"
-						name="title"
-						placeholder="Enter title..."
-					/>
-					{isMaxTitleReached && !titleError && (
-						<span className="font-sans text-xs text-warning">
-							Maximum length of 255 characters reached
-						</span>
-					)}
-				</div>
+		<>
+			<form
+				className="flex flex-col gap-4"
+				id={formId}
+				onSubmit={handleFormSubmit}
+			>
+				<div className="kb-body flex flex-col gap-4">
+					<div className="flex flex-col gap-1" onInput={handleTitleInput}>
+						<Input
+							control={control}
+							disabled={isSubmitting}
+							label="Title"
+							name="title"
+							placeholder="Enter title..."
+						/>
+						{isMaxTitleReached && !titleError && (
+							<span className="font-sans text-xs text-warning">
+								Maximum length of 255 characters reached
+							</span>
+						)}
+					</div>
 
-				<div className="flex flex-col gap-2">
-					<span
-						className={`font-sans text-sm font-medium ${
-							contentError || isContentEmpty ? "text-error" : "text-text"
-						}`}
-					>
-						Description
-					</span>
-					<div
-						className={`min-h-64 rounded-md border p-2 shadow-sm transition-colors ${
-							contentError || isContentEmpty ? "border-error" : "border-border"
-						}`}
-					>
-						<KnowledgeEditor
-							highlights={glossaryHighlights}
-							initialContent={initialContent}
-							isEditable={!isSubmitting}
-							onChange={handleEditorChange}
-							onReady={handleEditorReady}
-							renderHighlightTooltip={renderGlossaryWarningTooltip}
+					<div className="flex flex-col gap-2">
+						<span
+							className={`font-sans text-sm font-medium ${
+								contentError || isContentEmpty ? "text-error" : "text-text"
+							}`}
+						>
+							Description
+						</span>
+						<div
+							className={`min-h-64 rounded-md border p-2 shadow-sm transition-colors ${
+								contentError || isContentEmpty
+									? "border-error"
+									: "border-border"
+							}`}
+						>
+							<KnowledgeEditor
+								highlights={glossaryHighlights}
+								initialContent={initialContent}
+								isEditable={!isSubmitting}
+								onChange={handleEditorChange}
+								onReady={handleEditorReady}
+								renderHighlightTooltip={renderGlossaryWarningTooltip}
+							/>
+						</div>
+						{(contentError || isContentEmpty) && (
+							<span className="font-sans text-xs text-error">
+								{contentError?.message || "Description cannot be empty"}
+							</span>
+						)}
+
+						<GlossarySuggestions
+							isChecking={isCheckingGlossaryWarnings}
+							matches={glossaryWarningMatches}
+							onAccept={handleAcceptGlossaryWarningFromList}
+							onAddToGlossary={handleAddGlossaryWarningToGlossary}
+							variant={TextHighlightVariant.WARNING}
 						/>
 					</div>
-					{(contentError || isContentEmpty) && (
-						<span className="font-sans text-xs text-error">
-							{contentError?.message || "Description cannot be empty"}
-						</span>
-					)}
-
-					<GlossarySuggestions
-						isChecking={isCheckingGlossaryWarnings}
-						matches={glossaryWarningMatches}
-						onAccept={handleAcceptGlossaryWarningFromList}
-						onKeep={handleKeepGlossaryWarning}
-						variant={TextHighlightVariant.WARNING}
-					/>
 				</div>
-			</div>
-			{showSubmit && (
-				<Button disabled={isSubmitting} type="submit" variant="primary">
-					Save
-				</Button>
+				{showSubmit && (
+					<Button disabled={isSubmitting} type="submit" variant="primary">
+						Save
+					</Button>
+				)}
+			</form>
+			{glossaryTermMatch && (
+				<AddToGlossaryModal
+					match={glossaryTermMatch}
+					onAdded={handleGlossaryTermAdded}
+					onCancel={handleCloseAddToGlossary}
+					projectId={projectId}
+				/>
 			)}
-		</form>
+		</>
 	);
 };
 

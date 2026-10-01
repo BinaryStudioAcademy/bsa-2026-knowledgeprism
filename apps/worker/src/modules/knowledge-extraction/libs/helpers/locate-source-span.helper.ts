@@ -3,11 +3,38 @@ const LAST_CHARACTER_OFFSET = 1;
 const LINE_BREAK = /\r?\n/u;
 const NOT_FOUND_INDEX = -1;
 const WHITESPACE = /\s/u;
-const WHITESPACE_RUN = /\s+/gu;
+
+const TypographicCharacter = {
+	DASHES: /[‐-―−]/u,
+	DOUBLE_QUOTES: /[“”„‟″]/u,
+	SINGLE_QUOTES: /[‘’‚‛′]/u,
+} as const;
+
+const PlainCharacter = {
+	DASH: "-",
+	DOUBLE_QUOTE: "\u{22}",
+	SINGLE_QUOTE: "'",
+} as const;
 
 type CompactText = {
 	positions: number[];
 	text: string;
+};
+
+const toPlainCharacter = (character: string): string => {
+	if (TypographicCharacter.SINGLE_QUOTES.test(character)) {
+		return PlainCharacter.SINGLE_QUOTE;
+	}
+
+	if (TypographicCharacter.DOUBLE_QUOTES.test(character)) {
+		return PlainCharacter.DOUBLE_QUOTE;
+	}
+
+	if (TypographicCharacter.DASHES.test(character)) {
+		return PlainCharacter.DASH;
+	}
+
+	return character;
 };
 
 const toCompactText = (value: string): CompactText => {
@@ -19,7 +46,7 @@ const toCompactText = (value: string): CompactText => {
 
 		if (!WHITESPACE.test(character)) {
 			positions.push(index);
-			text += character;
+			text += toPlainCharacter(character);
 		}
 	}
 
@@ -29,7 +56,7 @@ const toCompactText = (value: string): CompactText => {
 const toFragments = (excerpt: string): string[] => {
 	return excerpt
 		.split(LINE_BREAK)
-		.map((line) => line.replaceAll(WHITESPACE_RUN, ""))
+		.map((line) => toCompactText(line).text)
 		.filter((line) => line !== "");
 };
 

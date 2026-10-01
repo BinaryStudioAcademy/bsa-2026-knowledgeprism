@@ -47,6 +47,10 @@ type HeartbeatParameters = {
 	processingAttempt: number;
 };
 
+class DocumentParseFailedTestError extends Error {
+	public override readonly name = "DocumentParseFailedError";
+}
+
 const createDeferred = <T>(): Deferred<T> => {
 	const { promise, reject, resolve } = Promise.withResolvers<T>();
 
@@ -327,6 +331,29 @@ void describe("DocumentJobScheduler heartbeat", () => {
 		await waitForScheduledWork();
 
 		assert.deepStrictEqual(setup.compareAndSwapCalls, []);
+		assert.equal(setup.getClearedCount(), SINGLE_CALL);
+	});
+
+	void it("records specific error message when document parsing fails", async () => {
+		const setup = createTestSetup();
+		const specificErrorMessage =
+			"Text document has an unsupported or unrecognized character encoding.";
+
+		setup.scheduler.scheduleProcessing(PROCESSING_ATTEMPT);
+		await waitForScheduledWork();
+		const parseError = new DocumentParseFailedTestError(specificErrorMessage);
+		setup.processing.reject(parseError);
+		await waitForScheduledWork();
+
+		assert.deepStrictEqual(setup.compareAndSwapCalls, [
+			{
+				errorMessage: specificErrorMessage,
+				expectedStatus: DocumentStatus.PROCESSING,
+				id: DOCUMENT_ID,
+				processingAttempt: ATTEMPT,
+				status: DocumentStatus.FAILED,
+			},
+		]);
 		assert.equal(setup.getClearedCount(), SINGLE_CALL);
 	});
 });

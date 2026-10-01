@@ -26,7 +26,7 @@ import {
 } from "../libs/helpers/helpers.js";
 import {
 	applyIntegrationChanges,
-	cancelDocumentProcessing,
+	cancelDocument,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchKnowledgeEntry,
@@ -112,27 +112,6 @@ const trackDocumentWithStatus = (
 			status,
 		}),
 	);
-};
-
-const createHTTPError = (status: HTTPError["status"]): HTTPError =>
-	new HTTPError({
-		details: [],
-		errorType: ServerErrorType.COMMON,
-		message: `Request failed with ${String(status)}`,
-		status,
-	});
-
-const createCancelRequest = (documentId: number) => ({
-	documentId,
-	projectId: PROJECT_ID,
-});
-
-const trackPersistedDocumentWithStatus = (
-	documentId: number,
-	status: DocumentStatusResponseDto["status"],
-): void => {
-	addTrackedDocumentId(PROJECT_ID, documentId);
-	trackDocumentWithStatus(documentId, status);
 };
 
 const createDeferred = <Value>(): PromiseWithResolvers<Value> =>
@@ -347,68 +326,6 @@ describe("knowledge pipeline lifecycle", () => {
 
 		expect(getStatus).toHaveBeenCalledTimes(SINGLE_CALL_COUNT);
 		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
-	});
-
-	it("cancels a tracked document and stops tracking it", async () => {
-		trackPersistedDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
-		const cancelProcessing = vi
-			.spyOn(documentsApi, "cancelProcessing")
-			.mockResolvedValue(
-				createStatusResponse(DOCUMENT_A_ID, DocumentStatus.FAILED),
-			);
-
-		const result = await store.instance.dispatch(
-			cancelDocumentProcessing(createCancelRequest(DOCUMENT_A_ID)),
-		);
-
-		expect(cancelDocumentProcessing.fulfilled.match(result)).toBe(true);
-		expect(cancelProcessing).toHaveBeenCalledTimes(SINGLE_CALL_COUNT);
-		expect(cancelProcessing).toHaveBeenCalledWith(
-			expect.objectContaining(createCancelRequest(DOCUMENT_A_ID)),
-		);
-		const state = store.instance.getState().knowledge;
-		expect(state.trackedDocuments).toEqual([]);
-		expect(state.activeDocumentId).not.toBe(DOCUMENT_A_ID);
-		expect(readTrackedDocumentIds(PROJECT_ID)).not.toContain(DOCUMENT_A_ID);
-	});
-
-	it("stops tracking a cancelled document when the server reports a conflict", async () => {
-		trackPersistedDocumentWithStatus(
-			DOCUMENT_A_ID,
-			DocumentStatus.WAITING_FOR_VALIDATION,
-		);
-		vi.spyOn(documentsApi, "cancelProcessing").mockRejectedValue(
-			createHTTPError(HTTPCode.CONFLICT),
-		);
-
-		const result = await store.instance.dispatch(
-			cancelDocumentProcessing(createCancelRequest(DOCUMENT_A_ID)),
-		);
-
-		expect(cancelDocumentProcessing.fulfilled.match(result)).toBe(true);
-		const state = store.instance.getState().knowledge;
-		expect(state.trackedDocuments).toEqual([]);
-		expect(state.activeDocumentId).not.toBe(DOCUMENT_A_ID);
-		expect(readTrackedDocumentIds(PROJECT_ID)).not.toContain(DOCUMENT_A_ID);
-	});
-
-	it("keeps tracking a document when cancellation fails unexpectedly", async () => {
-		trackPersistedDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
-		vi.spyOn(documentsApi, "cancelProcessing").mockRejectedValue(
-			createHTTPError(HTTPCode.INTERNAL_SERVER_ERROR),
-		);
-
-		const result = await store.instance.dispatch(
-			cancelDocumentProcessing(createCancelRequest(DOCUMENT_A_ID)),
-		);
-
-		expect(cancelDocumentProcessing.rejected.match(result)).toBe(true);
-		const state = store.instance.getState().knowledge;
-		expect(state.trackedDocuments).toContainEqual(
-			expect.objectContaining({ documentId: DOCUMENT_A_ID }),
-		);
-		expect(state.activeDocumentId).toBe(DOCUMENT_A_ID);
-		expect(readTrackedDocumentIds(PROJECT_ID)).toContain(DOCUMENT_A_ID);
 	});
 
 	it("does not resurrect an untracked document when an in-flight poll resolves", async () => {
@@ -846,6 +763,66 @@ describe("knowledge pipeline lifecycle", () => {
 				documentId: DOCUMENT_A_ID,
 				status: DocumentStatus.INTEGRATING,
 			}),
+		);
+	});
+
+	it("cancels the document on the server and stops tracking it", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.FAILED);
+		const cancel = vi
+			.spyOn(documentsApi, "cancelProcessing")
+			.mockResolvedValue(
+				createStatusResponse(DOCUMENT_A_ID, DocumentStatus.CANCELLED),
+			);
+
+		await store.instance.dispatch(
+			cancelDocument({ documentId: DOCUMENT_A_ID, projectId: PROJECT_ID }),
+		);
+
+		expect(cancel).toHaveBeenCalledWith(
+			expect.objectContaining({
+				documentId: DOCUMENT_A_ID,
+				projectId: PROJECT_ID,
+			}),
+		);
+		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
+	});
+
+	it("still stops tracking a document the server refuses to cancel", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.FAILED);
+		vi.spyOn(documentsApi, "cancelProcessing").mockRejectedValue(
+			new HTTPError({
+				details: [],
+				errorType: ServerErrorType.COMMON,
+				message: "Document cannot be cancelled in its current state",
+				status: HTTPCode.CONFLICT,
+			}),
+		);
+
+		await store.instance.dispatch(
+			cancelDocument({ documentId: DOCUMENT_A_ID, projectId: PROJECT_ID }),
+		);
+
+		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
+	});
+
+	it("keeps tracking the document when the session has expired", async () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.FAILED);
+		vi.spyOn(documentsApi, "cancelProcessing").mockRejectedValue(
+			new HTTPError({
+				details: [],
+				errorType: ServerErrorType.COMMON,
+				message: "Unauthorized",
+				status: HTTPCode.UNAUTHORIZED,
+			}),
+		);
+
+		const result = await store.instance.dispatch(
+			cancelDocument({ documentId: DOCUMENT_A_ID, projectId: PROJECT_ID }),
+		);
+
+		expect(cancelDocument.rejected.match(result)).toBe(true);
+		expect(store.instance.getState().knowledge.trackedDocuments).not.toEqual(
+			[],
 		);
 	});
 
