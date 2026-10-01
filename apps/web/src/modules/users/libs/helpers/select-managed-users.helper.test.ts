@@ -126,6 +126,6 @@ describe("selectManagedUsers", () => {
 				isCurrentUserOrganisationAdmin: true,
 				projectIds: KNOWN_PROJECTS,
 			}),
-		).toEqual([signedInAdmin]);
+		).toEqual([signedInAdmin, UNASSIGNED_MEMBER]);
 	});
 });

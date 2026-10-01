@@ -106,7 +106,11 @@ const UserManagementHubPage: React.FC = () => {
 			const id = event_.currentTarget.dataset["id"];
 
 			if (id) {
-				void navigate(AppRoute.USERS_EDIT.split(":id").join(id));
+				void navigate(AppRoute.USERS_EDIT.split(":id").join(id), {
+					state: {
+						from: `${location.pathname}${location.search}`,
+					},
+				});
 			}
 		},
 		[navigate],
