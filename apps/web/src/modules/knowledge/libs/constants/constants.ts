@@ -31,6 +31,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 const KNOWLEDGE_TREE_ITEM_CONFIG = {
 	BASE_PADDING: 10,
+	CHEVRON_ICON_SIZE: 10,
 	DEFAULT_LEVEL: 0,
 	LEVEL_INCREMENT: 1,
 	LEVEL_MULTIPLIER: 16,
@@ -39,8 +40,12 @@ const KNOWLEDGE_TREE_ITEM_CONFIG = {
 } as const;
 
 const KnowledgeNotificationMessage = {
+	DOCUMENT_CREATED: "Document created",
+	DOCUMENT_MOVED: "Document moved",
+	DOCUMENT_REMOVED: "Document removed",
 	ENTRY_UPDATED: "Changes successfully saved",
 	MANUAL_TEXT_SUBMITTED: "Text submitted for processing",
+	SECTION_REMOVED: "Section removed",
 } as const;
 
 export {

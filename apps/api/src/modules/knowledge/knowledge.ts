@@ -1,3 +1,4 @@
+import { database } from "~/infrastructure/database/database.js";
 import { logger } from "~/infrastructure/logger/logger.js";
 import { projectService } from "~/modules/projects/projects.js";
 
@@ -9,6 +10,7 @@ import { KnowledgeService } from "./services/knowledge.service.js";
 
 const knowledgeNodeRepository = new KnowledgeNodeRepository(KnowledgeNodeModel);
 const knowledgeService = new KnowledgeService({
+	database,
 	knowledgeNodeRepository,
 	logger,
 	projectService,

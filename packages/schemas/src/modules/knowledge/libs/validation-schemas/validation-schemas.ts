@@ -1,3 +1,5 @@
+export { knowledgeDocumentCreate as knowledgeDocumentCreateValidationSchema } from "./knowledge-document-create.validation-schema.js";
+export { knowledgeDocumentMove as knowledgeDocumentMoveValidationSchema } from "./knowledge-document-move.validation-schema.js";
 export { knowledgeEntryRouteParameters as knowledgeEntryRouteParametersValidationSchema } from "./knowledge-entry-route-parameters.validation-schema.js";
 export { knowledgeEntryUpdate as knowledgeEntryUpdateValidationSchema } from "./knowledge-entry-update.validation-schema.js";
 export { knowledgeSearchQueryValidationSchema } from "./knowledge-search-query.validation-schema.js";

@@ -14,6 +14,7 @@ import {
 
 import { type Database } from "~/infrastructure/database/database.js";
 import { DocumentProcessingError } from "~/modules/documents/libs/exceptions/document-processing.exception.js";
+import { createOrderedProgressReporter } from "~/modules/documents/libs/helpers/create-ordered-progress-reporter.helper.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
@@ -102,14 +103,14 @@ class DocumentProcessor {
 				documentId,
 				processingAttempt: attempt,
 			},
-			async (progress) => {
-				await this.documentRepository.updateProcessingProgress({
+			createOrderedProgressReporter((progress) =>
+				this.documentRepository.updateProcessingProgress({
 					id: documentId,
 					processingAttempt: attempt,
 					progress,
 					status: DocumentStatus.PROCESSING,
-				});
-			},
+				}),
+			),
 		);
 
 		if (items.length === EMPTY_EXTRACTION_ITEM_COUNT) {
@@ -127,7 +128,7 @@ class DocumentProcessor {
 						failedPageNumbers,
 						id: documentId,
 						processingAttempt: attempt,
-						status: DocumentStatus.WAITING_FOR_VALIDATION,
+						status: DocumentStatus.INTEGRATING,
 					},
 					transaction,
 				);
@@ -138,6 +139,11 @@ class DocumentProcessor {
 
 			await this.extractionItemRepository.replacePending(
 				{ documentId, items },
+				transaction,
+			);
+
+			await this.extractionItemRepository.markPendingApproved(
+				documentId,
 				transaction,
 			);
 

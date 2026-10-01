@@ -8,6 +8,8 @@ import {
 } from "@knowledgeprism/constants";
 import {
 	type DocumentProcessingProgressDto,
+	type ExtractionContentBlock,
+	ExtractionHeadingLevel,
 	type ValueOf,
 } from "@knowledgeprism/types";
 import assert from "node:assert/strict";
@@ -75,6 +77,7 @@ const createTestSetup = (
 			confidence: CONFIDENCE_SCORE,
 			documentId: DOCUMENT_ID,
 			extractionSectionId: null,
+			heading: null,
 			id: ITEM_ID,
 			knowledgeNodeId: null,
 			position: FIRST_POSITION,
@@ -240,6 +243,7 @@ const createTestSetup = (
 			items: {
 				confidence: number;
 				extractionSectionId?: null | number;
+				heading?: null | string;
 				position?: number;
 				rationale: string;
 				sourceExcerpt: string;
@@ -255,6 +259,7 @@ const createTestSetup = (
 					...item,
 					documentId,
 					extractionSectionId: item.extractionSectionId ?? null,
+					heading: item.heading ?? null,
 					id: nextItemId++,
 					knowledgeNodeId: null,
 					position: item.position ?? FIRST_POSITION,
@@ -323,12 +328,14 @@ const createTestSetup = (
 			return updated;
 		},
 		updatePendingReviewPlacement: async ({
+			blocks,
 			extractionSectionId,
 			id,
 			position,
 			text,
 			title,
 		}: {
+			blocks?: ExtractionContentBlock[];
 			documentId: number;
 			extractionSectionId: number;
 			id: number;
@@ -351,6 +358,7 @@ const createTestSetup = (
 
 			const updated = ExtractionItemEntity.initialize({
 				...current,
+				...(blocks && { blocks }),
 				extractionSectionId,
 				position,
 				text,
@@ -502,7 +510,10 @@ void describe("DocumentReviewService Concurrency", () => {
 
 		assert.strictEqual(editResult.title, "Updated title");
 		assert.strictEqual(editResult.text, "Updated text");
-		assert.strictEqual(reviewResult.status, DocumentStatus.INTEGRATING);
+		assert.strictEqual(
+			reviewResult.status,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		);
 
 		const approvedItem = getItems().find(
 			(item) => item.toObject().id === ITEM_ID,
@@ -549,7 +560,10 @@ void describe("DocumentReviewService Concurrency", () => {
 		});
 
 		const reviewResult = await reviewPromise;
-		assert.strictEqual(reviewResult.status, DocumentStatus.INTEGRATING);
+		assert.strictEqual(
+			reviewResult.status,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		);
 
 		await assert.rejects(
 			async () => {
@@ -560,7 +574,7 @@ void describe("DocumentReviewService Concurrency", () => {
 				assert.strictEqual(error.status, HTTPCode.CONFLICT);
 				assert.strictEqual(
 					error.message,
-					DocumentErrorMessage.REVIEW_NOT_ALLOWED,
+					DocumentErrorMessage.EXTRACTION_ITEM_NOT_PENDING,
 				);
 
 				return true;
@@ -589,6 +603,19 @@ void describe("DocumentReviewService Concurrency", () => {
 					{
 						items: [
 							{
+								blocks: [
+									{
+										content: [{ text: "Core Capabilities", type: "text" }],
+										props: { level: ExtractionHeadingLevel.SECTION },
+										type: "heading",
+									},
+									{
+										content: [
+											{ styles: { bold: true }, text: "Stores", type: "text" },
+										],
+										type: "bulletListItem",
+									},
+								],
 								id: ITEM_ID,
 								text: "Structured text",
 								title: "Structured title",
@@ -605,7 +632,10 @@ void describe("DocumentReviewService Concurrency", () => {
 			projectId: PROJECT_ID,
 		});
 
-		assert.strictEqual(reviewResult.status, DocumentStatus.INTEGRATING);
+		assert.strictEqual(
+			reviewResult.status,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		);
 
 		const reviewedItems = getItems().map((item) => item.toObject());
 		const updatedOriginal = reviewedItems.find((item) => item.id === ITEM_ID);
@@ -618,7 +648,15 @@ void describe("DocumentReviewService Concurrency", () => {
 		assert.strictEqual(updatedOriginal.extractionSectionId, SECTION_ID);
 		assert.strictEqual(updatedOriginal.position, FIRST_POSITION);
 		assert.strictEqual(updatedOriginal.title, "Structured title");
+		const savedBlocks = updatedOriginal.blocks ?? [];
+		const headingBlock = savedBlocks[FIRST_POSITION];
+		const listBlock = savedBlocks[SECOND_POSITION];
+
 		assert.strictEqual(updatedOriginal.text, "Structured text");
+		assert.ok(headingBlock);
+		assert.ok(listBlock);
+		assert.strictEqual(headingBlock.type, "heading");
+		assert.strictEqual(listBlock.type, "bulletListItem");
 
 		assert.ok(createdManual);
 		assert.strictEqual(createdManual.status, ExtractionItemStatus.APPROVED);
@@ -664,7 +702,10 @@ void describe("DocumentReviewService Concurrency", () => {
 			projectId: PROJECT_ID,
 		});
 
-		assert.strictEqual(reviewResult.status, DocumentStatus.INTEGRATING);
+		assert.strictEqual(
+			reviewResult.status,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		);
 
 		const reviewedItems = getItems();
 		assert.strictEqual(reviewedItems.length, LARGE_PAGE_COUNT);

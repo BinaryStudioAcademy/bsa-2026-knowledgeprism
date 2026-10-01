@@ -9,6 +9,7 @@ import React, {
 } from "react";
 import { tv } from "tailwind-variants";
 
+import { Icon } from "~/components/icon/icon.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -25,15 +26,25 @@ import {
 	SEARCH_DEBOUNCE_MS,
 } from "../../libs/constants/constants.js";
 import {
+	type DocumentPlacement,
 	filterKnowledgeTree,
 	getTreeItemElement,
 } from "../../libs/helpers/helpers.js";
+import { KnowledgeTreeDocumentForm } from "./knowledge-tree-document-form.js";
+import { useKnowledgeTreeDrag } from "./knowledge-tree-drag.js";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
 import { KnowledgeTreeSearchBar } from "./knowledge-tree-search-bar.js";
+
+const HIDE_KNOWLEDGE_TREE_ICON_SIZE = 13;
+const HIDE_KNOWLEDGE_TREE_LABEL = "Hide knowledge tree";
 
 const sidebarDrawerStyles = tv({
 	base: "fixed inset-y-0 left-0 z-50 flex h-full w-65 shrink-0 flex-col border-r border-border bg-surface transition-all duration-300 @5xl:static @5xl:translate-x-0 @5xl:visible",
 	variants: {
+		isCollapsed: {
+			false: "",
+			true: "@5xl:hidden",
+		},
 		isOpen: {
 			false: "-translate-x-full invisible",
 			true: "translate-x-0 visible",
@@ -42,17 +53,33 @@ const sidebarDrawerStyles = tv({
 });
 
 type Properties = {
+	canStructure?: boolean | undefined;
+	isCollapsed?: boolean | undefined;
 	isOpen: boolean;
+	isStructurePending?: boolean | undefined;
 	items: KnowledgeTreeItemResponseDto[];
 	onClose: () => void;
+	onCreateDocument?:
+		((title: string, parentId: null | number) => void) | undefined;
+	onEditNode?: ((id: number) => void) | undefined;
+	onHide?: (() => void) | undefined;
+	onMoveDocument?:
+		((id: number, placement: DocumentPlacement) => void) | undefined;
 	onSelectPage: (id: number) => void;
 	selectedPageId?: number | undefined;
 };
 
 const KnowledgeTreeSidebar: React.FC<Properties> = ({
+	canStructure = false,
+	isCollapsed = false,
 	isOpen,
+	isStructurePending = false,
 	items,
 	onClose,
+	onCreateDocument,
+	onEditNode,
+	onHide,
+	onMoveDocument,
 	onSelectPage,
 	selectedPageId,
 }: Properties) => {
@@ -105,6 +132,8 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 		}
 		return map;
 	}, [filteredItems]);
+
+	const drag = useKnowledgeTreeDrag(items, onMoveDocument);
 
 	const rootItems = itemsByParentId.get(null) ?? [];
 
@@ -164,12 +193,38 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 		setSearchQuery("");
 	}, []);
 
+	const handleCreateRootDocument = useCallback(
+		(title: string): void => {
+			if (onCreateDocument) {
+				onCreateDocument(title, null);
+			}
+		},
+		[onCreateDocument],
+	);
+
+	const handleCreateDocument = useCallback(
+		(title: string, parentId: number): void => {
+			if (onCreateDocument) {
+				onCreateDocument(title, parentId);
+			}
+		},
+		[onCreateDocument],
+	);
+
 	const handleSelectPage = useCallback(
 		(id: number) => {
 			onSelectPage(id);
 			onClose();
 		},
 		[onClose, onSelectPage],
+	);
+
+	const handleEditNode = useCallback(
+		(id: number) => {
+			onEditNode?.(id);
+			onClose();
+		},
+		[onClose, onEditNode],
 	);
 
 	const handleBackdropKeyDown = useCallback(
@@ -227,47 +282,78 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 			)}
 
 			<aside
-				className={sidebarDrawerStyles({ isOpen })}
+				className={sidebarDrawerStyles({ isCollapsed, isOpen })}
 				ref={mergedReference}
 				tabIndex={-1}
 			>
-				<div className="flex items-center justify-between px-4.5 pb-3 pt-4.5">
-					<span className="text-control font-medium text-text">
-						Knowledge Tree
-					</span>
-				</div>
+				<div className="flex min-h-0 flex-1 flex-col">
+					<div className="flex items-center justify-between px-4.5 pb-3 pt-4.5">
+						<span className="text-control font-medium text-text">
+							Knowledge Tree
+						</span>
+						{onHide && (
+							<button
+								aria-label={HIDE_KNOWLEDGE_TREE_LABEL}
+								className="hidden shrink-0 cursor-pointer items-center justify-center rounded-md bg-transparent p-1 text-text-faint hover:bg-secondary hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none @5xl:inline-flex"
+								onClick={onHide}
+								type="button"
+							>
+								<Icon name="close" size={HIDE_KNOWLEDGE_TREE_ICON_SIZE} />
+							</button>
+						)}
+					</div>
 
-				<KnowledgeTreeSearchBar
-					isSearchingContent={isSearchingContent}
-					onChange={handleSearchChange}
-					onClear={handleSearchClear}
-					value={searchQuery}
-				/>
+					<KnowledgeTreeSearchBar
+						isSearchingContent={isSearchingContent}
+						onChange={handleSearchChange}
+						onClear={handleSearchClear}
+						value={searchQuery}
+					/>
 
-				<div
-					aria-label="Knowledge Tree"
-					className="flex flex-1 min-h-0 flex-col gap-0.5 overflow-y-auto px-3 pb-4"
-					id="knowledge-tree-root"
-					role="tree"
-				>
-					{rootItems.length > EMPTY_LENGTH ? (
-						rootItems.map((item) => (
-							<KnowledgeTreeItem
-								focusedNodeId={currentFocusId}
-								item={item}
-								itemsByParentId={itemsByParentId}
-								key={item.id}
-								onFocus={setFocusedNodeId}
-								onSelect={handleSelectPage}
-								searchQuery={searchQuery}
-								selectedId={selectedPageId}
+					{canStructure && onCreateDocument && (
+						<div className="px-3 pb-3">
+							<KnowledgeTreeDocumentForm
+								isPending={isStructurePending}
+								onSubmit={handleCreateRootDocument}
+								submitLabel="Create document"
 							/>
-						))
-					) : (
-						<div className="px-2.5 py-4 text-center text-sm text-text-faint">
-							No results found
 						</div>
 					)}
+
+					<div
+						aria-label="Knowledge Tree"
+						className="flex flex-1 min-h-0 flex-col gap-0.5 overflow-y-auto px-3 pb-4"
+						id="knowledge-tree-root"
+						role="tree"
+					>
+						{rootItems.length > EMPTY_LENGTH ? (
+							rootItems.map((item) => (
+								<KnowledgeTreeItem
+									canStructure={canStructure}
+									drag={drag}
+									focusedNodeId={currentFocusId}
+									isStructurePending={isStructurePending}
+									item={item}
+									itemsByParentId={itemsByParentId}
+									key={item.id}
+									onCreateDocument={handleCreateDocument}
+									onEditNode={onEditNode ? handleEditNode : undefined}
+									onFocus={setFocusedNodeId}
+									onMoveDocument={onMoveDocument}
+									onSelect={handleSelectPage}
+									searchQuery={searchQuery}
+									selectedId={selectedPageId}
+									treeItems={items}
+								/>
+							))
+						) : (
+							<div className="px-2.5 py-4 text-center text-sm text-text-faint">
+								{searchQuery.trim() === ""
+									? "No documents yet"
+									: "No results found"}
+							</div>
+						)}
+					</div>
 				</div>
 			</aside>
 		</>

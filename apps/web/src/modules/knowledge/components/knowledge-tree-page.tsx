@@ -1,3 +1,4 @@
+import { type KnowledgeEntryResponseDto } from "@knowledgeprism/types";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -8,7 +9,8 @@ import {
 	useCurrentProjectId,
 } from "~/hooks/hooks.js";
 
-import { actions } from "../knowledge.js";
+import { actions, knowledgeApi } from "../knowledge.js";
+import { resolveApprovedDocumentView } from "../libs/helpers/resolve-approved-document-view.helper.js";
 import { KnowledgeTreeLayout } from "./knowledge-tree/knowledge-tree-layout.js";
 
 type ManualSelection = {
@@ -22,12 +24,23 @@ const KnowledgeTreePage: React.FC = () => {
 	const dispatch = useAppDispatch();
 	const [searchParameters] = useSearchParams();
 	const canWriteKnowledge = useCanWriteKnowledge();
-	const { pipelineProjectId, selectedEntry, tree, treeRevision } =
-		useAppSelector((state) => state.knowledge);
+	const {
+		pipelineProjectId,
+		removedOpenDocument,
+		selectedEntry,
+		tree,
+		treeRevision,
+	} = useAppSelector((state) => state.knowledge);
 
 	const [manualSelection, setManualSelection] =
 		useState<ManualSelection | null>(null);
 	const [fetchedProjectId, setFetchedProjectId] = useState<null | string>(null);
+	const [relatedEntries, setRelatedEntries] = useState<
+		Record<number, KnowledgeEntryResponseDto>
+	>({});
+	const [relatedRequestKey, setRelatedRequestKey] = useState<null | string>(
+		null,
+	);
 
 	const queryNodeId = searchParameters.get("nodeId");
 	const parsedNodeId = queryNodeId ? Number(queryNodeId) : undefined;
@@ -82,8 +95,27 @@ const KnowledgeTreePage: React.FC = () => {
 			? manualSelection.pageId
 			: undefined;
 
-	const activePageId =
+	const isOpenDocumentRemoved =
+		removedOpenDocument?.projectId === projectId &&
+		removedOpenDocument.queryNodeId === queryNodeId;
+	const fallbackPageId =
 		manualSelectedPageId ?? targetPage?.id ?? firstAvailablePage?.id;
+	const activePageId = isOpenDocumentRemoved ? undefined : fallbackPageId;
+	const documentView = useMemo(
+		() => resolveApprovedDocumentView(tree, activePageId),
+		[activePageId, tree],
+	);
+	const relatedKey =
+		!projectId || documentView == null
+			? null
+			: [
+					projectId,
+					String(treeRevision),
+					String(documentView.documentId),
+					documentView.sectionIds.join(","),
+				].join(":");
+	const isSectionsLoading =
+		relatedKey !== null && relatedRequestKey !== relatedKey;
 
 	useEffect(() => {
 		if (activePageId === undefined || !projectId) {
@@ -99,24 +131,78 @@ const KnowledgeTreePage: React.FC = () => {
 		};
 	}, [dispatch, activePageId, projectId, treeRevision]);
 
+	useEffect(() => {
+		if (!projectId || documentView == null || relatedKey == null) {
+			return;
+		}
+
+		const requestKey = relatedKey;
+		const entryIds = [documentView.documentId, ...documentView.sectionIds];
+		const controller = new AbortController();
+		let isCurrent = true;
+
+		void Promise.all(
+			entryIds.map((entryId) => {
+				return knowledgeApi.getKnowledgeEntry({
+					entryId,
+					projectId,
+					signal: controller.signal,
+				});
+			}),
+		)
+			.then((loaded) => {
+				if (!isCurrent) {
+					return;
+				}
+
+				setRelatedEntries((current) => {
+					const next = { ...current };
+
+					for (const entry of loaded) {
+						next[entry.id] = entry;
+					}
+
+					return next;
+				});
+				setRelatedRequestKey(requestKey);
+			})
+			.catch(() => {
+				if (!isCurrent) {
+					return;
+				}
+
+				setRelatedRequestKey(requestKey);
+			});
+
+		return () => {
+			isCurrent = false;
+			controller.abort();
+		};
+	}, [documentView, projectId, relatedKey]);
+
 	const handleSelectPage = useCallback(
 		(id: number) => {
+			dispatch(actions.clearRemovedOpenDocument());
 			setManualSelection({ pageId: id, projectId, queryNodeId });
 		},
-		[projectId, queryNodeId],
+		[dispatch, projectId, queryNodeId],
 	);
 
 	const entries = useMemo(() => {
-		if (!selectedEntry) {
-			return {};
+		const merged = { ...relatedEntries };
+
+		if (selectedEntry) {
+			merged[selectedEntry.id] = selectedEntry;
 		}
-		return { [selectedEntry.id]: selectedEntry };
-	}, [selectedEntry]);
+
+		return merged;
+	}, [relatedEntries, selectedEntry]);
 
 	return (
 		<KnowledgeTreeLayout
 			canEdit={canWriteKnowledge}
 			entries={entries}
+			isSectionsLoading={isSectionsLoading}
 			isTreeReady={isTreeReady}
 			items={tree}
 			onSelectPage={handleSelectPage}

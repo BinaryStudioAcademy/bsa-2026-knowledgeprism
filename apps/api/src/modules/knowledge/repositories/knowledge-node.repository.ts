@@ -67,6 +67,19 @@ class KnowledgeNodeRepository {
 		});
 	}
 
+	public async deleteByIdAndProjectId(
+		{ id, projectId }: { id: number; projectId: number },
+		transaction: Transaction,
+	): Promise<boolean> {
+		const deletedCount = await this.knowledgeNodeModel
+			.query(transaction)
+			.delete()
+			.where({ id, projectId })
+			.execute();
+
+		return deletedCount > EMPTY_LENGTH;
+	}
+
 	public async findAllByProjectId(
 		projectId: number,
 	): Promise<KnowledgeNodeEntity[]> {
@@ -194,6 +207,33 @@ class KnowledgeNodeRepository {
 		});
 	}
 
+	public async lockByProjectId(
+		projectId: number,
+		transaction: Transaction,
+	): Promise<KnowledgeNodeEntity[]> {
+		const nodes = await this.knowledgeNodeModel
+			.query(transaction)
+			.where({ projectId })
+			.forUpdate()
+			.orderBy("position", "asc")
+			.orderBy("id", "asc")
+			.execute();
+
+		return nodes.map((node) =>
+			KnowledgeNodeEntity.initialize({
+				contentJson: node.contentJson,
+				createdAt: node.createdAt,
+				id: node.id,
+				parentId: node.parentId,
+				position: node.position,
+				projectId: node.projectId,
+				title: node.title,
+				type: node.type,
+				updatedAt: node.updatedAt,
+			}),
+		);
+	}
+
 	public async searchByTitleOrKeyword({
 		projectId,
 		query,
@@ -255,6 +295,42 @@ class KnowledgeNodeRepository {
 			.patchAndFetchById(id, {
 				contentJson,
 				title,
+				updatedBy,
+			})
+			.execute();
+
+		return KnowledgeNodeEntity.initialize({
+			contentJson: updatedNode.contentJson,
+			createdAt: updatedNode.createdAt,
+			id: updatedNode.id,
+			parentId: updatedNode.parentId,
+			position: updatedNode.position,
+			projectId: updatedNode.projectId,
+			title: updatedNode.title,
+			type: updatedNode.type,
+			updatedAt: updatedNode.updatedAt,
+		});
+	}
+
+	public async updatePlacement(
+		{
+			id,
+			parentId,
+			position,
+			updatedBy,
+		}: {
+			id: number;
+			parentId: null | number;
+			position: number;
+			updatedBy: number;
+		},
+		transaction: Transaction,
+	): Promise<KnowledgeNodeEntity> {
+		const updatedNode = await this.knowledgeNodeModel
+			.query(transaction)
+			.patchAndFetchById(id, {
+				parentId,
+				position,
 				updatedBy,
 			})
 			.execute();

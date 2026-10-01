@@ -14,6 +14,7 @@ import { splitTruncatedChunk } from "./split-truncated-chunk.helper.js";
 
 type Chunk = ExtractionBlock & {
 	chunkIndex: number;
+	previousHeading?: null | string;
 	splitPart?: number;
 };
 
@@ -75,6 +76,7 @@ const handleFailure = (
 		chunkIndex: chunk.chunkIndex,
 		pageNumber: chunk.pageNumber,
 		reason: isOutputFailure ? error.reason : "invocation_error",
+		rejection: error instanceof ExtractionOutputError ? error.detail : null,
 		splitPart: chunk.splitPart,
 	});
 
@@ -93,8 +95,11 @@ const extractChunk = async (
 		attempt++
 	) {
 		try {
-			const raw = await dependencies.invoke(chunk.content);
-			const items = mapExtractionOutput(raw, chunk);
+			const raw = await dependencies.invoke(
+				chunk.content,
+				chunk.previousHeading ?? null,
+			);
+			const items = mapExtractionOutput(raw, chunk.pageNumber, chunk.content);
 
 			return {
 				hasFailures: false,

@@ -1,4 +1,6 @@
 export {
+	type KnowledgeDocumentCreateRequestDto,
+	type KnowledgeDocumentMoveRequestDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryRouteParametersDto,
 	type KnowledgeEntryUpdateRequestDto,

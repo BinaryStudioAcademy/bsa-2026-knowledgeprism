@@ -6,8 +6,51 @@ import { z } from "zod";
 
 const itemIdentifiers = z.array(z.number().int().positive());
 const minimumSectionItems = 1;
+const nestedHeadingLevel = 3;
+const sectionHeadingLevel = 2;
+
+const reviewTextStyle = z.object({
+	backgroundColor: z.literal("yellow").optional(),
+	bold: z.literal(true).optional(),
+});
+
+const reviewInlineContent = z.object({
+	styles: reviewTextStyle.optional(),
+	text: z.string(),
+	type: z.literal("text"),
+});
+
+const sectionHeading = z.literal(sectionHeadingLevel);
+const nestedHeading = z.literal(nestedHeadingLevel);
+const headingLevel = z.union([sectionHeading, nestedHeading]);
+const decisionBackground = z.literal("blue");
+const noteBackground = z.literal("yellow");
+const warningBackground = z.literal("orange");
+const calloutBackground = z.union([
+	decisionBackground,
+	noteBackground,
+	warningBackground,
+]);
+const reviewBlockProperties = z.object({
+	backgroundColor: calloutBackground.optional(),
+	checked: z.boolean().optional(),
+	level: headingLevel.optional(),
+});
+
+const reviewContentBlock = z.object({
+	content: z.array(reviewInlineContent),
+	props: reviewBlockProperties.optional(),
+	type: z.enum([
+		"bulletListItem",
+		"checkListItem",
+		"heading",
+		"numberedListItem",
+		"paragraph",
+	]),
+});
 
 const reviewSectionItem = z.object({
+	blocks: z.array(reviewContentBlock).optional(),
 	id: z.number().int().positive().optional(),
 	text: z
 		.string()
@@ -48,4 +91,4 @@ const extractionItemsReview = z.object({
 	sections: z.array(reviewSection).optional(),
 });
 
-export { extractionItemsReview };
+export { extractionItemsReview, reviewContentBlock };

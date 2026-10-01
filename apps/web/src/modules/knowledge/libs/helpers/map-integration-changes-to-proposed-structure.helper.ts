@@ -11,8 +11,12 @@ import {
 } from "../types/types.js";
 import { mapIntegrationChangeTypeToChangeStatus } from "./map-integration-change-type-to-change-status.helper.js";
 
+const DISPLAY_ORDER_OFFSET = 1;
+const NEW_ROOT_PLACE_LABEL = "New root";
+const ORDER_LABEL_PREFIX = "Order ";
 const PROPOSED_CHANGES_SECTION_ID = "proposed-changes-section";
 const PROPOSED_CHANGES_SECTION_TITLE = "Proposed changes";
+const UNDER_PLACE_PREFIX = "Under ";
 
 const EMPTY_LENGTH = 0;
 
@@ -42,6 +46,30 @@ const mapIntegrationChangeToPage = (
 
 	if (item.liveContent != null) {
 		page.originalContent = item.liveContent;
+	}
+
+	if (item.placement.proposesParent || item.placement.siblingOrder !== null) {
+		const proposedParentLabel = item.placement.parentTitle
+			? `${UNDER_PLACE_PREFIX}${item.placement.parentTitle}`
+			: NEW_ROOT_PLACE_LABEL;
+		const parentLabel = item.placement.proposesParent
+			? proposedParentLabel
+			: "";
+		const orderLabel =
+			item.placement.siblingOrder === null
+				? ""
+				: `${ORDER_LABEL_PREFIX}${String(item.placement.siblingOrder + DISPLAY_ORDER_OFFSET)}`;
+		page.proposedPlace = [parentLabel, orderLabel]
+			.filter((label) => label !== "")
+			.join(", ");
+	}
+
+	page.placementParentId = item.placement.parentId;
+
+	if (item.placement.matches.length > EMPTY_LENGTH) {
+		page.wordingMatches = item.placement.matches.map((match) => ({
+			span: match.span,
+		}));
 	}
 
 	return page;

@@ -42,16 +42,33 @@ const BLOCK = { content: SOURCE, pageNumber: PAGE_NUMBER };
 const LONG_SOURCE = `${LEFT_PARAGRAPH}\n\n${RIGHT_PARAGRAPH}`;
 const EMPTY_OUTPUT = { items: [] };
 
-const outputFor = (content: string): unknown => ({
-	items: [
+const HEADING_WORD_COUNT = 3;
+const HEADING_WORD_START = 0;
+
+const toSourceHeading = (content: string): string =>
+	content
+		.trim()
+		.split(/\s+/u)
+		.slice(HEADING_WORD_START, HEADING_WORD_COUNT)
+		.join(" ");
+
+const sectionFor = (heading: string, content: string): unknown => ({
+	blocks: [
 		{
-			confidence: 0.9,
-			rationale: "Explicit source statement.",
-			sourceExcerpt: content,
-			text: content,
-			title: "Source statement",
+			content: [{ text: heading, type: "text" }],
+			props: { level: 2 },
+			type: "heading",
 		},
+		{ content: [{ text: content, type: "text" }], type: "paragraph" },
 	],
+	confidence: 0.9,
+	heading,
+	order: 1,
+	sourceExcerpt: content,
+});
+
+const outputFor = (content: string): unknown => ({
+	items: [sectionFor(toSourceHeading(content), content)],
 });
 
 const truncated = (): BedrockResponseError =>
@@ -291,7 +308,7 @@ void describe("extraction recovery", () => {
 			setup.dependencies,
 		);
 		assert.deepEqual(
-			result.items.map((item) => item.text),
+			result.items.map((item) => item.sourceExcerpt),
 			[BOUNDARY_RULE],
 		);
 		assert.deepEqual(result.failedPageNumbers, []);
@@ -344,16 +361,7 @@ void describe("extraction recovery", () => {
 			Promise.resolve(
 				++attempt === SINGLE_CALL
 					? {
-							items: [
-								{
-									confidence: 1,
-									rationale: "Source fact",
-									sourceExcerpt: SOURCE,
-									text: SOURCE,
-									title: "Fact",
-								},
-								null,
-							],
+							items: [sectionFor(toSourceHeading(SOURCE), SOURCE), null],
 						}
 					: outputFor(content),
 			),
@@ -361,6 +369,65 @@ void describe("extraction recovery", () => {
 		const result = await extractBlocks([BLOCK], setup.dependencies);
 		assert.equal(result.items.length, SINGLE_CALL);
 		assert.equal(setup.calls.length, TWO_CALLS);
+	});
+
+	void it("re-extracts a chunk with the heading the previous chunk left open", async () => {
+		const openingPage = `${SOURCE}\n## Setup`;
+		const setup = createSetup((content) => Promise.resolve(outputFor(content)));
+		const result = await extractBlocks(
+			[
+				{ content: openingPage, pageNumber: PAGE_NUMBER },
+				{ content: SOURCE, pageNumber: NEXT_PAGE_NUMBER },
+			],
+			setup.dependencies,
+		);
+
+		assert.equal(setup.calls.length, THREE_CALLS);
+		assert.deepEqual(setup.calls, [openingPage, SOURCE, SOURCE]);
+		assert.deepEqual(
+			result.items.map((item) => item.sourcePageNumber),
+			[PAGE_NUMBER, NEXT_PAGE_NUMBER],
+		);
+	});
+
+	void it("gives a continued section the heading still open on the previous page", async () => {
+		const continuation = "Viewers may read approved project knowledge.";
+		const setup = createSetup((content) =>
+			Promise.resolve(
+				content === continuation
+					? { items: [sectionFor("Reading rules", continuation)] }
+					: outputFor(content),
+			),
+		);
+		const result = await extractBlocks(
+			[
+				{ content: SOURCE, pageNumber: PAGE_NUMBER },
+				{ content: continuation, pageNumber: NEXT_PAGE_NUMBER },
+			],
+			setup.dependencies,
+		);
+		const [, continued] = result.items;
+
+		assert.ok(continued);
+		assert.equal(continued.heading, toSourceHeading(SOURCE));
+		assert.equal(continued.title, toSourceHeading(SOURCE));
+		assert.equal(continued.isHeadingInherited, undefined);
+	});
+
+	void it("titles an opening continuation with its own first line", async () => {
+		const continuation = "Viewers may read approved project knowledge.";
+		const setup = createSetup(() =>
+			Promise.resolve({
+				items: [sectionFor("Reading rules", continuation)],
+			}),
+		);
+		const result = await extractBlocks(
+			[{ content: continuation, pageNumber: PAGE_NUMBER }],
+			setup.dependencies,
+		);
+		const [opening] = result.items;
+
+		assert.equal(opening?.heading, continuation);
 	});
 
 	void it("treats an empty result as successful and skips blank pages", async () => {

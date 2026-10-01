@@ -84,6 +84,7 @@ const documentReviewController = new DocumentReviewController(
 
 const sweepStaleProcessing = (): void => {
 	void documentService.failStaleProcessing();
+	void documentService.promoteAwaitingValidation();
 };
 
 const startStaleProcessingSweep = (): void => {

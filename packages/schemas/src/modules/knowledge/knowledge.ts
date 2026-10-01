@@ -1,4 +1,6 @@
 export {
+	knowledgeDocumentCreateValidationSchema,
+	knowledgeDocumentMoveValidationSchema,
 	knowledgeEntryRouteParametersValidationSchema,
 	knowledgeEntryUpdateValidationSchema,
 	knowledgeSearchQueryValidationSchema,

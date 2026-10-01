@@ -7,8 +7,7 @@ import {
 	type DocumentStatusResponseDto,
 	type ExtractionItemResponseDto,
 	type ExtractionSectionResponseDto,
-	type IntegrationChangeContentOverrideDto,
-	type IntegrationConflictResolutionDto,
+	type IntegrationChangesApplyRequestDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeTreeItemResponseDto,
 } from "@knowledgeprism/types";
@@ -21,7 +20,7 @@ type ActiveNodeType = "child" | "parent";
 
 type ChangeStatus = "conflict" | "created" | "duplicate" | "modified";
 
-type ConflictResolution = "keep" | "use-new";
+type ConflictResolution = "both" | "keep" | "use-new";
 
 type FieldConflict = {
 	changeId: number;
@@ -30,7 +29,9 @@ type FieldConflict = {
 	id: string;
 	incomingValue: string;
 	matchedNodeId: null | number;
+	matchIndex?: number;
 	resolution?: ConflictResolution;
+	wordingMatches?: WordingMatchPreview[];
 };
 
 type IntegrationPreviewProperties = {
@@ -38,12 +39,11 @@ type IntegrationPreviewProperties = {
 	failedPageNumbers?: number[];
 	onAddMore: () => void;
 	onApplyingChange?: (isApplying: boolean) => void;
-	onApprove?: (
-		resolutions: IntegrationConflictResolutionDto[],
-		contentOverrides: IntegrationChangeContentOverrideDto[],
-	) => Promise<boolean>;
-	onApproveExtraction?: (pages: ProposedSection[]) => Promise<boolean>;
+	onApprove?: (payload: IntegrationChangesApplyRequestDto) => Promise<boolean>;
+	onCancelDocument?: () => void;
 	onClose: () => void;
+	placementStructure?: ProposedSection[];
+	placementTargets?: PlacementTarget[];
 	proposedStructure: ProposedSection[];
 	variant?: IntegrationPreviewVariant;
 };
@@ -64,6 +64,7 @@ type KnowledgeState = {
 	activeDocumentSwitchRequestId: null | string;
 	contentSearchRequestId: null | string;
 	documentStatuses: Record<number, DocumentStatusResponseDto>;
+	documentStructureRequestId: null | string;
 	entryRequestId: null | string;
 	extractionFailedPageNumbers: number[];
 	extractionItems: ExtractionItemResponseDto[];
@@ -74,6 +75,7 @@ type KnowledgeState = {
 	integrationPreviewRequestId: null | string;
 	integrationPreviewSections: ProposedSection[];
 	isAddingKnowledge: boolean;
+	isDocumentStructurePending: boolean;
 	isEntryLoading: boolean;
 	isIntegrationPreviewLoading: boolean;
 	isSearchingContent: boolean;
@@ -85,6 +87,10 @@ type KnowledgeState = {
 	pipelineProjectId: null | string;
 	pipelineSessionId: number;
 	processingStatus: ValueOf<typeof DocumentProcessingStatus>;
+	removedOpenDocument: null | {
+		projectId: string;
+		queryNodeId: null | string;
+	};
 	selectedEntry: KnowledgeEntryResponseDto | null;
 	selectedFiles: UploadedDocumentItem[];
 	statusRequestIds: Record<number, string>;
@@ -103,7 +109,13 @@ type PipelineSessionScope = {
 	projectId: string;
 };
 
+type PlacementTarget = {
+	id: number;
+	title: string;
+};
+
 type ProposedPage = {
+	blocks?: PartialBlock[];
 	conflicts?: FieldConflict[];
 	content: string;
 	explanation?: string;
@@ -112,12 +124,16 @@ type ProposedPage = {
 	matchedNodeId?: number;
 	originalContent?: string;
 	originalTitle?: string;
+	placementParentId?: null | number;
+	proposedHeading?: string;
+	proposedPlace?: string;
 	sourceExcerpt?: string;
 	sourcePageNumber?: number;
 	status: ChangeStatus;
 	summary?: string;
 	title: string;
 	type: typeof KnowledgeNodeType.ENTRY | typeof KnowledgeNodeType.PAGE;
+	wordingMatches?: WordingMatchPreview[];
 };
 
 type ProposedSection = {
@@ -152,6 +168,10 @@ type UploadSession = {
 	subscriberCount: number;
 };
 
+type WordingMatchPreview = {
+	span: string;
+};
+
 export { type KnowledgeEntryUpdateRequestDto } from "@knowledgeprism/types";
 export {
 	type ActiveNodeType,
@@ -162,6 +182,7 @@ export {
 	type KbEntry,
 	type KnowledgeState,
 	type PipelineSessionScope,
+	type PlacementTarget,
 	type ProposedPage,
 	type ProposedSection,
 	type TrackedDocument,

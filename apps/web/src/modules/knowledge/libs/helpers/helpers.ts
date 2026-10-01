@@ -1,7 +1,4 @@
-export {
-	mapExtractionItemsToProposedStructure,
-	toExtractionReviewPayload,
-} from "./extraction-review.helper.js";
+export { mapExtractionItemsToProposedStructure } from "./extraction-review.helper.js";
 export { filterKnowledgeTree } from "./filter-knowledge-tree.helper.js";
 export { formatFileSize } from "./format-file-size.helper.js";
 export { getFileContentType } from "./get-file-content-type.helper.js";
@@ -9,8 +6,16 @@ export { getTreeItemElement } from "./get-tree-item-element.helper.js";
 export { mapIntegrationChangesToProposedStructure } from "./map-integration-changes-to-proposed-structure.helper.js";
 export { isMatchingPipelineSession } from "./pipeline-session.helper.js";
 export {
-	addPageGroup,
-	addSectionToPage,
+	type DocumentPlacement,
+	type DropZoneValue,
+	canAddSubdocument,
+	canPlaceDocument,
+	DropZone,
+	isDocumentNode,
+	planDrop,
+	planMoveToParent,
+} from "./plan-document-placement.helper.js";
+export {
 	isManualPage,
 	movePageGroup,
 	moveSectionAcrossPages,

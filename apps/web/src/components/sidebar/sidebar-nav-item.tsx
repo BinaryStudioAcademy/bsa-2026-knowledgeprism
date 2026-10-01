@@ -20,6 +20,7 @@ type NavItem = {
 	icon: ReactNode;
 	id: string;
 	label: string;
+	onNavigate?: (() => void) | undefined;
 	to?: string | undefined;
 };
 
@@ -142,6 +143,7 @@ const NavRow = ({
 	icon,
 	isExpanded,
 	label,
+	onNavigate,
 	to,
 }: NavRowProperties): React.JSX.Element => {
 	const { pathname } = useLocation();
@@ -155,6 +157,7 @@ const NavRow = ({
 				<Link
 					aria-current={isActive ? "page" : undefined}
 					className={className}
+					onClick={onNavigate}
 					to={to}
 					{...accessibleName}
 				>

@@ -7,6 +7,7 @@ import { type ValueOf } from "@knowledgeprism/types";
 import { type Logger } from "~/infrastructure/logger/logger.js";
 import { ProcessingSweep } from "~/modules/documents/libs/constants/processing-sweep.constant.js";
 import { DocumentProcessingError } from "~/modules/documents/libs/exceptions/document-processing.exception.js";
+import { ProcessingSupersededError } from "~/modules/documents/libs/exceptions/processing-superseded-error.exception.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 
@@ -136,8 +137,22 @@ class DocumentJobScheduler {
 					"Discarded results of a superseded processing attempt.",
 					{ ...processingAttempt, status: job.status },
 				);
+			} else if (job.status === DocumentStatus.PROCESSING) {
+				await this.schedulePlacementIfReady(processingAttempt);
 			}
 		} catch (error) {
+			if (error instanceof ProcessingSupersededError) {
+				this.logger.warn(
+					"Stopped a superseded or cancelled processing attempt.",
+					{
+						...processingAttempt,
+						status: job.status,
+					},
+				);
+
+				return;
+			}
+
 			this.logger.error("Failed to process document.", {
 				...processingAttempt,
 				error,
@@ -161,6 +176,19 @@ class DocumentJobScheduler {
 		setImmediate(() => {
 			void this.run(job, processingAttempt);
 		});
+	}
+
+	private async schedulePlacementIfReady({
+		attempt,
+		documentId,
+	}: ProcessingAttempt): Promise<void> {
+		const document = await this.documentRepository.findById(documentId);
+
+		if (document?.toObject().status !== DocumentStatus.INTEGRATING) {
+			return;
+		}
+
+		this.scheduleIntegration({ attempt, documentId });
 	}
 
 	private startHeartbeat(
