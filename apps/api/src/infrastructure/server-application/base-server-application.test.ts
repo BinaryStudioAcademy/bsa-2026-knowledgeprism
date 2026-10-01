@@ -174,4 +174,21 @@ void describe("BaseServerApplication body limit and error handling", () => {
 			SERVER_BODY_LIMIT_IN_BYTES,
 		);
 	});
+
+	void it("initializes static serving without duplicate not-found handler error", async () => {
+		const dependencies = createMockDependencies();
+		const server = new BaseServerApplication({
+			...dependencies,
+			apis: [],
+			title: "Test API",
+		});
+
+		const initServe = (
+			server as unknown as { initServe: () => Promise<void> }
+		).initServe.bind(server);
+
+		await assert.doesNotReject(async () => {
+			await initServe();
+		});
+	});
 });
