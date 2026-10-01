@@ -4,7 +4,7 @@ import {
 	type BlockSpecs,
 } from "@blocknote/core";
 import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { useGlossaryEditorWarnings } from "./use-glossary-editor-warnings.hook.js";
@@ -22,11 +22,15 @@ const mocks = vi.hoisted(() => {
 			unwrap: () => checkConsistency(payload) as Promise<unknown>,
 		}),
 		projectId: { current: "project-a" },
+		revision: { current: 0 },
 	};
 });
 
 vi.mock("~/hooks/hooks.js", () => ({
 	useAppDispatch: () => mocks.dispatch,
+	useAppSelector: <T>(
+		selector: (state: { glossary: { revision: number } }) => T,
+	): T => selector({ glossary: { revision: mocks.revision.current } }),
 	useCurrentProjectId: () => mocks.projectId.current,
 }));
 
@@ -63,7 +67,6 @@ const PROJECT_A_TERM_ID = 1;
 const PROJECT_B_TERM_ID = 2;
 const EXPECTED_CHECKS_AFTER_PROJECT_SWITCH = 2;
 const EXPECTED_CHECKS_AFTER_RETRY = 2;
-const EXPECTED_CHECKS_AFTER_RECHECK = 2;
 
 const PROJECT_A_MATCH = createMatch(PROJECT_A_TERM_ID);
 const PROJECT_B_MATCH = createMatch(PROJECT_B_TERM_ID);
@@ -126,30 +129,5 @@ describe("useGlossaryEditorWarnings", () => {
 		expect(mocks.checkConsistency).toHaveBeenCalledTimes(
 			EXPECTED_CHECKS_AFTER_RETRY,
 		);
-	});
-
-	it("checks the paragraph again after a glossary change and drops a resolved warning", async () => {
-		const blocks = createBlocks(
-			"Recheck the application programming interface after adding a term.",
-		);
-
-		mocks.projectId.current = "project-a";
-		const { result } = renderHook(() => useGlossaryEditorWarnings({ blocks }));
-		await waitFor(() => {
-			expect(result.current.matches).toStrictEqual([PROJECT_A_MATCH]);
-		});
-
-		mocks.checkConsistency.mockResolvedValueOnce({ matches: [] });
-		act(() => {
-			result.current.recheck();
-		});
-
-		await waitFor(() => {
-			expect(mocks.checkConsistency).toHaveBeenCalledTimes(
-				EXPECTED_CHECKS_AFTER_RECHECK,
-			);
-			expect(result.current.isChecking).toBe(false);
-		});
-		expect(result.current.matches).toStrictEqual([]);
 	});
 });

@@ -15,11 +15,15 @@ const mocks = vi.hoisted(() => {
 			unwrap: () => checkConsistency(payload) as Promise<unknown>,
 		}),
 		projectId: { current: "project-a" },
+		revision: { current: 0 },
 	};
 });
 
 vi.mock("~/hooks/hooks.js", () => ({
 	useAppDispatch: () => mocks.dispatch,
+	useAppSelector: <T>(
+		selector: (state: { glossary: { revision: number } }) => T,
+	): T => selector({ glossary: { revision: mocks.revision.current } }),
 	useCurrentProjectId: () => mocks.projectId.current,
 }));
 
@@ -48,13 +52,19 @@ const EXPECTED_CHECKS_AFTER_PROJECT_SWITCH = 2;
 const PROJECT_A_MATCH = createMatch(PROJECT_A_TERM_ID);
 const PROJECT_B_MATCH = createMatch(PROJECT_B_TERM_ID);
 
+const SECTION_ID = "101";
+
 const renderCheck = (
 	content: string,
 ): ReturnType<
 	typeof renderHook<ReturnType<typeof useGlossaryConsistencyCheck>, unknown>
 > =>
 	renderHook(() =>
-		useGlossaryConsistencyCheck({ content, onContentChange: vi.fn() }),
+		useGlossaryConsistencyCheck({
+			content,
+			onContentChange: vi.fn(),
+			sectionId: SECTION_ID,
+		}),
 	);
 
 describe("useGlossaryConsistencyCheck", () => {
