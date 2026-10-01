@@ -75,6 +75,11 @@ import {
 	StructureAside,
 } from "./libs/components/structure-aside.js";
 import { DEFAULT_PAGE_INDEX, DEFAULT_SECTION_INDEX } from "./libs/constants.js";
+import {
+	applyConflictResolutions,
+	hasSavedResolutions,
+	withSavedResolutions,
+} from "./libs/helpers/apply-conflict-resolutions.helper.js";
 import { replaceTextInBlocks } from "./libs/helpers/replace-text-in-blocks.helper.js";
 import { toFailedPagesMessage } from "./libs/helpers/to-failed-pages-message.helper.js";
 import { useGlossaryConsistencyCheck } from "./libs/hooks/use-glossary-consistency-check.hook.js";
@@ -278,6 +283,50 @@ const textToBlocks = (text: string): PartialBlock[] => {
 			type: "paragraph",
 		},
 	];
+};
+
+const CANCEL_LABEL = "Cancel";
+const PUBLISH_RESOLUTION_LABEL = "Publish resolution";
+const REVIEW_SECTIONS_FIRST_LABEL = "Review sections first";
+const SAVE_DECISIONS_LABEL = "Save decisions";
+const SINGLE_DECISION_COUNT = 1;
+
+const DecisionSummary = ({
+	conflictCount,
+	isDecided,
+	isDisabled,
+	onOpen,
+}: {
+	conflictCount: number;
+	isDecided: boolean;
+	isDisabled: boolean;
+	onOpen: () => void;
+}): JSX.Element => {
+	const sectionNoun =
+		conflictCount === SINGLE_DECISION_COUNT
+			? "section overlaps"
+			: "sections overlap";
+
+	return (
+		<div
+			className={getValidClassNames(
+				"flex shrink-0 flex-wrap items-center justify-between gap-2 rounded-lg border px-3 py-2 text-sm",
+				isDecided
+					? "border-border bg-surface text-text-muted"
+					: "border-warning/40 bg-warning-bg text-text",
+			)}
+		>
+			<span>
+				{String(conflictCount)} {sectionNoun} existing knowledge.{" "}
+				{isDecided
+					? "Your decisions are saved and will be applied on publish."
+					: "Decide what to keep before publishing."}
+			</span>
+			<Button disabled={isDisabled} onClick={onOpen} variant="secondary">
+				{isDecided ? "Change decisions" : "Decide now"}
+			</Button>
+		</div>
+	);
 };
 
 const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
@@ -947,7 +996,11 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	const [isEditMode, setIsEditMode] = useState<boolean>(false);
 	const [isSuccessModalOpen, setIsSuccessModalOpen] = useState<boolean>(false);
 	const [isMergeScreenOpen, setIsMergeScreenOpen] = useState<boolean>(false);
-	const [activeConflicts, setActiveConflicts] = useState<FieldConflict[]>([]);
+	const [savedConflicts, setSavedConflicts] = useState<FieldConflict[]>([]);
+	const [isDecisionStepSkipped, setIsDecisionStepSkipped] =
+		useState<boolean>(false);
+	const [isPublishAfterDecision, setIsPublishAfterDecision] =
+		useState<boolean>(false);
 	const [isApplying, setIsApplying] = useState<boolean>(false);
 
 	const setApplyingState = useCallback(
@@ -983,6 +1036,18 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		() => new Set(placementTargets.map((target) => target.id)),
 		[placementTargets],
 	);
+
+	const integrationConflicts = useMemo(
+		() => getAllIntegrationConflicts(pages),
+		[pages],
+	);
+	const areDecisionsSaved =
+		integrationConflicts.length > EMPTY_LENGTH &&
+		hasSavedResolutions(integrationConflicts, savedConflicts);
+	const isDecisionStepPending =
+		integrationConflicts.length > EMPTY_LENGTH &&
+		!areDecisionsSaved &&
+		!isDecisionStepSkipped;
 
 	const publishPages = useCallback(
 		async (
@@ -1044,17 +1109,35 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			return;
 		}
 
-		const integrationConflicts = getAllIntegrationConflicts(pages);
-
 		if (integrationConflicts.length === EMPTY_LENGTH) {
 			void publishPages(pages, []);
 
 			return;
 		}
 
-		setActiveConflicts(integrationConflicts);
+		if (hasSavedResolutions(integrationConflicts, savedConflicts)) {
+			const decidedConflicts = withSavedResolutions(
+				integrationConflicts,
+				savedConflicts,
+			);
+
+			void publishPages(
+				applyConflictResolutions(pages, decidedConflicts),
+				decidedConflicts,
+				pages,
+			);
+
+			return;
+		}
+
+		setIsPublishAfterDecision(true);
 		setIsMergeScreenOpen(true);
-	}, [isApplying, pages, publishPages]);
+	}, [integrationConflicts, isApplying, pages, publishPages, savedConflicts]);
+
+	const handleOpenDecisions = useCallback((): void => {
+		setIsPublishAfterDecision(false);
+		setIsMergeScreenOpen(true);
+	}, []);
 
 	const handleRejectItem = useCallback((): void => {
 		const { nextPageIndex, nextPages, nextSectionIndex } = rejectActiveSection({
@@ -1088,19 +1171,31 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	}, [onCancelDocument]);
 
 	const handleCancelMerge = useCallback((): void => {
-		if (!isApplying) {
-			setIsMergeScreenOpen(false);
+		if (isApplying) {
+			return;
 		}
+
+		setIsMergeScreenOpen(false);
+		setIsPublishAfterDecision(false);
+		setIsDecisionStepSkipped(true);
 	}, [isApplying]);
 
-	const handleConsolidatedPublish = useCallback(
+	const handleSaveDecisions = useCallback(
 		(
 			resolvedPages: ProposedSection[],
 			resolvedConflicts: FieldConflict[],
 		): void => {
-			void publishPages(resolvedPages, resolvedConflicts, pages);
+			setSavedConflicts(resolvedConflicts);
+
+			if (isPublishAfterDecision) {
+				void publishPages(resolvedPages, resolvedConflicts, pages);
+
+				return;
+			}
+
+			setIsMergeScreenOpen(false);
 		},
-		[pages, publishPages],
+		[isPublishAfterDecision, pages, publishPages],
 	);
 
 	const handleRenameSection = useCallback(
@@ -1433,15 +1528,23 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 		[activeSection, pages],
 	);
 
-	if (isMergeScreenOpen) {
+	if (isMergeScreenOpen || isDecisionStepPending) {
 		return (
 			<>
 				<MergeScreen
-					conflicts={activeConflicts}
+					cancelLabel={
+						isPublishAfterDecision ? CANCEL_LABEL : REVIEW_SECTIONS_FIRST_LABEL
+					}
+					conflicts={withSavedResolutions(integrationConflicts, savedConflicts)}
 					isApplying={isApplying}
 					onCancel={handleCancelMerge}
-					onPublish={handleConsolidatedPublish}
+					onPublish={handleSaveDecisions}
 					pages={pages}
+					submitLabel={
+						isPublishAfterDecision
+							? PUBLISH_RESOLUTION_LABEL
+							: SAVE_DECISIONS_LABEL
+					}
 				/>
 				<ProposedStructureSuccessModal
 					isOpen={isSuccessModalOpen}
@@ -1495,6 +1598,16 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					description={toFailedPagesMessage(failedPageNumbers)}
 					title="Some pages could not be processed"
 					variant="warning"
+				/>
+			)}
+			{integrationConflicts.length > EMPTY_LENGTH && (
+				<DecisionSummary
+					conflictCount={
+						new Set(integrationConflicts.map((item) => item.changeId)).size
+					}
+					isDecided={areDecisionsSaved}
+					isDisabled={isApplying}
+					onOpen={handleOpenDecisions}
 				/>
 			)}
 			<div

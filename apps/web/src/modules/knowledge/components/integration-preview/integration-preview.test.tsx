@@ -389,6 +389,9 @@ describe("IntegrationPreview extraction review", () => {
 			/>,
 		);
 
+		fireEvent.click(
+			screen.getByRole("button", { name: "Review sections first" }),
+		);
 		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
 		fireEvent.click(screen.getByRole("button", { name: "Publish resolution" }));
 		await waitFor(() => {
@@ -460,6 +463,9 @@ describe("IntegrationPreview extraction review", () => {
 			/>,
 		);
 
+		fireEvent.click(
+			screen.getByRole("button", { name: "Review sections first" }),
+		);
 		fireEvent.click(screen.getByRole("button", { name: "Accept" }));
 		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
 		const [titleIncomingButton, contentIncomingButton] = screen.getAllByRole(
@@ -484,6 +490,58 @@ describe("IntegrationPreview extraction review", () => {
 					contentOverrides: [
 						{ changeId: 9, content: "Use the API.", title: "Title" },
 					],
+					resolutions: [{ changeId: 9, content: "use-new", title: "keep" }],
+				}),
+			);
+		});
+	});
+
+	it("asks for conflict decisions first and publishes them on approve", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const structure: ProposedSection[] = [
+			{
+				id: "section",
+				pages: [
+					{
+						content: "Incoming content",
+						id: "page",
+						integrationChangeId: 9,
+						matchedNodeId: 3,
+						originalContent: "Live content",
+						originalTitle: "Live title",
+						status: "duplicate",
+						title: "Incoming title",
+						type: KnowledgeNodeType.PAGE,
+					},
+				],
+				status: "duplicate",
+				title: "Section",
+				type: KnowledgeNodeType.SECTION,
+			},
+		];
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				proposedStructure={structure}
+			/>,
+		);
+
+		const [titleKeepButton] = screen.getAllByRole("button", {
+			name: "Keep Live Version",
+		});
+		fireEvent.click(titleKeepButton as HTMLElement);
+		fireEvent.click(screen.getByRole("button", { name: "Save decisions" }));
+
+		expect(
+			screen.getByRole("button", { name: "Change decisions" }),
+		).toBeInTheDocument();
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
 					resolutions: [{ changeId: 9, content: "use-new", title: "keep" }],
 				}),
 			);

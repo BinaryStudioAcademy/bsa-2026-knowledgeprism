@@ -11,9 +11,10 @@ import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import {
 	type ConflictResolution,
 	type FieldConflict,
-	type ProposedPage,
 	type ProposedSection,
 } from "~/modules/knowledge/libs/types/types.js";
+
+import { applyConflictResolutions } from "../helpers/apply-conflict-resolutions.helper.js";
 
 const CHECK_ICON_SIZE = 14;
 const DUPLICATE_INCOMING_FIELD_MESSAGE =
@@ -22,8 +23,8 @@ const FIRST_MATCH_INDEX = 0;
 const MATCH_LABEL_OFFSET = 1;
 const NEXT_MATCH_STEP = 1;
 const NOT_FOUND_INDEX = -1;
-const PARAGRAPH_BREAK = "\n\n";
 const PREVIOUS_MATCH_STEP = -1;
+const SECTIONS_LABEL = "sections to decide";
 const SINGLE_MATCH_COUNT = 1;
 const VALID_RESOLUTIONS: readonly ConflictResolution[] = [
 	"both",
@@ -57,6 +58,7 @@ const HighlightedSpan = ({
 };
 
 type MergeScreenProperties = {
+	cancelLabel: string;
 	conflicts: FieldConflict[];
 	isApplying: boolean;
 	onCancel: () => void;
@@ -65,56 +67,7 @@ type MergeScreenProperties = {
 		resolvedConflicts: FieldConflict[],
 	) => void;
 	pages: ProposedSection[];
-};
-
-const resolveSectionField = (
-	conflict: FieldConflict,
-	resolutionMap: Map<string, ConflictResolution>,
-): string => {
-	const choice = resolutionMap.get(conflict.id) ?? "use-new";
-
-	if (choice === "keep") {
-		return conflict.currentValue;
-	}
-
-	if (choice === "both") {
-		return `${conflict.currentValue}${PARAGRAPH_BREAK}${conflict.incomingValue}`;
-	}
-
-	return conflict.incomingValue;
-};
-
-const resolveSection = (
-	section: ProposedPage,
-	conflicts: FieldConflict[],
-	resolutionMap: Map<string, ConflictResolution>,
-): ProposedPage => {
-	const titleConflict = conflicts.find(
-		(conflict) =>
-			conflict.field === "title" &&
-			conflict.changeId === section.integrationChangeId,
-	);
-
-	const contentConflict = conflicts.find(
-		(conflict) =>
-			conflict.field === "content" &&
-			conflict.changeId === section.integrationChangeId,
-	);
-
-	const resolvedTitle = titleConflict
-		? resolveSectionField(titleConflict, resolutionMap)
-		: section.title;
-
-	const resolvedContent = contentConflict
-		? resolveSectionField(contentConflict, resolutionMap)
-		: section.content;
-
-	return {
-		...section,
-		content: resolvedContent,
-		status: titleConflict || contentConflict ? "modified" : section.status,
-		title: resolvedTitle,
-	};
+	submitLabel: string;
 };
 
 const hasDuplicateIncomingFieldConflict = (
@@ -143,11 +96,13 @@ const hasDuplicateIncomingFieldConflict = (
 };
 
 const MergeScreen = ({
+	cancelLabel,
 	conflicts: initialConflicts,
 	isApplying,
 	onCancel,
 	onPublish,
 	pages,
+	submitLabel,
 }: MergeScreenProperties): JSX.Element => {
 	const [conflicts, setConflicts] = useState<FieldConflict[]>(() =>
 		initialConflicts.map((conflict) => ({
@@ -231,19 +186,7 @@ const MergeScreen = ({
 			return;
 		}
 
-		const resolutionMap = new Map<string, ConflictResolution>();
-		for (const item of conflicts) {
-			if (item.resolution) {
-				resolutionMap.set(item.id, item.resolution);
-			}
-		}
-
-		const resolvedPages = pages.map((page) => ({
-			...page,
-			pages: page.pages.map((section) =>
-				resolveSection(section, conflicts, resolutionMap),
-			),
-		}));
+		const resolvedPages = applyConflictResolutions(pages, conflicts);
 
 		onPublish(resolvedPages, conflicts);
 	}, [conflicts, isApplying, onPublish, pages]);
@@ -258,18 +201,19 @@ const MergeScreen = ({
 						className="font-serif text-lg tablet:text-2xl font-bold tracking-tight text-text leading-tight"
 						level="2"
 					>
-						Conflict Resolution
+						Decide on existing knowledge
 					</Heading>
 					<span className="inline-flex self-start sm:self-auto shrink-0 items-center justify-center rounded-full border border-warning/40 bg-warning-bg px-2.5 py-0.5 font-mono text-2xs font-semibold uppercase tracking-wider text-warning whitespace-nowrap">
-						Concurrent changes detected
+						{String(new Set(conflicts.map((item) => item.changeId)).size)}{" "}
+						{SECTIONS_LABEL}
 					</span>
 				</div>
 				<Paragraph
 					className="text-text-muted font-sans text-xs tablet:text-sm"
 					size={ParagraphSize.BODY_SMALL}
 				>
-					Review differences below and choose which version to apply for each
-					field.
+					These sections overlap entries already in the knowledge base. Choose
+					what to keep for each field before anything is published.
 				</Paragraph>
 				{validationError && (
 					<Paragraph
@@ -454,7 +398,7 @@ const MergeScreen = ({
 
 			<div className="mt-auto flex shrink-0 items-center justify-between border-t border-border-subtle pt-2.5 px-1">
 				<Button disabled={isApplying} onClick={onCancel} variant="secondary">
-					Cancel
+					{cancelLabel}
 				</Button>
 				<Button
 					disabled={!hasAllResolved || isApplying}
@@ -462,7 +406,7 @@ const MergeScreen = ({
 					variant="primary"
 				>
 					<Icon name="checkbox-tick" size={CHECK_ICON_SIZE} />
-					<span>Publish resolution</span>
+					<span>{submitLabel}</span>
 				</Button>
 			</div>
 		</div>
