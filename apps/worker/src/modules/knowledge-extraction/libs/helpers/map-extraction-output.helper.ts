@@ -11,6 +11,7 @@ type ExtractionCandidate = Omit<KnowledgeItem, "sourcePageNumber">;
 const ConfidenceRange = { MAX: 1, MIN: 0 } as const;
 const TITLE_MAXIMUM_LENGTH = 80;
 const ROOT_KEY_COUNT = 1;
+const WHITESPACE_REGEX = /\s+/g;
 
 const isNonEmptyString = (value: unknown): value is string =>
 	typeof value === "string" && value.trim() !== "";
@@ -79,8 +80,14 @@ const mapExtractionOutput = (
 			throw new ExtractionOutputError(ExtractionOutputFailure.INVALID_ITEM);
 		}
 
-		const normalizedBlockContent = block.content.replaceAll(/\s+/g, "");
-		const normalizedExcerpt = candidate.sourceExcerpt.replaceAll(/\s+/g, "");
+		const normalizedBlockContent = block.content.replaceAll(
+			WHITESPACE_REGEX,
+			"",
+		);
+		const normalizedExcerpt = candidate.sourceExcerpt.replaceAll(
+			WHITESPACE_REGEX,
+			"",
+		);
 
 		if (!normalizedBlockContent.includes(normalizedExcerpt)) {
 			throw new ExtractionOutputError(ExtractionOutputFailure.INVALID_ITEM);
