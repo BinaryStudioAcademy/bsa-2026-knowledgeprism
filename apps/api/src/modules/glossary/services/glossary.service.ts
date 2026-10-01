@@ -1,4 +1,8 @@
-import { GlossaryValidationMessage, HTTPCode } from "@knowledgeprism/constants";
+import {
+	GlossaryTermOrigin,
+	GlossaryValidationMessage,
+	HTTPCode,
+} from "@knowledgeprism/constants";
 import {
 	type GlossaryConsistencyCheckResponseDto,
 	type GlossaryTermRequestDto,
@@ -9,6 +13,8 @@ import {
 	checkGlossaryConsistency,
 	type EmbeddingVector,
 	embedGlossaryTerm,
+	extractGlossaryTerms,
+	type GlossaryTermCandidate,
 } from "@knowledgeprism/worker";
 import {
 	ForeignKeyViolationError,
@@ -38,6 +44,7 @@ type Constructor = {
 };
 
 const EMPTY_QUERY = "";
+const NO_TERMS = 0;
 
 class GlossaryService {
 	private database: Database;
@@ -62,6 +69,44 @@ class GlossaryService {
 		this.glossaryTermRepository = glossaryTermRepository;
 		this.logger = logger;
 		this.projectService = projectService;
+	}
+
+	private async addTermFromDocument({
+		candidate,
+		documentId,
+		projectId,
+	}: {
+		candidate: GlossaryTermCandidate;
+		documentId: number;
+		projectId: number;
+	}): Promise<boolean> {
+		const embedding = await embedGlossaryTerm(candidate);
+
+		try {
+			await this.database.transaction(async (transaction) => {
+				await this.glossaryTermRepository.create(
+					{
+						entity: GlossaryTermEntity.initializeNew({
+							...candidate,
+							embedding,
+							origin: GlossaryTermOrigin.AI,
+							projectId,
+							sourceDocumentId: documentId,
+						}),
+						userId: null,
+					},
+					transaction,
+				);
+			});
+
+			return true;
+		} catch (error) {
+			if (error instanceof UniqueViolationError) {
+				return false;
+			}
+
+			throw error;
+		}
 	}
 
 	private async applyRelatedTerms(
@@ -208,6 +253,45 @@ class GlossaryService {
 		});
 	}
 
+	public async addTermsFromDocument({
+		content,
+		documentId,
+		projectId,
+	}: {
+		content: string;
+		documentId: number;
+		projectId: number;
+	}): Promise<void> {
+		try {
+			const existingTerms =
+				await this.glossaryTermRepository.findAllByProjectId({
+					projectId,
+					query: EMPTY_QUERY,
+				});
+			const candidates = await extractGlossaryTerms({
+				content,
+				existingNames: existingTerms.map((term) => term.toObject().name),
+			});
+			const results = await Promise.all(
+				candidates.map((candidate) =>
+					this.addTermFromDocument({ candidate, documentId, projectId }),
+				),
+			);
+			const addedCount = results.filter(Boolean).length;
+
+			if (addedCount > NO_TERMS) {
+				this.logger.info(
+					`Added ${String(addedCount)} glossary terms from document ${String(documentId)}`,
+				);
+			}
+		} catch (error) {
+			this.logger.error(
+				`Failed to add glossary terms from document ${String(documentId)}`,
+				{ error },
+			);
+		}
+	}
+
 	public async checkConsistency({
 		content,
 		context,
@@ -241,6 +325,34 @@ class GlossaryService {
 		});
 
 		return { matches };
+	}
+
+	public async confirm({
+		context,
+		id,
+		projectId,
+	}: {
+		context: ProjectAccessContext;
+		id: number;
+		projectId: number;
+	}): Promise<GlossaryTermResponseDto> {
+		await this.projectService.assertCanWriteKnowledge(projectId, context);
+
+		const isConfirmed = await this.glossaryTermRepository.confirm({
+			id,
+			projectId,
+			updatedBy: context.userId,
+		});
+
+		if (!isConfirmed) {
+			this.throwNotFound();
+		}
+
+		this.logger.info(
+			`User ${String(context.userId)} confirmed glossary term ${String(id)}`,
+		);
+
+		return await this.find({ context, id, projectId });
 	}
 
 	public async create({
@@ -357,9 +469,10 @@ class GlossaryService {
 
 		return {
 			items: terms.map((term) => {
-				const { definition, id, name } = term.toObject();
+				const { definition, id, name, origin, sourceDocumentName } =
+					term.toObject();
 
-				return { definition, id, name };
+				return { definition, id, name, origin, sourceDocumentName };
 			}),
 		};
 	}

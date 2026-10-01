@@ -1,4 +1,5 @@
 import {
+	confirmTerm,
 	createTerm,
 	deleteTerm,
 	loadTerm,
@@ -8,6 +9,7 @@ import {
 } from "./actions.js";
 
 const actions = {
+	confirmTerm,
 	createTerm,
 	deleteTerm,
 	loadTerm,

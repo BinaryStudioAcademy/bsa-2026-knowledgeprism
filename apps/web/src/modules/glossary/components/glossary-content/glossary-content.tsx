@@ -40,6 +40,7 @@ const GlossaryContent: React.FC<Properties> = ({ projectId }: Properties) => {
 	const { dataStatus, selectedTerm, selectedTermStatus, terms } =
 		useAppSelector(({ glossary }) => glossary);
 	const [query, setQuery] = useState("");
+	const [isConfirming, setIsConfirming] = useState(false);
 	const [dialog, setDialog] = useState<ValueOf<typeof GlossaryDialog>>(
 		GlossaryDialog.NONE,
 	);
@@ -109,6 +110,19 @@ const GlossaryContent: React.FC<Properties> = ({ projectId }: Properties) => {
 		},
 		[dispatch, loadTerms, projectId, selectedTerm],
 	);
+
+	const handleConfirm = useCallback((): void => {
+		if (!selectedTerm) {
+			return;
+		}
+
+		setIsConfirming(true);
+		void dispatch(
+			actions.confirmTerm({ id: selectedTerm.id, projectId }),
+		).finally(() => {
+			setIsConfirming(false);
+		});
+	}, [dispatch, projectId, selectedTerm]);
 
 	const handleDelete = useCallback(async (): Promise<void> => {
 		if (!selectedTerm) {
@@ -188,7 +202,9 @@ const GlossaryContent: React.FC<Properties> = ({ projectId }: Properties) => {
 				<GlossaryTermDetailsModal
 					canEdit={canWriteKnowledge}
 					hasFailed={selectedTermStatus === DataStatus.REJECTED}
+					isConfirming={isConfirming}
 					onClose={handleCloseDialog}
+					onConfirm={handleConfirm}
 					onDelete={handleShowDelete}
 					onEdit={handleShowEdit}
 					onSelectTerm={handleSelectTerm}
