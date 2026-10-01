@@ -5,6 +5,7 @@ import {
 	DocumentSourceType,
 	DocumentStatus,
 	IntegrationChangeType,
+	IntegrationResolution,
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
 import { type ValueOf } from "@knowledgeprism/types";
@@ -134,9 +135,11 @@ const createSetup = (): {
 	applier: IntegrationApplier;
 	created: CreatedNode[];
 	updatedIds: number[];
+	updatedTitles: string[];
 } => {
 	const created: CreatedNode[] = [];
 	const updatedIds: number[] = [];
+	const updatedTitles: string[] = [];
 	let nextId = NEXT_ID_START;
 	const knowledgeNodeRepository = {
 		create: ({ entity }: { entity: KnowledgeNodeEntity }) => {
@@ -162,8 +165,9 @@ const createSetup = (): {
 		findNextRootPosition: () => Promise.resolve(NEXT_ROOT_POSITION),
 		lockByIdAndProjectId: ({ id }: { id: number }) =>
 			Promise.resolve(EXISTING_NODES.find((node) => node.toObject().id === id)),
-		update: ({ id }: { id: number }) => {
+		update: ({ id, title }: { id: number; title: string }) => {
 			updatedIds.push(id);
+			updatedTitles.push(title);
 
 			return Promise.resolve(
 				EXISTING_NODES.find((node) => node.toObject().id === id),
@@ -182,6 +186,7 @@ const createSetup = (): {
 		}),
 		created,
 		updatedIds,
+		updatedTitles,
 	};
 };
 
@@ -314,5 +319,29 @@ void describe("IntegrationApplier placements", () => {
 				.map(({ title }) => title),
 			["Roles"],
 		);
+	});
+
+	void it("applies a Merge both content choice once and still honours the title choice", async () => {
+		const { applier, updatedTitles } = createSetup();
+
+		await applier.apply(
+			{
+				changes: [toChange(FIRST_CHANGE_ID, "Glossary", EXISTING_ENTRY_ID)],
+				contentOverrides: [],
+				document: DOCUMENT,
+				placements: [],
+				resolutions: [
+					{
+						changeId: FIRST_CHANGE_ID,
+						content: IntegrationResolution.BOTH,
+						title: IntegrationResolution.USE_NEW,
+					},
+				],
+				userId: USER_ID,
+			},
+			{} as Transaction,
+		);
+
+		assert.deepEqual(updatedTitles, ["Glossary"]);
 	});
 });

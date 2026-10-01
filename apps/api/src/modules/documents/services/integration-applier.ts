@@ -142,6 +142,9 @@ class IntegrationApplier {
 		const { contentJson, id, title } = node.toObject();
 
 		if (resolution?.content === IntegrationResolution.BOTH) {
+			const nextTitle = getIncomingFields(type, resolution).title
+				? incomingTitle
+				: title;
 			const liveText = flattenContentToText(contentJson);
 			const span =
 				placement.matches[resolution.matchIndex ?? FIRST_MATCH_INDEX]?.span ??
@@ -149,13 +152,13 @@ class IntegrationApplier {
 				"";
 			const nextText = appendIncomingAtSpan(liveText, incomingContent, span);
 			const appliedNode =
-				nextText === liveText
+				nextText === liveText && nextTitle === title
 					? node
 					: await this.knowledgeNodeRepository.update(
 							{
 								contentJson: toContentJson(nextText),
 								id,
-								title,
+								title: nextTitle,
 								updatedBy: userId,
 							},
 							transaction,
