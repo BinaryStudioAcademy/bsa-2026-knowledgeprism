@@ -1,6 +1,7 @@
 import { EmbeddingInputType } from "../../embeddings/libs/constants/embedding-input-type.constant.js";
 import { type EmbeddingCandidate } from "../../embeddings/libs/types/types.js";
 import { embed, search } from "../../embeddings/services/embedding.service.js";
+import { dropGlossaryTermNames } from "../libs/helpers/drop-glossary-term-names.helper.js";
 import { filterRelevantTerms } from "../libs/helpers/filter-relevant-terms.helper.js";
 import { findSpelledOutTerms } from "../libs/helpers/find-spelled-out-terms.helper.js";
 import { invokeConsistencyCheck } from "../libs/helpers/invoke-consistency-check.helper.js";
@@ -81,7 +82,7 @@ const checkGlossaryConsistency = async ({
 		throw new Error("Claude glossary consistency response could not be parsed");
 	}
 
-	return result;
+	return dropGlossaryTermNames(result, terms);
 };
 
 export { checkGlossaryConsistency };

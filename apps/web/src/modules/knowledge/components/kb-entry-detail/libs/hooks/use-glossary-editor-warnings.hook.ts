@@ -31,13 +31,23 @@ const BATCH_JOIN_SEPARATOR = "\n\n";
 
 const glossaryEditorCheckCache = new Map<
 	string,
-	GlossaryConsistencyMatchDto[]
+	Map<string, GlossaryConsistencyMatchDto[]>
 >();
 
-const getGlossaryEditorCheckCacheKey = (
+const getProjectCheckCache = (
 	projectId: string,
-	text: string,
-): string => JSON.stringify([projectId, text]);
+): Map<string, GlossaryConsistencyMatchDto[]> => {
+	const cachedProject = glossaryEditorCheckCache.get(projectId);
+
+	if (cachedProject) {
+		return cachedProject;
+	}
+
+	const projectCache = new Map<string, GlossaryConsistencyMatchDto[]>();
+	glossaryEditorCheckCache.set(projectId, projectCache);
+
+	return projectCache;
+};
 
 const getTopLevelBlockTexts = (blocks: readonly EditorBlock[]): string[] =>
 	blocks
@@ -49,15 +59,15 @@ const useGlossaryEditorWarnings = ({
 }: {
 	blocks: EditorBlock[];
 }): {
-	dismiss: (highlightId: string) => void;
 	isChecking: boolean;
 	matches: GlossaryConsistencyMatchDto[];
+	recheck: () => void;
 } => {
 	const dispatch = useAppDispatch();
 	const projectId = useCurrentProjectId();
-	const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
 	const [isChecking, setIsChecking] = useState(false);
 	const [cacheVersion, setCacheVersion] = useState(INITIAL_CACHE_VERSION);
+	const [recheckVersion, setRecheckVersion] = useState(INITIAL_CACHE_VERSION);
 	const inFlightChecksReference = useRef(NO_CHECKS_IN_FLIGHT);
 
 	const blockTexts = useMemo(() => getTopLevelBlockTexts(blocks), [blocks]);
@@ -68,15 +78,13 @@ const useGlossaryEditorWarnings = ({
 	);
 
 	useEffect(() => {
+		const projectCache = getProjectCheckCache(projectId);
 		const debouncedBlockTexts =
 			debouncedBlockTextsKey === ""
 				? []
 				: debouncedBlockTextsKey.split(BLOCK_TEXT_JOIN_SEPARATOR);
 		const uncachedTexts = [...new Set(debouncedBlockTexts)].filter(
-			(text) =>
-				!glossaryEditorCheckCache.has(
-					getGlossaryEditorCheckCacheKey(projectId, text),
-				),
+			(text) => !projectCache.has(text),
 		);
 
 		if (uncachedTexts.length === EMPTY_LENGTH) {
@@ -92,10 +100,7 @@ const useGlossaryEditorWarnings = ({
 
 		for (const text of uncachedTexts) {
 			if (!batchedTexts.has(text)) {
-				glossaryEditorCheckCache.set(
-					getGlossaryEditorCheckCacheKey(projectId, text),
-					EMPTY_MATCHES,
-				);
+				projectCache.set(text, EMPTY_MATCHES);
 			}
 		}
 
@@ -123,8 +128,8 @@ const useGlossaryEditorWarnings = ({
 						);
 
 						for (const text of batchTexts) {
-							glossaryEditorCheckCache.set(
-								getGlossaryEditorCheckCacheKey(projectId, text),
+							projectCache.set(
+								text,
 								assignedMatches.get(text) ?? EMPTY_MATCHES,
 							);
 						}
@@ -138,34 +143,29 @@ const useGlossaryEditorWarnings = ({
 		};
 
 		void runGlossaryChecks();
-	}, [debouncedBlockTextsKey, dispatch, projectId]);
+	}, [debouncedBlockTextsKey, dispatch, projectId, recheckVersion]);
 
 	const matches = useMemo(() => {
 		const matchById = new Map<string, GlossaryConsistencyMatchDto>();
+		const projectCache = getProjectCheckCache(projectId);
 
 		for (const text of blockTexts) {
-			const cachedMatches =
-				glossaryEditorCheckCache.get(
-					getGlossaryEditorCheckCacheKey(projectId, text),
-				) ?? EMPTY_MATCHES;
+			const cachedMatches = projectCache.get(text) ?? EMPTY_MATCHES;
 
 			for (const match of cachedMatches) {
-				const highlightId = toGlossaryHighlightId(match);
-
-				if (!dismissedIds.has(highlightId)) {
-					matchById.set(highlightId, match);
-				}
+				matchById.set(toGlossaryHighlightId(match), match);
 			}
 		}
 
 		return matchById.values().toArray();
-	}, [blockTexts, cacheVersion, dismissedIds, projectId]);
+	}, [blockTexts, cacheVersion, projectId]);
 
-	const dismiss = useCallback((highlightId: string): void => {
-		setDismissedIds((previous) => new Set(previous).add(highlightId));
-	}, []);
+	const recheck = useCallback((): void => {
+		glossaryEditorCheckCache.delete(projectId);
+		setRecheckVersion((version) => version + COUNTER_STEP);
+	}, [projectId]);
 
-	return { dismiss, isChecking, matches };
+	return { isChecking, matches, recheck };
 };
 
 export { useGlossaryEditorWarnings };
