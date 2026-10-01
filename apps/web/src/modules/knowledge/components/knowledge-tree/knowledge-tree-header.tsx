@@ -1,4 +1,5 @@
 import { type DocumentStatus } from "@knowledgeprism/constants";
+import { type DocumentProcessingProgressDto } from "@knowledgeprism/types";
 import React from "react";
 
 import { Button } from "~/components/components.js";
@@ -20,6 +21,7 @@ type Properties = {
 	onPreview: () => void;
 	onResetState: () => void;
 	onRetry: () => void;
+	progress: DocumentProcessingProgressDto | null;
 	showCompactLoading?: boolean;
 };
 
@@ -100,6 +102,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 	onPreview,
 	onResetState,
 	onRetry,
+	progress,
 	showCompactLoading = false,
 }: Properties) => {
 	const currentFileName = breadcrumbs.at(-LAST_INDEX_OFFSET);
@@ -119,12 +122,14 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 								hasError={true}
 								onCancel={onResetState}
 								onRetry={onRetry}
+								progress={progress}
 								variant="compact"
 							/>
 						) : (
 							<LoadingState
 								currentStatus={currentStatus}
 								onPreview={onPreview}
+								progress={progress}
 								variant="compact"
 							/>
 						)}

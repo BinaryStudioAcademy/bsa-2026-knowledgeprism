@@ -1,4 +1,6 @@
 import { mapWithConcurrency } from "@knowledgeprism/config";
+import { DocumentProcessingPhase } from "@knowledgeprism/constants";
+import { type DocumentProcessingProgressDto } from "@knowledgeprism/types";
 
 import { ExtractionChunk } from "../constants/extraction-chunk.constant.js";
 import { type ExtractionBlock } from "../types/extraction-block.type.js";
@@ -28,13 +30,35 @@ const extractBlocks = async (
 	const items: KnowledgeItem[] = [];
 	const failedPageNumbers = new Set<number>();
 	let successfulChunkCount = 0;
+	const chunks = toNonBlankChunks(blocks);
+	const progress: DocumentProcessingProgressDto = {
+		failedUnits: 0,
+		phase: DocumentProcessingPhase.EXTRACTING,
+		processedUnits: 0,
+		totalUnits: chunks.length,
+	};
+	await dependencies.onProgress?.({ ...progress });
 	const outcomes = await mapWithConcurrency(
-		toNonBlankChunks(blocks),
+		chunks,
 		ExtractionChunk.MAXIMUM_CONCURRENT_REQUESTS,
-		async (chunk) => ({
-			chunk,
-			result: await extractChunk(chunk, dependencies),
-		}),
+		async (chunk) => {
+			let result: Awaited<ReturnType<typeof extractChunk>>;
+			try {
+				result = await extractChunk(chunk, dependencies);
+			} catch (error) {
+				progress.processedUnits++;
+				progress.failedUnits++;
+				await dependencies.onProgress?.({ ...progress });
+				throw error;
+			}
+			progress.processedUnits++;
+			if (result.hasFailures) {
+				progress.failedUnits++;
+			}
+			await dependencies.onProgress?.({ ...progress });
+
+			return { chunk, result };
+		},
 	);
 
 	for (const { chunk, result } of outcomes) {

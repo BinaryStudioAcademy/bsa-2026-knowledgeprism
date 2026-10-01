@@ -4,10 +4,12 @@ import {
 } from "@knowledgeprism/config";
 import {
 	DocumentErrorMessage,
+	DocumentProcessingPhase,
 	DocumentStatus,
 	ExtractionItemStatus,
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
+import { type DocumentProcessingProgressDto } from "@knowledgeprism/types";
 import {
 	analyze,
 	embed,
@@ -73,19 +75,38 @@ class IntegrationAnalyzer {
 	private async analyzeItems({
 		candidates,
 		items,
+		onProgress,
 	}: {
 		candidates: EmbeddingCandidate<KnowledgeCandidate>[];
 		items: ExtractionItemEntity[];
+		onProgress: (progress: DocumentProcessingProgressDto) => Promise<void>;
 	}): Promise<IntegrationChangeEntity[]> {
+		const progress: DocumentProcessingProgressDto = {
+			failedUnits: 0,
+			phase: DocumentProcessingPhase.INTEGRATING,
+			processedUnits: 0,
+			totalUnits: items.length,
+		};
 		const changes = await mapWithConcurrency(
 			items,
 			MAXIMUM_CONCURRENT_ANALYSES,
 			async (item) => {
 				const { documentId, id, text, title } = item.toObject();
-				const { explanation, matchedItem, score, type } = await analyze({
-					candidates,
-					itemText: toAnalysisText(title, text),
-				});
+				let result: Awaited<ReturnType<typeof analyze<KnowledgeCandidate>>>;
+				try {
+					result = await analyze({
+						candidates,
+						itemText: toAnalysisText(title, text),
+					});
+				} catch (error) {
+					progress.processedUnits++;
+					progress.failedUnits++;
+					await onProgress({ ...progress });
+					throw error;
+				}
+				const { explanation, matchedItem, score, type } = result;
+				progress.processedUnits++;
+				await onProgress({ ...progress });
 
 				return IntegrationChangeEntity.initializeNew({
 					documentId,
@@ -146,10 +167,35 @@ class IntegrationAnalyzer {
 		const approvedItems = items.filter(
 			(item) => item.toObject().status === ExtractionItemStatus.APPROVED,
 		);
+		const onProgress = async (
+			progress: DocumentProcessingProgressDto,
+		): Promise<void> => {
+			await this.documentRepository.updateProcessingProgress({
+				id: documentId,
+				processingAttempt: attempt,
+				progress,
+				status: DocumentStatus.INTEGRATING,
+			});
+		};
+		const isCurrent = await this.documentRepository.updateProcessingProgress({
+			id: documentId,
+			processingAttempt: attempt,
+			progress: {
+				failedUnits: 0,
+				phase: DocumentProcessingPhase.INTEGRATING,
+				processedUnits: 0,
+				totalUnits: approvedItems.length,
+			},
+			status: DocumentStatus.INTEGRATING,
+		});
+		if (!isCurrent) {
+			return false;
+		}
 		const candidates = await this.loadCandidates(document.toObject().projectId);
 		const changes = await this.analyzeItems({
 			candidates,
 			items: approvedItems,
+			onProgress,
 		});
 
 		return await this.database.transaction(async (transaction) => {

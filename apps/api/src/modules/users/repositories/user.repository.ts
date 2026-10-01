@@ -23,6 +23,7 @@ type UserDatabaseRow = {
 	passwordHash: string;
 	projectMembers?: ProjectMemberModel[];
 	status: "active" | "inactive";
+	updatedAt?: Date | string;
 };
 
 class UserRepository implements Repository {

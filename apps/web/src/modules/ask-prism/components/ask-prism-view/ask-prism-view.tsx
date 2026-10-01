@@ -87,10 +87,9 @@ const AskPrismView = (): JSX.Element => {
 		[],
 	);
 
-	const handleSubmit = useCallback(
-		(event?: BaseSyntheticEvent): void => {
-			event?.preventDefault();
-			const trimmedQuery = query.trim();
+	const submitQuestion = useCallback(
+		(nextQuery: string): void => {
+			const trimmedQuery = nextQuery.trim();
 
 			if (!trimmedQuery || isLoading || !numericProjectId) {
 				return;
@@ -104,7 +103,15 @@ const AskPrismView = (): JSX.Element => {
 			);
 			setQuery("");
 		},
-		[dispatch, isLoading, numericProjectId, query],
+		[dispatch, isLoading, numericProjectId],
+	);
+
+	const handleSubmit = useCallback(
+		(event?: BaseSyntheticEvent): void => {
+			event?.preventDefault();
+			submitQuestion(query);
+		},
+		[query, submitQuestion],
 	);
 
 	const handleKeyDown = useCallback(
@@ -121,19 +128,9 @@ const AskPrismView = (): JSX.Element => {
 
 	const handlePromptClick = useCallback(
 		(prompt: string): void => {
-			if (isLoading || !numericProjectId) {
-				return;
-			}
-
-			void dispatch(
-				askPrismActions.askQuestion({
-					projectId: numericProjectId,
-					query: prompt,
-				}),
-			);
-			setQuery("");
+			submitQuestion(prompt);
 		},
-		[dispatch, isLoading, numericProjectId],
+		[submitQuestion],
 	);
 
 	const handleRetry = useCallback(
@@ -191,7 +188,7 @@ const AskPrismView = (): JSX.Element => {
 	}, [messages, suggestedQuestions]);
 
 	return (
-		<div className="mx-auto flex h-full w-full max-w-[680px] min-h-0 flex-col px-4 pt-6 tablet:pt-8 desktop:max-w-4xl desktop:px-6">
+		<div className="mx-auto flex h-full w-full max-w-7xl min-h-0 flex-col px-4 pt-6 tablet:px-7 tablet:pt-7 desktop:px-11 desktop:pt-10">
 			<div className="flex shrink-0 items-center justify-between border-b border-border pb-4">
 				<div className="flex flex-col gap-1.5">
 					<div className="flex items-center gap-2 text-accent">
@@ -218,7 +215,7 @@ const AskPrismView = (): JSX.Element => {
 				)}
 			</div>
 
-			<div className="min-h-0 flex-1 overflow-y-auto py-4">
+			<div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-4">
 				{messages.length === EMPTY_COUNT ? (
 					<div className="flex h-full flex-col items-center justify-center gap-3 text-center text-text-muted">
 						<div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/80 text-accent">
@@ -267,7 +264,7 @@ const AskPrismView = (): JSX.Element => {
 									<span className="h-6 w-36 rounded-md bg-surface" />
 								</div>
 							) : (
-								visibleSuggestedQuestions.map((prompt) => (
+								visibleSuggestedQuestions.map((prompt: string) => (
 									<PromptButton
 										isDisabled={isLoading}
 										key={prompt}
@@ -305,7 +302,7 @@ const AskPrismView = (): JSX.Element => {
 						</button>
 					</form>
 
-					<div className="flex items-center justify-between font-sans text-[11px] text-text-faint">
+					<div className="flex items-center justify-between px-1 font-sans text-[11px] text-text-faint">
 						<span>Prism retrieves verified facts from the knowledge tree.</span>
 						<span>Enter to send</span>
 					</div>

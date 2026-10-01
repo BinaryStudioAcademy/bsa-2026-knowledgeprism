@@ -6,6 +6,7 @@ import {
 	type ExtractionItemsResponseDto,
 	type ExtractionItemsReviewRequestDto,
 	type ExtractionItemsReviewResponseDto,
+	type GlossaryConsistencyCheckResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
 	type KnowledgeEntryResponseDto,
@@ -41,6 +42,7 @@ import {
 	readTrackedDocumentIds,
 	removeTrackedDocumentId,
 } from "../libs/helpers/helpers.js";
+import { isDocumentStatusCurrent } from "../libs/helpers/is-document-status-current.helper.js";
 import {
 	type PipelineSessionScope,
 	type UploadedDocumentItem,
@@ -53,6 +55,11 @@ import {
 
 type ApplyIntegrationChangesPayload = DocumentPipelineRequest & {
 	payload: IntegrationChangesApplyRequestDto;
+};
+
+type CheckGlossaryConsistencyPayload = {
+	content: string;
+	projectId: string;
 };
 
 type ConfirmDocumentUploadPayload = {
@@ -294,7 +301,6 @@ const processDocument = createAsyncThunk<
 			documentId: resolvedDocumentId,
 			id,
 			name: file.name,
-			progress: 100,
 			size: file.size,
 			sizeLabel: formatFileSize(file.size),
 			status: DocumentProcessingStatus.READY,
@@ -563,6 +569,15 @@ const pollDocumentStatus = createAppAsyncThunk<
 				return statusResponse;
 			}
 
+			if (
+				!isDocumentStatusCurrent(
+					statusResponse,
+					getState().knowledge.documentStatuses[documentId],
+				)
+			) {
+				scheduleNextPoll({ dispatch, request, signal });
+				return statusResponse;
+			}
 			persistDocumentStatus(projectId, documentId, statusResponse.status);
 
 			if (POLLING_TERMINAL_DOCUMENT_STATUSES.has(statusResponse.status)) {
@@ -896,7 +911,13 @@ const switchActiveDocument = createAppAsyncThunk<
 			signal,
 		});
 
-		if (!isLatestRequest()) {
+		if (
+			!isLatestRequest() ||
+			!isDocumentStatusCurrent(
+				statusResponse,
+				getState().knowledge.documentStatuses[documentId],
+			)
+		) {
 			return { isLatest: false, isSwitched: false };
 		}
 
@@ -906,6 +927,7 @@ const switchActiveDocument = createAppAsyncThunk<
 			dispatch(
 				sliceSyncActions.syncTrackedDocumentStatus({
 					...request,
+					snapshot: statusResponse,
 					status: statusResponse.status,
 				}),
 			);
@@ -936,7 +958,13 @@ const switchActiveDocument = createAppAsyncThunk<
 			extractionSections = extractionResponse.sections;
 		}
 
-		if (!isLatestRequest()) {
+		if (
+			!isLatestRequest() ||
+			!isDocumentStatusCurrent(
+				statusResponse,
+				getState().knowledge.documentStatuses[documentId],
+			)
+		) {
 			return { isLatest: false, isSwitched: false };
 		}
 
@@ -946,6 +974,7 @@ const switchActiveDocument = createAppAsyncThunk<
 				extractionFailedPageNumbers,
 				extractionItems,
 				extractionSections,
+				snapshot: statusResponse,
 				status: statusResponse.status,
 				switchRequestId: requestId,
 			}),
@@ -1058,8 +1087,32 @@ const untrackDocument = createAppAsyncThunk<null, UntrackDocumentPayload>(
 	},
 );
 
+const checkGlossaryConsistency = createAsyncThunk<
+	GlossaryConsistencyCheckResponseDto,
+	CheckGlossaryConsistencyPayload,
+	AsyncThunkConfig
+>(
+	`${sliceName}/check-glossary-consistency`,
+	async ({ content, projectId }, { extra, signal }) => {
+		try {
+			return await extra.glossaryApi.checkConsistency({
+				content,
+				projectId,
+				signal,
+			});
+		} catch (error: unknown) {
+			if (isUnauthorizedError(error)) {
+				throw error;
+			}
+
+			return { matches: [] };
+		}
+	},
+);
+
 export {
 	applyIntegrationChanges,
+	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchIntegrationChanges,

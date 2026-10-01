@@ -1,4 +1,7 @@
-import { type IntegrationConflictResolutionDto } from "@knowledgeprism/types";
+import {
+	type IntegrationChangeContentOverrideDto,
+	type IntegrationConflictResolutionDto,
+} from "@knowledgeprism/types";
 import React, { useCallback, useEffect } from "react";
 
 import {
@@ -58,6 +61,7 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 	const handleApply = useCallback(
 		async (
 			resolutions: IntegrationConflictResolutionDto[],
+			contentOverrides: IntegrationChangeContentOverrideDto[],
 		): Promise<boolean> => {
 			if (!projectId || documentId === undefined) {
 				return false;
@@ -69,7 +73,7 @@ const IntegrationPreviewPanel: React.FC<Properties> = ({
 				await dispatch(
 					actions.applyIntegrationChanges({
 						documentId,
-						payload: { resolutions },
+						payload: { contentOverrides, resolutions },
 						pipelineSessionId,
 						projectId,
 					}),
