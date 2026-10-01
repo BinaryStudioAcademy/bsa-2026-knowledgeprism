@@ -64,9 +64,9 @@ class ProjectStorageCleanupRepository {
 		const cleanups = await this.projectStorageCleanupModel
 			.query()
 			.where((dueOrStale) => {
-				void dueOrStale
+				dueOrStale
 					.where((due) => {
-						void due
+						due
 							.where("execute_after", "<=", new Date())
 							.whereIn("status", [
 								ProjectStorageCleanupStatus.PENDING,
@@ -74,7 +74,7 @@ class ProjectStorageCleanupRepository {
 							]);
 					})
 					.orWhere((stale) => {
-						void stale
+						stale
 							.where("status", ProjectStorageCleanupStatus.PROCESSING)
 							.where("updated_at", "<", staleProcessingBefore);
 					});
