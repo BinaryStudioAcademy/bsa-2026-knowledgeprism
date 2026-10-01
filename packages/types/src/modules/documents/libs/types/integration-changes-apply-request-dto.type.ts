@@ -5,7 +5,14 @@ import { type IntegrationConflictResolutionDto } from "./integration-conflict-re
 type IntegrationChangesApplyRequestDto = {
 	contentOverrides: IntegrationChangeContentOverrideDto[];
 	items: IntegrationPublishedItemDto[];
+	placements?: IntegrationPlacementDto[];
 	resolutions: IntegrationConflictResolutionDto[];
+};
+
+type IntegrationPlacementDto = {
+	changeId: number;
+	parentId: null | number;
+	position: number;
 };
 
 type IntegrationPublishedItemDto = {
