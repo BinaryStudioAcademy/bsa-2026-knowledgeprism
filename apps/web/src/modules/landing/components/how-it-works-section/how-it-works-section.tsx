@@ -24,7 +24,7 @@ const HowItWorksSection: React.FC = () => {
 			<div
 				className={getValidClassNames(
 					LANDING_SECTION_CONTAINER_CLASS,
-					"py-[clamp(64px,9vw,120px)]",
+					"py-[clamp(36px,5vw,64px)]",
 				)}
 			>
 				<div className="mx-auto mb-8 max-w-[600px] text-center tablet:mb-14">

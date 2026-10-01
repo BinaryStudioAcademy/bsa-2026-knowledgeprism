@@ -28,7 +28,7 @@ const AudienceSection: React.FC = () => {
 			<div
 				className={getValidClassNames(
 					LANDING_BALANCED_SECTION_CLASS,
-					"py-[clamp(64px,9vw,120px)]",
+					"py-[clamp(36px,5vw,64px)]",
 				)}
 			>
 				<div className="rounded-2xl border border-border bg-surface p-[clamp(28px,4vw,48px)]">

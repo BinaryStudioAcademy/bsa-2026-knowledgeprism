@@ -8,14 +8,12 @@ import {
 	LANDING_FLEX_COLUMN_CLASS,
 	LANDING_SECTION_CONTAINER_CLASS,
 } from "~/modules/landing/libs/constants.js";
-import { useLandingReveal } from "~/modules/landing/libs/use-landing-reveal.hook.js";
 
 import { SectionEyebrow } from "../section-eyebrow/section-eyebrow.js";
 import { HeroPreview } from "./hero-preview.js";
 import { HERO_SECTION_COPY, HERO_TEXT_COLUMN_CLASS } from "./libs/constants.js";
 
 const HeroSection: React.FC = () => {
-	const [sectionReference, revealClassName] = useLandingReveal();
 	const navigate = useNavigate();
 
 	const handleSignUp = useCallback((): void => {
@@ -25,11 +23,9 @@ const HeroSection: React.FC = () => {
 	return (
 		<section
 			className={getValidClassNames(
-				revealClassName,
 				LANDING_SECTION_CONTAINER_CLASS,
-				"flex flex-wrap items-center gap-x-16 gap-y-8 py-[clamp(64px,9vw,120px)]",
+				"flex flex-wrap items-center gap-x-16 gap-y-8 py-[clamp(32px,5vw,64px)]",
 			)}
-			ref={sectionReference}
 		>
 			<div
 				className={getValidClassNames(
@@ -42,10 +38,12 @@ const HeroSection: React.FC = () => {
 
 				<h1 className="mb-4 mt-3 font-serif text-[clamp(26px,3.2vw,34px)] font-normal leading-[1.2] text-text">
 					<span className="block">{HERO_SECTION_COPY.headingLead}</span>
-					<span className="block italic text-accent">
-						{HERO_SECTION_COPY.headingAccent}
+					<span className="block">
+						<span className="italic text-accent">
+							{HERO_SECTION_COPY.headingAccent}
+						</span>{" "}
+						{HERO_SECTION_COPY.headingTail}
 					</span>
-					<span className="block">{HERO_SECTION_COPY.headingTail}</span>
 				</h1>
 
 				<p className="max-w-[440px] text-[15.5px] leading-[1.7] text-text-muted">

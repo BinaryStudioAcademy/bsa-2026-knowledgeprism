@@ -25,7 +25,7 @@ const FeaturesSection: React.FC = () => {
 			className={getValidClassNames(
 				LANDING_BALANCED_SECTION_CLASS,
 				revealClassName,
-				"py-[clamp(64px,9vw,120px)]",
+				"py-[clamp(36px,5vw,64px)]",
 			)}
 			id="features"
 			ref={sectionReference}
