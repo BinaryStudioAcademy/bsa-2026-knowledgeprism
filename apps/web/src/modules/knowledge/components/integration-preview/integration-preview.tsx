@@ -1098,7 +1098,6 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 			resolvedPages: ProposedSection[],
 			resolvedConflicts: FieldConflict[],
 		): void => {
-			setPages(resolvedPages);
 			void publishPages(resolvedPages, resolvedConflicts, pages);
 		},
 		[pages, publishPages],
