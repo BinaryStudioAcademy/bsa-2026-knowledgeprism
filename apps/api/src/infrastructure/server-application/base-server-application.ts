@@ -22,6 +22,7 @@ import {
 	type ValidationSchema,
 } from "~/shared/types/types.js";
 
+import { API_PATH_PREFIX } from "./libs/constants/api-path-prefix.constant.js";
 import { SESSION_COOKIE_NAME } from "./libs/constants/session-cookie-name.constant.js";
 import {
 	type ServerApplication,
@@ -44,6 +45,16 @@ declare module "fastify" {
 		s3: S3Client;
 	}
 }
+
+const API_ROUTE_NOT_FOUND_MESSAGE = "API route not found.";
+
+const isApiPath = (url: string): boolean =>
+	url === API_PATH_PREFIX || url.startsWith(`${API_PATH_PREFIX}/`);
+
+const isClientErrorStatus = (statusCode: unknown): statusCode is number =>
+	typeof statusCode === "number" &&
+	statusCode >= HTTPCode.BAD_REQUEST &&
+	statusCode < HTTPCode.INTERNAL_SERVER_ERROR;
 
 class BaseServerApplication implements ServerApplication {
 	private apis: ServerApplicationApi[];
@@ -126,6 +137,21 @@ class BaseServerApplication implements ServerApplication {
 					return reply.status(error.status).send(response);
 				}
 
+				const statusCode = "statusCode" in error ? error.statusCode : undefined;
+
+				if (isClientErrorStatus(statusCode)) {
+					this.logger.warn(
+						`[Client Error]: ${statusCode.toString()} – ${error.message}`,
+					);
+
+					const response: ServerCommonErrorResponse = {
+						errorType: ServerErrorType.COMMON,
+						message: error.message,
+					};
+
+					return reply.status(statusCode).send(response);
+				}
+
 				this.logger.error(error.message);
 
 				const response: ServerCommonErrorResponse = {
@@ -162,8 +188,17 @@ class BaseServerApplication implements ServerApplication {
 			root: staticPath,
 		});
 
-		this.app.setNotFoundHandler(async (_request, response) => {
-			await response.sendFile("index.html", staticPath);
+		this.app.setNotFoundHandler(async (request, reply) => {
+			if (isApiPath(request.url)) {
+				const response: ServerCommonErrorResponse = {
+					errorType: ServerErrorType.COMMON,
+					message: API_ROUTE_NOT_FOUND_MESSAGE,
+				};
+
+				return await reply.status(HTTPCode.NOT_FOUND).send(response);
+			}
+
+			return await reply.sendFile("index.html", staticPath);
 		});
 	}
 
