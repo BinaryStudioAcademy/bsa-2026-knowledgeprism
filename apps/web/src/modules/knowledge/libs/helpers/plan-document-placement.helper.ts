@@ -122,7 +122,13 @@ const canPlaceDocument = (
 ): boolean => {
 	const node = items.find((item) => item.id === nodeId);
 
-	if (!node || !isDocumentNode(node.type)) {
+	if (!node) {
+		return false;
+	}
+
+	const isSection = !isDocumentNode(node.type);
+
+	if (isSection && parentId === null) {
 		return false;
 	}
 
@@ -136,6 +142,10 @@ const canPlaceDocument = (
 		) {
 			return false;
 		}
+	}
+
+	if (isSection) {
+		return true;
 	}
 
 	const parentDepth =
@@ -195,11 +205,7 @@ const planDropBeside = (
 ): DocumentPlacement | null => {
 	const node = items.find((item) => item.id === nodeId);
 
-	if (!node || !isDocumentNode(target.type)) {
-		return null;
-	}
-
-	if (!canPlaceDocument(items, nodeId, target.parentId)) {
+	if (!node || !canPlaceDocument(items, nodeId, target.parentId)) {
 		return null;
 	}
 

@@ -101,7 +101,7 @@ describe("planDocumentPlacement", () => {
 		).toBeNull();
 	});
 
-	it("does not move or drop onto a fact entry", () => {
+	it("moves a section between documents but keeps it inside one", () => {
 		expect(
 			planDrop(tree, FACT_ID, { targetId: NOTES_ID, zone: DropZone.AFTER }),
 		).toBeNull();
@@ -109,8 +109,11 @@ describe("planDocumentPlacement", () => {
 			planDrop(tree, NOTES_ID, { targetId: FACT_ID, zone: DropZone.INSIDE }),
 		).toBeNull();
 		expect(
-			planDrop(tree, NOTES_ID, { targetId: FACT_ID, zone: DropZone.BEFORE }),
-		).toBeNull();
+			planDrop(tree, FACT_ID, { targetId: NOTES_ID, zone: DropZone.INSIDE }),
+		).toEqual({ parentId: NOTES_ID, position: POSITION_SECOND });
+		expect(
+			planDrop(tree, FACT_ID, { targetId: NESTED_ID, zone: DropZone.BEFORE }),
+		).toEqual({ parentId: NOTES_ID, position: POSITION_FIRST });
 	});
 
 	it("stops nesting at three levels", () => {

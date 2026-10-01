@@ -1,4 +1,3 @@
-import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import { type KnowledgeTreeItemResponseDto } from "@knowledgeprism/types";
 import React, { useCallback, useMemo, useState } from "react";
 import { tv } from "tailwind-variants";
@@ -23,6 +22,7 @@ import {
 import { KnowledgeTreeRowActions } from "./knowledge-tree-row-actions.js";
 
 const DRAG_GRIP_ICON_SIZE = 10;
+const NODE_ICON_SIZE = 13;
 
 const {
 	BASE_PADDING,
@@ -152,11 +152,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 				onSelect={onSelect}
 			/>
 		) : null;
-	const isDraggable =
-		Boolean(drag) &&
-		Boolean(rowActions) &&
-		!isSearching &&
-		isDocumentNode(item.type);
+	const isDraggable = Boolean(drag) && Boolean(rowActions) && !isSearching;
 	const isDropTarget = drag?.draggedId !== undefined;
 	const indicator =
 		drag?.indicator?.targetId === item.id ? drag.indicator.zone : undefined;
@@ -258,11 +254,15 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 					tabIndex={isFocused ? TAB_INDEX_FOCUSABLE : TAB_INDEX_UNFOCUSABLE}
 					type="button"
 				>
-					{item.type === KnowledgeNodeType.SECTION ? (
-						<Icon aria-hidden="true" name="folder" size={13} />
-					) : (
-						<Icon aria-hidden="true" name="file-rounded" size={12} />
-					)}
+					<span
+						aria-hidden="true"
+						className="flex size-3.5 shrink-0 items-center justify-center"
+					>
+						<Icon
+							name={isDocumentNode(item.type) ? "folder" : "file-rounded"}
+							size={NODE_ICON_SIZE}
+						/>
+					</span>
 					<HighlightedText highlight={searchQuery} text={item.title} />
 				</button>
 				{rowActions}
