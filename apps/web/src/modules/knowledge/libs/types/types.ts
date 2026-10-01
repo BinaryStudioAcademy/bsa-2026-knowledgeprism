@@ -99,7 +99,6 @@ type KnowledgeState = {
 	treeRequestId: null | string;
 	treeRevision: number;
 	updateEntryRequestIds: Record<number, string>;
-	uploadErrorMessage: null | string;
 	uploadSession: null | UploadSession;
 	uploadSessionSequence: number;
 };

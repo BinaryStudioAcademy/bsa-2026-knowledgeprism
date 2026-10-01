@@ -1,10 +1,4 @@
-import {
-	act,
-	cleanup,
-	fireEvent,
-	render,
-	screen,
-} from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -84,44 +78,8 @@ describe("AddKnowledgeModal tab error isolation", () => {
 			}),
 		);
 
-		expect(store.instance.getState().knowledge.uploadErrorMessage).toBeNull();
 		expect(screen.queryByText(/upload error/i)).not.toBeInTheDocument();
 		expect(screen.queryByText(/unexpected token '<'/i)).not.toBeInTheDocument();
 		expect(screen.getByText(/drag files here/i)).toBeInTheDocument();
-	});
-
-	it("clears upload error when switching to paste text tab", () => {
-		renderModal();
-
-		act(() => {
-			store.instance.dispatch(actions.setUploadError("File drop error"));
-		});
-
-		expect(screen.getByText("Upload error")).toBeInTheDocument();
-		expect(screen.getByText("File drop error")).toBeInTheDocument();
-
-		const pasteTextTab = screen.getByRole("tab", { name: /paste text/i });
-		fireEvent.click(pasteTextTab);
-
-		expect(store.instance.getState().knowledge.uploadErrorMessage).toBeNull();
-
-		const uploadFilesTab = screen.getByRole("tab", { name: /upload files/i });
-		fireEvent.click(uploadFilesTab);
-
-		expect(screen.queryByText("Upload error")).not.toBeInTheDocument();
-		expect(screen.queryByText("File drop error")).not.toBeInTheDocument();
-	});
-
-	it("clears upload error when switching tab via keyboard", () => {
-		renderModal();
-
-		act(() => {
-			store.instance.dispatch(actions.setUploadError("Keyboard error"));
-		});
-
-		const uploadFilesTab = screen.getByRole("tab", { name: /upload files/i });
-		fireEvent.keyDown(uploadFilesTab, { key: "ArrowRight" });
-
-		expect(store.instance.getState().knowledge.uploadErrorMessage).toBeNull();
 	});
 });

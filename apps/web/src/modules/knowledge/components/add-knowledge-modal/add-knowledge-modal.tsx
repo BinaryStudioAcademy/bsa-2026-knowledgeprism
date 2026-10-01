@@ -184,10 +184,9 @@ const AddKnowledgeModal = ({
 				return;
 			}
 
-			dispatch(actions.clearUploadError());
 			setActiveTab(tab);
 		},
-		[activeTab, dispatch, hasSelectedFiles, isSubmissionPending],
+		[activeTab, hasSelectedFiles, isSubmissionPending],
 	);
 
 	const resetAndClose = useCallback((): void => {
@@ -362,11 +361,10 @@ const AddKnowledgeModal = ({
 				return;
 			}
 
-			dispatch(actions.clearUploadError());
 			setActiveTab(nextTab.id);
 			tabReferences.current.get(nextTab.id)?.focus();
 		},
-		[activeTab, dispatch, hasSelectedFiles, isSubmissionPending],
+		[activeTab, hasSelectedFiles, isSubmissionPending],
 	);
 
 	return (

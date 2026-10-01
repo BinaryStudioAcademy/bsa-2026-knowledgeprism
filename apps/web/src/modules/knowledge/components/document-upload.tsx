@@ -1,13 +1,15 @@
 import { type JSX, useCallback, useEffect, useRef } from "react";
 
-import { Alert } from "~/components/components.js";
 import {
 	useAppDispatch,
 	useAppSelector,
 	useCurrentProjectId,
 } from "~/hooks/hooks.js";
+import { NotificationVariant } from "~/lib/enums/enums.js";
+import { notificationService } from "~/lib/notifications/notification.service.js";
 
 import { actions } from "../knowledge.js";
+import { DocumentValidationMessage } from "../libs/constants/constants.js";
 import { validateFile } from "../libs/helpers/helpers.js";
 import { DocumentRow } from "./document-row.js";
 import { FileDropzone } from "./file-dropzone.js";
@@ -25,7 +27,7 @@ const DocumentUpload = ({
 }: Properties): JSX.Element => {
 	const dispatch = useAppDispatch();
 	const projectId = useCurrentProjectId();
-	const { selectedFiles, uploadErrorMessage, uploadSession } = useAppSelector(
+	const { selectedFiles, uploadSession } = useAppSelector(
 		(state) => state.knowledge,
 	);
 	const uploadSessionId = uploadSession?.id;
@@ -57,13 +59,15 @@ const DocumentUpload = ({
 				const validationResult = validateFile(file);
 
 				if (!validationResult.isValid) {
-					dispatch(
-						actions.setUploadError(validationResult.error ?? "Invalid file"),
-					);
+					notificationService.notify({
+						message:
+							validationResult.error ??
+							DocumentValidationMessage.UNSUPPORTED_FORMAT,
+						variant: NotificationVariant.ERROR,
+					});
 					continue;
 				}
 
-				dispatch(actions.clearUploadError());
 				const id = `${file.name}-${String(file.lastModified)}-${String(Date.now())}-${String(index)}`;
 				filesMapReference.current.set(id, file);
 
@@ -141,14 +145,6 @@ const DocumentUpload = ({
 
 	return (
 		<div className={`flex flex-col gap-4 ${className}`}>
-			{uploadErrorMessage && (
-				<Alert
-					description={uploadErrorMessage}
-					title="Upload error"
-					variant="error"
-				/>
-			)}
-
 			<FileDropzone
 				disabled={isInteractionDisabled}
 				onFilesSelected={handleFilesSelect}

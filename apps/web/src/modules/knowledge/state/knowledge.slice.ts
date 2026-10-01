@@ -88,7 +88,6 @@ const initialState: State = {
 	treeRequestId: null,
 	treeRevision: 0,
 	updateEntryRequestIds: {},
-	uploadErrorMessage: null,
 	uploadSession: null,
 	uploadSessionSequence: 0,
 };
@@ -332,7 +331,6 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.uploadErrorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 		});
 		builder.addCase(confirmDocumentUpload.fulfilled, (state, action) => {
@@ -340,7 +338,6 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.uploadErrorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.READY;
 			reconcileActiveDocument(state);
 		});
@@ -348,9 +345,6 @@ const { actions, name, reducer } = createSlice({
 			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
 				return;
 			}
-
-			state.uploadErrorMessage =
-				action.error.message ?? DocumentValidationMessage.PROCESSING_FAILED;
 			state.processingStatus = DocumentProcessingStatus.FAILED;
 		});
 		builder.addCase(processDocument.pending, (state, action) => {
@@ -358,7 +352,6 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
-			state.uploadErrorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 
 			const targetFile = state.selectedFiles.find(
@@ -382,8 +375,6 @@ const { actions, name, reducer } = createSlice({
 			} else {
 				state.selectedFiles[targetFileIndex] = action.payload;
 			}
-
-			state.uploadErrorMessage = null;
 
 			const hasProcessing = state.selectedFiles.some(
 				(file) => file.status === DocumentProcessingStatus.PROCESSING,
@@ -428,15 +419,10 @@ const { actions, name, reducer } = createSlice({
 
 			if (hasProcessing) {
 				state.processingStatus = DocumentProcessingStatus.PROCESSING;
-				state.uploadErrorMessage = null;
 			} else if (hasReady) {
 				state.processingStatus = DocumentProcessingStatus.READY;
-				state.uploadErrorMessage = null;
 			} else {
 				state.processingStatus = DocumentProcessingStatus.FAILED;
-				state.uploadErrorMessage =
-					action.payload?.message ??
-					DocumentValidationMessage.PROCESSING_FAILED;
 			}
 		});
 		builder.addCase(fetchIntegrationChanges.pending, (state, action) => {
@@ -1048,7 +1034,6 @@ const { actions, name, reducer } = createSlice({
 			};
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
-			state.uploadErrorMessage = null;
 		},
 		activatePreparedReviewDocument(
 			state,
@@ -1134,15 +1119,8 @@ const { actions, name, reducer } = createSlice({
 			state.removedOpenDocument = null;
 		},
 		clearSelectedFiles(state) {
-			state.uploadErrorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
-		},
-		clearUploadError(state) {
-			state.uploadErrorMessage = null;
-			if (state.selectedFiles.length === EMPTY_FILES_COUNT) {
-				state.processingStatus = DocumentProcessingStatus.IDLE;
-			}
 		},
 		reconcilePendingReviewDocuments(
 			state,
@@ -1220,14 +1198,12 @@ const { actions, name, reducer } = createSlice({
 			state.uploadSession = null;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
 			state.selectedFiles = [];
-			state.uploadErrorMessage = null;
 		},
 		removeDocument(state, action: PayloadAction<{ id: string }>) {
 			state.selectedFiles = state.selectedFiles.filter(
 				(file) => file.id !== action.payload.id,
 			);
 			if (state.selectedFiles.length === EMPTY_FILES_COUNT) {
-				state.uploadErrorMessage = null;
 				state.processingStatus = DocumentProcessingStatus.IDLE;
 				return;
 			}
@@ -1279,17 +1255,12 @@ const { actions, name, reducer } = createSlice({
 			state.treeRevision = 0;
 			state.updateEntryRequestIds = {};
 		},
-		setUploadError(state, action: PayloadAction<string>) {
-			state.uploadErrorMessage = action.payload;
-			state.processingStatus = DocumentProcessingStatus.FAILED;
-		},
 		startProcessing(
 			state,
 			action: PayloadAction<{ id: string; name: string; size: number }>,
 		) {
 			const { id, name, size } = action.payload;
 
-			state.uploadErrorMessage = null;
 			state.processingStatus = DocumentProcessingStatus.PROCESSING;
 
 			const existingIndex = state.selectedFiles.findIndex(
