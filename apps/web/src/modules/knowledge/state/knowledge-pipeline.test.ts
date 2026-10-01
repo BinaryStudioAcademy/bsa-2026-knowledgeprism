@@ -17,6 +17,7 @@ import { store } from "~/lib/store/store.js";
 import { type AppNotification } from "~/lib/types/types.js";
 
 import { documentsApi, knowledgeApi } from "../knowledge.js";
+import { DocumentProcessingStatus } from "../libs/enums/enums.js";
 import {
 	addTrackedDocumentId,
 	readTrackedDocumentIds,
@@ -1221,6 +1222,45 @@ describe("knowledge pipeline lifecycle", () => {
 
 		expect(readTrackedDocumentIds(PROJECT_ID)).toContain(DOCUMENT_A_ID);
 		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
+	});
+
+	it("does not populate uploadErrorMessage when manual text submission fails", async () => {
+		store.instance.dispatch(actions.acquireUploadSession(PROJECT_ID));
+		const uploadSessionId =
+			store.instance.getState().knowledge.uploadSession?.id;
+		expect(uploadSessionId).toBeDefined();
+
+		vi.spyOn(documentsApi, "createManualText").mockRejectedValue(
+			new Error("Unexpected token '<', \"<!doctype \"... is not valid JSON"),
+		);
+
+		const result = await store.instance.dispatch(
+			submitManualText({
+				payload: { content: "Knowledge", title: "Manual note" },
+				projectId: PROJECT_ID,
+				uploadSessionId: uploadSessionId as number,
+			}),
+		);
+
+		expect(submitManualText.rejected.match(result)).toBe(true);
+		expect(store.instance.getState().knowledge.uploadErrorMessage).toBeNull();
+	});
+
+	it("clears upload error and resets idle status when clearUploadError is dispatched", () => {
+		store.instance.dispatch(actions.setUploadError("Some upload error"));
+		expect(store.instance.getState().knowledge.uploadErrorMessage).toBe(
+			"Some upload error",
+		);
+		expect(store.instance.getState().knowledge.processingStatus).toBe(
+			DocumentProcessingStatus.FAILED,
+		);
+
+		store.instance.dispatch(actions.clearUploadError());
+
+		expect(store.instance.getState().knowledge.uploadErrorMessage).toBeNull();
+		expect(store.instance.getState().knowledge.processingStatus).toBe(
+			DocumentProcessingStatus.IDLE,
+		);
 	});
 
 	it("does not throw while untracking when storage removal fails", () => {

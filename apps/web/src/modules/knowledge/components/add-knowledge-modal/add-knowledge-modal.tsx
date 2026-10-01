@@ -180,13 +180,14 @@ const AddKnowledgeModal = ({
 
 	const handleTabChange = useCallback(
 		(tab: ValueOf<typeof AddKnowledgeTab>) => (): void => {
-			if (isSubmissionPending || hasSelectedFiles) {
+			if (isSubmissionPending || hasSelectedFiles || activeTab === tab) {
 				return;
 			}
 
+			dispatch(actions.clearUploadError());
 			setActiveTab(tab);
 		},
-		[hasSelectedFiles, isSubmissionPending],
+		[activeTab, dispatch, hasSelectedFiles, isSubmissionPending],
 	);
 
 	const resetAndClose = useCallback((): void => {
@@ -357,14 +358,15 @@ const AddKnowledgeModal = ({
 
 			const nextTab = TAB_ITEMS[nextTabIndex];
 
-			if (!nextTab) {
+			if (!nextTab || activeTab === nextTab.id) {
 				return;
 			}
 
+			dispatch(actions.clearUploadError());
 			setActiveTab(nextTab.id);
 			tabReferences.current.get(nextTab.id)?.focus();
 		},
-		[activeTab, hasSelectedFiles, isSubmissionPending],
+		[activeTab, dispatch, hasSelectedFiles, isSubmissionPending],
 	);
 
 	return (
