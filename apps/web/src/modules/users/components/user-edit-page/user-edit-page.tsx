@@ -1,5 +1,5 @@
 import { UserStatus } from "@knowledgeprism/constants";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 
 import {
 	Heading,
@@ -36,8 +36,11 @@ type UserEditFormValues = {
 
 const UserEditPage: React.FC = () => {
 	const dispatch = useAppDispatch();
+	const location = useLocation();
 	const navigate = useNavigate();
 	const { id } = useParams<{ id: string }>();
+
+	const previousPath = (location.state as null | { from?: string })?.from;
 
 	const { availableProjects, currentUser, selectedUser, selectedUserStatus } =
 		useAppSelector(({ auth, projects, users }) => ({
@@ -111,11 +114,18 @@ const UserEditPage: React.FC = () => {
 			)
 				.unwrap()
 				.then(() => {
-					void navigate(AppRoute.USERS);
+					void navigate(previousPath ?? AppRoute.USERS);
 				})
 				.catch(() => {});
 		},
-		[dispatch, navigate, userId, selectedUser, isAdminEditingSelf],
+		[
+			dispatch,
+			navigate,
+			userId,
+			previousPath,
+			selectedUser,
+			isAdminEditingSelf,
+		],
 	);
 
 	const handleFormSubmit = useCallback(
@@ -126,8 +136,8 @@ const UserEditPage: React.FC = () => {
 	);
 
 	const handleCancel = useCallback((): void => {
-		void navigate(AppRoute.USERS);
-	}, [navigate]);
+		void navigate(previousPath ?? AppRoute.USERS);
+	}, [navigate, previousPath]);
 
 	return (
 		<PageLayout>
