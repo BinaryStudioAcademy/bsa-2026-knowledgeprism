@@ -3,11 +3,18 @@ import { IntegrationChangeType } from "@knowledgeprism/constants";
 import { AUTO_NEW_EXPLANATION } from "../constants/auto-new-explanation.constant.js";
 import { type IntegrationAnalysisResult } from "../types/integration-analysis-result.type.js";
 
+const FIRST_SIBLING_ORDER = 0;
+
 const createAutoNewResult = <T>(): IntegrationAnalysisResult<T> => {
 	return {
 		explanation: AUTO_NEW_EXPLANATION,
 		matchedItem: null,
+		matches: [],
+		parentIndex: null,
+		parentPriorIndex: null,
+		proposesParent: true,
 		score: null,
+		siblingOrder: FIRST_SIBLING_ORDER,
 		type: IntegrationChangeType.NEW,
 	};
 };

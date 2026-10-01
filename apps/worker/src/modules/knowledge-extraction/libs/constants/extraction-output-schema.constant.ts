@@ -1,3 +1,55 @@
+import { ExtractionHeadingLevel } from "@knowledgeprism/types";
+
+const TEXT_RUN_SCHEMA = {
+	additionalProperties: false,
+	properties: {
+		styles: {
+			additionalProperties: false,
+			properties: {
+				backgroundColor: { enum: ["yellow"], type: "string" },
+				bold: { enum: [true], type: "boolean" },
+			},
+			type: "object",
+		},
+		text: { type: "string" },
+		type: { enum: ["text"], type: "string" },
+	},
+	required: ["text", "type"],
+	type: "object",
+} as const;
+
+const BLOCK_SCHEMA = {
+	additionalProperties: false,
+	properties: {
+		content: { items: TEXT_RUN_SCHEMA, type: "array" },
+		props: {
+			additionalProperties: false,
+			properties: {
+				checked: { type: "boolean" },
+				level: {
+					enum: [ExtractionHeadingLevel.SECTION, ExtractionHeadingLevel.NESTED],
+					type: "integer",
+				},
+				variant: { enum: ["decision", "note", "warning"], type: "string" },
+			},
+			type: "object",
+		},
+		type: {
+			enum: [
+				"bulletListItem",
+				"callout",
+				"checkListItem",
+				"heading",
+				"numberedListItem",
+				"paragraph",
+			],
+			type: "string",
+		},
+	},
+	required: ["content", "type"],
+	type: "object",
+} as const;
+
 const EXTRACTION_OUTPUT_SCHEMA = {
 	additionalProperties: false,
 	properties: {
@@ -5,13 +57,13 @@ const EXTRACTION_OUTPUT_SCHEMA = {
 			items: {
 				additionalProperties: false,
 				properties: {
+					blocks: { items: BLOCK_SCHEMA, type: "array" },
 					confidence: { type: "number" },
-					rationale: { type: "string" },
+					heading: { type: "string" },
+					order: { type: "integer" },
 					sourceExcerpt: { type: "string" },
-					text: { type: "string" },
-					title: { type: "string" },
 				},
-				required: ["confidence", "rationale", "sourceExcerpt", "text", "title"],
+				required: ["blocks", "confidence", "heading", "order", "sourceExcerpt"],
 				type: "object",
 			},
 			type: "array",

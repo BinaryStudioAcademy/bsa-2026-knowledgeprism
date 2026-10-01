@@ -42,16 +42,23 @@ const BLOCK = { content: SOURCE, pageNumber: PAGE_NUMBER };
 const LONG_SOURCE = `${LEFT_PARAGRAPH}\n\n${RIGHT_PARAGRAPH}`;
 const EMPTY_OUTPUT = { items: [] };
 
-const outputFor = (content: string): unknown => ({
-	items: [
+const sectionFor = (heading: string, content: string): unknown => ({
+	blocks: [
 		{
-			confidence: 0.9,
-			rationale: "Explicit source statement.",
-			sourceExcerpt: content,
-			text: content,
-			title: "Source statement",
+			content: [{ text: heading, type: "text" }],
+			props: { level: 2 },
+			type: "heading",
 		},
+		{ content: [{ text: content, type: "text" }], type: "paragraph" },
 	],
+	confidence: 0.9,
+	heading,
+	order: 1,
+	sourceExcerpt: content,
+});
+
+const outputFor = (content: string): unknown => ({
+	items: [sectionFor("Source statement", content)],
 });
 
 const truncated = (): BedrockResponseError =>
@@ -289,7 +296,7 @@ void describe("extraction recovery", () => {
 			setup.dependencies,
 		);
 		assert.deepEqual(
-			result.items.map((item) => item.text),
+			result.items.map((item) => item.sourceExcerpt),
 			[BOUNDARY_RULE],
 		);
 		assert.deepEqual(result.failedPageNumbers, []);
@@ -342,16 +349,7 @@ void describe("extraction recovery", () => {
 			Promise.resolve(
 				++attempt === SINGLE_CALL
 					? {
-							items: [
-								{
-									confidence: 1,
-									rationale: "Source fact",
-									sourceExcerpt: SOURCE,
-									text: SOURCE,
-									title: "Fact",
-								},
-								null,
-							],
+							items: [sectionFor("Fact", SOURCE), null],
 						}
 					: outputFor(content),
 			),

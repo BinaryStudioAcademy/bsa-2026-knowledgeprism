@@ -20,7 +20,15 @@ export {
 	type GlossaryConsistencyTerm,
 } from "./modules/glossary-consistency/libs/types/types.js";
 export { checkGlossaryConsistency } from "./modules/glossary-consistency/services/glossary-consistency.service.js";
-export { type IntegrationAnalysisParameters } from "./modules/integration-analysis/libs/types/integration-analysis-parameters.type.js";
+export {
+	type RecordedSectionPlacement,
+	toRecordedSectionPlacement,
+} from "./modules/integration-analysis/libs/helpers/to-recorded-section-placement.helper.js";
+export {
+	type IntegrationAnalysisParameters,
+	type PlacementTreeNode,
+	type PriorSectionPlacement,
+} from "./modules/integration-analysis/libs/types/integration-analysis-parameters.type.js";
 export { type IntegrationAnalysisResult } from "./modules/integration-analysis/libs/types/integration-analysis-result.type.js";
 export { type IntegrationChangeTypeValue } from "./modules/integration-analysis/libs/types/integration-change-type-value.type.js";
 export { analyze } from "./modules/integration-analysis/services/integration-analysis.service.js";

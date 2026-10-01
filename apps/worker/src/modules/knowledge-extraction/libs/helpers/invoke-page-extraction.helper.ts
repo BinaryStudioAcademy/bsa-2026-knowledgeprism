@@ -6,20 +6,22 @@ import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
 import { toResponseText } from "~/bedrock/to-response-text.helper.js";
 
 import { EXTRACTION_OUTPUT_SCHEMA } from "../constants/extraction-output-schema.constant.js";
-import {
-	EXTRACTION_SYSTEM_PROMPT,
-	PAGE_CONTENT_TAG,
-} from "../constants/extraction-prompt.constant.js";
+import { EXTRACTION_SYSTEM_PROMPT } from "../constants/extraction-prompt.constant.js";
+import { toExtractionUserMessage } from "./to-extraction-user-message.helper.js";
 
-const toPagePrompt = (content: string): string => {
-	return `<${PAGE_CONTENT_TAG}>\n${content}\n</${PAGE_CONTENT_TAG}>`;
-};
-
-const invokePageExtraction = async (content: string): Promise<unknown> => {
+const invokePageExtraction = async (
+	content: string,
+	previousHeading?: null | string,
+): Promise<unknown> => {
 	const body = JSON.stringify({
 		anthropic_version: BedrockRequest.ANTHROPIC_VERSION,
 		max_tokens: BedrockRequest.MAX_TOKENS,
-		messages: [{ content: toPagePrompt(content), role: "user" }],
+		messages: [
+			{
+				content: toExtractionUserMessage(content, previousHeading ?? null),
+				role: "user",
+			},
+		],
 		output_config: {
 			format: { schema: EXTRACTION_OUTPUT_SCHEMA, type: "json_schema" },
 		},

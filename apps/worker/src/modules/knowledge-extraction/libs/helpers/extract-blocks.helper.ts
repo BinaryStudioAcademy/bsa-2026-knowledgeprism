@@ -7,6 +7,7 @@ import { type ExtractionResult } from "../types/extraction-result.type.js";
 import { type KnowledgeItem } from "../types/knowledge-item.type.js";
 import { extractChunk } from "./extract-chunk.helper.js";
 import { isBlankPageContent } from "./is-blank-page-content.helper.js";
+import { readPreviousHeading } from "./read-previous-heading.helper.js";
 import { splitIntoChunks } from "./split-into-chunks.helper.js";
 
 const EMPTY_COUNT = 0;
@@ -30,11 +31,15 @@ const extractBlocks = async (
 		totalUnits: chunks.length,
 	};
 	await dependencies.onProgress?.({ ...progress });
+	let previousHeading: null | string = null;
 
 	for (const [chunkIndex, chunk] of chunks.entries()) {
 		let result: Awaited<ReturnType<typeof extractChunk>>;
 		try {
-			result = await extractChunk({ ...chunk, chunkIndex }, dependencies);
+			result = await extractChunk(
+				{ ...chunk, chunkIndex, previousHeading },
+				dependencies,
+			);
 		} catch (error) {
 			progress.processedUnits++;
 			progress.failedUnits++;
@@ -48,6 +53,10 @@ const extractBlocks = async (
 		await dependencies.onProgress?.({ ...progress });
 		successfulChunkCount += result.successfulChunkCount;
 		items.push(...result.items);
+
+		previousHeading = result.hasFailures
+			? null
+			: readPreviousHeading(chunk.content, result.items);
 
 		if (result.hasFailures) {
 			failedPageNumbers.add(chunk.pageNumber);
