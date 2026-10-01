@@ -353,12 +353,14 @@ class DocumentReviewService {
 		contentOverrides,
 		document,
 		items,
+		placements,
 		resolutions,
 		userId,
 	}: {
 		contentOverrides: IntegrationChangesApplyRequestDto["contentOverrides"];
 		document: DocumentEntity;
 		items: IntegrationChangesApplyRequestDto["items"];
+		placements: NonNullable<IntegrationChangesApplyRequestDto["placements"]>;
 		resolutions: IntegrationChangesApplyRequestDto["resolutions"];
 		userId: number;
 	}): Promise<DocumentEntity> {
@@ -430,7 +432,14 @@ class DocumentReviewService {
 			}
 
 			await this.integrationApplier.apply(
-				{ changes, contentOverrides, document, resolutions, userId },
+				{
+					changes,
+					contentOverrides,
+					document,
+					placements,
+					resolutions,
+					userId,
+				},
 				transaction,
 			);
 
@@ -843,6 +852,7 @@ class DocumentReviewService {
 				contentOverrides: payload.contentOverrides,
 				document,
 				items: payload.items,
+				placements: payload.placements ?? [],
 				resolutions: payload.resolutions,
 				userId: reference.context.userId,
 			});

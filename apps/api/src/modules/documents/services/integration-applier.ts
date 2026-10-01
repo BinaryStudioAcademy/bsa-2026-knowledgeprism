@@ -1,5 +1,6 @@
 import { flattenContentToText } from "@knowledgeprism/config";
 import {
+	DocumentErrorMessage,
 	IntegrationChangeType,
 	IntegrationResolution,
 	KnowledgeNodeType,
@@ -7,11 +8,13 @@ import {
 import {
 	type ExtractionContentBlock,
 	type IntegrationChangeContentOverrideDto,
+	type IntegrationChangesApplyRequestDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeNodeContentDto,
 } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
+import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
 import { appendIncomingAtSpan } from "~/modules/documents/libs/helpers/append-incoming-at-span.helper.js";
 import { getIncomingFields } from "~/modules/documents/libs/helpers/get-incoming-fields.helper.js";
 import { toKnowledgeContentJson } from "~/modules/documents/libs/helpers/to-knowledge-content-json.helper.js";
@@ -25,9 +28,23 @@ type ApplyParameters = {
 	changes: IntegrationChangeEntity[];
 	contentOverrides: IntegrationChangeContentOverrideDto[];
 	document: DocumentEntity;
+	placements: Placement[];
 	resolutions: IntegrationConflictResolutionDto[];
 	userId: number;
 };
+
+type Placement = NonNullable<
+	IntegrationChangesApplyRequestDto["placements"]
+>[number];
+
+const NEXT_POSITION_OFFSET = 1;
+const NO_CHILD_POSITION = -1;
+
+const createInvalidPlacementError = (): HTTPError =>
+	new HTTPError({
+		message: DocumentErrorMessage.INVALID_PLACEMENT,
+		status: HTTPCode.BAD_REQUEST,
+	});
 
 type Constructor = {
 	extractionItemRepository: ExtractionItemRepository;
@@ -165,25 +182,10 @@ class IntegrationApplier {
 		return appliedNode;
 	}
 
-	private async createEntries(
-		{
-			blocksByItemId,
-			changes,
-			document,
-			overrideByChangeId,
-			userId,
-		}: Pick<ApplyParameters, "changes" | "document" | "userId"> & {
-			blocksByItemId: Map<number, ExtractionContentBlock[]>;
-			overrideByChangeId: Map<number, IntegrationChangeContentOverrideDto>;
-		},
+	private async createDocumentPage(
+		{ document, userId }: Pick<ApplyParameters, "document" | "userId">,
 		transaction: Transaction,
-	): Promise<void> {
-		if (changes.length === EMPTY_LENGTH) {
-			return;
-		}
-
-		// Proposed headings and parents stay on the review record.
-		// Approved new items still land as entries under the uploaded document.
+	): Promise<number> {
 		const { name, projectId } = document.toObject();
 		const pagePosition =
 			await this.knowledgeNodeRepository.findNextRootPosition(
@@ -205,8 +207,69 @@ class IntegrationApplier {
 			transaction,
 		);
 
-		for (const [position, change] of changes.entries()) {
+		return pageNode.toObject().id;
+	}
+
+	private async createEntries(
+		{
+			blocksByItemId,
+			changes,
+			document,
+			overrideByChangeId,
+			placements,
+			userId,
+		}: Pick<
+			ApplyParameters,
+			"changes" | "document" | "placements" | "userId"
+		> & {
+			blocksByItemId: Map<number, ExtractionContentBlock[]>;
+			overrideByChangeId: Map<number, IntegrationChangeContentOverrideDto>;
+		},
+		transaction: Transaction,
+	): Promise<void> {
+		if (changes.length === EMPTY_LENGTH) {
+			return;
+		}
+
+		const { projectId } = document.toObject();
+		const placementByChangeId = new Map(
+			placements.map((placement) => [placement.changeId, placement]),
+		);
+		const nextPositionByParentId = await this.findChosenParents(
+			placements,
+			projectId,
+		);
+		let documentPageId: null | number = null;
+		const orderedChanges = changes.toSorted(
+			(left, right) =>
+				(placementByChangeId.get(left.toObject().id)?.position ??
+					changes.indexOf(left)) -
+				(placementByChangeId.get(right.toObject().id)?.position ??
+					changes.indexOf(right)),
+		);
+
+		for (const [index, change] of orderedChanges.entries()) {
 			const { extractionItemId, id } = change.toObject();
+			const chosenParentId = placementByChangeId.get(id)?.parentId ?? null;
+			let parentId: number;
+			let position: number;
+
+			if (chosenParentId === null) {
+				documentPageId ??= await this.createDocumentPage(
+					{ document, userId },
+					transaction,
+				);
+				parentId = documentPageId;
+				position = index;
+			} else {
+				parentId = chosenParentId;
+				position = nextPositionByParentId.get(chosenParentId) ?? index;
+				nextPositionByParentId.set(
+					chosenParentId,
+					position + NEXT_POSITION_OFFSET,
+				);
+			}
+
 			const { incomingContent, incomingTitle } = resolveIncoming(
 				change,
 				overrideByChangeId.get(id),
@@ -221,7 +284,7 @@ class IntegrationApplier {
 				{
 					entity: KnowledgeNodeEntity.initializeNew({
 						contentJson,
-						parentId: pageNode.toObject().id,
+						parentId,
 						position,
 						projectId,
 						title: incomingTitle,
@@ -237,6 +300,47 @@ class IntegrationApplier {
 				transaction,
 			);
 		}
+	}
+
+	private async findChosenParents(
+		placements: Placement[],
+		projectId: number,
+	): Promise<Map<number, number>> {
+		const parentIds = [
+			...new Set(
+				placements.flatMap((placement) =>
+					placement.parentId === null ? [] : [placement.parentId],
+				),
+			),
+		];
+		const nodes =
+			parentIds.length === EMPTY_LENGTH
+				? []
+				: await this.knowledgeNodeRepository.findAllByProjectId(projectId);
+		const nextPositionByParentId = new Map<number, number>();
+
+		for (const parentId of parentIds) {
+			const parent = nodes.find((node) => node.toObject().id === parentId);
+
+			if (parent?.toObject().type !== KnowledgeNodeType.PAGE) {
+				throw createInvalidPlacementError();
+			}
+
+			const lastChildPosition = Math.max(
+				NO_CHILD_POSITION,
+				...nodes
+					.map((node) => node.toObject())
+					.filter((node) => node.parentId === parentId)
+					.map((node) => node.position),
+			);
+
+			nextPositionByParentId.set(
+				parentId,
+				lastChildPosition + NEXT_POSITION_OFFSET,
+			);
+		}
+
+		return nextPositionByParentId;
 	}
 
 	private async loadBlocksByItemId(
@@ -299,6 +403,7 @@ class IntegrationApplier {
 			changes,
 			contentOverrides,
 			document,
+			placements,
 			resolutions,
 			userId,
 		}: ApplyParameters,
@@ -351,6 +456,7 @@ class IntegrationApplier {
 				changes: newChanges,
 				document,
 				overrideByChangeId,
+				placements,
 				userId,
 			},
 			transaction,
