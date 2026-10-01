@@ -2,6 +2,7 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 
 import "./knowledge-editor.css";
+
 import {
 	type Block,
 	BlockNoteSchema,
@@ -11,7 +12,15 @@ import {
 	type PartialBlock,
 } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
-import { useCreateBlockNote, useExtension } from "@blocknote/react";
+import {
+	DragHandleMenu,
+	RemoveBlockItem,
+	SideMenu,
+	SideMenuController,
+	type SideMenuProps,
+	useCreateBlockNote,
+	useExtension,
+} from "@blocknote/react";
 import { type ReactNode, useCallback, useEffect, useMemo } from "react";
 
 import { HighlightTooltip } from "./libs/components/components.js";
@@ -29,7 +38,7 @@ type KnowledgeEditorApi = {
 };
 
 type Properties = {
-	disabledBlocks?: EditorBlockType[];
+	disabledBlocks?: readonly EditorBlockType[];
 	highlights?: TextHighlight[];
 	initialContent?: PartialBlock[];
 	isEditable?: boolean;
@@ -42,8 +51,16 @@ type Properties = {
 	theme?: EditorTheme;
 };
 
+const DEFAULT_DISABLED_BLOCKS: readonly EditorBlockType[] = [
+	"table",
+	"image",
+	"video",
+	"audio",
+	"file",
+] as const;
+
 const getEditorBlockSpecs = (
-	disabledBlocks: readonly EditorBlockType[] = [],
+	disabledBlocks: readonly EditorBlockType[] = DEFAULT_DISABLED_BLOCKS,
 ): BlockSpecs => {
 	const disabledBlockSet = new Set<EditorBlockType>(disabledBlocks);
 
@@ -57,17 +74,24 @@ const getEditorBlockSpecs = (
 	) as unknown as BlockSpecs;
 };
 
-// Workaround for BlockNote types with exactOptionalPropertyTypes enabled.
-// DefaultBlockSchema heading props are not compatible with BlockSchema constraints.
-// Context: https://github.com/TypeCellOS/BlockNote/discussions/2476.
 const getEditorSchema = (blockSpecs: BlockSpecs) => {
 	return BlockNoteSchema.create({
 		blockSpecs,
 	});
 };
 
+const CustomDragHandleMenu: React.FC = () => (
+	<DragHandleMenu>
+		<RemoveBlockItem>Delete</RemoveBlockItem>
+	</DragHandleMenu>
+);
+
+const CustomSideMenu: React.FC<SideMenuProps> = (properties: SideMenuProps) => (
+	<SideMenu {...properties} dragHandleMenu={CustomDragHandleMenu} />
+);
+
 const KnowledgeEditor: React.FC<Properties> = ({
-	disabledBlocks,
+	disabledBlocks = DEFAULT_DISABLED_BLOCKS,
 	highlights,
 	initialContent,
 	isEditable = true,
@@ -76,7 +100,8 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	renderHighlightTooltip,
 	theme = "light",
 }: Properties) => {
-	const disabledBlocksKey = disabledBlocks?.join(",") ?? "";
+	const disabledBlocksKey = disabledBlocks.join(",");
+
 	const editorSchema = useMemo(() => {
 		const disabledBlockTypes =
 			disabledBlocksKey === ""
@@ -85,6 +110,7 @@ const KnowledgeEditor: React.FC<Properties> = ({
 
 		return getEditorSchema(getEditorBlockSpecs(disabledBlockTypes));
 	}, [disabledBlocksKey]);
+
 	const editor = useCreateBlockNote(
 		initialContent === undefined
 			? { extensions: [textHighlightExtension()], schema: editorSchema }
@@ -95,16 +121,22 @@ const KnowledgeEditor: React.FC<Properties> = ({
 				},
 		[initialContent, editorSchema],
 	);
+
 	const highlightExtension = useExtension(textHighlightExtension, { editor });
+
 	const TypedBlockNoteView = BlockNoteView as unknown as React.FC<{
+		children?: ReactNode;
 		editable: boolean;
 		editor: typeof editor;
 		onChange: () => void;
+		sideMenu: boolean;
 		theme: EditorTheme;
 	}>;
+
 	const handleEditorChange = useCallback((): void => {
 		onChange?.(editor.document);
 	}, [editor, onChange]);
+
 	const handleReplace = useCallback(
 		(highlightId: string, replacement: string): void => {
 			highlightExtension.replaceHighlight(highlightId, replacement);
@@ -125,8 +157,11 @@ const KnowledgeEditor: React.FC<Properties> = ({
 			editable={isEditable}
 			editor={editor}
 			onChange={handleEditorChange}
+			sideMenu={false}
 			theme={theme}
-		/>
+		>
+			<SideMenuController sideMenu={CustomSideMenu} />
+		</TypedBlockNoteView>
 	);
 
 	return (

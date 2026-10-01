@@ -20,3 +20,13 @@
 	word-break: normal;
 	overflow-wrap: break-word;
 }
+
+.knowledge-editor {
+	contain: paint;
+	overflow-x: clip;
+}
+
+.knowledge-editor .bn-side-menu,
+.knowledge-editor .bn-drag-handle-menu {
+	user-select: none;
+}
