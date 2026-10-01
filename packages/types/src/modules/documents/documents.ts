@@ -1,12 +1,15 @@
 export {
 	type DocumentConfirmUploadResponseDto,
 	type DocumentConfirmUploadRouteParametersDto,
+	type DocumentPlacementDto,
 	type DocumentProcessingProgressDto,
 	type DocumentRouteParametersDto,
 	type DocumentStatusResponseDto,
 	type DocumentUploadIntentRequestDto,
 	type DocumentUploadIntentResponseDto,
 	type DocumentUploadIntentRouteParametersDto,
+	type ExtractionBlockBackgroundValue,
+	type ExtractionContentBlock,
 	type ExtractionItemResponseDto,
 	type ExtractionItemRouteParametersDto,
 	type ExtractionItemsResponseDto,
@@ -24,4 +27,6 @@ export {
 	type ManualTextResponseDto,
 	type ManualTextRouteParametersDto,
 	type PendingReviewDocumentsResponseDto,
+	ExtractionBlockBackground,
+	ExtractionHeadingLevel,
 } from "./libs/types/types.js";

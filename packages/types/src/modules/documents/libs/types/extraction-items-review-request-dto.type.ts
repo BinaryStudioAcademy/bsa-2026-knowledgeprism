@@ -1,3 +1,5 @@
+import { type ExtractionContentBlock } from "./extraction-content-block.type.js";
+
 type ExtractionItemsReviewRequestDto = {
 	approvedIds: number[];
 	rejectedIds: number[];
@@ -10,6 +12,7 @@ type ExtractionItemsReviewSectionDto = {
 };
 
 type ExtractionItemsReviewSectionItemDto = {
+	blocks?: ExtractionContentBlock[];
 	id?: number;
 	text: string;
 	title: string;
