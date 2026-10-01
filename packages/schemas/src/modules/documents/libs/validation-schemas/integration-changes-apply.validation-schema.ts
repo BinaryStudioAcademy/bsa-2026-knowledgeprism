@@ -61,12 +61,21 @@ const contentOverride = z
 	})
 	.required();
 
+const placement = z
+	.object({
+		changeId: z.number().int().positive(),
+		parentId: z.number().int().positive().nullable(),
+		position: z.number().int().nonnegative(),
+	})
+	.required();
+
 const integrationChangesApply = z
 	.object({
 		contentOverrides: z.array(contentOverride),
 		items: z.array(publishedItem),
 		resolutions: z.array(conflictResolution),
 	})
-	.required();
+	.required()
+	.extend({ placements: z.array(placement).optional() });
 
 export { integrationChangesApply };
