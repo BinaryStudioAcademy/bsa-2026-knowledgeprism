@@ -5,9 +5,11 @@ import { Button, Heading, Loader } from "~/components/components.js";
 
 import { type InternalVariantProperties } from "../../types.js";
 import { ProcessingProgress } from "../processing-progress.js";
+import "./full-variant.css";
 
 const FullVariant = ({
 	currentStatus,
+	errorMessage,
 	isError,
 	onCancel,
 	onRetry,
@@ -18,13 +20,18 @@ const FullVariant = ({
 		currentStatus === DocumentStatus.WAITING_FOR_APPROVAL;
 	const heading = isReady ? "Processing finished" : "Analyzing your content";
 	return (
-		<div className="flex w-full max-w-lg flex-col items-center gap-6 rounded-lg p-10 text-center">
+		<div className="analyzing-full-state mx-auto flex w-full max-w-lg flex-col items-center justify-center gap-6 rounded-lg p-10 text-center">
 			{!isReady && !isError && <Loader size="lg" />}
 			<Heading level="1">{isError ? "Processing failed" : heading}</Heading>
 			<ProcessingProgress
 				currentStatus={isError ? DocumentStatus.FAILED : currentStatus}
 				progress={progress ?? null}
 			/>
+			{isError && (
+				<p className="text-sm text-text-muted">
+					{errorMessage ?? "Something went wrong. Please try again."}
+				</p>
+			)}
 			{isReady && (
 				<p className="text-sm text-text-muted">
 					{currentStatus === DocumentStatus.WAITING_FOR_VALIDATION
@@ -39,6 +46,13 @@ const FullVariant = ({
 					</Button>
 					<Button onClick={onRetry} variant="primary">
 						Retry
+					</Button>
+				</div>
+			)}
+			{!isError && !isReady && onCancel && (
+				<div className="flex gap-3">
+					<Button onClick={onCancel} variant="secondary">
+						Cancel
 					</Button>
 				</div>
 			)}

@@ -259,7 +259,6 @@ const planMoveOut = (
 export {
 	type DocumentPlacement,
 	canAddSubdocument,
-	isDocumentNode,
 	planMoveDown,
 	planMoveOut,
 	planMoveUp,

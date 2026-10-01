@@ -3,7 +3,10 @@ import {
 	ExtractionItemStatus,
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
-import { type ExtractionItemResponseDto } from "@knowledgeprism/types";
+import {
+	ExtractionHeadingLevel,
+	type ExtractionItemResponseDto,
+} from "@knowledgeprism/types";
 import {
 	act,
 	fireEvent,
@@ -46,12 +49,25 @@ const renderPreview = (ui: ReactElement): ReturnType<typeof render> =>
 	);
 
 vi.mock("~/components/knowledge-editor/knowledge-editor.js", () => ({
-	KnowledgeEditor: (): JSX.Element => <div data-testid="knowledge-editor" />,
+	KnowledgeEditor: ({
+		initialContent,
+	}: {
+		initialContent?: { content?: unknown; type?: string }[];
+	}): JSX.Element => (
+		<div data-testid="knowledge-editor">
+			{initialContent?.map((block, index) => (
+				<span key={`${block.type ?? "block"}-${String(index)}`}>
+					{block.type}
+				</span>
+			))}
+		</div>
+	),
 }));
 
 const createExtractionItem = (): ExtractionItemResponseDto => ({
 	confidence: 0.92,
 	extractionSectionId: null,
+	heading: null,
 	id: 17,
 	position: 0,
 	rationale: "The source explicitly states this fact.",
@@ -67,9 +83,10 @@ const createDeferred = (): PromiseWithResolvers<boolean> =>
 
 const FAILED_PAGE_NUMBER = 4;
 const INITIAL_ITEM_COUNT = 2;
-const REMAINING_ITEM_COUNT = 1;
 const LAST_BUTTON_OFFSET = -1;
-
+const PARAGRAPH_BLOCK_COUNT = 2;
+const REMAINING_ITEM_COUNT = 1;
+const SINGLE_CALL_COUNT = 1;
 describe("IntegrationPreview extraction review", () => {
 	beforeEach(() => {
 		store.instance.dispatch(actions.resetState(null));
@@ -92,12 +109,11 @@ describe("IntegrationPreview extraction review", () => {
 		renderPreview(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onApprove={vi.fn().mockResolvedValue(false)}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -107,6 +123,61 @@ describe("IntegrationPreview extraction review", () => {
 				"Source excerpt: KnowledgePrism keeps approved knowledge traceable.",
 			),
 		).toBeInTheDocument();
+	});
+
+	it("shows extracted section blocks in the review editor", () => {
+		const item = {
+			...createExtractionItem(),
+			blocks: [
+				{
+					content: [{ text: "Overview", type: "text" as const }],
+					props: { level: ExtractionHeadingLevel.SECTION },
+					type: "heading" as const,
+				},
+				{
+					content: [{ text: "The limit is 10.", type: "text" as const }],
+					type: "paragraph" as const,
+				},
+				{
+					content: [{ text: "Keep a backup.", type: "text" as const }],
+					type: "bulletListItem" as const,
+				},
+				{
+					content: [{ text: "Confirm the backup.", type: "text" as const }],
+					props: { checked: false },
+					type: "checkListItem" as const,
+				},
+				{
+					content: [
+						{
+							styles: { bold: true as const },
+							text: "Decision",
+							type: "text" as const,
+						},
+						{ text: " Use Postgres.", type: "text" as const },
+					],
+					type: "paragraph" as const,
+				},
+			],
+		};
+
+		const structure = mapExtractionItemsToProposedStructure([item]);
+
+		render(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={vi.fn().mockResolvedValue(false)}
+				onClose={vi.fn()}
+				proposedStructure={structure}
+			/>,
+		);
+
+		expect(screen.getByText("heading")).toBeInTheDocument();
+		expect(screen.getByText("bulletListItem")).toBeInTheDocument();
+		expect(screen.getByText("checkListItem")).toBeInTheDocument();
+		expect(screen.getAllByText("paragraph")).toHaveLength(
+			PARAGRAPH_BLOCK_COUNT,
+		);
 	});
 
 	it("keeps empty extraction sections returned by the API", () => {
@@ -134,12 +205,11 @@ describe("IntegrationPreview extraction review", () => {
 		renderPreview(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onApprove={vi.fn().mockResolvedValue(false)}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -169,12 +239,11 @@ describe("IntegrationPreview extraction review", () => {
 		renderPreview(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onApprove={vi.fn().mockResolvedValue(false)}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -202,12 +271,11 @@ describe("IntegrationPreview extraction review", () => {
 			<IntegrationPreview
 				onAddMore={vi.fn()}
 				onApplyingChange={handleApplyingChange}
-				onApproveExtraction={approve}
+				onApprove={approve}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -235,12 +303,11 @@ describe("IntegrationPreview extraction review", () => {
 			<IntegrationPreview
 				failedPageNumbers={[]}
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn()}
+				onApprove={vi.fn()}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 		expect(
@@ -253,12 +320,11 @@ describe("IntegrationPreview extraction review", () => {
 			<IntegrationPreview
 				failedPageNumbers={[FAILED_PAGE_NUMBER]}
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn()}
+				onApprove={vi.fn()}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -277,12 +343,11 @@ describe("IntegrationPreview extraction review", () => {
 			<IntegrationPreview
 				errorMessage="Extraction update failed"
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn()}
+				onApprove={vi.fn()}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -396,15 +461,30 @@ describe("IntegrationPreview extraction review", () => {
 
 		fireEvent.click(screen.getByRole("button", { name: "Accept" }));
 		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
-		fireEvent.click(
-			screen.getByRole("button", { name: "Use Incoming Version" }),
+		const [titleIncomingButton, contentIncomingButton] = screen.getAllByRole(
+			"button",
+			{ name: "Use Incoming Version" },
 		);
+		const [titleKeepButton] = screen.getAllByRole("button", {
+			name: "Keep Live Version",
+		});
+
+		expect(titleIncomingButton).toHaveAttribute(
+			"data-conflict-id",
+			"conf-title-9",
+		);
+		fireEvent.click(titleKeepButton as HTMLElement);
+		fireEvent.click(contentIncomingButton as HTMLElement);
 		fireEvent.click(screen.getByRole("button", { name: "Publish resolution" }));
 
 		await waitFor(() => {
 			expect(approve).toHaveBeenCalledWith(
-				[{ changeId: 9, content: "use-new", title: "keep" }],
-				[{ changeId: 9, content: "Use the API.", title: "Title" }],
+				expect.objectContaining({
+					contentOverrides: [
+						{ changeId: 9, content: "Use the API.", title: "Title" },
+					],
+					resolutions: [{ changeId: 9, content: "use-new", title: "keep" }],
+				}),
 			);
 		});
 	});
@@ -448,12 +528,11 @@ describe("IntegrationPreview proposed structure editing", () => {
 		render(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onApprove={vi.fn().mockResolvedValue(false)}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -469,12 +548,11 @@ describe("IntegrationPreview proposed structure editing", () => {
 		render(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onApprove={vi.fn().mockResolvedValue(false)}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -491,10 +569,9 @@ describe("IntegrationPreview proposed structure editing", () => {
 		render(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onApprove={vi.fn().mockResolvedValue(false)}
 				onClose={vi.fn()}
 				proposedStructure={structure}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -521,12 +598,11 @@ describe("IntegrationPreview proposed structure editing", () => {
 		render(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
-				onApproveExtraction={vi.fn().mockResolvedValue(false)}
+				onApprove={vi.fn().mockResolvedValue(false)}
 				onClose={vi.fn()}
 				proposedStructure={mapExtractionItemsToProposedStructure([
 					createExtractionItem(),
 				])}
-				variant="extraction-validation"
 			/>,
 		);
 
@@ -546,7 +622,7 @@ describe("IntegrationPreview proposed structure editing", () => {
 		expect(screen.queryByText("New page")).not.toBeInTheDocument();
 	});
 
-	it("does not offer add/delete/reorder controls for the integration merge variant", () => {
+	it("offers add and delete controls on the placement review", () => {
 		const structure: ProposedSection[] = [
 			{
 				id: "section",
@@ -575,13 +651,124 @@ describe("IntegrationPreview proposed structure editing", () => {
 		);
 
 		expect(
-			screen.queryByRole("button", { name: "Add page" }),
-		).not.toBeInTheDocument();
+			screen.getByRole("button", { name: "Add page" }),
+		).toBeInTheDocument();
 		expect(
-			screen.queryByRole("button", { name: "Add item" }),
-		).not.toBeInTheDocument();
+			screen.getByRole("button", { name: "Add item" }),
+		).toBeInTheDocument();
 		expect(
-			screen.queryByRole("button", { name: "Delete item" }),
+			screen.getByRole("button", { name: "Delete item" }),
+		).toBeInTheDocument();
+	});
+});
+
+const DISCARD_DIALOG_TITLE = "Discard this document?";
+
+const closeTestDialogs = (): void => {
+	for (const dialog of document.querySelectorAll("dialog")) {
+		dialog.removeAttribute("open");
+	}
+};
+
+const openDiscardTestDialog = (): void => {
+	for (const dialog of document.querySelectorAll("dialog")) {
+		if (dialog.textContent.includes(DISCARD_DIALOG_TITLE)) {
+			dialog.setAttribute("open", "");
+		}
+	}
+};
+
+const restoreDialogMethod = (
+	name: "close" | "showModal",
+	descriptor: PropertyDescriptor | undefined,
+): void => {
+	if (descriptor) {
+		Object.defineProperty(HTMLDialogElement.prototype, name, descriptor);
+
+		return;
+	}
+
+	Reflect.deleteProperty(HTMLDialogElement.prototype, name);
+};
+
+describe("IntegrationPreview document discard", () => {
+	const originalShowModal = Object.getOwnPropertyDescriptor(
+		HTMLDialogElement.prototype,
+		"showModal",
+	);
+	const originalClose = Object.getOwnPropertyDescriptor(
+		HTMLDialogElement.prototype,
+		"close",
+	);
+
+	afterEach(() => {
+		restoreDialogMethod("showModal", originalShowModal);
+		restoreDialogMethod("close", originalClose);
+	});
+
+	beforeEach(() => {
+		HTMLDialogElement.prototype.showModal = openDiscardTestDialog;
+		HTMLDialogElement.prototype.close = closeTestDialogs;
+		store.instance.dispatch(actions.resetState(null));
+		store.instance.dispatch(
+			workspacesActions.setLastActiveProject(TEST_PROJECT_ID),
+		);
+	});
+
+	it("confirms before discarding the document", () => {
+		const onCancelDocument = vi.fn();
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={vi.fn().mockResolvedValue(false)}
+				onCancelDocument={onCancelDocument}
+				onClose={vi.fn()}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					createExtractionItem(),
+				])}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "Discard document" }));
+		const dialog = screen.getByRole("dialog", {
+			name: DISCARD_DIALOG_TITLE,
+		});
+		fireEvent.click(
+			within(dialog).getByRole("button", { name: "Keep reviewing" }),
+		);
+
+		expect(onCancelDocument).not.toHaveBeenCalled();
+		expect(
+			screen.queryByRole("dialog", { name: DISCARD_DIALOG_TITLE }),
+		).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Discard document" }));
+		fireEvent.click(
+			within(
+				screen.getByRole("dialog", { name: DISCARD_DIALOG_TITLE }),
+			).getByRole("button", { name: "Discard document" }),
+		);
+
+		expect(onCancelDocument).toHaveBeenCalledTimes(SINGLE_CALL_COUNT);
+		expect(
+			screen.queryByRole("dialog", { name: DISCARD_DIALOG_TITLE }),
+		).not.toBeInTheDocument();
+	});
+
+	it("hides the discard action without a cancel handler", () => {
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={vi.fn().mockResolvedValue(false)}
+				onClose={vi.fn()}
+				proposedStructure={mapExtractionItemsToProposedStructure([
+					createExtractionItem(),
+				])}
+			/>,
+		);
+
+		expect(
+			screen.queryByRole("button", { name: "Discard document" }),
 		).not.toBeInTheDocument();
 	});
 });

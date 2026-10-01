@@ -126,6 +126,30 @@ class KnowledgeApi extends BaseHTTPApi {
 		return await response.json<KnowledgeEntryResponseDto>();
 	}
 
+	public async removeDocumentNode({
+		documentId,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<void> {
+		await this.load(
+			this.getFullEndpoint(KnowledgeApiPath.ENTRY_$ID, {
+				id: String(documentId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "DELETE",
+				payload: JSON.stringify({}),
+				signal,
+			},
+		);
+	}
+
 	public async search({
 		projectId,
 		query,

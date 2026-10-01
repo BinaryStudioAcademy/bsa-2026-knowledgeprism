@@ -29,6 +29,8 @@ import {
 	moveDocumentNode,
 	pollDocumentStatus,
 	processDocument,
+	removeDocumentNode,
+	removeKnowledgeSection,
 	retryDocumentProcessing,
 	searchKnowledgeEntries,
 	submitExtractionReview,
@@ -77,6 +79,7 @@ const initialState: State = {
 	pipelineProjectId: null,
 	pipelineSessionId: 0,
 	processingStatus: DocumentProcessingStatus.IDLE,
+	removedOpenDocument: null,
 	selectedEntry: null,
 	selectedFiles: [],
 	statusRequestIds: {},
@@ -91,10 +94,23 @@ const initialState: State = {
 };
 
 const ACTIVE_DOCUMENT_PRIORITY: TrackedDocument["status"][] = [
+	DocumentStatus.INTEGRATING,
 	DocumentStatus.WAITING_FOR_VALIDATION,
 	DocumentStatus.WAITING_FOR_APPROVAL,
 	DocumentStatus.FAILED,
 ];
+
+const EXTRACTION_ITEM_STATUSES = new Set<TrackedDocument["status"]>([
+	DocumentStatus.INTEGRATING,
+	DocumentStatus.WAITING_FOR_APPROVAL,
+	DocumentStatus.WAITING_FOR_VALIDATION,
+]);
+
+const shouldKeepExtractionItems = (
+	status: TrackedDocument["status"],
+): boolean => {
+	return EXTRACTION_ITEM_STATUSES.has(status);
+};
 
 const FINISHED_DOCUMENT_STATUSES = new Set<TrackedDocument["status"]>([
 	DocumentStatus.CANCELLED,
@@ -217,7 +233,7 @@ const reconcileActiveDocument = (state: State): void => {
 
 	state.activeDocumentStatus = nextActive?.status ?? IDLE_DOCUMENT_STATUS;
 
-	if (state.activeDocumentStatus !== DocumentStatus.WAITING_FOR_VALIDATION) {
+	if (!shouldKeepExtractionItems(state.activeDocumentStatus)) {
 		clearExtractionReview(state);
 	}
 
@@ -525,6 +541,7 @@ const { actions, name, reducer } = createSlice({
 			}
 
 			clearEntryUpdateRequest(state, action.meta.arg.entryId);
+			state.treeRevision += TREE_REVISION_STEP;
 			if (state.selectedEntry?.id === action.payload.id) {
 				state.knowledgeErrorMessage = null;
 				state.selectedEntry = action.payload;
@@ -602,6 +619,87 @@ const { actions, name, reducer } = createSlice({
 			state.documentStructureRequestId = null;
 			state.isDocumentStructurePending = false;
 		});
+		builder.addCase(removeDocumentNode.pending, (state, action) => {
+			state.documentStructureRequestId = action.meta.requestId;
+			state.isDocumentStructurePending = true;
+		});
+		builder.addCase(removeDocumentNode.fulfilled, (state, action) => {
+			if (state.documentStructureRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.documentStructureRequestId = null;
+			state.isDocumentStructurePending = false;
+
+			if (state.pipelineProjectId !== action.meta.arg.projectId) {
+				return;
+			}
+
+			state.tree = action.payload.items;
+			state.removedOpenDocument = {
+				projectId: action.meta.arg.projectId,
+				queryNodeId: action.meta.arg.queryNodeId,
+			};
+
+			const openEntryId = state.selectedEntry?.id;
+
+			if (
+				openEntryId !== undefined &&
+				state.tree.every((item) => item.id !== openEntryId)
+			) {
+				state.selectedEntry = null;
+				state.entryRequestId = null;
+				state.isEntryLoading = false;
+				state.knowledgeErrorMessage = null;
+			}
+		});
+		builder.addCase(removeDocumentNode.rejected, (state, action) => {
+			if (state.documentStructureRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.documentStructureRequestId = null;
+			state.isDocumentStructurePending = false;
+		});
+		builder.addCase(removeKnowledgeSection.pending, (state, action) => {
+			state.documentStructureRequestId = action.meta.requestId;
+			state.isDocumentStructurePending = true;
+		});
+		builder.addCase(removeKnowledgeSection.fulfilled, (state, action) => {
+			if (state.documentStructureRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.documentStructureRequestId = null;
+			state.isDocumentStructurePending = false;
+
+			if (state.pipelineProjectId !== action.meta.arg.projectId) {
+				return;
+			}
+
+			state.tree = action.payload.items;
+			state.treeRevision += TREE_REVISION_STEP;
+
+			const openEntryId = state.selectedEntry?.id;
+
+			if (
+				openEntryId !== undefined &&
+				state.tree.every((item) => item.id !== openEntryId)
+			) {
+				state.selectedEntry = null;
+				state.entryRequestId = null;
+				state.isEntryLoading = false;
+				state.knowledgeErrorMessage = null;
+			}
+		});
+		builder.addCase(removeKnowledgeSection.rejected, (state, action) => {
+			if (state.documentStructureRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.documentStructureRequestId = null;
+			state.isDocumentStructurePending = false;
+		});
 		builder.addCase(submitManualText.fulfilled, (state, action) => {
 			if (!isCurrentUploadSession(state, action.meta.arg.uploadSessionId)) {
 				return;
@@ -639,12 +737,18 @@ const { actions, name, reducer } = createSlice({
 				return;
 			}
 
+			const { errorMessage, status } = action.payload;
+
 			applyTrackedDocumentStatus({
 				...action.meta.arg,
 				snapshot: action.payload,
 				state,
-				status: action.payload.status,
+				status,
 			});
+
+			if (errorMessage && status === DocumentStatus.FAILED) {
+				setPipelineError(state, action.meta.arg.documentId, errorMessage);
+			}
 		});
 		builder.addCase(pollDocumentStatus.rejected, (state, action) => {
 			if (
@@ -681,7 +785,7 @@ const { actions, name, reducer } = createSlice({
 			if (
 				!isCurrentPipelineSession(state, action.meta.arg) ||
 				state.activeDocumentId !== action.meta.arg.documentId ||
-				document?.status !== DocumentStatus.WAITING_FOR_VALIDATION
+				!shouldKeepExtractionItems(document?.status ?? "IDLE")
 			) {
 				return;
 			}
@@ -698,7 +802,7 @@ const { actions, name, reducer } = createSlice({
 			if (
 				!isCurrentPipelineSession(state, action.meta.arg) ||
 				state.activeDocumentId !== action.meta.arg.documentId ||
-				document?.status !== DocumentStatus.WAITING_FOR_VALIDATION
+				!shouldKeepExtractionItems(document?.status ?? "IDLE")
 			) {
 				return;
 			}
@@ -834,7 +938,8 @@ const { actions, name, reducer } = createSlice({
 
 			if (
 				!isCurrentPipelineSession(state, action.meta.arg) ||
-				document?.status !== DocumentStatus.WAITING_FOR_APPROVAL
+				!shouldKeepExtractionItems(document?.status ?? "IDLE") ||
+				document?.status === DocumentStatus.WAITING_FOR_VALIDATION
 			) {
 				return;
 			}
@@ -964,6 +1069,7 @@ const { actions, name, reducer } = createSlice({
 					extractionSections: KnowledgeState["extractionSections"];
 					snapshot: DocumentStatusResponseDto;
 					status:
+						| typeof DocumentStatus.INTEGRATING
 						| typeof DocumentStatus.WAITING_FOR_APPROVAL
 						| typeof DocumentStatus.WAITING_FOR_VALIDATION;
 					switchRequestId: string;
@@ -1001,12 +1107,12 @@ const { actions, name, reducer } = createSlice({
 			state.activeDocumentStatus = status;
 			state.extractionFailedPageNumbers = extractionFailedPageNumbers;
 			state.extractionItems = extractionItems;
-			state.extractionItemsDocumentId =
-				status === DocumentStatus.WAITING_FOR_VALIDATION ? documentId : null;
-			state.extractionSections =
-				status === DocumentStatus.WAITING_FOR_VALIDATION
-					? extractionSections
-					: [];
+			state.extractionItemsDocumentId = shouldKeepExtractionItems(status)
+				? documentId
+				: null;
+			state.extractionSections = shouldKeepExtractionItems(status)
+				? extractionSections
+				: [];
 			clearDocumentPipelineError(state, documentId);
 			reconcileActiveDocument(state);
 		},
@@ -1032,6 +1138,9 @@ const { actions, name, reducer } = createSlice({
 			if (isCurrentPipelineProject(state, action.payload.projectId)) {
 				clearDocumentPipelineError(state, action.payload.documentId);
 			}
+		},
+		clearRemovedOpenDocument(state) {
+			state.removedOpenDocument = null;
 		},
 		clearSelectedFiles(state) {
 			state.uploadErrorMessage = null;
@@ -1166,6 +1275,7 @@ const { actions, name, reducer } = createSlice({
 			state.pipelineProjectId = action.payload;
 			state.pipelineSessionId += SESSION_COUNTER_STEP;
 			state.processingStatus = DocumentProcessingStatus.IDLE;
+			state.removedOpenDocument = null;
 			state.selectedFiles = [];
 			state.selectedEntry = null;
 			state.statusRequestIds = {};

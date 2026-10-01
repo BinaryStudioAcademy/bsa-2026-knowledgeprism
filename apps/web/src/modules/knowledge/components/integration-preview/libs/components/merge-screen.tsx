@@ -18,10 +18,43 @@ import {
 const CHECK_ICON_SIZE = 14;
 const DUPLICATE_INCOMING_FIELD_MESSAGE =
 	"Two conflicts cannot both apply incoming values to the same field on the same knowledge entry. Change at least one resolution to Keep Live Version.";
+const FIRST_MATCH_INDEX = 0;
+const MATCH_LABEL_OFFSET = 1;
+const NEXT_MATCH_STEP = 1;
+const NOT_FOUND_INDEX = -1;
+const PARAGRAPH_BREAK = "\n\n";
+const PREVIOUS_MATCH_STEP = -1;
+const SINGLE_MATCH_COUNT = 1;
 const VALID_RESOLUTIONS: readonly ConflictResolution[] = [
+	"both",
 	"keep",
 	"use-new",
 ] as const;
+
+const HighlightedSpan = ({
+	span,
+	text,
+}: {
+	span: string;
+	text: string;
+}): JSX.Element => {
+	const spanIndex =
+		span.length === FIRST_MATCH_INDEX ? NOT_FOUND_INDEX : text.indexOf(span);
+
+	if (spanIndex < FIRST_MATCH_INDEX) {
+		return <>{text}</>;
+	}
+
+	const spanEnd = spanIndex + span.length;
+
+	return (
+		<>
+			{text.slice(FIRST_MATCH_INDEX, spanIndex)}
+			<mark className="rounded-sm bg-warning-bg px-0.5 text-text">{span}</mark>
+			{text.slice(spanEnd)}
+		</>
+	);
+};
 
 type MergeScreenProperties = {
 	conflicts: FieldConflict[];
@@ -40,7 +73,15 @@ const resolveSectionField = (
 ): string => {
 	const choice = resolutionMap.get(conflict.id) ?? "use-new";
 
-	return choice === "keep" ? conflict.currentValue : conflict.incomingValue;
+	if (choice === "keep") {
+		return conflict.currentValue;
+	}
+
+	if (choice === "both") {
+		return `${conflict.currentValue}${PARAGRAPH_BREAK}${conflict.incomingValue}`;
+	}
+
+	return conflict.incomingValue;
 };
 
 const resolveSection = (
@@ -82,7 +123,10 @@ const hasDuplicateIncomingFieldConflict = (
 	const incomingFields = new Set<string>();
 
 	for (const conflict of conflicts) {
-		if (conflict.resolution !== "use-new" || conflict.matchedNodeId === null) {
+		const isIncomingWrite =
+			conflict.resolution === "use-new" || conflict.resolution === "both";
+
+		if (!isIncomingWrite || conflict.matchedNodeId === null) {
 			continue;
 		}
 
@@ -134,6 +178,44 @@ const MergeScreen = ({
 					),
 				);
 			}
+		},
+		[isApplying],
+	);
+
+	const handleMatchStep = useCallback(
+		(event: MouseEvent<HTMLButtonElement>): void => {
+			if (isApplying) {
+				return;
+			}
+
+			const conflictId = event.currentTarget.dataset["conflictId"];
+			const step = event.currentTarget.dataset["matchStep"];
+
+			if (!conflictId || (step !== "next" && step !== "previous")) {
+				return;
+			}
+
+			setConflicts((previousConflicts) =>
+				previousConflicts.map((item) => {
+					if (item.id !== conflictId) {
+						return item;
+					}
+
+					const matchCount = item.wordingMatches?.length ?? FIRST_MATCH_INDEX;
+
+					if (matchCount <= SINGLE_MATCH_COUNT) {
+						return item;
+					}
+
+					const currentIndex = item.matchIndex ?? FIRST_MATCH_INDEX;
+					const stepDelta =
+						step === "next" ? NEXT_MATCH_STEP : PREVIOUS_MATCH_STEP;
+					const nextIndex =
+						(currentIndex + stepDelta + matchCount) % matchCount;
+
+					return { ...item, matchIndex: nextIndex };
+				}),
+			);
 		},
 		[isApplying],
 	);
@@ -203,6 +285,16 @@ const MergeScreen = ({
 				{conflicts.map((conflict) => {
 					const isKeepActive = conflict.resolution === "keep";
 					const isUseNewActive = conflict.resolution === "use-new";
+					const isBothActive = conflict.resolution === "both";
+					const wordingMatches = conflict.wordingMatches ?? [];
+					const matchCount = wordingMatches.length;
+					const matchIndex = conflict.matchIndex ?? FIRST_MATCH_INDEX;
+					const activeSpan =
+						wordingMatches[matchIndex]?.span ??
+						wordingMatches[FIRST_MATCH_INDEX]?.span ??
+						"";
+					const hasWordingMatches =
+						conflict.field === "content" && matchCount > FIRST_MATCH_INDEX;
 
 					return (
 						<div
@@ -238,8 +330,15 @@ const MergeScreen = ({
 												</span>
 											)}
 										</div>
-										<div className="font-sans text-sm leading-relaxed text-text">
-											{conflict.currentValue}
+										<div className="whitespace-pre-line font-sans text-sm leading-relaxed text-text">
+											{hasWordingMatches ? (
+												<HighlightedSpan
+													span={activeSpan}
+													text={conflict.currentValue}
+												/>
+											) : (
+												conflict.currentValue
+											)}
 										</div>
 									</div>
 
@@ -301,6 +400,53 @@ const MergeScreen = ({
 									</button>
 								</div>
 							</div>
+
+							{hasWordingMatches && (
+								<div className="flex flex-col gap-2">
+									{matchCount > SINGLE_MATCH_COUNT && (
+										<div className="flex items-center justify-between gap-2">
+											<button
+												className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-muted hover:bg-secondary hover:text-text"
+												data-conflict-id={conflict.id}
+												data-match-step="previous"
+												disabled={isApplying}
+												onClick={handleMatchStep}
+												type="button"
+											>
+												Previous
+											</button>
+											<span className="font-mono text-2xs font-semibold uppercase tracking-wider text-text-muted">
+												item {matchIndex + MATCH_LABEL_OFFSET} of {matchCount}
+											</span>
+											<button
+												className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-muted hover:bg-secondary hover:text-text"
+												data-conflict-id={conflict.id}
+												data-match-step="next"
+												disabled={isApplying}
+												onClick={handleMatchStep}
+												type="button"
+											>
+												Next
+											</button>
+										</div>
+									)}
+									<button
+										className={getValidClassNames(
+											"w-full rounded-lg border py-2 text-xs font-semibold transition-colors",
+											isBothActive
+												? "border-accent bg-accent text-white"
+												: "border-border bg-surface text-text-muted hover:bg-secondary hover:text-text",
+										)}
+										data-conflict-id={conflict.id}
+										data-resolution="both"
+										disabled={isApplying}
+										onClick={handleResolveConflict}
+										type="button"
+									>
+										Both{isBothActive ? " · Selected" : ""}
+									</button>
+								</div>
+							)}
 						</div>
 					);
 				})}

@@ -1,5 +1,6 @@
 import {
 	applyIntegrationChanges,
+	cancelDocumentProcessing,
 	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	createDocumentNode,
@@ -12,6 +13,8 @@ import {
 	moveDocumentNode,
 	pollDocumentStatus,
 	processDocument,
+	removeDocumentNode,
+	removeKnowledgeSection,
 	resumeNextPendingReview,
 	retryDocumentProcessing,
 	searchKnowledgeEntries,
@@ -27,6 +30,7 @@ import { actions as sliceActions } from "./knowledge.slice.js";
 const allActions = {
 	...sliceActions,
 	applyIntegrationChanges,
+	cancelDocumentProcessing,
 	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	createDocumentNode,
@@ -39,6 +43,8 @@ const allActions = {
 	moveDocumentNode,
 	pollDocumentStatus,
 	processDocument,
+	removeDocumentNode,
+	removeKnowledgeSection,
 	resumeNextPendingReview,
 	retryDocumentProcessing,
 	searchKnowledgeEntries,

@@ -9,10 +9,7 @@ import {
 	EMPTY_LENGTH,
 	KNOWLEDGE_TREE_ITEM_CONFIG,
 } from "../../libs/constants/constants.js";
-import {
-	type DocumentPlacement,
-	isDocumentNode,
-} from "../../libs/helpers/helpers.js";
+import { type DocumentPlacement } from "../../libs/helpers/helpers.js";
 import { HighlightedText } from "./highlighted-text.js";
 import { KnowledgeTreeDocumentActions } from "./knowledge-tree-document-actions.js";
 import {
@@ -137,8 +134,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 		onMoveDocument &&
 		canStructure &&
 		isSelected &&
-		!isSearching &&
-		isDocumentNode(item.type) ? (
+		!isSearching ? (
 			<KnowledgeTreeDocumentActions
 				isPending={isStructurePending}
 				itemId={item.id}

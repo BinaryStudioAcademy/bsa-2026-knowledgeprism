@@ -1,4 +1,5 @@
 import {
+	DocumentErrorMessage,
 	DocumentProcessingPhase,
 	DocumentSourceType,
 	DocumentStatus,
@@ -12,6 +13,8 @@ import {
 } from "@knowledgeprism/types";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { ServerErrorType } from "~/lib/enums/enums.js";
+import { HTTPCode, HTTPError } from "~/lib/http/http.js";
 import { notificationService } from "~/lib/notifications/notification.service.js";
 import { store } from "~/lib/store/store.js";
 import { type AppNotification } from "~/lib/types/types.js";
@@ -23,6 +26,7 @@ import {
 } from "../libs/helpers/helpers.js";
 import {
 	applyIntegrationChanges,
+	cancelDocumentProcessing,
 	confirmDocumentUpload,
 	fetchExtractionItems,
 	fetchKnowledgeEntry,
@@ -108,6 +112,27 @@ const trackDocumentWithStatus = (
 			status,
 		}),
 	);
+};
+
+const createHTTPError = (status: HTTPError["status"]): HTTPError =>
+	new HTTPError({
+		details: [],
+		errorType: ServerErrorType.COMMON,
+		message: `Request failed with ${String(status)}`,
+		status,
+	});
+
+const createCancelRequest = (documentId: number) => ({
+	documentId,
+	projectId: PROJECT_ID,
+});
+
+const trackPersistedDocumentWithStatus = (
+	documentId: number,
+	status: DocumentStatusResponseDto["status"],
+): void => {
+	addTrackedDocumentId(PROJECT_ID, documentId);
+	trackDocumentWithStatus(documentId, status);
 };
 
 const createDeferred = <Value>(): PromiseWithResolvers<Value> =>
@@ -324,6 +349,68 @@ describe("knowledge pipeline lifecycle", () => {
 		expect(store.instance.getState().knowledge.trackedDocuments).toEqual([]);
 	});
 
+	it("cancels a tracked document and stops tracking it", async () => {
+		trackPersistedDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
+		const cancelProcessing = vi
+			.spyOn(documentsApi, "cancelProcessing")
+			.mockResolvedValue(
+				createStatusResponse(DOCUMENT_A_ID, DocumentStatus.FAILED),
+			);
+
+		const result = await store.instance.dispatch(
+			cancelDocumentProcessing(createCancelRequest(DOCUMENT_A_ID)),
+		);
+
+		expect(cancelDocumentProcessing.fulfilled.match(result)).toBe(true);
+		expect(cancelProcessing).toHaveBeenCalledTimes(SINGLE_CALL_COUNT);
+		expect(cancelProcessing).toHaveBeenCalledWith(
+			expect.objectContaining(createCancelRequest(DOCUMENT_A_ID)),
+		);
+		const state = store.instance.getState().knowledge;
+		expect(state.trackedDocuments).toEqual([]);
+		expect(state.activeDocumentId).not.toBe(DOCUMENT_A_ID);
+		expect(readTrackedDocumentIds(PROJECT_ID)).not.toContain(DOCUMENT_A_ID);
+	});
+
+	it("stops tracking a cancelled document when the server reports a conflict", async () => {
+		trackPersistedDocumentWithStatus(
+			DOCUMENT_A_ID,
+			DocumentStatus.WAITING_FOR_VALIDATION,
+		);
+		vi.spyOn(documentsApi, "cancelProcessing").mockRejectedValue(
+			createHTTPError(HTTPCode.CONFLICT),
+		);
+
+		const result = await store.instance.dispatch(
+			cancelDocumentProcessing(createCancelRequest(DOCUMENT_A_ID)),
+		);
+
+		expect(cancelDocumentProcessing.fulfilled.match(result)).toBe(true);
+		const state = store.instance.getState().knowledge;
+		expect(state.trackedDocuments).toEqual([]);
+		expect(state.activeDocumentId).not.toBe(DOCUMENT_A_ID);
+		expect(readTrackedDocumentIds(PROJECT_ID)).not.toContain(DOCUMENT_A_ID);
+	});
+
+	it("keeps tracking a document when cancellation fails unexpectedly", async () => {
+		trackPersistedDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
+		vi.spyOn(documentsApi, "cancelProcessing").mockRejectedValue(
+			createHTTPError(HTTPCode.INTERNAL_SERVER_ERROR),
+		);
+
+		const result = await store.instance.dispatch(
+			cancelDocumentProcessing(createCancelRequest(DOCUMENT_A_ID)),
+		);
+
+		expect(cancelDocumentProcessing.rejected.match(result)).toBe(true);
+		const state = store.instance.getState().knowledge;
+		expect(state.trackedDocuments).toContainEqual(
+			expect.objectContaining({ documentId: DOCUMENT_A_ID }),
+		);
+		expect(state.activeDocumentId).toBe(DOCUMENT_A_ID);
+		expect(readTrackedDocumentIds(PROJECT_ID)).toContain(DOCUMENT_A_ID);
+	});
+
 	it("does not resurrect an untracked document when an in-flight poll resolves", async () => {
 		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.PROCESSING);
 		const deferred = createDeferred<DocumentStatusResponseDto>();
@@ -406,6 +493,29 @@ describe("knowledge pipeline lifecycle", () => {
 		expect(store.instance.getState().knowledge.pipelineErrors).toMatchObject({
 			[DOCUMENT_A_ID]: "A failed",
 		});
+	});
+
+	it("keeps a failed document message from the status poll", () => {
+		trackDocumentWithStatus(DOCUMENT_A_ID, DocumentStatus.INTEGRATING);
+		const request = createRequest(DOCUMENT_A_ID);
+
+		store.instance.dispatch(pollDocumentStatus.pending("poll-a", request));
+		store.instance.dispatch(
+			pollDocumentStatus.fulfilled(
+				{
+					...createStatusResponse(DOCUMENT_A_ID, DocumentStatus.FAILED),
+					errorMessage: DocumentErrorMessage.INTEGRATION_FAILED,
+				},
+				"poll-a",
+				request,
+			),
+		);
+
+		const state = store.instance.getState().knowledge;
+		expect(state.activeDocumentStatus).toBe(DocumentStatus.FAILED);
+		expect(state.pipelineErrors[DOCUMENT_A_ID]).toBe(
+			DocumentErrorMessage.INTEGRATION_FAILED,
+		);
 	});
 
 	it("keeps Knowledge Entry failures separate from pipeline health", () => {
@@ -810,6 +920,11 @@ describe("knowledge pipeline lifecycle", () => {
 			({ documentId }) =>
 				documentId === DOCUMENT_B_ID ? switchToB.promise : switchToC.promise,
 		);
+		vi.spyOn(documentsApi, "getExtractionItems").mockResolvedValue({
+			failedPageNumbers: [],
+			items: [],
+			sections: [],
+		});
 
 		const olderSwitch = store.instance.dispatch(
 			switchActiveDocument(createRequest(DOCUMENT_B_ID)),
@@ -854,6 +969,11 @@ describe("knowledge pipeline lifecycle", () => {
 							),
 						),
 		);
+		vi.spyOn(documentsApi, "getExtractionItems").mockResolvedValue({
+			failedPageNumbers: [],
+			items: [],
+			sections: [],
+		});
 
 		const olderSwitch = store.instance.dispatch(
 			switchActiveDocument(createRequest(DOCUMENT_B_ID)),
@@ -870,7 +990,7 @@ describe("knowledge pipeline lifecycle", () => {
 		expect(notificationListener).not.toHaveBeenCalled();
 	});
 
-	it("does not activate a switch target that is now INTEGRATING", async () => {
+	it("opens the placement review when a switch target is integrating", async () => {
 		trackDocumentWithStatus(
 			DOCUMENT_A_ID,
 			DocumentStatus.WAITING_FOR_VALIDATION,
@@ -882,14 +1002,19 @@ describe("knowledge pipeline lifecycle", () => {
 		vi.spyOn(documentsApi, "getDocumentStatus").mockResolvedValue(
 			createStatusResponse(DOCUMENT_B_ID, DocumentStatus.INTEGRATING),
 		);
+		vi.spyOn(documentsApi, "getExtractionItems").mockResolvedValue({
+			failedPageNumbers: [],
+			items: [],
+			sections: [],
+		});
 
 		const result = await store.instance
 			.dispatch(switchActiveDocument(createRequest(DOCUMENT_B_ID)))
 			.unwrap();
 
-		expect(result).toEqual({ isLatest: true, isSwitched: false });
+		expect(result).toEqual({ isLatest: true, isSwitched: true });
 		expect(store.instance.getState().knowledge.activeDocumentId).toBe(
-			DOCUMENT_A_ID,
+			DOCUMENT_B_ID,
 		);
 	});
 
@@ -1002,7 +1127,7 @@ describe("knowledge pipeline lifecycle", () => {
 		).toEqual([]);
 	});
 
-	it("invalidates extraction readiness when the document advances", () => {
+	it("keeps extraction items while placement is running", () => {
 		trackDocumentWithStatus(
 			DOCUMENT_A_ID,
 			DocumentStatus.WAITING_FOR_VALIDATION,
@@ -1026,12 +1151,9 @@ describe("knowledge pipeline lifecycle", () => {
 			}),
 		);
 
-		expect(
-			store.instance.getState().knowledge.extractionItemsDocumentId,
-		).toBeNull();
-		expect(
-			store.instance.getState().knowledge.extractionFailedPageNumbers,
-		).toEqual([]);
+		expect(store.instance.getState().knowledge.extractionItemsDocumentId).toBe(
+			DOCUMENT_A_ID,
+		);
 	});
 
 	it("resyncs an outdated integration apply to INTEGRATING", async () => {
@@ -1046,7 +1168,7 @@ describe("knowledge pipeline lifecycle", () => {
 		await store.instance.dispatch(
 			applyIntegrationChanges({
 				...createRequest(DOCUMENT_A_ID),
-				payload: { contentOverrides: [], resolutions: [] },
+				payload: { contentOverrides: [], items: [], resolutions: [] },
 			}),
 		);
 

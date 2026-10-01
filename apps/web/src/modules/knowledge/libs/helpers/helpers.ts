@@ -1,7 +1,4 @@
-export {
-	mapExtractionItemsToProposedStructure,
-	toExtractionReviewPayload,
-} from "./extraction-review.helper.js";
+export { mapExtractionItemsToProposedStructure } from "./extraction-review.helper.js";
 export { filterKnowledgeTree } from "./filter-knowledge-tree.helper.js";
 export { formatFileSize } from "./format-file-size.helper.js";
 export { getFileContentType } from "./get-file-content-type.helper.js";
@@ -10,7 +7,6 @@ export { isMatchingPipelineSession } from "./pipeline-session.helper.js";
 export {
 	type DocumentPlacement,
 	canAddSubdocument,
-	isDocumentNode,
 	planMoveDown,
 	planMoveOut,
 	planMoveUp,

@@ -1,10 +1,11 @@
 import {
+	DocumentErrorMessage,
 	DocumentProcessingPhase,
 	DocumentSourceType,
 	DocumentStatus,
 } from "@knowledgeprism/constants";
 import { type DocumentProcessingProgressDto } from "@knowledgeprism/types";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { Provider } from "react-redux";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -187,5 +188,51 @@ describe("document processing progress", () => {
 			screen.getByText("Ready for review: 0 of 0 chunks processed"),
 		).toBeInTheDocument();
 		expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+	});
+	it("cancels in-progress analysis with the existing cancel handler", () => {
+		const onCancel = vi.fn();
+
+		render(
+			<LoadingState
+				currentStatus={DocumentStatus.PROCESSING}
+				onCancel={onCancel}
+				progress={PROGRESS}
+			/>,
+		);
+
+		expect(
+			screen.getByRole("heading", { name: "Analyzing your content" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText("Extracting knowledge: 14 of 20 chunks processed — 70%"),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByRole("button", { name: "Retry" }),
+		).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+		expect(onCancel).toHaveBeenCalledOnce();
+	});
+	it("shows the stored failure message under Processing failed", () => {
+		render(
+			<LoadingState
+				currentStatus={DocumentStatus.FAILED}
+				errorMessage={DocumentErrorMessage.INTEGRATION_FAILED}
+				hasError
+				onCancel={vi.fn()}
+				onRetry={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.getByRole("heading", { name: "Processing failed" }),
+		).toBeInTheDocument();
+		expect(
+			screen.getByText(DocumentErrorMessage.INTEGRATION_FAILED),
+		).toBeInTheDocument();
+		expect(
+			screen.queryByText("Something went wrong. Please try again."),
+		).not.toBeInTheDocument();
 	});
 });

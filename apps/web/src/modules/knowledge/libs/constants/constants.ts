@@ -42,8 +42,10 @@ const KNOWLEDGE_TREE_ITEM_CONFIG = {
 const KnowledgeNotificationMessage = {
 	DOCUMENT_CREATED: "Document created",
 	DOCUMENT_MOVED: "Document moved",
+	DOCUMENT_REMOVED: "Document removed",
 	ENTRY_UPDATED: "Changes successfully saved",
 	MANUAL_TEXT_SUBMITTED: "Text submitted for processing",
+	SECTION_REMOVED: "Section removed",
 } as const;
 
 export {

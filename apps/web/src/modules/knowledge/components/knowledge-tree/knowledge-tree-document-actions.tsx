@@ -1,8 +1,11 @@
 import { type KnowledgeTreeItemResponseDto } from "@knowledgeprism/types";
 import React, { useCallback, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
-import { Button } from "~/components/components.js";
+import { Button, Modal } from "~/components/components.js";
+import { useAppDispatch, useCurrentProjectId } from "~/hooks/hooks.js";
 
+import { actions } from "../../knowledge.js";
 import {
 	canAddSubdocument,
 	type DocumentPlacement,
@@ -28,7 +31,13 @@ const KnowledgeTreeDocumentActions: React.FC<Properties> = ({
 	onCreateDocument,
 	onMoveDocument,
 }: Properties) => {
+	const dispatch = useAppDispatch();
+	const projectId = useCurrentProjectId();
+	const [searchParameters] = useSearchParams();
 	const [isAdding, setIsAdding] = useState(false);
+	const [isConfirmingRemove, setIsConfirmingRemove] = useState(false);
+	const documentTitle =
+		items.find((item) => item.id === itemId)?.title ?? "This document";
 	const moveUp = planMoveUp(items, itemId);
 	const moveDown = planMoveDown(items, itemId);
 	const nest = planNestUnderPrevious(items, itemId);
@@ -65,6 +74,36 @@ const KnowledgeTreeDocumentActions: React.FC<Properties> = ({
 	const handleShowAdd = useCallback((): void => {
 		setIsAdding(true);
 	}, []);
+
+	const handleShowRemove = useCallback((): void => {
+		setIsConfirmingRemove(true);
+	}, []);
+
+	const handleCancelRemove = useCallback((): void => {
+		if (isPending) {
+			return;
+		}
+
+		setIsConfirmingRemove(false);
+	}, [isPending]);
+
+	const handleConfirmRemove = useCallback((): void => {
+		if (isPending) {
+			return;
+		}
+
+		void dispatch(
+			actions.removeDocumentNode({
+				documentId: itemId,
+				projectId,
+				queryNodeId: searchParameters.get("nodeId"),
+			}),
+		)
+			.unwrap()
+			.catch(() => {
+				setIsConfirmingRemove(false);
+			});
+	}, [dispatch, isPending, itemId, projectId, searchParameters]);
 
 	const handleCreate = useCallback(
 		(title: string): void => {
@@ -132,7 +171,43 @@ const KnowledgeTreeDocumentActions: React.FC<Properties> = ({
 						Add subdocument
 					</Button>
 				)}
+				<Button
+					aria-label={`Remove ${documentTitle}`}
+					className="px-2! py-1! text-xs"
+					disabled={isPending}
+					onClick={handleShowRemove}
+					type="button"
+					variant="secondary"
+				>
+					Remove
+				</Button>
 			</div>
+			{isConfirmingRemove && (
+				<Modal isOpen onClose={handleCancelRemove} title="Remove document?">
+					<p className="text-sm leading-[1.6] text-text">
+						“{documentTitle}” and the documents nested under it will be removed.
+					</p>
+					<div className="mt-6 flex justify-end gap-3">
+						<Button
+							disabled={isPending}
+							onClick={handleCancelRemove}
+							type="button"
+							variant="secondary"
+						>
+							Cancel
+						</Button>
+						<Button
+							disabled={isPending}
+							isLoading={isPending}
+							onClick={handleConfirmRemove}
+							type="button"
+							variant="destructive"
+						>
+							Remove
+						</Button>
+					</div>
+				</Modal>
+			)}
 			{isAdding && (
 				<KnowledgeTreeDocumentForm
 					isPending={isPending}
