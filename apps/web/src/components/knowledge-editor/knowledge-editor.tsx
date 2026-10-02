@@ -9,15 +9,18 @@ import {
 	type BlockSchemaFromSpecs,
 	type BlockSpecs,
 	defaultBlockSpecs,
+	filterSuggestionItems,
 	type PartialBlock,
 } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
 import {
 	DragHandleMenu,
+	getDefaultReactSlashMenuItems,
 	RemoveBlockItem,
 	SideMenu,
 	SideMenuController,
 	type SideMenuProps,
+	SuggestionMenuController,
 	useCreateBlockNote,
 	useExtension,
 } from "@blocknote/react";
@@ -74,6 +77,9 @@ const getEditorBlockSpecs = (
 	) as unknown as BlockSpecs;
 };
 
+// Workaround for BlockNote types with exactOptionalPropertyTypes enabled.
+// DefaultBlockSchema heading props are not compatible with BlockSchema constraints.
+// Context: https://github.com/TypeCellOS/BlockNote/discussions/2476.
 const getEditorSchema = (blockSpecs: BlockSpecs) => {
 	return BlockNoteSchema.create({
 		blockSpecs,
@@ -86,7 +92,7 @@ const CustomDragHandleMenu: React.FC = () => (
 	</DragHandleMenu>
 );
 
-const CustomSideMenu: React.FC<SideMenuProps> = (properties: SideMenuProps) => (
+const CustomSideMenu: React.FC<SideMenuProps> = (properties) => (
 	<SideMenu {...properties} dragHandleMenu={CustomDragHandleMenu} />
 );
 
@@ -129,7 +135,8 @@ const KnowledgeEditor: React.FC<Properties> = ({
 		editable: boolean;
 		editor: typeof editor;
 		onChange: () => void;
-		sideMenu: boolean;
+		sideMenu?: boolean;
+		slashMenu?: boolean;
 		theme: EditorTheme;
 	}>;
 
@@ -142,6 +149,18 @@ const KnowledgeEditor: React.FC<Properties> = ({
 			highlightExtension.replaceHighlight(highlightId, replacement);
 		},
 		[highlightExtension],
+	);
+
+	const handleGetSlashMenuItems = useCallback(
+		(query: string) => {
+			const defaultItems = getDefaultReactSlashMenuItems(editor);
+			const filteredItems = defaultItems.filter(
+				(item) => item.group !== "Advanced" && item.group !== "Media",
+			);
+
+			return Promise.resolve(filterSuggestionItems(filteredItems, query));
+		},
+		[editor],
 	);
 
 	useEffect(() => {
@@ -158,8 +177,13 @@ const KnowledgeEditor: React.FC<Properties> = ({
 			editor={editor}
 			onChange={handleEditorChange}
 			sideMenu={false}
+			slashMenu={false}
 			theme={theme}
 		>
+			<SuggestionMenuController
+				getItems={handleGetSlashMenuItems}
+				triggerCharacter="/"
+			/>
 			<SideMenuController sideMenu={CustomSideMenu} />
 		</TypedBlockNoteView>
 	);
