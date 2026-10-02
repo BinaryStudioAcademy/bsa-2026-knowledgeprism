@@ -6,6 +6,7 @@ import {
 import {
 	type KnowledgeDocumentCreateRequestDto,
 	type KnowledgeDocumentMoveRequestDto,
+	type KnowledgeDocumentSectionsResponseDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeNodeContentDto,
@@ -136,6 +137,41 @@ class KnowledgeService {
 		);
 
 		return created;
+	}
+
+	public async findDocumentSections({
+		context,
+		documentId,
+		projectId,
+	}: {
+		context: ProjectAccessContext;
+		documentId: number;
+		projectId: number;
+	}): Promise<KnowledgeDocumentSectionsResponseDto> {
+		await this.projectService.assertProjectAccess(projectId, context);
+
+		const document = await this.knowledgeNodeRepository.findByIdAndProjectId(
+			documentId,
+			projectId,
+		);
+
+		if (!document || document.toObject().type !== KnowledgeNodeType.PAGE) {
+			throw new HTTPError({
+				message: KnowledgeValidationMessage.NOT_FOUND,
+				status: HTTPCode.NOT_FOUND,
+			});
+		}
+
+		const sections = await this.knowledgeNodeRepository.findEntriesByDocumentId(
+			{
+				parentId: documentId,
+				projectId,
+			},
+		);
+
+		return {
+			items: [document, ...sections].map((node) => node.toObject()),
+		};
 	}
 
 	public async findEntry({

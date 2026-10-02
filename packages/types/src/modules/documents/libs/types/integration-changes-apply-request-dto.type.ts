@@ -11,6 +11,8 @@ type IntegrationChangesApplyRequestDto = {
 
 type IntegrationPlacementDto = {
 	changeId: number;
+	/** Parent extraction item retained in this request; exclusive with parentId. */
+	parentExtractionItemId?: null | number;
 	parentId: null | number;
 	position: number;
 };

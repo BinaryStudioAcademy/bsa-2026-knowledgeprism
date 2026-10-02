@@ -9,7 +9,7 @@ import {
 	useCurrentProjectId,
 } from "~/hooks/hooks.js";
 
-import { actions, knowledgeApi } from "../knowledge.js";
+import { actions } from "../knowledge.js";
 import { resolveApprovedDocumentView } from "../libs/helpers/resolve-approved-document-view.helper.js";
 import { KnowledgeTreeLayout } from "./knowledge-tree/knowledge-tree-layout.js";
 
@@ -105,6 +105,7 @@ const KnowledgeTreePage: React.FC = () => {
 		() => resolveApprovedDocumentView(tree, activePageId),
 		[activePageId, tree],
 	);
+	const documentId = documentView?.documentId;
 	const relatedKey =
 		!projectId || documentView == null
 			? null
@@ -118,7 +119,7 @@ const KnowledgeTreePage: React.FC = () => {
 		relatedKey !== null && relatedRequestKey !== relatedKey;
 
 	useEffect(() => {
-		if (activePageId === undefined || !projectId) {
+		if (activePageId === undefined || !projectId || documentId !== undefined) {
 			return;
 		}
 
@@ -129,41 +130,29 @@ const KnowledgeTreePage: React.FC = () => {
 		return () => {
 			request.abort();
 		};
-	}, [dispatch, activePageId, projectId, treeRevision]);
+	}, [dispatch, activePageId, projectId, treeRevision, documentId]);
 
 	useEffect(() => {
-		if (!projectId || documentView == null || relatedKey == null) {
+		if (!projectId || documentId === undefined || relatedKey === null) {
 			return;
 		}
 
 		const requestKey = relatedKey;
-		const entryIds = [documentView.documentId, ...documentView.sectionIds];
-		const controller = new AbortController();
 		let isCurrent = true;
+		const request = dispatch(
+			actions.fetchDocumentSections({ documentId, projectId }),
+		);
 
-		void Promise.all(
-			entryIds.map((entryId) => {
-				return knowledgeApi.getKnowledgeEntry({
-					entryId,
-					projectId,
-					signal: controller.signal,
-				});
-			}),
-		)
-			.then((loaded) => {
+		void request
+			.unwrap()
+			.then(({ items }) => {
 				if (!isCurrent) {
 					return;
 				}
 
-				setRelatedEntries((current) => {
-					const next = { ...current };
-
-					for (const entry of loaded) {
-						next[entry.id] = entry;
-					}
-
-					return next;
-				});
+				setRelatedEntries(
+					Object.fromEntries(items.map((entry) => [entry.id, entry])),
+				);
 				setRelatedRequestKey(requestKey);
 			})
 			.catch(() => {
@@ -171,14 +160,15 @@ const KnowledgeTreePage: React.FC = () => {
 					return;
 				}
 
+				setRelatedEntries({});
 				setRelatedRequestKey(requestKey);
 			});
 
 		return () => {
 			isCurrent = false;
-			controller.abort();
+			request.abort();
 		};
-	}, [documentView, projectId, relatedKey]);
+	}, [dispatch, documentId, projectId, relatedKey]);
 
 	const handleSelectPage = useCallback(
 		(id: number) => {
@@ -189,14 +179,24 @@ const KnowledgeTreePage: React.FC = () => {
 	);
 
 	const entries = useMemo(() => {
-		const merged = { ...relatedEntries };
+		const merged =
+			relatedRequestKey === relatedKey ? { ...relatedEntries } : {};
 
-		if (selectedEntry) {
+		if (
+			selectedEntry &&
+			(documentId === undefined || relatedRequestKey === relatedKey)
+		) {
 			merged[selectedEntry.id] = selectedEntry;
 		}
 
 		return merged;
-	}, [relatedEntries, selectedEntry]);
+	}, [
+		documentId,
+		relatedEntries,
+		relatedKey,
+		relatedRequestKey,
+		selectedEntry,
+	]);
 
 	return (
 		<KnowledgeTreeLayout

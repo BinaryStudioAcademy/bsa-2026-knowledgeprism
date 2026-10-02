@@ -1,3 +1,4 @@
+import { getOrderedDescendants } from "@knowledgeprism/config";
 import {
 	KnowledgeNodeType,
 	KnowledgeValidationRule,
@@ -32,6 +33,11 @@ const EMPTY_LENGTH = 0;
 const FIRST_POSITION = 0;
 const POSITION_STEP = 1;
 const SLICE_START_INDEX = 0;
+const DocumentEntryQuery = {
+	CHILD: "child_entry",
+	DESCENDANTS: "document_entries",
+	PARENT: "parent_entry",
+} as const;
 
 class KnowledgeNodeRepository {
 	private knowledgeNodeModel: typeof KnowledgeNodeModel;
@@ -129,6 +135,55 @@ class KnowledgeNodeRepository {
 			type: node.type,
 			updatedAt: node.updatedAt,
 		});
+	}
+
+	public async findEntriesByDocumentId({
+		parentId,
+		projectId,
+	}: {
+		parentId: number;
+		projectId: number;
+	}): Promise<KnowledgeNodeEntity[]> {
+		const tableName = this.knowledgeNodeModel.tableName;
+		const nodes = await this.knowledgeNodeModel
+			.query()
+			.withRecursive(DocumentEntryQuery.DESCENDANTS, (query) => {
+				query
+					.select(`${tableName}.*`)
+					.from(tableName)
+					.where({ parentId, projectId, type: KnowledgeNodeType.ENTRY })
+					.union((children) => {
+						children
+							.select(`${DocumentEntryQuery.CHILD}.*`)
+							.from(`${tableName} as ${DocumentEntryQuery.CHILD}`)
+							.join(
+								`${DocumentEntryQuery.DESCENDANTS} as ${DocumentEntryQuery.PARENT}`,
+								`${DocumentEntryQuery.CHILD}.parentId`,
+								`${DocumentEntryQuery.PARENT}.id`,
+							)
+							.where({
+								[`${DocumentEntryQuery.CHILD}.projectId`]: projectId,
+								[`${DocumentEntryQuery.CHILD}.type`]: KnowledgeNodeType.ENTRY,
+							});
+					});
+			})
+			.from(DocumentEntryQuery.DESCENDANTS)
+			.select("*")
+			.execute();
+
+		return getOrderedDescendants(nodes, parentId).map((node) =>
+			KnowledgeNodeEntity.initialize({
+				contentJson: node.contentJson,
+				createdAt: node.createdAt,
+				id: node.id,
+				parentId: node.parentId,
+				position: node.position,
+				projectId: node.projectId,
+				title: node.title,
+				type: node.type,
+				updatedAt: node.updatedAt,
+			}),
+		);
 	}
 
 	public async findNextRootPosition(
