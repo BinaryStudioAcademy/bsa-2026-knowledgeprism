@@ -28,6 +28,7 @@ const USER_ID = 2;
 const EXISTING_PAGE_ID = 50;
 const EXISTING_SECTION_ID = 70;
 const EXISTING_ENTRY_ID = 51;
+const SECOND_EXISTING_ENTRY_ID = 52;
 const LAST_EXISTING_CHILD_POSITION = 3;
 const NEXT_ROOT_POSITION = 7;
 const FIRST_APPENDED_POSITION = 4;
@@ -46,13 +47,14 @@ type CreatedNode = {
 };
 
 const toNode = (data: {
+	contentJson?: { content: string; type: string }[];
 	id: number;
 	parentId: null | number;
 	position: number;
 	type: ValueOf<typeof KnowledgeNodeType>;
 }): KnowledgeNodeEntity =>
 	KnowledgeNodeEntity.initialize({
-		contentJson: [],
+		contentJson: data.contentJson ?? [],
 		createdAt: new Date(),
 		projectId: PROJECT_ID,
 		title: `Node ${String(data.id)}`,
@@ -71,6 +73,13 @@ const EXISTING_NODES = [
 		id: EXISTING_ENTRY_ID,
 		parentId: EXISTING_PAGE_ID,
 		position: LAST_EXISTING_CHILD_POSITION,
+		type: KnowledgeNodeType.ENTRY,
+	}),
+	toNode({
+		contentJson: [{ content: "Glossary text", type: "paragraph" }],
+		id: SECOND_EXISTING_ENTRY_ID,
+		parentId: null,
+		position: LAST_EXISTING_CHILD_POSITION + 2,
 		type: KnowledgeNodeType.ENTRY,
 	}),
 	toNode({
@@ -343,5 +352,65 @@ void describe("IntegrationApplier placements", () => {
 		);
 
 		assert.deepEqual(updatedTitles, ["Glossary"]);
+	});
+
+	void it("updates strictly the chosen match entry when matchIndex 1 is selected", async () => {
+		const { applier, updatedIds } = createSetup();
+
+		const changeWithMatches = IntegrationChangeEntity.initialize({
+			documentId: DOCUMENT_ID,
+			explanation: "Multiple match candidate.",
+			extractionItemId: FIRST_CHANGE_ID,
+			id: FIRST_CHANGE_ID,
+			incomingContent: "Updated Glossary content",
+			incomingTitle: "Glossary",
+			liveContent: "Glossary text",
+			liveTitle: `Node ${String(SECOND_EXISTING_ENTRY_ID)}`,
+			matchedNodeId: EXISTING_ENTRY_ID,
+			placement: {
+				matches: [
+					{
+						content: "Glossary text",
+						nodeId: EXISTING_ENTRY_ID,
+						span: "Glossary",
+						title: `Node ${String(EXISTING_ENTRY_ID)}`,
+					},
+					{
+						content: "Glossary text",
+						nodeId: SECOND_EXISTING_ENTRY_ID,
+						span: "Glossary",
+						title: `Node ${String(SECOND_EXISTING_ENTRY_ID)}`,
+					},
+				],
+				parentExtractionItemId: null,
+				parentId: null,
+				parentTitle: null,
+				proposesParent: false,
+				siblingOrder: null,
+			},
+			score: null,
+			type: IntegrationChangeType.UPDATE,
+		});
+
+		await applier.apply(
+			{
+				changes: [changeWithMatches],
+				contentOverrides: [],
+				document: DOCUMENT,
+				placements: [],
+				resolutions: [
+					{
+						changeId: FIRST_CHANGE_ID,
+						content: IntegrationResolution.USE_NEW,
+						matchIndex: 1,
+						title: IntegrationResolution.USE_NEW,
+					},
+				],
+				userId: USER_ID,
+			},
+			{} as Transaction,
+		);
+
+		assert.deepEqual(updatedIds, [SECOND_EXISTING_ENTRY_ID]);
 	});
 });

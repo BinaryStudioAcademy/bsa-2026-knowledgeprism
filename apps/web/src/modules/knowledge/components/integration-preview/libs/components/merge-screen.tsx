@@ -160,7 +160,10 @@ const MergeScreen = ({
 					const nextIndex =
 						(currentIndex + stepDelta + matchCount) % matchCount;
 
-					return { ...item, matchIndex: nextIndex };
+					return {
+						...item,
+						matchIndex: nextIndex,
+					};
 				}),
 			);
 		},
