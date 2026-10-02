@@ -67,7 +67,17 @@ const placement = z
 		parentId: z.number().int().positive().nullable(),
 		position: z.number().int().nonnegative(),
 	})
-	.required();
+	.required()
+	.extend({
+		parentExtractionItemId: z.number().int().positive().nullable().optional(),
+	})
+	.refine(
+		(value) => value.parentId === null || value.parentExtractionItemId == null,
+		{
+			message: DocumentValidationMessage.PLACEMENT_PARENT_AMBIGUOUS,
+			path: ["parentExtractionItemId"],
+		},
+	);
 
 const integrationChangesApply = z
 	.object({

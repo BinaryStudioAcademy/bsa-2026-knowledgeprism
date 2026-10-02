@@ -162,10 +162,12 @@ class KnowledgeService {
 			});
 		}
 
-		const sections = await this.knowledgeNodeRepository.findEntriesByParentId({
-			parentId: documentId,
-			projectId,
-		});
+		const sections = await this.knowledgeNodeRepository.findEntriesByDocumentId(
+			{
+				parentId: documentId,
+				projectId,
+			},
+		);
 
 		return {
 			items: [document, ...sections].map((node) => node.toObject()),

@@ -17,6 +17,9 @@ const toPublishedPlacements = (
 
 			return {
 				changeId: page.integrationChangeId,
+				...(page.placementParentExtractionItemId !== undefined && {
+					parentExtractionItemId: page.placementParentExtractionItemId,
+				}),
 				parentId: parentId !== null && pageIds.has(parentId) ? parentId : null,
 				position,
 			};
