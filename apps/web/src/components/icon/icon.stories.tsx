@@ -46,6 +46,7 @@ const ICON_NAMES = [
 	"tablet",
 	"toast-check",
 	"upload",
+	"warning",
 ] as const;
 
 const meta = {
