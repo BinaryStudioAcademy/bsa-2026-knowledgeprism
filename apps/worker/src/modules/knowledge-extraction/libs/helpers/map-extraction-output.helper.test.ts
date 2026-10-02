@@ -199,6 +199,37 @@ void describe("mapExtractionOutput", () => {
 		assert.equal(item?.blocks.at(PARAGRAPH_BLOCK_INDEX)?.type, "paragraph");
 	});
 
+	void it("drops a block the model cut off and then wrote again in full", () => {
+		const [item] = mapSections(
+			[
+				section({
+					blocks: [
+						headingBlock("Overview"),
+						{
+							content: [textRun("Keep a "), textRun("backup ")],
+							type: "bulletListItem",
+						},
+						{
+							content: [textRun("Keep a "), textRun("backup of the limit.")],
+							type: "bulletListItem",
+						},
+						{ content: [textRun("Keep")], type: "bulletListItem" },
+						{ content: [textRun("Keep a backup.")], type: "bulletListItem" },
+					],
+				}),
+			],
+			PAGE_NUMBER,
+			CHUNK,
+		);
+
+		assert.deepEqual(
+			item?.blocks.map((block) =>
+				block.content.map(({ text }) => text).join(""),
+			),
+			["Overview", "Keep a backup of the limit.", "Keep", "Keep a backup."],
+		);
+	});
+
 	void it("rebuilds the source passage from excerptStart and excerptEnd", () => {
 		const items = mapSections(
 			[
