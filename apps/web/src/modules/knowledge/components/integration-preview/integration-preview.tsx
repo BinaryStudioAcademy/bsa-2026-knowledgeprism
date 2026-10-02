@@ -876,8 +876,17 @@ const PreviewFooter = ({
 	</div>
 );
 
+const seedReviewPages = (
+	proposedStructure: ProposedSection[],
+	placementStructure: ProposedSection[] | undefined,
+): ProposedSection[] =>
+	placementStructure && placementStructure.length > EMPTY_LENGTH
+		? mergePlacementIntoPages(proposedStructure, placementStructure)
+		: proposedStructure;
+
 const syncIncomingReviewPages = ({
 	appliedPlacement,
+	backupPages,
 	pages,
 	placementStructure,
 	proposedStructure,
@@ -888,6 +897,7 @@ const syncIncomingReviewPages = ({
 	setSeededProposal,
 }: {
 	appliedPlacement: ProposedSection[] | undefined;
+	backupPages: ProposedSection[];
 	pages: ProposedSection[];
 	placementStructure: ProposedSection[] | undefined;
 	proposedStructure: ProposedSection[];
@@ -902,10 +912,7 @@ const syncIncomingReviewPages = ({
 		proposedStructure.length > EMPTY_LENGTH &&
 		seededProposal.length === EMPTY_LENGTH
 	) {
-		const seededPages =
-			placementStructure && placementStructure.length > EMPTY_LENGTH
-				? mergePlacementIntoPages(proposedStructure, placementStructure)
-				: proposedStructure;
+		const seededPages = seedReviewPages(proposedStructure, placementStructure);
 
 		setSeededProposal(proposedStructure);
 		setPages(seededPages);
@@ -924,6 +931,7 @@ const syncIncomingReviewPages = ({
 		pages.length > EMPTY_LENGTH
 	) {
 		setPages(mergePlacementIntoPages(pages, placementStructure));
+		setBackupPages(mergePlacementIntoPages(backupPages, placementStructure));
 	}
 };
 
@@ -968,14 +976,18 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	proposedStructure,
 }: IntegrationPreviewProperties): JSX.Element => {
 	const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-	const [pages, setPages] = useState<ProposedSection[]>(proposedStructure);
+	const [initialPages] = useState<ProposedSection[]>(() =>
+		seedReviewPages(proposedStructure, placementStructure),
+	);
+	const [pages, setPages] = useState<ProposedSection[]>(initialPages);
 	const [backupPages, setBackupPages] =
-		useState<ProposedSection[]>(proposedStructure);
+		useState<ProposedSection[]>(initialPages);
 	const [appliedPlacement, setAppliedPlacement] = useState(placementStructure);
 	const [seededProposal, setSeededProposal] = useState(proposedStructure);
 
 	syncIncomingReviewPages({
 		appliedPlacement,
+		backupPages,
 		pages,
 		placementStructure,
 		proposedStructure,
@@ -1217,6 +1229,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					pageIndex,
 					pages: previousPages,
 					partialSection: {
+						placementParentExtractionItemId: null,
 						placementParentId: target?.id ?? null,
 						proposedPlace: target
 							? `${UNDER_PLACE_PREFIX}${target.title}`

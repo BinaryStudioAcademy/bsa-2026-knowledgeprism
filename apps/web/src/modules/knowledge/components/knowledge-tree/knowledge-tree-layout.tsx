@@ -1003,6 +1003,7 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					breadcrumbs={breadcrumbs}
 					canEdit={canEdit}
 					currentStatus={activeDocumentStatus}
+					errorMessage={activePipelineError}
 					hasError={Boolean(activePipelineError)}
 					isEditing={isEditing}
 					onCancel={handleCancelEdit}
