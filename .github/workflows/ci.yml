@@ -1,7 +1,7 @@
-- name: Run Worker Tests
-  env:
+name: Run Worker Tests
+env:
     BEDROCK_MAXIMUM_CONCURRENT_REQUESTS: 4
-  run: npm test -w apps/worker
+run: npm test -w apps/worker
 
 on:
   pull_request:
