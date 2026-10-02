@@ -558,11 +558,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		setIsSidebarOpen(false);
 	}, []);
 
-	const handleHideTree = useCallback((): void => {
-		setIsTreeCollapsed(true);
-		setIsSidebarOpen(false);
-	}, []);
-
 	const handleShowTree = useCallback((): void => {
 		setIsTreeCollapsed(false);
 	}, []);
@@ -907,32 +902,50 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 					<KnowledgeTreeSidebar
 						canStructure={canEdit}
 						isCollapsed={isTreeCollapsed}
-						isOpen={true}
+						isOpen={isSidebarOpen}
 						isStructurePending={isDocumentStructurePending}
 						items={items}
 						onClose={handleCloseSidebar}
 						onCreateDocument={handleCreateDocument}
 						onEditNode={handleEditNode}
-						onHide={handleHideTree}
 						onMoveDocument={handleMoveDocument}
 						onSelectPage={handleSelectPage}
 						selectedPageId={selectedPageId}
 					/>
 				)}
-				<div className="flex min-w-0 flex-1 flex-col items-center overflow-y-auto">
-					<DocumentProcessingList />
-					<KnowledgeTreeEmptyPipeline
-						activeDocumentStatus={activeDocumentStatus}
-						isPreviewDismissed={canResumePreview && isActivePreviewDismissed}
-						isShowDocumentPipelineUi={isShowDocumentPipelineUi}
-						knowledgeErrorMessage={knowledgeErrorMessage}
-						onCancel={handleCancelDocument}
-						onFinish={handleFinishLoading}
-						onPreview={handleOpenPreview}
-						onRetry={handleRetry}
-						pipelineErrorMessage={activePipelineError}
-						progress={progress}
-					/>
+				<div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+					<div className="block @5xl:hidden">
+						<KnowledgeTreeHeader
+							breadcrumbs={[]}
+							canEdit={false}
+							currentStatus={activeDocumentStatus}
+							hasError={Boolean(activePipelineError)}
+							isEditing={false}
+							onCancel={handleCancelEdit}
+							onEdit={handleStartEdit}
+							onOpenSidebar={handleOpenSidebar}
+							onPreview={handleOpenPreview}
+							onResetState={handleCancelDocument}
+							onRetry={handleRetry}
+							progress={progress}
+							showCompactLoading={false}
+						/>
+					</div>
+					<div className="flex min-w-0 flex-1 flex-col items-center overflow-y-auto pt-8">
+						<DocumentProcessingList />
+						<KnowledgeTreeEmptyPipeline
+							activeDocumentStatus={activeDocumentStatus}
+							isPreviewDismissed={canResumePreview && isActivePreviewDismissed}
+							isShowDocumentPipelineUi={isShowDocumentPipelineUi}
+							knowledgeErrorMessage={knowledgeErrorMessage}
+							onCancel={handleCancelDocument}
+							onFinish={handleFinishLoading}
+							onPreview={handleOpenPreview}
+							onRetry={handleRetry}
+							pipelineErrorMessage={activePipelineError}
+							progress={progress}
+						/>
+					</div>
 				</div>
 				<AddKnowledgeModal
 					isOpen={isAddModalOpen}
@@ -989,7 +1002,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				onClose={handleCloseSidebar}
 				onCreateDocument={handleCreateDocument}
 				onEditNode={handleEditNode}
-				onHide={handleHideTree}
 				onMoveDocument={handleMoveDocument}
 				onSelectPage={handleSelectPage}
 				selectedPageId={selectedPageId}

@@ -24,6 +24,7 @@ type NavRowProperties = NavItem & {
 
 type NavTooltipProperties = {
 	children: ReactNode;
+	className?: string;
 	isEnabled: boolean;
 	label: string;
 };
@@ -49,6 +50,7 @@ const readTooltipPosition = (element: HTMLElement): TooltipPosition => {
 
 const NavTooltip = ({
 	children,
+	className = "relative flex w-full justify-center",
 	isEnabled,
 	label,
 }: NavTooltipProperties): React.JSX.Element => {
@@ -74,7 +76,7 @@ const NavTooltip = ({
 
 	return (
 		<div
-			className="relative flex w-full justify-center"
+			className={className}
 			onMouseEnter={handleMouseEnter}
 			onMouseLeave={handleMouseLeave}
 		>
@@ -137,7 +139,7 @@ const NavRow = ({
 					{...accessibleName}
 				>
 					{icon}
-					{isExpanded && <span>{label}</span>}
+					{isExpanded && <span className="truncate">{label}</span>}
 				</Link>
 			) : (
 				<button
@@ -147,7 +149,7 @@ const NavRow = ({
 					{...accessibleName}
 				>
 					{icon}
-					{isExpanded && <span>{label}</span>}
+					{isExpanded && <span className="truncate">{label}</span>}
 				</button>
 			)}
 		</NavTooltip>
