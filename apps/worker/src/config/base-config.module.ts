@@ -31,10 +31,6 @@ class BaseConfig implements Config {
 				REGION: readRequiredEnvironmentVariable("AWS_REGION"),
 				S3_BUCKET_NAME: readRequiredEnvironmentVariable("AWS_S3_BUCKET_NAME"),
 			},
-			BEDROCK: {
-				ACCESS_KEY_ID: process.env["BEDROCK_ACCESS_KEY_ID"] ?? null,
-				SECRET_ACCESS_KEY: process.env["BEDROCK_SECRET_ACCESS_KEY"] ?? null,
-			},
 		};
 	}
 }
