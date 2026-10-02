@@ -6,6 +6,7 @@ import {
 
 import {
 	Heading,
+	Icon,
 	Loader,
 	PageLayout,
 	Paragraph,
@@ -25,6 +26,8 @@ import { actions as userActions } from "~/modules/users/users.js";
 
 import { userUpdateFrontendValidationSchema } from "./user-edit-page/libs/validation-schemas.js";
 import { UserForm } from "./user-form/user-form.js";
+
+const GO_BACK_CHEVRON_SIZE = 10;
 
 type AccountSettingsFormValues = {
 	assignedProjects: ProjectAssignmentDto[];
@@ -126,6 +129,16 @@ const AccountSettingsPage: React.FC = () => {
 	return (
 		<PageLayout>
 			<div>
+				<button
+					className="mb-1 inline-flex cursor-pointer items-center gap-1 border-0 bg-transparent p-0 text-2xs font-medium text-text-faint transition-colors hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none"
+					onClick={handleCancel}
+					type="button"
+				>
+					<span className="inline-flex rotate-180">
+						<Icon name="chevron-filled-right" size={GO_BACK_CHEVRON_SIZE} />
+					</span>
+					Back to projects
+				</button>
 				<Heading level="2">Account Settings</Heading>
 				<Paragraph
 					className="mt-1.5 hidden text-text-muted desktop:block"

@@ -34,6 +34,7 @@ const toChange = (
 	liveContent: null,
 	liveTitle: null,
 	matchedNodeId: null,
+	mergedBlocks: null,
 	placement: {
 		matches: [],
 		parentExtractionItemId,

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 
 import { parsePdfPages } from "./parse-pdf-pages.helper.js";
 
+const FONT_SIZE = 24;
 const OFFSET_WIDTH = 10;
 // PDF object numbers start at 1; object 0 is the xref free-list head.
 const FIRST_OBJECT_NUMBER = 1;
@@ -10,7 +11,7 @@ const FIRST_OBJECT_NUMBER = 1;
 // A one-page PDF with a non-embedded CJK font: decoding its text needs pdfjs's bundled
 // UniJIS-UCS2-H CMap, which only loads when the resource paths are readable from Node.
 const buildCjkPdf = (): Uint8Array => {
-	const content = "BT /F1 24 Tf 72 700 Td <30423044> Tj ET";
+	const content = `BT /F1 ${String(FONT_SIZE)} Tf 72 700 Td <30423044> Tj ET`;
 	const objects = [
 		"<< /Type /Catalog /Pages 2 0 R >>",
 		"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -44,6 +45,12 @@ void describe("parsePdfPages", () => {
 	void it("decodes text that needs one of pdfjs's bundled CMaps", async () => {
 		const pages = await parsePdfPages(buildCjkPdf());
 
-		assert.deepEqual(pages, [{ content: "あい", pageNumber: 1 }]);
+		assert.deepEqual(pages, [
+			{
+				content: "あい",
+				lines: [{ fontSize: FONT_SIZE, text: "あい" }],
+				pageNumber: 1,
+			},
+		]);
 	});
 });

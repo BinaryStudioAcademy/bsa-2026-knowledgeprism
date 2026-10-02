@@ -122,7 +122,7 @@ const SectionRowMenu = ({
 			</button>
 			{isOpen && (
 				<div
-					className="dropdown-menu absolute right-0 z-20 mt-1 min-w-52"
+					className="dropdown-menu absolute left-auto right-0 z-20 mt-1 min-w-52"
 					onKeyDown={handleKeyDown}
 					role="menu"
 					tabIndex={MENU_TAB_INDEX}

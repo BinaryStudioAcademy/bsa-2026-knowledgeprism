@@ -3,18 +3,13 @@ import { useEffect } from "react";
 import { useLocation, useParams } from "react-router-dom";
 
 import { MobileNav, RouterOutlet, Sidebar } from "~/components/components.js";
-import { Icon } from "~/components/icon/icon.js";
-import {
-	APP_SIDEBAR_ID,
-	CHEVRON_ICON_SIZE,
-	EXPAND_SIDEBAR_LABEL,
-} from "~/components/sidebar/libs/constants.js";
 import {
 	useAppDispatch,
 	useAppSelector,
 	useCanWriteKnowledge,
 	useOptionalCurrentProjectId,
 } from "~/hooks/hooks.js";
+import { AppRoute } from "~/lib/enums/enums.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 import { useProjectKnowledgePipeline } from "~/modules/knowledge/libs/hooks/use-project-knowledge-pipeline.hook.js";
 import {
@@ -69,15 +64,16 @@ const SidebarLayout: React.FC = () => {
 	const isOrganisationUserManagement =
 		isUserManagementPath(pathname) &&
 		getUserManagementProjectId(search) === null;
+	const isAccountSettings = pathname === AppRoute.SETTINGS;
 	const shouldRenderSidebar =
-		(hasProjects || isAdmin) && !isOrganisationUserManagement;
+		(hasProjects || isAdmin) &&
+		!isOrganisationUserManagement &&
+		!isAccountSettings;
 	const isPhone = shell.mode === "phone";
 	const shouldShowSidebar =
 		shouldRenderSidebar && (!isPhone || shell.isOverlayOpen);
-	const shouldShowPhoneLauncher =
-		shouldRenderSidebar && isPhone && !shell.isOverlayOpen;
 	const shouldShowMobileNav =
-		shouldRenderSidebar && isPhone && Boolean(urlProjectId);
+		shouldRenderSidebar && isPhone && Boolean(effectiveProjectId);
 
 	return (
 		<KnowledgeTreePanelProvider>
@@ -98,19 +94,6 @@ const SidebarLayout: React.FC = () => {
 						/>
 					)}
 
-					{shouldShowPhoneLauncher && (
-						<button
-							aria-controls={APP_SIDEBAR_ID}
-							aria-expanded={false}
-							aria-label={EXPAND_SIDEBAR_LABEL}
-							className="absolute top-1/2 left-2 z-30 flex size-8 -translate-y-1/2 cursor-pointer items-center justify-center rounded-full border border-border bg-surface text-text-muted shadow-sm hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none"
-							onClick={shell.toggleSidebar}
-							type="button"
-						>
-							<Icon name="chevron-filled-right" size={CHEVRON_ICON_SIZE} />
-						</button>
-					)}
-
 					{shouldShowSidebar && (
 						<Sidebar
 							isAdmin={isAdmin}
@@ -125,7 +108,13 @@ const SidebarLayout: React.FC = () => {
 					</div>
 				</div>
 
-				{shouldShowMobileNav && <MobileNav />}
+				{shouldShowMobileNav && (
+					<MobileNav
+						isAdmin={isAdmin}
+						projectName={currentProject?.name ?? ""}
+						role={currentProject?.role ?? ""}
+					/>
+				)}
 			</div>
 		</KnowledgeTreePanelProvider>
 	);

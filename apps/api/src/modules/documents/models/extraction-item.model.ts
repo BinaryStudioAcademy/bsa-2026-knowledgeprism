@@ -16,6 +16,8 @@ class ExtractionItemModel extends AbstractModel {
 
 	public documentId!: number;
 
+	public extractionRunId!: null | number;
+
 	public extractionSectionId!: null | number;
 
 	public heading!: null | string;
