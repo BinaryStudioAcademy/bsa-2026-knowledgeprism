@@ -8,3 +8,4 @@ process.env["DB_POOL_MAX"] ??= "2";
 process.env["SESSION_SECRET"] ??= "12345678901234567890123456789012";
 process.env["AWS_REGION"] ??= "eu-central-1";
 process.env["AWS_S3_BUCKET_NAME"] ??= "bucket";
+process.env["BEDROCK_MAXIMUM_CONCURRENT_REQUESTS"] ??= "4";
