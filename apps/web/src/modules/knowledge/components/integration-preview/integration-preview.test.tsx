@@ -82,6 +82,7 @@ const createDeferred = (): PromiseWithResolvers<boolean> =>
 	Promise.withResolvers<boolean>();
 
 const FAILED_PAGE_NUMBER = 4;
+const INTEGRATION_CHANGE_ID = 42;
 const KB_PAGE_ID = 40;
 const INITIAL_ITEM_COUNT = 2;
 const PARAGRAPH_BLOCK_COUNT = 2;
@@ -597,6 +598,54 @@ describe("IntegrationPreview extraction review", () => {
 			expect(approve).toHaveBeenCalledWith(
 				expect.objectContaining({
 					resolutions: [{ changeId: 9, content: "use-new", title: "keep" }],
+				}),
+			);
+		});
+	});
+
+	it("sends integration change ids when the placement is loaded before opening", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const item = createExtractionItem();
+		const placementStructure: ProposedSection[] = [
+			{
+				id: "proposed-changes-section",
+				pages: [
+					{
+						content: item.text,
+						id: String(item.id),
+						integrationChangeId: INTEGRATION_CHANGE_ID,
+						status: "created",
+						title: item.title,
+						type: KnowledgeNodeType.ENTRY,
+					},
+				],
+				status: "created",
+				title: "Proposed changes",
+				type: KnowledgeNodeType.SECTION,
+			},
+		];
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				placementStructure={placementStructure}
+				proposedStructure={mapExtractionItemsToProposedStructure([item])}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					contentOverrides: [
+						{
+							changeId: INTEGRATION_CHANGE_ID,
+							content: item.text,
+							title: item.title,
+						},
+					],
 				}),
 			);
 		});
