@@ -64,7 +64,7 @@ const approvedDocument = [
 ];
 
 describe("resolveApprovedDocumentView", () => {
-	it("reads every nested entry before the next sibling and scrolls to a selected grandchild", () => {
+	it("lists nested sections in reading order when the document is selected", () => {
 		const nestedDocument = [
 			item({
 				id: GRANDCHILD_SECTION_ID,
@@ -87,11 +87,8 @@ describe("resolveApprovedDocumentView", () => {
 			}),
 		];
 
-		expect(
-			resolveApprovedDocumentView(nestedDocument, GRANDCHILD_SECTION_ID),
-		).toEqual({
+		expect(resolveApprovedDocumentView(nestedDocument, DOCUMENT_ID)).toEqual({
 			documentId: DOCUMENT_ID,
-			scrollSectionId: GRANDCHILD_SECTION_ID,
 			sectionIds: [
 				FIRST_SECTION_ID,
 				CHILD_SECTION_ID,
@@ -100,63 +97,25 @@ describe("resolveApprovedDocumentView", () => {
 			],
 		});
 		expect(
-			resolveApprovedDocumentView(nestedDocument, DOCUMENT_ID)?.sectionIds,
-		).toEqual([
-			FIRST_SECTION_ID,
-			CHILD_SECTION_ID,
-			GRANDCHILD_SECTION_ID,
-			SECOND_SECTION_ID,
-		]);
-		expect(
-			resolveApprovedDocumentView(nestedDocument, CHILD_DOCUMENT_ENTRY_ID),
-		).toEqual({
-			documentId: NESTED_PAGE_ID,
-			scrollSectionId: CHILD_DOCUMENT_ENTRY_ID,
-			sectionIds: [CHILD_DOCUMENT_ENTRY_ID],
-		});
+			resolveApprovedDocumentView(nestedDocument, GRANDCHILD_SECTION_ID),
+		).toBeNull();
+		expect(resolveApprovedDocumentView(nestedDocument, NESTED_PAGE_ID)).toEqual(
+			{
+				documentId: NESTED_PAGE_ID,
+				sectionIds: [CHILD_DOCUMENT_ENTRY_ID],
+			},
+		);
 	});
 
-	it("ignores orphaned entries and stops when an entry's ancestors form a cycle", () => {
-		const invalidEntries = [
-			item({
-				id: CHILD_SECTION_ID,
-				parentId: GRANDCHILD_SECTION_ID,
-				position: POSITION_FIRST,
-				type: KnowledgeNodeType.ENTRY,
-			}),
-			item({
-				id: GRANDCHILD_SECTION_ID,
-				parentId: CHILD_SECTION_ID,
-				position: POSITION_FIRST,
-				type: KnowledgeNodeType.ENTRY,
-			}),
-		];
-
-		expect(
-			resolveApprovedDocumentView(invalidEntries, CHILD_SECTION_ID),
-		).toBeNull();
-		expect(
-			resolveApprovedDocumentView(
-				invalidEntries.slice(POSITION_FIRST, POSITION_SECOND),
-				CHILD_SECTION_ID,
-			),
-		).toBeNull();
-	});
-
-	it("scrolls a sidebar heading to that section of the parent document", () => {
+	it("opens only the selected section", () => {
 		expect(
 			resolveApprovedDocumentView(approvedDocument, SECOND_SECTION_ID),
-		).toEqual({
-			documentId: DOCUMENT_ID,
-			scrollSectionId: SECOND_SECTION_ID,
-			sectionIds: [FIRST_SECTION_ID, SECOND_SECTION_ID],
-		});
+		).toBeNull();
 	});
 
-	it("opens the approved document at the top when the page itself is selected", () => {
+	it("opens the whole document when the page itself is selected", () => {
 		expect(resolveApprovedDocumentView(approvedDocument, DOCUMENT_ID)).toEqual({
 			documentId: DOCUMENT_ID,
-			scrollSectionId: undefined,
 			sectionIds: [FIRST_SECTION_ID, SECOND_SECTION_ID],
 		});
 	});
