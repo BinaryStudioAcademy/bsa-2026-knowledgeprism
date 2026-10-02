@@ -41,7 +41,7 @@ type SidebarToggleProperties = {
 
 const EMPTY_LENGTH = 0;
 const TOGGLE_TOOLTIP_CLASS_NAME =
-	"pointer-events-none invisible absolute top-1/2 left-full z-30 ml-2 -translate-y-1/2 rounded-md bg-primary px-2 py-1 text-xs font-medium whitespace-nowrap text-primary-fg opacity-0 shadow-md group-hover/toggle:visible group-hover/toggle:opacity-100 group-focus-within/toggle:visible group-focus-within/toggle:opacity-100";
+	"pointer-events-none invisible absolute top-1/2 left-full z-30 ml-2 -translate-y-1/2 rounded-md bg-primary px-2 py-1 text-xs font-medium whitespace-nowrap text-primary-fg opacity-0 shadow-md group-hover/toggle:visible group-hover/toggle:opacity-100";
 
 const SidebarToggle = ({
 	isExpanded,
