@@ -27,11 +27,13 @@ const readPositiveIntegerEnvironmentVariable = (
 	name: string,
 	defaultValue: number,
 ): number => {
-	if (!process.env[name]) {
+	const rawValue = process.env[name];
+
+	if (!rawValue) {
 		return defaultValue;
 	}
 
-	const value = Number(process.env[name]);
+	const value = Number(rawValue);
 
 	if (!Number.isSafeInteger(value) || value < MINIMUM_POSITIVE_INTEGER) {
 		throw new Error(`${name} must be a positive integer`);
