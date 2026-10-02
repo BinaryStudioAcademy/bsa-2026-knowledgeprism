@@ -15,6 +15,7 @@ const DocumentErrorMessage = {
 	INTEGRATION_FAILED: "Integration analysis failed",
 	INVALID_PLACEMENT:
 		"A section can only be placed under a page in this project",
+	NO_EXTRACTABLE_TEXT: "No text could be extracted from the document.",
 	NO_KNOWLEDGE_EXTRACTED:
 		"No knowledge could be extracted. Add more detail and try again.",
 	NOT_FOUND: "Document not found",
