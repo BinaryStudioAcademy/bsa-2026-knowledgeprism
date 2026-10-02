@@ -64,6 +64,7 @@ jobs:
             --cluster $ECS_CLUSTER \
             --service $ECS_SERVICE \
             --force-new-deployment \
+            --desired-count 1 \
             --region $AWS_REGION
 
       - name: Wait for ECS service to stabilize

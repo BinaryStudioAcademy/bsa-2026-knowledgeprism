@@ -22,6 +22,7 @@ const MIN_TOP_K = 1;
 const embed = async (
 	texts: string[],
 	inputType: EmbeddingInputTypeValue,
+	{ isLimited = true }: { isLimited?: boolean } = {},
 ): Promise<EmbeddingVector[]> => {
 	if (texts.length === EMPTY_TEXTS_COUNT) {
 		return [];
@@ -46,7 +47,7 @@ const embed = async (
 	const vectors: EmbeddingVector[] = [];
 
 	for (const batch of batches) {
-		const batchVectors = await invokeEmbedding(batch, inputType);
+		const batchVectors = await invokeEmbedding(batch, inputType, isLimited);
 		vectors.push(...batchVectors);
 	}
 

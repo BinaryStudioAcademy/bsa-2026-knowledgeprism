@@ -21,6 +21,7 @@ import {
 	applyIntegrationChanges,
 	confirmDocumentUpload,
 	createDocumentNode,
+	fetchDocumentSections,
 	fetchExtractionItems,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,
@@ -483,6 +484,37 @@ const { actions, name, reducer } = createSlice({
 			state.treeRequestId = null;
 			state.knowledgeErrorMessage =
 				action.error.message ?? "Failed to fetch knowledge tree";
+		});
+		builder.addCase(fetchDocumentSections.pending, (state, action) => {
+			state.entryRequestId = action.meta.requestId;
+			state.isEntryLoading = true;
+			state.knowledgeErrorMessage = null;
+			state.selectedEntry = null;
+		});
+		builder.addCase(fetchDocumentSections.fulfilled, (state, action) => {
+			if (state.entryRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.entryRequestId = null;
+			state.isEntryLoading = false;
+			state.knowledgeErrorMessage = null;
+			state.selectedEntry =
+				action.payload.items.find(
+					(item) => item.id === action.meta.arg.documentId,
+				) ?? null;
+		});
+		builder.addCase(fetchDocumentSections.rejected, (state, action) => {
+			if (state.entryRequestId !== action.meta.requestId) {
+				return;
+			}
+
+			state.entryRequestId = null;
+			state.isEntryLoading = false;
+			if (!action.meta.aborted) {
+				state.knowledgeErrorMessage =
+					action.error.message ?? "Failed to fetch knowledge document";
+			}
 		});
 		builder.addCase(fetchKnowledgeEntry.pending, (state, action) => {
 			state.entryRequestId = action.meta.requestId;

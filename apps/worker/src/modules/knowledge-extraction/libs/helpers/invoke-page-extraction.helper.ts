@@ -3,6 +3,7 @@ import { BedrockRequest, ClaudeModelId } from "@knowledgeprism/constants";
 
 import { ExtractionBedrockConfig } from "~/bedrock/bedrock-request.constant.js";
 import { extractionBedrockRuntimeClient } from "~/bedrock/bedrock.js";
+import { sendBedrockRequest } from "~/bedrock/send-bedrock-request.helper.js";
 import { toResponseText } from "~/bedrock/to-response-text.helper.js";
 
 import { EXTRACTION_OUTPUT_SCHEMA } from "../constants/extraction-output-schema.constant.js";
@@ -34,13 +35,14 @@ const invokePageExtraction = async (
 		temperature: ExtractionBedrockConfig.TEMPERATURE,
 	});
 
-	const response = await extractionBedrockRuntimeClient.send(
+	const response = await sendBedrockRequest(
 		new InvokeModelCommand({
 			accept: "application/json",
 			body,
 			contentType: "application/json",
 			modelId: ClaudeModelId.SONNET_4_6,
 		}),
+		extractionBedrockRuntimeClient,
 	);
 
 	return toResponseText(response.body.transformToString());

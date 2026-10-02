@@ -2,7 +2,7 @@ import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { BedrockRequest, ClaudeModelId } from "@knowledgeprism/constants";
 
 import { ExtractionBedrockConfig } from "~/bedrock/bedrock-request.constant.js";
-import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
+import { sendBedrockRequest } from "~/bedrock/send-bedrock-request.helper.js";
 import { toResponseText } from "~/bedrock/to-response-text.helper.js";
 import { logger } from "~/logger/logger.js";
 
@@ -37,7 +37,7 @@ const invokeClassification = async ({
 	});
 
 	try {
-		const response = await bedrockRuntimeClient.send(
+		const response = await sendBedrockRequest(
 			new InvokeModelCommand({
 				accept: "application/json",
 				body,
