@@ -5,9 +5,10 @@ import { type ExtractionBlock } from "~/modules/knowledge-extraction/libs/types/
 
 import { invokePageTranslation } from "../libs/helpers/invoke-page-translation.helper.js";
 import { isEnglishText } from "../libs/helpers/is-english-text.helper.js";
+import { withTransientRetries } from "../libs/helpers/with-transient-retries.helper.js";
 
 const translateText = async (text: string): Promise<string> => {
-	return await invokePageTranslation(text);
+	return await withTransientRetries(() => invokePageTranslation(text));
 };
 
 const translate = async <T extends ExtractionBlock>(

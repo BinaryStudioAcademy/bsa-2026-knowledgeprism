@@ -1,3 +1,4 @@
+import { ExtractionChunk } from "~/modules/knowledge-extraction/libs/constants/extraction-chunk.constant.js";
 import { splitIntoChunks } from "~/modules/knowledge-extraction/libs/helpers/split-into-chunks.helper.js";
 import { type PageStart } from "~/modules/knowledge-extraction/libs/types/page-start.type.js";
 import { type ParsedPageBlock } from "~/parsers/libs/types/parsed-page-block.type.js";
@@ -117,7 +118,10 @@ const toPartPageStarts = (
 
 const toSectionChunks = (
 	section: Section,
-	sectionIndex: number,
+	{
+		maximumLength,
+		sectionIndex,
+	}: { maximumLength: number; sectionIndex: null | number },
 ): UnpositionedChunk[] => {
 	const starts: PageStart[] = [];
 	let content = "";
@@ -133,7 +137,7 @@ const toSectionChunks = (
 
 	let searchFrom = FIRST_INDEX;
 
-	return splitIntoChunks(content).map((part, partIndex) => {
+	return splitIntoChunks(content, maximumLength).map((part, partIndex) => {
 		const foundAt = content.indexOf(part, searchFrom);
 		const offset = foundAt === NOT_FOUND_INDEX ? searchFrom : foundAt;
 		searchFrom = offset + part.length;
@@ -156,27 +160,28 @@ const toSectionChunks = (
 	});
 };
 
-const toPageChunks = (pages: ParsedPageBlock[]): UnpositionedChunk[] => {
+const toDocumentLines = (pages: ParsedPageBlock[]): DocumentLine[] => {
 	return pages.flatMap(({ content, pageNumber }) =>
-		splitIntoChunks(content).map((part, partIndex) => ({
-			content: part,
-			pageEnd: pageNumber,
-			pageNumber,
-			pageStarts: [{ offset: FIRST_INDEX, pageNumber }],
-			part: partIndex,
-			sectionIndex: null,
-			sectionTitle: null,
-		})),
+		content
+			.split(LINE_JOINER)
+			.map((text) => ({ headingLevel: null, pageNumber, text })),
 	);
 };
 
-const buildDocumentChunks = (pages: ParsedPageBlock[]): DocumentChunk[] => {
+const buildDocumentChunks = (
+	pages: ParsedPageBlock[],
+	maximumLength?: number,
+): DocumentChunk[] => {
+	const chunkLength = maximumLength ?? ExtractionChunk.MAXIMUM_LENGTH;
 	const lines = detectPdfHeadings(pages) ?? detectTextHeadings(pages);
 	const chunks = lines
 		? toSections(lines).flatMap((section, sectionIndex) =>
-				toSectionChunks(section, sectionIndex),
+				toSectionChunks(section, { maximumLength: chunkLength, sectionIndex }),
 			)
-		: toPageChunks(pages);
+		: toSectionChunks(
+				{ lines: toDocumentLines(pages), title: null },
+				{ maximumLength: chunkLength, sectionIndex: null },
+			);
 
 	return chunks.map((chunk, position) => ({ ...chunk, position }));
 };

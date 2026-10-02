@@ -21,7 +21,19 @@ import {
 } from "../fixtures/page-break-section.fixture.js";
 import { buildDocumentChunks } from "./build-document-chunks.helper.js";
 
+const FIRST_PAGE = 1;
+const SECOND_PAGE = 2;
 const LONG_TEXT_MINIMUM_LENGTH = 20_000;
+const PLAIN_FIRST_PAGE =
+	"Editors upload project documents and review the proposed sections.";
+const PLAIN_SECOND_PAGE =
+	"Approved sections are published to the knowledge base.";
+const SMALL_CHUNK_LENGTH = 70;
+const NO_CHUNKS = 0;
+const PLAIN_PAGES = [
+	{ content: PLAIN_FIRST_PAGE, pageNumber: FIRST_PAGE },
+	{ content: PLAIN_SECOND_PAGE, pageNumber: SECOND_PAGE },
+];
 const SECTION_COUNT = 3;
 
 void describe("buildDocumentChunks", () => {
@@ -69,6 +81,28 @@ void describe("buildDocumentChunks", () => {
 				({ content }) => content.length <= ExtractionChunk.MAXIMUM_LENGTH,
 			),
 			true,
+		);
+	});
+
+	void it("chunks a document without headings across its pages", () => {
+		const [chunk, ...rest] = buildDocumentChunks(PLAIN_PAGES);
+
+		assert.ok(chunk);
+		assert.equal(rest.length, NO_CHUNKS);
+		assert.equal(chunk.content, `${PLAIN_FIRST_PAGE}\n${PLAIN_SECOND_PAGE}`);
+		assert.deepEqual(
+			chunk.pageStarts.map(({ pageNumber }) => pageNumber),
+			[FIRST_PAGE, SECOND_PAGE],
+		);
+		assert.equal(chunk.sectionIndex, null);
+	});
+
+	void it("uses the given chunk length", () => {
+		const chunks = buildDocumentChunks(PLAIN_PAGES, SMALL_CHUNK_LENGTH);
+
+		assert.deepEqual(
+			chunks.map(({ content }) => content),
+			[PLAIN_FIRST_PAGE, PLAIN_SECOND_PAGE],
 		);
 	});
 });

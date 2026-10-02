@@ -372,19 +372,27 @@ void describe("extraction recovery", () => {
 		assert.equal(setup.calls.length, TWO_CALLS);
 	});
 
-	void it("re-extracts a chunk with the heading the previous chunk left open", async () => {
+	void it("passes the heading the previous chunk left open without extracting again", async () => {
 		const openingPage = `${SOURCE}\n## Setup`;
+		const previousHeadings: (null | string | undefined)[] = [];
 		const setup = createSetup((content) => Promise.resolve(outputFor(content)));
 		const result = await extractBlocks(
 			[
 				{ content: openingPage, pageNumber: PAGE_NUMBER },
 				{ content: SOURCE, pageNumber: NEXT_PAGE_NUMBER },
 			],
-			setup.dependencies,
+			{
+				...setup.dependencies,
+				invoke: (content, previousHeading, feedback) => {
+					previousHeadings.push(previousHeading);
+
+					return setup.dependencies.invoke(content, previousHeading, feedback);
+				},
+			},
 		);
 
-		assert.equal(setup.calls.length, THREE_CALLS);
-		assert.deepEqual(setup.calls, [openingPage, SOURCE, SOURCE]);
+		assert.deepEqual(setup.calls, [openingPage, SOURCE]);
+		assert.deepEqual(previousHeadings, [null, "Setup"]);
 		assert.deepEqual(
 			result.items.map((item) => item.sourcePageNumber),
 			[PAGE_NUMBER, NEXT_PAGE_NUMBER],
