@@ -11,6 +11,8 @@ type IntegrationChangesApplyRequestDto = {
 
 type IntegrationPlacementDto = {
 	changeId: number;
+	/** Parent item published as a new node in the same request; exclusive with parentId. */
+	parentExtractionItemId?: null | number;
 	parentId: null | number;
 	position: number;
 };

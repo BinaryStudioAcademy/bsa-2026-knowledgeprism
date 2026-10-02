@@ -3,6 +3,7 @@ import {
 	type ProposedPage,
 	type ProposedSection,
 } from "../types/types.js";
+import { reparentRejectedSections } from "./reparent-rejected-sections.helper.js";
 
 const DEFAULT_INDEX = 0;
 const EMPTY_LENGTH = 0;
@@ -46,7 +47,10 @@ const removePageGroup = (
 		return pages;
 	}
 
-	return pages.filter((_page, index) => index !== pageIndex);
+	return reparentRejectedSections(
+		pages.filter((_page, index) => index !== pageIndex),
+		targetPage.pages,
+	);
 };
 
 const updateSectionInPages = ({
@@ -115,7 +119,10 @@ const removeSectionFromPages = ({
 	activeSectionIndex: number;
 	pages: ProposedSection[];
 }): ProposedSection[] => {
-	return pages.map((page, pageIndex) => {
+	const rejectedSection = pages
+		.at(activePageIndex)
+		?.pages.at(activeSectionIndex);
+	const nextPages = pages.map((page, pageIndex) => {
 		if (pageIndex !== activePageIndex) {
 			return page;
 		}
@@ -127,6 +134,10 @@ const removeSectionFromPages = ({
 			),
 		};
 	});
+
+	return rejectedSection
+		? reparentRejectedSections(nextPages, [rejectedSection])
+		: nextPages;
 };
 
 const clampIndex = (index: number, length: number): number =>

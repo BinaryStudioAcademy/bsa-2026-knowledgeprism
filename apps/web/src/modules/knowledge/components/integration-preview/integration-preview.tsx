@@ -924,6 +924,7 @@ const syncIncomingReviewPages = ({
 		pages.length > EMPTY_LENGTH
 	) {
 		setPages(mergePlacementIntoPages(pages, placementStructure));
+		setBackupPages(mergePlacementIntoPages(pages, placementStructure));
 	}
 };
 
@@ -968,9 +969,10 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	proposedStructure,
 }: IntegrationPreviewProperties): JSX.Element => {
 	const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-	const [pages, setPages] = useState<ProposedSection[]>(proposedStructure);
-	const [backupPages, setBackupPages] =
-		useState<ProposedSection[]>(proposedStructure);
+	const [pages, setPages] = useState<ProposedSection[]>(() =>
+		mergePlacementIntoPages(proposedStructure, placementStructure ?? []),
+	);
+	const [backupPages, setBackupPages] = useState<ProposedSection[]>(pages);
 	const [appliedPlacement, setAppliedPlacement] = useState(placementStructure);
 	const [seededProposal, setSeededProposal] = useState(proposedStructure);
 
@@ -1217,6 +1219,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					pageIndex,
 					pages: previousPages,
 					partialSection: {
+						placementParentExtractionItemId: null,
 						placementParentId: target?.id ?? null,
 						proposedPlace: target
 							? `${UNDER_PLACE_PREFIX}${target.title}`

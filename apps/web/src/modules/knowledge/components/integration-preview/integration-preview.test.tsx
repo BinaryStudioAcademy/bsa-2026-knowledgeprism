@@ -1,11 +1,13 @@
 import {
 	DocumentStatus,
 	ExtractionItemStatus,
+	IntegrationChangeType,
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
 import {
 	ExtractionHeadingLevel,
 	type ExtractionItemResponseDto,
+	type IntegrationChangeResponseDto,
 } from "@knowledgeprism/types";
 import {
 	act,
@@ -24,6 +26,7 @@ import { store } from "~/lib/store/store.js";
 import { workspacesActions } from "~/modules/workspaces/state/workspaces.slice.js";
 
 import { mapExtractionItemsToProposedStructure } from "../../libs/helpers/helpers.js";
+import { mapIntegrationChangesToProposedStructure } from "../../libs/helpers/map-integration-changes-to-proposed-structure.helper.js";
 import { type ProposedSection } from "../../libs/types/types.js";
 import { actions } from "../../state/knowledge.slice.js";
 import { LoadingState } from "../loading-state/loading-state.js";
@@ -87,8 +90,70 @@ const INITIAL_ITEM_COUNT = 2;
 const PARAGRAPH_BLOCK_COUNT = 2;
 const REMAINING_ITEM_COUNT = 1;
 const SINGLE_CALL_COUNT = 1;
+const CHILD_ITEM_ID = 18;
+const GRANDCHILD_ITEM_ID = 19;
+const CHANGE_ID_OFFSET = 100;
+
+const createNestedReview = (): {
+	placement: ProposedSection[];
+	proposal: ProposedSection[];
+} => {
+	const parent = createExtractionItem();
+	const items = [
+		parent,
+		{ ...parent, id: CHILD_ITEM_ID, title: "Child section" },
+		{ ...parent, id: GRANDCHILD_ITEM_ID, title: "Grandchild section" },
+	];
+	const changes: IntegrationChangeResponseDto[] = items.map((item, index) => {
+		const previous = items.at(index - REMAINING_ITEM_COUNT);
+		const parentExtractionItemId =
+			index === FIRST_ITEM_INDEX ? null : (previous?.id ?? null);
+
+		return {
+			explanation: "Preserve nesting.",
+			extractionItemId: item.id,
+			id: item.id + CHANGE_ID_OFFSET,
+			incomingContent: item.text,
+			incomingTitle: item.title,
+			liveContent: null,
+			liveTitle: null,
+			matchedNodeId: null,
+			placement: {
+				matches: [],
+				parentExtractionItemId,
+				parentId: null,
+				parentTitle:
+					index === FIRST_ITEM_INDEX ? null : (previous?.title ?? null),
+				proposesParent: true,
+				siblingOrder: index,
+			},
+			score: null,
+			type: IntegrationChangeType.NEW,
+		};
+	});
+
+	return {
+		placement: mapIntegrationChangesToProposedStructure({ items: changes }),
+		proposal: mapExtractionItemsToProposedStructure(items),
+	};
+};
+
+const FIRST_ITEM_INDEX = 0;
 describe("IntegrationPreview extraction review", () => {
+	const originalShowModal = Object.getOwnPropertyDescriptor(
+		HTMLDialogElement.prototype,
+		"showModal",
+	);
+	const originalClose = Object.getOwnPropertyDescriptor(
+		HTMLDialogElement.prototype,
+		"close",
+	);
+
 	beforeEach(() => {
+		HTMLDialogElement.prototype.showModal = () => {
+			openTestDialog("Reject Knowledge item");
+		};
+		HTMLDialogElement.prototype.close = closeTestDialogs;
 		store.instance.dispatch(actions.resetState(null));
 		store.instance.dispatch(
 			workspacesActions.setLastActiveProject(TEST_PROJECT_ID),
@@ -102,7 +167,202 @@ describe("IntegrationPreview extraction review", () => {
 	});
 
 	afterEach(() => {
+		restoreDialogMethod("showModal", originalShowModal);
+		restoreDialogMethod("close", originalClose);
 		vi.useRealTimers();
+	});
+
+	it("publishes nesting when integration placements are already loaded on open", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const { placement, proposal } = createNestedReview();
+
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				placementStructure={placement}
+				proposedStructure={proposal}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					placements: [
+						{
+							changeId: createExtractionItem().id + CHANGE_ID_OFFSET,
+							parentExtractionItemId: null,
+							parentId: null,
+							position: FIRST_ITEM_INDEX,
+						},
+						{
+							changeId: CHILD_ITEM_ID + CHANGE_ID_OFFSET,
+							parentExtractionItemId: createExtractionItem().id,
+							parentId: null,
+							position: REMAINING_ITEM_COUNT,
+						},
+						{
+							changeId: GRANDCHILD_ITEM_ID + CHANGE_ID_OFFSET,
+							parentExtractionItemId: CHILD_ITEM_ID,
+							parentId: null,
+							position: INITIAL_ITEM_COUNT,
+						},
+					],
+				}),
+			);
+		});
+	});
+
+	it("clears the incoming parent when a user moves a child to an existing page", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const { placement, proposal } = createNestedReview();
+
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				placementStructure={placement}
+				placementTargets={[{ id: KB_PAGE_ID, title: "Requirements" }]}
+				proposedStructure={proposal}
+			/>,
+		);
+		fireEvent.click(
+			screen.getByRole("button", { name: "More actions for Child section" }),
+		);
+		fireEvent.click(screen.getByRole("menuitem", { name: "Move to…" }));
+		fireEvent.click(screen.getByRole("menuitem", { name: "Requirements" }));
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					placements: [
+						{
+							changeId: createExtractionItem().id + CHANGE_ID_OFFSET,
+							parentExtractionItemId: null,
+							parentId: null,
+							position: FIRST_ITEM_INDEX,
+						},
+						{
+							changeId: CHILD_ITEM_ID + CHANGE_ID_OFFSET,
+							parentExtractionItemId: null,
+							parentId: KB_PAGE_ID,
+							position: REMAINING_ITEM_COUNT,
+						},
+						{
+							changeId: GRANDCHILD_ITEM_ID + CHANGE_ID_OFFSET,
+							parentExtractionItemId: CHILD_ITEM_ID,
+							parentId: null,
+							position: INITIAL_ITEM_COUNT,
+						},
+					],
+				}),
+			);
+		});
+	});
+
+	it("publishes retained children after their parent is rejected in the review", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const { placement, proposal } = createNestedReview();
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				placementStructure={placement}
+				proposedStructure={proposal}
+			/>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Reject item" }));
+		fireEvent.click(screen.getByRole("button", { name: "Reject" }));
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					items: [
+						expect.objectContaining({ id: CHILD_ITEM_ID }),
+						expect.objectContaining({ id: GRANDCHILD_ITEM_ID }),
+					],
+					placements: [
+						{
+							changeId: CHILD_ITEM_ID + CHANGE_ID_OFFSET,
+							parentExtractionItemId: null,
+							parentId: null,
+							position: FIRST_ITEM_INDEX,
+						},
+						{
+							changeId: GRANDCHILD_ITEM_ID + CHANGE_ID_OFFSET,
+							parentExtractionItemId: CHILD_ITEM_ID,
+							parentId: null,
+							position: REMAINING_ITEM_COUNT,
+						},
+					],
+				}),
+			);
+		});
+	});
+
+	it("keeps late-arriving nesting when editing is cancelled", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const { placement, proposal } = createNestedReview();
+		const onAddMore = vi.fn();
+		const onClose = vi.fn();
+		const view = renderPreview(
+			<IntegrationPreview
+				onAddMore={onAddMore}
+				onApprove={approve}
+				onClose={onClose}
+				proposedStructure={proposal}
+			/>,
+		);
+
+		view.rerender(
+			<Provider store={store.instance}>
+				<MemoryRouter>
+					<IntegrationPreview
+						onAddMore={onAddMore}
+						onApprove={approve}
+						onClose={onClose}
+						placementStructure={placement}
+						proposedStructure={proposal}
+					/>
+				</MemoryRouter>
+			</Provider>,
+		);
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					placements: [
+						{
+							changeId: createExtractionItem().id + CHANGE_ID_OFFSET,
+							parentExtractionItemId: null,
+							parentId: null,
+							position: FIRST_ITEM_INDEX,
+						},
+						{
+							changeId: CHILD_ITEM_ID + CHANGE_ID_OFFSET,
+							parentExtractionItemId: createExtractionItem().id,
+							parentId: null,
+							position: REMAINING_ITEM_COUNT,
+						},
+						{
+							changeId: GRANDCHILD_ITEM_ID + CHANGE_ID_OFFSET,
+							parentExtractionItemId: CHILD_ITEM_ID,
+							parentId: null,
+							position: INITIAL_ITEM_COUNT,
+						},
+					],
+				}),
+			);
+		});
 	});
 
 	it("shows each extraction item's source page and excerpt", () => {
@@ -747,12 +1007,16 @@ const closeTestDialogs = (): void => {
 	}
 };
 
-const openDiscardTestDialog = (): void => {
+const openTestDialog = (title: string): void => {
 	for (const dialog of document.querySelectorAll("dialog")) {
-		if (dialog.textContent.includes(DISCARD_DIALOG_TITLE)) {
+		if (dialog.textContent.includes(title)) {
 			dialog.setAttribute("open", "");
 		}
 	}
+};
+
+const openDiscardTestDialog = (): void => {
+	openTestDialog(DISCARD_DIALOG_TITLE);
 };
 
 const restoreDialogMethod = (
