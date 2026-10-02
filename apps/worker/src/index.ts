@@ -1,3 +1,4 @@
+export { BedrockResponseFailure } from "./bedrock/bedrock-response-error.exception.js";
 export { bedrockRuntimeClient } from "./bedrock/bedrock.js";
 export { toResponseText } from "./bedrock/to-response-text.helper.js";
 export { logger } from "./logger/logger.js";
@@ -27,6 +28,7 @@ export {
 export { checkGlossaryConsistency } from "./modules/glossary-consistency/services/glossary-consistency.service.js";
 export { type GlossaryTermCandidate } from "./modules/glossary-extraction/libs/types/types.js";
 export { extractGlossaryTerms } from "./modules/glossary-extraction/services/glossary-extraction.service.js";
+export { isAutoNewResult } from "./modules/integration-analysis/libs/helpers/is-auto-new-result.helper.js";
 export {
 	type RecordedSectionPlacement,
 	toRecordedSectionPlacement,

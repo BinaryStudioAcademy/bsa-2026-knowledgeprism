@@ -19,9 +19,11 @@ import {
 } from "@knowledgeprism/worker";
 
 import { type Database } from "~/infrastructure/database/database.js";
+import { type Logger } from "~/infrastructure/logger/logger.js";
 import { ExtractionRunStatus } from "~/modules/documents/libs/constants/extraction-run-status.constant.js";
 import { DocumentProcessingError } from "~/modules/documents/libs/exceptions/document-processing.exception.js";
 import { createOrderedProgressReporter } from "~/modules/documents/libs/helpers/create-ordered-progress-reporter.helper.js";
+import { toExtractionMetrics } from "~/modules/documents/libs/helpers/to-extraction-metrics.helper.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
@@ -42,6 +44,7 @@ type Constructor = {
 	extractionItemRepository: ExtractionItemRepository;
 	extractionRunRepository: ExtractionRunRepository;
 	glossaryService: GlossaryService;
+	logger: Logger;
 };
 
 type RunExtraction = {
@@ -86,18 +89,22 @@ class DocumentProcessor {
 
 	private glossaryService: GlossaryService;
 
+	private logger: Logger;
+
 	public constructor({
 		database,
 		documentRepository,
 		extractionItemRepository,
 		extractionRunRepository,
 		glossaryService,
+		logger,
 	}: Constructor) {
 		this.database = database;
 		this.documentRepository = documentRepository;
 		this.extractionItemRepository = extractionItemRepository;
 		this.extractionRunRepository = extractionRunRepository;
 		this.glossaryService = glossaryService;
+		this.logger = logger;
 	}
 
 	private async completeRun({
@@ -226,9 +233,11 @@ class DocumentProcessor {
 					: [];
 			}),
 		);
+		const responses: ExtractionResponseRecord[] = [];
 		const saveResponse = async (
 			response: ExtractionResponseRecord,
 		): Promise<void> => {
+			responses.push(response);
 			const documentChunkId = chunkIds.get(response.chunkIndex);
 
 			if (documentChunkId === undefined) {
@@ -254,6 +263,18 @@ class DocumentProcessor {
 				}),
 			),
 			onResponse: saveResponse,
+		});
+
+		this.logger.info("Document extraction metrics.", {
+			documentId,
+			processingAttempt: attempt,
+			...toExtractionMetrics({
+				chunkCount: chunks.length,
+				failedPageNumbers: extraction.failedPageNumbers,
+				items: extraction.items,
+				pageCount: pages.length,
+				responses,
+			}),
 		});
 
 		return { extraction, translatedChunks };

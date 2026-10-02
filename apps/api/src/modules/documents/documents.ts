@@ -49,6 +49,7 @@ const documentProcessor = new DocumentProcessor({
 	extractionItemRepository,
 	extractionRunRepository,
 	glossaryService,
+	logger,
 });
 const integrationAnalyzer = new IntegrationAnalyzer({
 	database,
@@ -56,6 +57,7 @@ const integrationAnalyzer = new IntegrationAnalyzer({
 	extractionItemRepository,
 	integrationChangeRepository,
 	knowledgeNodeRepository,
+	logger,
 });
 const integrationApplier = new IntegrationApplier({
 	extractionItemRepository,

@@ -18,13 +18,16 @@ import {
 	embed,
 	type EmbeddingCandidate,
 	EmbeddingInputType,
+	isAutoNewResult,
 	type PlacementTreeNode,
 	type RecordedSectionPlacement,
 	toRecordedSectionPlacement,
 } from "@knowledgeprism/worker";
 
 import { type Database } from "~/infrastructure/database/database.js";
+import { type Logger } from "~/infrastructure/logger/logger.js";
 import { createOrderedProgressReporter } from "~/modules/documents/libs/helpers/create-ordered-progress-reporter.helper.js";
+import { toIntegrationMetrics } from "~/modules/documents/libs/helpers/to-integration-metrics.helper.js";
 import { toResolvableChanges } from "~/modules/documents/libs/helpers/to-resolvable-changes.helper.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
@@ -44,6 +47,7 @@ type Constructor = {
 	extractionItemRepository: ExtractionItemRepository;
 	integrationChangeRepository: IntegrationChangeRepository;
 	knowledgeNodeRepository: KnowledgeNodeRepository;
+	logger: Logger;
 };
 
 type KnowledgeCandidate = {
@@ -63,6 +67,7 @@ type AnalysisContext = {
 	documents: PlacementTreeNode[];
 	onProgress: (progress: DocumentProcessingProgressDto) => Promise<void>;
 	progress: DocumentProcessingProgressDto;
+	skippedClassification: { count: number };
 };
 
 const UNSECTIONED_GROUP_PREFIX = "page-";
@@ -101,6 +106,8 @@ class IntegrationAnalyzer {
 
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
 
+	private logger: Logger;
+
 	public constructor({
 		analyze: analyzeItem = analyze,
 		database,
@@ -108,6 +115,7 @@ class IntegrationAnalyzer {
 		extractionItemRepository,
 		integrationChangeRepository,
 		knowledgeNodeRepository,
+		logger,
 	}: Constructor) {
 		this.analyze = analyzeItem;
 		this.database = database;
@@ -115,12 +123,19 @@ class IntegrationAnalyzer {
 		this.extractionItemRepository = extractionItemRepository;
 		this.integrationChangeRepository = integrationChangeRepository;
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
+		this.logger = logger;
 	}
 
 	private async analyzeItem(
 		item: ExtractionItemEntity,
 		priorPlacements: RecordedSectionPlacement[],
-		{ candidates, documents, onProgress, progress }: AnalysisContext,
+		{
+			candidates,
+			documents,
+			onProgress,
+			progress,
+			skippedClassification,
+		}: AnalysisContext,
 	): Promise<IntegrationChangeEntity> {
 		const { documentId, id, text, title } = item.toObject();
 		let result: Awaited<ReturnType<Analyze>>;
@@ -141,6 +156,10 @@ class IntegrationAnalyzer {
 
 		progress.processedUnits++;
 		await onProgress({ ...progress });
+
+		if (isAutoNewResult(result)) {
+			skippedClassification.count++;
+		}
 
 		const placed = toRecordedSectionPlacement({
 			extractionItemId: id,
@@ -186,11 +205,13 @@ class IntegrationAnalyzer {
 		documents,
 		items,
 		onProgress,
+		skippedClassification,
 	}: {
 		candidates: EmbeddingCandidate<KnowledgeCandidate>[];
 		documents: PlacementTreeNode[];
 		items: ExtractionItemEntity[];
 		onProgress: (progress: DocumentProcessingProgressDto) => Promise<void>;
+		skippedClassification: { count: number };
 	}): Promise<IntegrationChangeEntity[]> {
 		const context: AnalysisContext = {
 			candidates,
@@ -202,6 +223,7 @@ class IntegrationAnalyzer {
 				processedUnits: 0,
 				totalUnits: items.length,
 			},
+			skippedClassification,
 		};
 		const analyzedGroups = await mapWithConcurrency(
 			groupBySection(items),
@@ -311,11 +333,22 @@ class IntegrationAnalyzer {
 			await this.knowledgeNodeRepository.findAllByProjectId(projectId);
 		const candidates = await this.loadCandidates(nodes);
 		const documents = this.loadDocuments(nodes);
+		const skippedClassification = { count: 0 };
 		const changes = await this.analyzeItems({
 			candidates,
 			documents,
 			items: approvedItems,
 			onProgress,
+			skippedClassification,
+		});
+
+		this.logger.info("Document integration metrics.", {
+			documentId,
+			processingAttempt: attempt,
+			...toIntegrationMetrics({
+				skippedClassification: skippedClassification.count,
+				types: changes.map((change) => change.toObject().type),
+			}),
 		});
 
 		return await this.database.transaction(async (transaction) => {
