@@ -116,6 +116,7 @@ const KnowledgeTreePage: React.FC = () => {
 				].join(":");
 	const isSectionsLoading =
 		relatedKey !== null && relatedRequestKey !== relatedKey;
+	const documentId = documentView?.documentId;
 
 	useEffect(() => {
 		if (activePageId === undefined || !projectId) {
@@ -132,7 +133,7 @@ const KnowledgeTreePage: React.FC = () => {
 	}, [dispatch, activePageId, projectId, treeRevision]);
 
 	useEffect(() => {
-		if (!projectId || documentView == null || relatedKey == null) {
+		if (!projectId || documentId === undefined || relatedKey == null) {
 			return;
 		}
 
@@ -142,7 +143,7 @@ const KnowledgeTreePage: React.FC = () => {
 
 		void knowledgeApi
 			.getDocumentSections({
-				documentId: documentView.documentId,
+				documentId,
 				projectId,
 				signal: controller.signal,
 			})
@@ -174,7 +175,7 @@ const KnowledgeTreePage: React.FC = () => {
 			isCurrent = false;
 			controller.abort();
 		};
-	}, [documentView, projectId, relatedKey]);
+	}, [documentId, projectId, relatedKey]);
 
 	const handleSelectPage = useCallback(
 		(id: number) => {
