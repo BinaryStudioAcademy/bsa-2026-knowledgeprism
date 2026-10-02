@@ -165,8 +165,8 @@ const MergeScreen = ({
 					return {
 						...item,
 						currentValue: nextMatch?.content ?? item.currentValue,
-						matchIndex: nextIndex,
 						matchedNodeId: nextMatch?.nodeId ?? item.matchedNodeId,
+						matchIndex: nextIndex,
 					};
 				}),
 			);
