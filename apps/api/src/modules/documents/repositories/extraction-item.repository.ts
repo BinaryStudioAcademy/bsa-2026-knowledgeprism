@@ -5,6 +5,7 @@ import {
 } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
+import { DatabaseTableName } from "~/infrastructure/database/database.js";
 import { ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
 import { type ExtractionItemModel } from "~/modules/documents/models/extraction-item.model.js";
 
@@ -97,6 +98,58 @@ class ExtractionItemRepository {
 			.execute();
 
 		return item ? toEntity(item) : null;
+	}
+
+	public async findSourcesByKnowledgeNodeIds(
+		knowledgeNodeIds: number[],
+		transaction?: Transaction,
+	): Promise<Map<number, { documentName: string; pageNumber: number }>> {
+		if (knowledgeNodeIds.length === EMPTY_LENGTH) {
+			return new Map();
+		}
+
+		const rows = (await this.extractionItemModel
+			.query(transaction)
+			.select(
+				`${DatabaseTableName.EXTRACTION_ITEMS}.knowledge_node_id as knowledgeNodeId`,
+				`${DatabaseTableName.EXTRACTION_ITEMS}.source_page_number as sourcePageNumber`,
+				`${DatabaseTableName.DOCUMENTS}.name as documentName`,
+			)
+			.join(
+				DatabaseTableName.DOCUMENTS,
+				`${DatabaseTableName.DOCUMENTS}.id`,
+				`${DatabaseTableName.EXTRACTION_ITEMS}.document_id`,
+			)
+			.whereIn(
+				`${DatabaseTableName.EXTRACTION_ITEMS}.knowledge_node_id`,
+				knowledgeNodeIds,
+			)
+			.orderBy(
+				`${DatabaseTableName.EXTRACTION_ITEMS}.source_page_number`,
+				"asc",
+			)
+			.orderBy(`${DatabaseTableName.EXTRACTION_ITEMS}.id`, "asc")
+			.execute()) as unknown as {
+			documentName: string;
+			knowledgeNodeId: number;
+			sourcePageNumber: number;
+		}[];
+
+		const sourceByKnowledgeNodeId = new Map<
+			number,
+			{ documentName: string; pageNumber: number }
+		>();
+
+		for (const row of rows) {
+			if (!sourceByKnowledgeNodeId.has(row.knowledgeNodeId)) {
+				sourceByKnowledgeNodeId.set(row.knowledgeNodeId, {
+					documentName: row.documentName,
+					pageNumber: row.sourcePageNumber,
+				});
+			}
+		}
+
+		return sourceByKnowledgeNodeId;
 	}
 
 	public async insertManyPending(

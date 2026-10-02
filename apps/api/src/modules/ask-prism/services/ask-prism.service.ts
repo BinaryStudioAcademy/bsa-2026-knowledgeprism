@@ -1,7 +1,14 @@
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
-import { type AskPrismResponseDto } from "@knowledgeprism/types";
-import { embed, EmbeddingInputType, search } from "@knowledgeprism/worker";
+import { type AskPrismResponseDto, type ValueOf } from "@knowledgeprism/types";
+import {
+	embed,
+	EmbeddingInputType,
+	search,
+	type SemanticSearchParameters,
+	type SimilarityMatch,
+} from "@knowledgeprism/worker";
 
+import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
 import { type KnowledgeNodeEntity } from "~/modules/knowledge/models/knowledge-node.entity.js";
 import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/knowledge-node.repository.js";
 import {
@@ -14,9 +21,27 @@ import { RAG_FALLBACK_MESSAGE } from "../libs/constants/rag-fallback-message.con
 import { formatSuggestedQuestion } from "../libs/helpers/format-suggested-question.helper.js";
 import { invokeRagGeneration } from "../libs/helpers/invoke-rag-generation.helper.js";
 
+type AskPrismContextItem = {
+	content: string;
+	id: number;
+	indexedContent: string;
+	nodeId: number;
+	sectionTitle: string;
+	title: string;
+};
+
 type Constructor = {
+	embedder?: (
+		texts: string[],
+		inputType: ValueOf<typeof EmbeddingInputType>,
+	) => Promise<number[][]>;
+	extractionItemRepository?: ExtractionItemRepository | undefined;
 	knowledgeNodeRepository: KnowledgeNodeRepository;
 	projectService: ProjectService;
+	ragGenerator?: (question: string, contextChunks: string[]) => Promise<string>;
+	searcher?: (
+		parameters: SemanticSearchParameters<AskPrismContextItem>,
+	) => SimilarityMatch<AskPrismContextItem>[];
 };
 
 const EMPTY_LENGTH = 0;
@@ -26,12 +51,35 @@ const MAX_SUGGESTIONS = 3;
 const SCORE_THRESHOLD = 0.3;
 
 class AskPrismService {
+	private embedder: (
+		texts: string[],
+		inputType: ValueOf<typeof EmbeddingInputType>,
+	) => Promise<number[][]>;
+	private extractionItemRepository?: ExtractionItemRepository | undefined;
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
 	private projectService: ProjectService;
+	private ragGenerator: (
+		question: string,
+		contextChunks: string[],
+	) => Promise<string>;
+	private searcher: (
+		parameters: SemanticSearchParameters<AskPrismContextItem>,
+	) => SimilarityMatch<AskPrismContextItem>[];
 
-	public constructor({ knowledgeNodeRepository, projectService }: Constructor) {
+	public constructor({
+		embedder = embed,
+		extractionItemRepository,
+		knowledgeNodeRepository,
+		projectService,
+		ragGenerator = invokeRagGeneration,
+		searcher = search,
+	}: Constructor) {
+		this.embedder = embedder;
+		this.extractionItemRepository = extractionItemRepository;
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
 		this.projectService = projectService;
+		this.ragGenerator = ragGenerator;
+		this.searcher = searcher;
 	}
 
 	private extractTextFromBlocks(blocks: Record<string, unknown>[]): string {
@@ -73,6 +121,24 @@ class AskPrismService {
 		}
 
 		return textContent.length > EMPTY_LENGTH;
+	}
+
+	private resolveFallbackDocumentName(
+		parentNode: null | ReturnType<KnowledgeNodeEntity["toObject"]>,
+		currentNode: null | ReturnType<KnowledgeNodeEntity["toObject"]> | undefined,
+	): null | string {
+		if (parentNode?.type === KnowledgeNodeType.PAGE) {
+			return parentNode.title;
+		}
+
+		if (
+			currentNode?.type === KnowledgeNodeType.PAGE &&
+			FILE_EXTENSION_PATTERN.test(currentNode.title)
+		) {
+			return currentNode.title;
+		}
+
+		return null;
 	}
 
 	public async generateAnswer(
@@ -118,7 +184,7 @@ class AskPrismService {
 			};
 		}
 
-		const [queryVector] = await embed(
+		const [queryVector] = await this.embedder(
 			[question],
 			EmbeddingInputType.SEARCH_QUERY,
 		);
@@ -127,7 +193,7 @@ class AskPrismService {
 			throw new Error("Failed to generate embedding for the question");
 		}
 
-		const nodeVectors = await embed(
+		const nodeVectors = await this.embedder(
 			contexts.map((c) => c.indexedContent),
 			EmbeddingInputType.SEARCH_DOCUMENT,
 		);
@@ -145,7 +211,7 @@ class AskPrismService {
 			};
 		});
 
-		const matches = search({
+		const matches = this.searcher({
 			candidates,
 			queryVector,
 			topK: MAX_SIMILAR_NODES,
@@ -165,7 +231,7 @@ class AskPrismService {
 		const contextChunks = relevantMatches.map(
 			(match) => match.item.indexedContent,
 		);
-		const answer = await invokeRagGeneration(question, contextChunks);
+		const answer = await this.ragGenerator(question, contextChunks);
 
 		if (answer.trim() === RAG_FALLBACK_MESSAGE) {
 			return {
@@ -174,15 +240,43 @@ class AskPrismService {
 			};
 		}
 
+		const relevantNodeIds = relevantMatches.map((match) => match.item.nodeId);
+
+		const sourceByKnowledgeNodeId = this.extractionItemRepository
+			? await this.extractionItemRepository.findSourcesByKnowledgeNodeIds(
+					relevantNodeIds,
+				)
+			: new Map<number, { documentName: string; pageNumber: number }>();
+
+		const nodeById = new Map(
+			nodes.map((node) => [node.toObject().id, node.toObject()]),
+		);
+
 		return {
 			answer,
-			sources: relevantMatches.map((match) => ({
-				excerpt: match.item.content,
-				id: match.item.id,
-				nodeId: match.item.nodeId,
-				sectionTitle: match.item.sectionTitle,
-				title: match.item.title,
-			})),
+			sources: relevantMatches.map((match) => {
+				const nodeId = match.item.nodeId;
+				const sourceMetadata = sourceByKnowledgeNodeId.get(nodeId);
+				const currentNode = nodeById.get(nodeId);
+				const parentNode = currentNode?.parentId
+					? (nodeById.get(currentNode.parentId) ?? null)
+					: null;
+				const fallbackDocumentName = this.resolveFallbackDocumentName(
+					parentNode,
+					currentNode,
+				);
+
+				return {
+					documentName:
+						sourceMetadata?.documentName ?? fallbackDocumentName ?? null,
+					excerpt: match.item.content,
+					id: match.item.id,
+					nodeId: match.item.nodeId,
+					pageNumber: sourceMetadata?.pageNumber ?? null,
+					sectionTitle: match.item.sectionTitle,
+					title: match.item.title,
+				};
+			}),
 		};
 	}
 
@@ -209,4 +303,8 @@ class AskPrismService {
 	}
 }
 
-export { AskPrismService, MAX_SIMILAR_NODES };
+export {
+	type Constructor as AskPrismServiceOptions,
+	AskPrismService,
+	MAX_SIMILAR_NODES,
+};
