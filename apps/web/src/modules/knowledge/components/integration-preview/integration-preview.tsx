@@ -1280,6 +1280,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					pageIndex,
 					pages: previousPages,
 					partialSection: {
+						placementParentExtractionItemId: null,
 						placementParentId: target?.id ?? null,
 						proposedPlace: target
 							? `${UNDER_PLACE_PREFIX}${target.title}`
