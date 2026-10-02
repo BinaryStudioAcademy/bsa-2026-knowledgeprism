@@ -13,6 +13,7 @@ import { DEFAULT_SUGGESTED_QUESTIONS } from "../libs/constants/default-suggested
 import { RAG_FALLBACK_MESSAGE } from "../libs/constants/rag-fallback-message.constant.js";
 import { formatSuggestedQuestion } from "../libs/helpers/format-suggested-question.helper.js";
 import { invokeRagGeneration } from "../libs/helpers/invoke-rag-generation.helper.js";
+import { splitIntoPassages } from "../libs/helpers/split-into-passages.helper.js";
 
 type Constructor = {
 	knowledgeNodeRepository: KnowledgeNodeRepository;
@@ -127,33 +128,43 @@ class AskPrismService {
 			throw new Error("Failed to generate embedding for the question");
 		}
 
-		const nodeVectors = await embed(
-			contexts.map((c) => c.indexedContent),
+		const passages = contexts.flatMap((contextItem) =>
+			splitIntoPassages(contextItem.title, contextItem.content).map((text) => ({
+				item: contextItem,
+				text,
+			})),
+		);
+		const passageVectors = await embed(
+			passages.map(({ text }) => text),
 			EmbeddingInputType.SEARCH_DOCUMENT,
 		);
 
-		const candidates = contexts.map((contextItem, index) => {
-			const vector = nodeVectors[index];
+		const candidates = passages.map(({ item }, index) => {
+			const vector = passageVectors[index];
 
 			if (!vector) {
 				throw new Error("Missing vector for context item");
 			}
 
-			return {
-				item: contextItem,
-				vector,
-			};
+			return { item, vector };
 		});
 
-		const matches = search({
+		const matchedNodeIds = new Set<number>();
+		const relevantMatches = search({
 			candidates,
 			queryVector,
-			topK: MAX_SIMILAR_NODES,
-		});
+			topK: candidates.length,
+		})
+			.filter(({ item, score }) => {
+				if (score < SCORE_THRESHOLD || matchedNodeIds.has(item.nodeId)) {
+					return false;
+				}
 
-		const relevantMatches = matches.filter(
-			(match) => match.score >= SCORE_THRESHOLD,
-		);
+				matchedNodeIds.add(item.nodeId);
+
+				return true;
+			})
+			.slice(EMPTY_LENGTH, MAX_SIMILAR_NODES);
 
 		if (relevantMatches.length === EMPTY_LENGTH) {
 			return {
