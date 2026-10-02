@@ -25,6 +25,7 @@ import {
 
 import { type Database } from "~/infrastructure/database/database.js";
 import { createOrderedProgressReporter } from "~/modules/documents/libs/helpers/create-ordered-progress-reporter.helper.js";
+import { groupBySection } from "~/modules/documents/libs/helpers/group-by-section.helper.js";
 import { toResolvableChanges } from "~/modules/documents/libs/helpers/to-resolvable-changes.helper.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
@@ -63,29 +64,6 @@ type AnalysisContext = {
 	documents: PlacementTreeNode[];
 	onProgress: (progress: DocumentProcessingProgressDto) => Promise<void>;
 	progress: DocumentProcessingProgressDto;
-};
-
-const UNSECTIONED_GROUP_PREFIX = "page-";
-
-const toSectionGroupKey = (item: ExtractionItemEntity): string => {
-	const { extractionSectionId, sourcePageNumber } = item.toObject();
-
-	return extractionSectionId === null
-		? `${UNSECTIONED_GROUP_PREFIX}${String(sourcePageNumber)}`
-		: String(extractionSectionId);
-};
-
-const groupBySection = (
-	items: ExtractionItemEntity[],
-): ExtractionItemEntity[][] => {
-	const groups = new Map<string, ExtractionItemEntity[]>();
-
-	for (const item of items) {
-		const key = toSectionGroupKey(item);
-		groups.set(key, [...(groups.get(key) ?? []), item]);
-	}
-
-	return groups.values().toArray();
 };
 
 class IntegrationAnalyzer {
