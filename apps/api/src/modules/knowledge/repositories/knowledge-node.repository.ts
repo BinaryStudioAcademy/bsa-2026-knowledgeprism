@@ -131,6 +131,35 @@ class KnowledgeNodeRepository {
 		});
 	}
 
+	public async findEntriesByParentId({
+		parentId,
+		projectId,
+	}: {
+		parentId: number;
+		projectId: number;
+	}): Promise<KnowledgeNodeEntity[]> {
+		const nodes = await this.knowledgeNodeModel
+			.query()
+			.where({ parentId, projectId, type: KnowledgeNodeType.ENTRY })
+			.orderBy("position", "asc")
+			.orderBy("id", "asc")
+			.execute();
+
+		return nodes.map((node) =>
+			KnowledgeNodeEntity.initialize({
+				contentJson: node.contentJson,
+				createdAt: node.createdAt,
+				id: node.id,
+				parentId: node.parentId,
+				position: node.position,
+				projectId: node.projectId,
+				title: node.title,
+				type: node.type,
+				updatedAt: node.updatedAt,
+			}),
+		);
+	}
+
 	public async findNextRootPosition(
 		projectId: number,
 		transaction: Transaction,
