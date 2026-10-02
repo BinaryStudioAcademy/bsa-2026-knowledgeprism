@@ -16,9 +16,11 @@ import {
 import { type Transaction } from "objection";
 
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
+import { type Logger } from "~/infrastructure/logger/logger.js";
 import { NodeMergeMethod } from "~/modules/documents/libs/constants/node-merge-method.constant.js";
 import { getIncomingFields } from "~/modules/documents/libs/helpers/get-incoming-fields.helper.js";
 import { toKnowledgeContentJson } from "~/modules/documents/libs/helpers/to-knowledge-content-json.helper.js";
+import { toMergeOutcomes } from "~/modules/documents/libs/helpers/to-merge-outcomes.helper.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type IntegrationChangeEntity } from "~/modules/documents/models/integration-change.entity.js";
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
@@ -68,6 +70,7 @@ const createInvalidPlacementError = (): HTTPError =>
 type Constructor = {
 	extractionItemRepository: ExtractionItemRepository;
 	knowledgeNodeRepository: KnowledgeNodeRepository;
+	logger: Logger;
 };
 
 const EMPTY_LENGTH = 0;
@@ -156,12 +159,16 @@ class IntegrationApplier {
 
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
 
+	private logger: Logger;
+
 	public constructor({
 		extractionItemRepository,
 		knowledgeNodeRepository,
+		logger,
 	}: Constructor) {
 		this.extractionItemRepository = extractionItemRepository;
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
+		this.logger = logger;
 	}
 
 	private async applyToMatchedNode(
@@ -529,6 +536,11 @@ class IntegrationApplier {
 				newChanges.push(change);
 			}
 		}
+
+		this.logger.info("Node merge outcomes.", {
+			documentId,
+			...toMergeOutcomes(changes, resolutionByChangeId),
+		});
 
 		await this.createEntries(
 			{

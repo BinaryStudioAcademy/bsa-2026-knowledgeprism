@@ -18,6 +18,7 @@ import { describe, it } from "node:test";
 import { type Transaction } from "objection";
 
 import { HTTPError } from "~/infrastructure/http/http.js";
+import { type Logger } from "~/infrastructure/logger/logger.js";
 import { KnowledgeNodeEntity } from "~/modules/knowledge/models/knowledge-node.entity.js";
 import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/knowledge-node.repository.js";
 
@@ -159,14 +160,26 @@ const DOCUMENT = DocumentEntity.initialize({
 	uploadedBy: USER_ID,
 });
 
+const ignoreLog = (): void => {};
+
 const createSetup = (): {
 	applier: IntegrationApplier;
 	created: CreatedNode[];
+	loggedOutcomes: Record<string, unknown>[];
 	updatedContents: KnowledgeNodeContentDto[];
 	updatedIds: number[];
 	updatedTitles: string[];
 } => {
 	const created: CreatedNode[] = [];
+	const loggedOutcomes: Record<string, unknown>[] = [];
+	const logger: Logger = {
+		debug: ignoreLog,
+		error: ignoreLog,
+		info: (_message: string, parameters: Record<string, unknown> = {}) => {
+			loggedOutcomes.push(parameters);
+		},
+		warn: ignoreLog,
+	};
 	const updatedContents: KnowledgeNodeContentDto[] = [];
 	const updatedIds: number[] = [];
 	const updatedTitles: string[] = [];
@@ -222,8 +235,10 @@ const createSetup = (): {
 		applier: new IntegrationApplier({
 			extractionItemRepository,
 			knowledgeNodeRepository,
+			logger,
 		}),
 		created,
+		loggedOutcomes,
 		updatedContents,
 		updatedIds,
 		updatedTitles,
@@ -428,7 +443,7 @@ void describe("IntegrationApplier placements", () => {
 	});
 
 	void it("writes the Sonnet merge for an update", async () => {
-		const { applier, updatedContents } = createSetup();
+		const { applier, loggedOutcomes, updatedContents } = createSetup();
 
 		await applyToEntry(
 			applier,
@@ -451,6 +466,15 @@ void describe("IntegrationApplier placements", () => {
 					type: "paragraph",
 				},
 			],
+		]);
+		assert.deepEqual(loggedOutcomes, [
+			{
+				accepted: 1,
+				declined: 0,
+				documentId: DOCUMENT_ID,
+				edited: 0,
+				fallback: 0,
+			},
 		]);
 	});
 

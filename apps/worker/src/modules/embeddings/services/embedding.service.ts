@@ -88,6 +88,7 @@ const search = <T>(
 const embedChunked = async <T>(
 	entries: { entry: EmbeddingEntry; item: T }[],
 	inputType: EmbeddingInputTypeValue,
+	options: { isLimited?: boolean } = {},
 ): Promise<EmbeddingCandidate<T>[]> => {
 	const chunks = entries.flatMap(({ entry, item }) =>
 		splitForEmbedding(entry).map((text) => ({ item, text })),
@@ -95,6 +96,7 @@ const embedChunked = async <T>(
 	const vectors = await embed(
 		chunks.map(({ text }) => text),
 		inputType,
+		options,
 	);
 
 	return chunks.flatMap(({ item }, index) => {

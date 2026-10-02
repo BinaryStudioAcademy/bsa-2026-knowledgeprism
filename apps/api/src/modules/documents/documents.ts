@@ -65,6 +65,7 @@ const integrationAnalyzer = new IntegrationAnalyzer({
 const integrationApplier = new IntegrationApplier({
 	extractionItemRepository,
 	knowledgeNodeRepository,
+	logger,
 });
 const documentJobScheduler = new DocumentJobScheduler({
 	documentProcessor,
