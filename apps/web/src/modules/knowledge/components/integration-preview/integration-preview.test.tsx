@@ -43,6 +43,7 @@ vi.mock("./libs/hooks/use-glossary-consistency-check.hook.js", () => ({
 }));
 
 const TEST_PROJECT_ID = "project-a";
+const INTEGRATION_CHANGE_ID = 42;
 
 const renderPreview = (ui: ReactElement): ReturnType<typeof render> =>
 	render(
@@ -80,6 +81,27 @@ const createExtractionItem = (): ExtractionItemResponseDto => ({
 	text: "Approved knowledge remains linked to its source.",
 	title: "Source traceability",
 });
+
+const createPlacementStructure = (
+	item: ExtractionItemResponseDto,
+): ProposedSection[] => [
+	{
+		id: "proposed-changes-section",
+		pages: [
+			{
+				content: item.text,
+				id: String(item.id),
+				integrationChangeId: INTEGRATION_CHANGE_ID,
+				status: "created",
+				title: item.title,
+				type: KnowledgeNodeType.ENTRY,
+			},
+		],
+		status: "created",
+		title: "Proposed changes",
+		type: KnowledgeNodeType.SECTION,
+	},
+];
 
 const createDeferred = (): PromiseWithResolvers<boolean> =>
 	Promise.withResolvers<boolean>();
@@ -878,6 +900,78 @@ describe("IntegrationPreview extraction review", () => {
 			expect(approve).toHaveBeenCalledWith(
 				expect.objectContaining({
 					resolutions: [{ changeId: 9, content: "use-new", title: "keep" }],
+				}),
+			);
+		});
+	});
+
+	it("sends integration change ids when the placement is loaded before opening", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const item = createExtractionItem();
+		const placementStructure = createPlacementStructure(item);
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={approve}
+				onClose={vi.fn()}
+				placementStructure={placementStructure}
+				proposedStructure={mapExtractionItemsToProposedStructure([item])}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					contentOverrides: [
+						{
+							changeId: INTEGRATION_CHANGE_ID,
+							content: item.text,
+							title: item.title,
+						},
+					],
+				}),
+			);
+		});
+	});
+
+	it("keeps integration change ids after cancelling an edit started before the placement loaded", async () => {
+		const approve = vi.fn().mockResolvedValue(false);
+		const item = createExtractionItem();
+		const proposedStructure = mapExtractionItemsToProposedStructure([item]);
+		const renderWithPlacement = (
+			placementStructure?: ProposedSection[],
+		): ReactElement => (
+			<Provider store={store.instance}>
+				<MemoryRouter>
+					<IntegrationPreview
+						onAddMore={vi.fn()}
+						onApprove={approve}
+						onClose={vi.fn()}
+						{...(placementStructure && { placementStructure })}
+						proposedStructure={proposedStructure}
+					/>
+				</MemoryRouter>
+			</Provider>
+		);
+		const { rerender } = render(renderWithPlacement());
+
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		rerender(renderWithPlacement(createPlacementStructure(item)));
+		fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
+
+		await waitFor(() => {
+			expect(approve).toHaveBeenCalledWith(
+				expect.objectContaining({
+					contentOverrides: [
+						{
+							changeId: INTEGRATION_CHANGE_ID,
+							content: item.text,
+							title: item.title,
+						},
+					],
 				}),
 			);
 		});

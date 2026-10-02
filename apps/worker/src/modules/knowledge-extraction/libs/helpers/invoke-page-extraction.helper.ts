@@ -2,7 +2,7 @@ import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { BedrockRequest, ClaudeModelId } from "@knowledgeprism/constants";
 
 import { ExtractionBedrockConfig } from "~/bedrock/bedrock-request.constant.js";
-import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
+import { sendBedrockRequest } from "~/bedrock/send-bedrock-request.helper.js";
 import { toResponseText } from "~/bedrock/to-response-text.helper.js";
 
 import { EXTRACTION_OUTPUT_SCHEMA } from "../constants/extraction-output-schema.constant.js";
@@ -29,7 +29,7 @@ const invokePageExtraction = async (
 		temperature: ExtractionBedrockConfig.TEMPERATURE,
 	});
 
-	const response = await bedrockRuntimeClient.send(
+	const response = await sendBedrockRequest(
 		new InvokeModelCommand({
 			accept: "application/json",
 			body,
