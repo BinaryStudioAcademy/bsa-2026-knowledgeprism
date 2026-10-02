@@ -10,6 +10,8 @@ const ENV_FILE_PATH = path.join(
 	"../../.env",
 );
 
+const MINIMUM_POSITIVE_INTEGER = 1;
+
 const readRequiredEnvironmentVariable = (name: string): string => {
 	const value = process.env[name];
 
@@ -23,7 +25,7 @@ const readRequiredEnvironmentVariable = (name: string): string => {
 const readRequiredNumberEnvironmentVariable = (name: string): number => {
 	const value = Number(readRequiredEnvironmentVariable(name));
 
-	if (!Number.isSafeInteger(value) || value <= Number.EPSILON) {
+	if (!Number.isSafeInteger(value) || value < MINIMUM_POSITIVE_INTEGER) {
 		throw new Error(`${name} must be a positive integer`);
 	}
 
