@@ -110,7 +110,7 @@ const BackToProjectsControl = ({
 	isExpanded: boolean;
 }): React.JSX.Element => {
 	const className = getValidClassNames(
-		"inline-flex items-center rounded-md font-medium text-text-faint transition-colors hover:bg-secondary hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none",
+		"inline-flex items-center rounded-md font-medium text-text-faint transition-colors hover:bg-secondary hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none no-underline",
 		isExpanded ? "w-fit gap-1.5 px-2.5 py-1.5 text-xs" : RAIL_NAV_ITEM_CLASS,
 	);
 

@@ -33,6 +33,7 @@ type MoveOption = {
 };
 
 type Properties = {
+	isFocused: boolean;
 	isPending: boolean;
 	item: KnowledgeTreeItemResponseDto;
 	items: KnowledgeTreeItemResponseDto[];
@@ -213,6 +214,7 @@ const RenameForm: React.FC<RenameFormProperties> = ({
 };
 
 const KnowledgeTreeRowActions: React.FC<Properties> = ({
+	isFocused,
 	isPending,
 	item,
 	items,
@@ -381,7 +383,11 @@ const KnowledgeTreeRowActions: React.FC<Properties> = ({
 
 	return (
 		<>
-			<KnowledgeTreeRowMenu items={menuItems} title={item.title} />
+			<KnowledgeTreeRowMenu
+				isFocused={isFocused}
+				items={menuItems}
+				title={item.title}
+			/>
 			{isRenaming && (
 				<Modal isOpen onClose={closeRename} title="Rename">
 					<RenameForm

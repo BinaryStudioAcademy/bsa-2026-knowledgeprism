@@ -54,8 +54,12 @@ type Properties = {
 };
 
 const treeItemVariants = tv({
-	base: "flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-[7px] px-2.5 py-2 text-left text-sm transition-colors",
+	base: "flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-[7px] pl-2.5 py-2 text-left text-sm transition-colors",
 	variants: {
+		hasActions: {
+			false: "pr-2.5",
+			true: "pr-2.5 group-hover:pr-8 group-focus-within:pr-8",
+		},
 		isSelected: {
 			false: "text-text-muted hover:bg-secondary",
 			true: "bg-secondary font-medium text-text",
@@ -143,6 +147,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 	const rowActions =
 		onCreateDocument && onMoveDocument && canStructure ? (
 			<KnowledgeTreeRowActions
+				isFocused={isFocused}
 				isPending={isStructurePending}
 				item={item}
 				items={treeItems}
@@ -224,6 +229,7 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 						aria-label={expandLabel}
 						className="flex size-6 shrink-0 items-center justify-center rounded text-text-muted hover:bg-secondary"
 						onClick={handleExpand}
+						tabIndex={TAB_INDEX_UNFOCUSABLE}
 						type="button"
 					>
 						<span
@@ -246,7 +252,10 @@ const KnowledgeTreeItem: React.FC<Properties> = ({
 						hasChildren && isExpanded ? `group-${String(item.id)}` : undefined
 					}
 					aria-selected={isSelected}
-					className={treeItemVariants({ isSelected })}
+					className={treeItemVariants({
+						hasActions: Boolean(rowActions),
+						isSelected,
+					})}
 					data-id={item.id}
 					onClick={handleSelect}
 					onKeyDown={handleKeyDown}
