@@ -11,6 +11,8 @@ import {
 	type DocumentPlacementDto,
 	type DocumentProcessingProgressDto,
 	type ExtractionContentBlock,
+	type KnowledgeNodeContentDto,
+	type ValueOf,
 } from "@knowledgeprism/types";
 import {
 	analyze,
@@ -19,6 +21,7 @@ import {
 	type EmbeddingEntry,
 	EmbeddingInputType,
 	isAutoNewResult,
+	mergeNodeBlocks,
 	type PlacementTreeNode,
 	type RecordedSectionPlacement,
 	toEmbeddingEntry,
@@ -27,8 +30,11 @@ import {
 
 import { type Database } from "~/infrastructure/database/database.js";
 import { type Logger } from "~/infrastructure/logger/logger.js";
+import { NodeMergeMethod } from "~/modules/documents/libs/constants/node-merge-method.constant.js";
 import { createOrderedProgressReporter } from "~/modules/documents/libs/helpers/create-ordered-progress-reporter.helper.js";
+import { toExtractionBlocks } from "~/modules/documents/libs/helpers/to-extraction-blocks.helper.js";
 import { toIntegrationMetrics } from "~/modules/documents/libs/helpers/to-integration-metrics.helper.js";
+import { toKnowledgeContentJson } from "~/modules/documents/libs/helpers/to-knowledge-content-json.helper.js";
 import { toResolvableChanges } from "~/modules/documents/libs/helpers/to-resolvable-changes.helper.js";
 import { type ProcessingAttempt } from "~/modules/documents/libs/types/processing-attempt.type.js";
 import { type ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
@@ -48,8 +54,10 @@ type Constructor = {
 	embedChunked?: EmbedChunked;
 	extractionItemRepository: ExtractionItemRepository;
 	integrationChangeRepository: IntegrationChangeRepository;
+	isNodeMergeEnabled?: boolean;
 	knowledgeNodeRepository: KnowledgeNodeRepository;
 	logger: Logger;
+	mergeNodeBlocks?: MergeNodeBlocks;
 };
 
 type EmbedChunked = typeof embedChunked<KnowledgeCandidate>;
@@ -61,8 +69,20 @@ type KnowledgeCandidate = {
 	title: string;
 };
 
+type MergeNodeBlocks = typeof mergeNodeBlocks;
+
+type NodeMerge = {
+	mergedBlocks: ExtractionContentBlock[] | null;
+	mergeMethod: null | ValueOf<typeof NodeMergeMethod>;
+};
+
 const ANALYSIS_TEXT_SEPARATOR = "\n";
 const EMPTY_BLOCK_COUNT = 0;
+const MERGED_CHANGE_TYPES = new Set<string>([
+	IntegrationChangeType.CONFLICT,
+	IntegrationChangeType.UPDATE,
+]);
+const NO_NODE_MERGE: NodeMerge = { mergedBlocks: null, mergeMethod: null };
 const EARLIER_SECTION_EXPLANATION =
 	"It overlaps an earlier section of this document, so both are kept.";
 
@@ -72,6 +92,7 @@ const toAnalysisText = (title: string, content: string): string =>
 type AnalysisContext = {
 	candidates: EmbeddingCandidate<KnowledgeCandidate>[];
 	documents: PlacementTreeNode[];
+	nodeContentById: Map<number, KnowledgeNodeContentDto>;
 	onProgress: (progress: DocumentProcessingProgressDto) => Promise<void>;
 	progress: DocumentProcessingProgressDto;
 	skippedClassification: { count: number };
@@ -122,9 +143,13 @@ class IntegrationAnalyzer {
 
 	private integrationChangeRepository: IntegrationChangeRepository;
 
+	private isNodeMergeEnabled: boolean;
+
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
 
 	private logger: Logger;
+
+	private mergeNodeBlocks: MergeNodeBlocks;
 
 	public constructor({
 		analyze: analyzeItem = analyze,
@@ -133,8 +158,10 @@ class IntegrationAnalyzer {
 		embedChunked: embedChunkedEntries = embedChunked,
 		extractionItemRepository,
 		integrationChangeRepository,
+		isNodeMergeEnabled = false,
 		knowledgeNodeRepository,
 		logger,
+		mergeNodeBlocks: mergeBlocks = mergeNodeBlocks,
 	}: Constructor) {
 		this.analyze = analyzeItem;
 		this.database = database;
@@ -142,8 +169,10 @@ class IntegrationAnalyzer {
 		this.documentRepository = documentRepository;
 		this.extractionItemRepository = extractionItemRepository;
 		this.integrationChangeRepository = integrationChangeRepository;
+		this.isNodeMergeEnabled = isNodeMergeEnabled;
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
 		this.logger = logger;
+		this.mergeNodeBlocks = mergeBlocks;
 	}
 
 	private async analyzeItem(
@@ -158,12 +187,13 @@ class IntegrationAnalyzer {
 		{
 			candidates,
 			documents,
+			nodeContentById,
 			onProgress,
 			progress,
 			skippedClassification,
 		}: AnalysisContext,
 	): Promise<IntegrationChangeEntity> {
-		const { documentId, id, text, title } = item.toObject();
+		const { blocks, documentId, id, text, title } = item.toObject();
 		let result: Awaited<ReturnType<Analyze>>;
 
 		try {
@@ -224,7 +254,18 @@ class IntegrationAnalyzer {
 			siblingOrder: placed.siblingOrder,
 		};
 
+		const nodeMerge = await this.mergeIntoNode({
+			blocks: blocks ?? [],
+			extractionItemId: id,
+			matchedItem: resolved.matchedItem,
+			nodeContentById,
+			text,
+			title,
+			type: resolved.type,
+		});
+
 		return IntegrationChangeEntity.initializeNew({
+			...nodeMerge,
 			documentId,
 			duplicateOfExtractionItemId:
 				resolved.type === IntegrationChangeType.DUPLICATE
@@ -247,18 +288,21 @@ class IntegrationAnalyzer {
 		candidates,
 		documents,
 		items,
+		nodeContentById,
 		onProgress,
 		skippedClassification,
 	}: {
 		candidates: EmbeddingCandidate<KnowledgeCandidate>[];
 		documents: PlacementTreeNode[];
 		items: ExtractionItemEntity[];
+		nodeContentById: Map<number, KnowledgeNodeContentDto>;
 		onProgress: (progress: DocumentProcessingProgressDto) => Promise<void>;
 		skippedClassification: { count: number };
 	}): Promise<IntegrationChangeEntity[]> {
 		const context: AnalysisContext = {
 			candidates,
 			documents,
+			nodeContentById,
 			onProgress,
 			progress: {
 				failedUnits: 0,
@@ -335,6 +379,61 @@ class IntegrationAnalyzer {
 			}));
 	}
 
+	private async mergeIntoNode({
+		blocks,
+		extractionItemId,
+		matchedItem,
+		nodeContentById,
+		text,
+		title,
+		type,
+	}: {
+		blocks: ExtractionContentBlock[];
+		extractionItemId: number;
+		matchedItem: KnowledgeCandidate | null;
+		nodeContentById: Map<number, KnowledgeNodeContentDto>;
+		text: string;
+		title: string;
+		type: string;
+	}): Promise<NodeMerge> {
+		const matchedNodeId = matchedItem?.id ?? null;
+
+		if (
+			matchedItem === null ||
+			matchedNodeId === null ||
+			!this.isNodeMergeEnabled ||
+			!MERGED_CHANGE_TYPES.has(type)
+		) {
+			return NO_NODE_MERGE;
+		}
+
+		const nodeContent = nodeContentById.get(matchedNodeId);
+		const existingBlocks = nodeContent ? toExtractionBlocks(nodeContent) : null;
+		const incomingBlocks = toExtractionBlocks(
+			toKnowledgeContentJson({ blocks, fallbackText: text, title }),
+		);
+		const { blocks: mergedBlocks, coverage } =
+			existingBlocks && incomingBlocks
+				? await this.mergeNodeBlocks({
+						existingBlocks,
+						incomingBlocks,
+						title: matchedItem.title,
+					})
+				: { blocks: null, coverage: null };
+		const mergeMethod = mergedBlocks
+			? NodeMergeMethod.LLM
+			: NodeMergeMethod.FALLBACK;
+
+		this.logger.info("Node merge.", {
+			coverage,
+			extractionItemId,
+			matchedNodeId,
+			mergeMethod,
+		});
+
+		return { mergedBlocks, mergeMethod };
+	}
+
 	public async process({
 		attempt,
 		documentId,
@@ -382,6 +481,13 @@ class IntegrationAnalyzer {
 			candidates,
 			documents,
 			items: approvedItems,
+			nodeContentById: new Map(
+				nodes.map((node) => {
+					const { contentJson, id } = node.toObject();
+
+					return [id, contentJson] as const;
+				}),
+			),
 			onProgress,
 			skippedClassification,
 		});

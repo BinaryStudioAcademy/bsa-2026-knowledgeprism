@@ -97,6 +97,14 @@ class BaseConfig implements Config {
 					format: Number,
 				},
 			},
+			FEATURE: {
+				NODE_MERGE_LLM: {
+					default: false,
+					doc: "Merge integration changes into knowledge nodes with Sonnet",
+					env: "NODE_MERGE_LLM",
+					format: Boolean,
+				},
+			},
 			SESSION: {
 				SECRET: {
 					default: null,

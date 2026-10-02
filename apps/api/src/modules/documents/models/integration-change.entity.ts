@@ -1,6 +1,11 @@
 import { type IntegrationChangeType } from "@knowledgeprism/constants";
-import { type DocumentPlacementDto, type ValueOf } from "@knowledgeprism/types";
+import {
+	type DocumentPlacementDto,
+	type ExtractionContentBlock,
+	type ValueOf,
+} from "@knowledgeprism/types";
 
+import { type NodeMergeMethod } from "~/modules/documents/libs/constants/node-merge-method.constant.js";
 import { toDocumentPlacement } from "~/modules/documents/libs/helpers/to-document-placement.helper.js";
 import { type Entity } from "~/shared/types/types.js";
 
@@ -15,6 +20,8 @@ type IntegrationChangeObject = {
 	liveContent: null | string;
 	liveTitle: null | string;
 	matchedNodeId: null | number;
+	mergedBlocks?: ExtractionContentBlock[] | null;
+	mergeMethod?: null | ValueOf<typeof NodeMergeMethod>;
 	placement: DocumentPlacementDto;
 	score: null | number;
 	type: ValueOf<typeof IntegrationChangeType>;
@@ -43,6 +50,10 @@ class IntegrationChangeEntity implements Entity {
 
 	private matchedNodeId: null | number;
 
+	private mergedBlocks: ExtractionContentBlock[] | null;
+
+	private mergeMethod: null | ValueOf<typeof NodeMergeMethod>;
+
 	private placement: DocumentPlacementDto;
 
 	private score: null | number;
@@ -60,6 +71,8 @@ class IntegrationChangeEntity implements Entity {
 		liveContent,
 		liveTitle,
 		matchedNodeId,
+		mergedBlocks = null,
+		mergeMethod = null,
 		placement,
 		score,
 		type,
@@ -74,6 +87,8 @@ class IntegrationChangeEntity implements Entity {
 		this.liveContent = liveContent;
 		this.liveTitle = liveTitle;
 		this.matchedNodeId = matchedNodeId;
+		this.mergedBlocks = mergedBlocks;
+		this.mergeMethod = mergeMethod;
 		this.placement = toDocumentPlacement(placement);
 		this.score = score;
 		this.type = type;
@@ -102,6 +117,8 @@ class IntegrationChangeEntity implements Entity {
 			liveContent: this.liveContent,
 			liveTitle: this.liveTitle,
 			matchedNodeId: this.matchedNodeId,
+			mergedBlocks: this.mergedBlocks,
+			mergeMethod: this.mergeMethod,
 			placement: this.placement,
 			score: this.score,
 			type: this.type,

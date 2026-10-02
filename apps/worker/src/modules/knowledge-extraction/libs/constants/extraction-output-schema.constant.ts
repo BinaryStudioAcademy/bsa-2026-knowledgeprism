@@ -81,4 +81,4 @@ const EXTRACTION_OUTPUT_SCHEMA = {
 	type: "object",
 } as const;
 
-export { EXTRACTION_OUTPUT_SCHEMA };
+export { BLOCK_SCHEMA, EXTRACTION_OUTPUT_SCHEMA };

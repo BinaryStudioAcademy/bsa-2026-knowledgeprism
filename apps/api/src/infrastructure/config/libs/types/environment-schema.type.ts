@@ -17,6 +17,9 @@ type EnvironmentSchema = {
 		POOL_MAX: number;
 		POOL_MIN: number;
 	};
+	FEATURE: {
+		NODE_MERGE_LLM: boolean;
+	};
 	SESSION: {
 		SECRET: string;
 	};
