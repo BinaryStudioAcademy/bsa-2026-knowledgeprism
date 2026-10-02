@@ -125,8 +125,7 @@ const withDroppedDuplicateParents = (
 				const { duplicateOfExtractionItemId, extractionItemId } =
 					change.toObject();
 
-				return duplicateOfExtractionItemId === null ||
-					duplicateOfExtractionItemId === undefined
+				return duplicateOfExtractionItemId == null
 					? []
 					: [[extractionItemId, duplicateOfExtractionItemId] as const];
 			}),
@@ -147,10 +146,7 @@ const withDroppedDuplicateParents = (
 const isEarlierSectionDuplicate = (
 	duplicateOfExtractionItemId: null | number | undefined,
 ): boolean => {
-	return (
-		duplicateOfExtractionItemId !== null &&
-		duplicateOfExtractionItemId !== undefined
-	);
+	return duplicateOfExtractionItemId != null;
 };
 
 const isIncomingKept = (
