@@ -137,20 +137,16 @@ const KnowledgeTreePage: React.FC = () => {
 		}
 
 		const requestKey = relatedKey;
-		const entryIds = [documentView.documentId, ...documentView.sectionIds];
 		const controller = new AbortController();
 		let isCurrent = true;
 
-		void Promise.all(
-			entryIds.map((entryId) => {
-				return knowledgeApi.getKnowledgeEntry({
-					entryId,
-					projectId,
-					signal: controller.signal,
-				});
-			}),
-		)
-			.then((loaded) => {
+		void knowledgeApi
+			.getDocumentSections({
+				documentId: documentView.documentId,
+				projectId,
+				signal: controller.signal,
+			})
+			.then(({ items }) => {
 				if (!isCurrent) {
 					return;
 				}
@@ -158,7 +154,7 @@ const KnowledgeTreePage: React.FC = () => {
 				setRelatedEntries((current) => {
 					const next = { ...current };
 
-					for (const entry of loaded) {
+					for (const entry of items) {
 						next[entry.id] = entry;
 					}
 

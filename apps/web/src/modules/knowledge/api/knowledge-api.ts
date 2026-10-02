@@ -2,6 +2,7 @@ import { APIPath, KnowledgeApiPath } from "@knowledgeprism/constants";
 import {
 	type KnowledgeDocumentCreateRequestDto,
 	type KnowledgeDocumentMoveRequestDto,
+	type KnowledgeDocumentSectionsResponseDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeSearchResponseDto,
@@ -48,6 +49,31 @@ class KnowledgeApi extends BaseHTTPApi {
 		);
 
 		return await response.json<KnowledgeEntryResponseDto>();
+	}
+
+	public async getDocumentSections({
+		documentId,
+		projectId,
+		signal,
+	}: {
+		documentId: number;
+		projectId: string;
+		signal?: AbortSignal | undefined;
+	}): Promise<KnowledgeDocumentSectionsResponseDto> {
+		const response = await this.load(
+			this.getFullEndpoint(KnowledgeApiPath.ENTRY_$ID_SECTIONS, {
+				id: String(documentId),
+				projectId,
+			}),
+			{
+				contentType: ContentType.JSON,
+				hasAuth: true,
+				method: "GET",
+				signal,
+			},
+		);
+
+		return await response.json<KnowledgeDocumentSectionsResponseDto>();
 	}
 
 	public async getKnowledgeEntry({
