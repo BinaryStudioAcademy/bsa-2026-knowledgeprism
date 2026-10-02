@@ -325,7 +325,7 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 					</div>
 
 					{canStructure && onCreateDocument && (
-						<div className="shrink-0 px-3 pb-4 pt-3 border-t border-border bg-surface">
+						<div className="shrink-0 px-3.5 pb-5 pt-3 bg-surface">
 							<KnowledgeTreeDocumentForm
 								isPending={isStructurePending}
 								onSubmit={handleCreateRootDocument}

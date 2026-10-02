@@ -42,16 +42,15 @@ const KnowledgeTreeDocumentForm: React.FC<Properties> = ({
 	);
 
 	return (
-		<form className="flex flex-col gap-2" onSubmit={handleSubmit}>
-			<label className="text-xs font-medium text-text-muted" htmlFor={titleId}>
-				Document title
-			</label>
+		<form className="flex flex-col gap-2.5" onSubmit={handleSubmit}>
 			<input
-				className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm text-text outline-none focus:border-accent"
+				aria-label="Document title"
+				className="block h-9 w-full appearance-none rounded-md border border-border bg-surface px-3 text-sm text-text outline-none transition focus:border-accent focus:ring-3 focus:ring-accent/15"
 				disabled={isPending}
 				id={titleId}
 				maxLength={KnowledgeValidationRule.TITLE_MAXIMUM_LENGTH}
 				onChange={handleTitleChange}
+				placeholder="Document name"
 				type="text"
 				value={title}
 			/>
