@@ -561,11 +561,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 		setIsSidebarOpen(false);
 	}, []);
 
-	const handleHideTree = useCallback((): void => {
-		setIsTreeCollapsed(true);
-		setIsSidebarOpen(false);
-	}, []);
-
 	const handleShowTree = useCallback((): void => {
 		setIsTreeCollapsed(false);
 	}, []);
@@ -916,7 +911,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 						onClose={handleCloseSidebar}
 						onCreateDocument={handleCreateDocument}
 						onEditNode={handleEditNode}
-						onHide={handleHideTree}
 						onMoveDocument={handleMoveDocument}
 						onSelectPage={handleSelectPage}
 						selectedPageId={selectedPageId}
@@ -1012,7 +1006,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				onClose={handleCloseSidebar}
 				onCreateDocument={handleCreateDocument}
 				onEditNode={handleEditNode}
-				onHide={handleHideTree}
 				onMoveDocument={handleMoveDocument}
 				onSelectPage={handleSelectPage}
 				selectedPageId={selectedPageId}

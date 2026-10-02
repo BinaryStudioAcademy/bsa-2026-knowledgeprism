@@ -12,7 +12,6 @@ import {
 	APP_SIDEBAR_ID,
 	BACK_CONTROL_ICON_SIZE,
 	BACK_TO_PROJECTS_LABEL,
-	CHEVRON_ICON_SIZE,
 	COLLAPSE_SIDEBAR_LABEL,
 	EXPAND_SIDEBAR_LABEL,
 	PROJECT_ICON_SIZE,
@@ -40,37 +39,36 @@ type SidebarToggleProperties = {
 };
 
 const EMPTY_LENGTH = 0;
-const TOGGLE_TOOLTIP_CLASS_NAME =
-	"pointer-events-none invisible absolute top-1/2 left-full z-30 ml-2 -translate-y-1/2 rounded-md bg-primary px-2 py-1 text-xs font-medium whitespace-nowrap text-primary-fg opacity-0 shadow-md group-hover/toggle:visible group-hover/toggle:opacity-100 group-focus-within/toggle:visible group-focus-within/toggle:opacity-100";
 
 const SidebarToggle = ({
 	isExpanded,
 	onToggle,
 }: SidebarToggleProperties): React.JSX.Element => {
 	const label = isExpanded ? COLLAPSE_SIDEBAR_LABEL : EXPAND_SIDEBAR_LABEL;
+	const className = getValidClassNames(
+		"inline-flex items-center rounded-md font-medium text-text-faint transition-colors hover:bg-secondary hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none",
+		RAIL_NAV_ITEM_CLASS,
+	);
 
 	return (
-		<div className="group/toggle absolute top-1/2 -right-3 z-30 -translate-y-1/2">
+		<NavTooltip
+			className="relative flex shrink-0"
+			isEnabled={true}
+			label={label}
+		>
 			<button
 				aria-controls={APP_SIDEBAR_ID}
 				aria-expanded={isExpanded}
 				aria-label={label}
-				className="flex size-6 cursor-pointer items-center justify-center rounded-full border border-border bg-surface text-text-muted shadow-sm hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none"
+				className={className}
 				onClick={onToggle}
 				type="button"
 			>
-				<span className={isExpanded ? "inline-flex rotate-180" : "inline-flex"}>
-					<Icon name="chevron-filled-right" size={CHEVRON_ICON_SIZE} />
+				<span className="inline-flex">
+					<Icon name="hamburger" size={BACK_CONTROL_ICON_SIZE} />
 				</span>
 			</button>
-			<span
-				aria-hidden="true"
-				className={TOGGLE_TOOLTIP_CLASS_NAME}
-				role="presentation"
-			>
-				{label}
-			</span>
-		</div>
+		</NavTooltip>
 	);
 };
 
@@ -82,7 +80,7 @@ const ProjectHeading = ({
 	role: string;
 }): React.JSX.Element => {
 	return (
-		<div className="flex min-w-0 items-center gap-2.5 p-2 text-accent">
+		<div className="flex min-w-0 flex-1 items-center gap-2.5 p-2 text-accent">
 			<span className="shrink-0">
 				<Icon name="project" size={PROJECT_ICON_SIZE} />
 			</span>
@@ -90,7 +88,9 @@ const ProjectHeading = ({
 				<div className="truncate text-sm font-medium" title={projectName}>
 					{projectName}
 				</div>
-				<div className="font-mono text-2xs text-text-faint">{role} ROLE</div>
+				<div className="font-mono text-2xs text-text-faint whitespace-nowrap">
+					{role} ROLE
+				</div>
 			</div>
 		</div>
 	);
@@ -98,7 +98,7 @@ const ProjectHeading = ({
 
 const BackChevron = (): React.JSX.Element => {
 	return (
-		<span className="inline-flex rotate-180">
+		<span className="flex items-center justify-center rotate-180">
 			<Icon name="chevron-filled-right" size={BACK_CONTROL_ICON_SIZE} />
 		</span>
 	);
@@ -122,7 +122,9 @@ const BackToProjectsControl = ({
 				to={AppRoute.WORKSPACES}
 			>
 				<BackChevron />
-				{isExpanded && <span>{BACK_TO_PROJECTS_LABEL}</span>}
+				{isExpanded && (
+					<span className="whitespace-nowrap">{BACK_TO_PROJECTS_LABEL}</span>
+				)}
 			</Link>
 		</NavTooltip>
 	);
@@ -130,27 +132,33 @@ const BackToProjectsControl = ({
 
 const SidebarHeading = ({
 	isExpanded,
+	onToggle,
 	projectId,
 	projectName,
 	role,
 }: {
 	isExpanded: boolean;
+	onToggle: () => void;
 	projectId: string | undefined;
 	projectName: string;
 	role: string;
 }): React.JSX.Element => {
 	if (!isExpanded) {
 		return (
-			<div className="flex w-full justify-center">
-				<BackToProjectsControl isExpanded={false} />
+			<div className="flex w-full flex-col items-center gap-1">
+				<SidebarToggle isExpanded={false} onToggle={onToggle} />
 			</div>
 		);
 	}
 
 	return (
-		<div className="flex w-full flex-col items-stretch gap-1">
-			<BackToProjectsControl isExpanded />
-			{projectId && <ProjectHeading projectName={projectName} role={role} />}
+		<div className="flex w-full flex-row items-center justify-between gap-1">
+			{projectId ? (
+				<ProjectHeading projectName={projectName} role={role} />
+			) : (
+				<div />
+			)}
+			<SidebarToggle isExpanded onToggle={onToggle} />
 		</div>
 	);
 };
@@ -169,8 +177,8 @@ const SidebarPanel = ({
 	utilityNavItems,
 }: SidebarPanelProperties): React.JSX.Element => {
 	const asideClassName = getValidClassNames(
-		"relative flex h-full shrink-0 flex-col border-r border-border bg-surface py-5",
-		isExpanded ? "w-58 gap-5 px-3.5" : "w-14",
+		"relative flex h-full shrink-0 flex-col border-r border-border bg-surface py-5 transition-all duration-300 ease-in-out overflow-x-hidden",
+		isExpanded ? "w-[232px] gap-5 px-3.5" : "w-14 gap-5",
 	);
 
 	return (
@@ -180,13 +188,21 @@ const SidebarPanel = ({
 			ref={asideRef}
 			tabIndex={-1}
 		>
-			<SidebarToggle isExpanded={isExpanded} onToggle={onToggle} />
 			<SidebarHeading
 				isExpanded={isExpanded}
+				onToggle={onToggle}
 				projectId={projectId}
 				projectName={projectName}
 				role={role}
 			/>
+			<div
+				className={getValidClassNames(
+					"flex w-full -my-2",
+					isExpanded ? "justify-start" : "justify-center",
+				)}
+			>
+				<BackToProjectsControl isExpanded={isExpanded} />
+			</div>
 			{primaryNavItems.length > EMPTY_LENGTH && (
 				<nav
 					className={getValidClassNames(
@@ -201,7 +217,7 @@ const SidebarPanel = ({
 			)}
 			<div
 				className={getValidClassNames(
-					"mt-auto flex w-full flex-col gap-2.5 border-t border-border-subtle pt-3.5",
+					"mt-auto flex w-full flex-col gap-2.5",
 					isExpanded ? "items-stretch" : "items-center",
 				)}
 			>
@@ -220,7 +236,9 @@ const SidebarPanel = ({
 							variant="accent"
 						>
 							<Icon name="plus" size={ADD_KNOWLEDGE_ICON_SIZE} />
-							{isExpanded && <span>{ADD_KNOWLEDGE_LABEL}</span>}
+							{isExpanded && (
+								<span className="whitespace-nowrap">{ADD_KNOWLEDGE_LABEL}</span>
+							)}
 						</Button>
 					</NavTooltip>
 				)}

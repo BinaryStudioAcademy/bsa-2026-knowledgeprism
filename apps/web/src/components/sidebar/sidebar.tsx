@@ -181,11 +181,14 @@ const Sidebar: React.FC<SidebarProperties> = ({
 
 	return (
 		<div
-			className={
-				isOverlayOpen
-					? "absolute inset-y-0 left-0 z-50 h-full"
-					: "relative z-20 h-full shrink-0"
-			}
+			className={getValidClassNames(
+				"h-full shrink-0",
+				isOverlayOpen && shell.mode === "phone"
+					? "absolute inset-y-0 left-0"
+					: "relative",
+				isOverlayOpen ? "z-50" : "z-20",
+				shell.mode === "compact" && "w-14",
+			)}
 		>
 			<SidebarPanel
 				asideRef={mergedReference}
@@ -316,7 +319,7 @@ const MobileNav: React.FC<MobileNavProperties> = ({
 						"fixed inset-x-0 bottom-0 z-50 flex w-full flex-col rounded-t-2xl border-t border-(--color-border-subtle) bg-surface px-3.5 pb-5 pt-2 shadow-2xl transition-transform duration-300 ease-out",
 						isMoreMenuOpen ? "translate-y-0" : "translate-y-full",
 					)}
-					inert={isMoreMenuOpen ? undefined : ""}
+					inert={isMoreMenuOpen ? undefined : true}
 				>
 					<div className="mx-auto mb-2 h-1 w-8 rounded-full bg-border" />
 

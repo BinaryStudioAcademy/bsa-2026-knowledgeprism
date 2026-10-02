@@ -9,7 +9,6 @@ import React, {
 } from "react";
 import { tv } from "tailwind-variants";
 
-import { Icon } from "~/components/icon/icon.js";
 import {
 	useAppDispatch,
 	useAppSelector,
@@ -35,9 +34,6 @@ import { useKnowledgeTreeDrag } from "./knowledge-tree-drag.js";
 import { KnowledgeTreeItem } from "./knowledge-tree-item.js";
 import { KnowledgeTreeSearchBar } from "./knowledge-tree-search-bar.js";
 
-const HIDE_KNOWLEDGE_TREE_ICON_SIZE = 13;
-const HIDE_KNOWLEDGE_TREE_LABEL = "Hide knowledge tree";
-
 const sidebarDrawerStyles = tv({
 	base: "fixed inset-y-0 left-0 z-50 flex h-full w-65 shrink-0 flex-col border-r border-border bg-surface transition-all duration-300 @5xl:static @5xl:translate-x-0 @5xl:visible",
 	variants: {
@@ -62,7 +58,7 @@ type Properties = {
 	onCreateDocument?:
 		((title: string, parentId: null | number) => void) | undefined;
 	onEditNode?: ((id: number) => void) | undefined;
-	onHide?: (() => void) | undefined;
+
 	onMoveDocument?:
 		((id: number, placement: DocumentPlacement) => void) | undefined;
 	onSelectPage: (id: number) => void;
@@ -78,7 +74,6 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 	onClose,
 	onCreateDocument,
 	onEditNode,
-	onHide,
 	onMoveDocument,
 	onSelectPage,
 	selectedPageId,
@@ -287,22 +282,6 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 				tabIndex={-1}
 			>
 				<div className="flex min-h-0 flex-1 flex-col">
-					<div className="flex items-center justify-between px-4.5 pb-3 pt-4.5 @5xl:hidden">
-						<span className="text-control font-medium text-text">
-							Knowledge Tree
-						</span>
-						{onHide && (
-							<button
-								aria-label={HIDE_KNOWLEDGE_TREE_LABEL}
-								className="hidden shrink-0 cursor-pointer items-center justify-center rounded-md bg-transparent p-1 text-text-faint hover:bg-secondary hover:text-text focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none @5xl:inline-flex"
-								onClick={onHide}
-								type="button"
-							>
-								<Icon name="close" size={HIDE_KNOWLEDGE_TREE_ICON_SIZE} />
-							</button>
-						)}
-					</div>
-
 					<KnowledgeTreeSearchBar
 						isSearchingContent={isSearchingContent}
 						onChange={handleSearchChange}
