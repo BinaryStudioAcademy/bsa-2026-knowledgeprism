@@ -814,7 +814,14 @@ describe("IntegrationPreview extraction review", () => {
 						status: "duplicate",
 						title: "Incoming title",
 						type: KnowledgeNodeType.PAGE,
-						wordingMatches: [{ span: "Live content" }],
+						wordingMatches: [
+							{
+								content: "Live content",
+								nodeId: 3,
+								span: "Live content",
+								title: "Live title",
+							},
+						],
 					},
 				],
 				status: "duplicate",

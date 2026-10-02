@@ -169,10 +169,10 @@ type UploadSession = {
 };
 
 type WordingMatchPreview = {
-	content: string;
-	nodeId: number;
+	content?: string;
+	nodeId?: number;
 	span: string;
-	title: string;
+	title?: string;
 };
 
 export { type KnowledgeEntryUpdateRequestDto } from "@knowledgeprism/types";
