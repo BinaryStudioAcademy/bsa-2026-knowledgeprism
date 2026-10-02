@@ -20,6 +20,7 @@ import {
 	locateSourceSpan,
 } from "./locate-source-span.helper.js";
 import { promoteParallelItems } from "./promote-parallel-items.helper.js";
+import { withoutRestartedBlocks } from "./without-restarted-blocks.helper.js";
 
 const CalloutLabel = {
 	decision: "Decision",
@@ -533,7 +534,7 @@ const toKnowledgeItem = (
 
 	const sourceSpan = locateCandidateSpan(candidate, chunkContent) ?? "";
 	const promotedBlocks = promoteParallelItems(
-		storedBlocks.value.blocks,
+		withoutRestartedBlocks(storedBlocks.value.blocks),
 		sourceSpan,
 	);
 	const text = toPlainText(promotedBlocks);
