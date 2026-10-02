@@ -22,9 +22,11 @@ const MOCK_MESSAGE: AskPrismMessage = {
 	query: "What is the capital of France?",
 	sources: [
 		{
+			documentName: null,
 			excerpt: "Capital city",
 			id: 1,
 			nodeId: 10,
+			pageNumber: null,
 			sectionTitle: "Geography",
 			title: "France",
 		},
