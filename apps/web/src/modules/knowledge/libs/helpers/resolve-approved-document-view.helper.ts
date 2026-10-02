@@ -1,3 +1,4 @@
+import { getOrderedDescendants } from "@knowledgeprism/config";
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import { type KnowledgeTreeItemResponseDto } from "@knowledgeprism/types";
 
@@ -9,31 +10,25 @@ type ApprovedDocumentView = {
 	sectionIds: number[];
 };
 
-const byPosition = (
-	left: KnowledgeTreeItemResponseDto,
-	right: KnowledgeTreeItemResponseDto,
-): number => {
-	return left.position - right.position;
-};
-
 const resolveDocument = (
 	items: KnowledgeTreeItemResponseDto[],
 	selected: KnowledgeTreeItemResponseDto,
 ): KnowledgeTreeItemResponseDto | undefined => {
-	const parent =
-		selected.parentId == null
-			? undefined
-			: items.find((item) => item.id === selected.parentId);
+	const byId = new Map(items.map((item) => [item.id, item]));
+	const visited = new Set<number>();
+	let current: KnowledgeTreeItemResponseDto | undefined = selected;
 
-	if (
-		selected.type === KnowledgeNodeType.ENTRY &&
-		parent?.type === KnowledgeNodeType.PAGE
-	) {
-		return parent;
-	}
+	while (current && !visited.has(current.id)) {
+		if (current.type === KnowledgeNodeType.PAGE) {
+			return current;
+		}
 
-	if (selected.type === KnowledgeNodeType.PAGE) {
-		return selected;
+		if (current.type !== KnowledgeNodeType.ENTRY || current.parentId === null) {
+			return undefined;
+		}
+
+		visited.add(current.id);
+		current = byId.get(current.parentId);
 	}
 
 	return undefined;
@@ -59,13 +54,10 @@ const resolveApprovedDocumentView = (
 		return null;
 	}
 
-	const sectionIds = items
-		.filter(
-			(item) =>
-				item.parentId === document.id && item.type === KnowledgeNodeType.ENTRY,
-		)
-		.toSorted(byPosition)
-		.map((item) => item.id);
+	const sectionIds = getOrderedDescendants(
+		items.filter((item) => item.type === KnowledgeNodeType.ENTRY),
+		document.id,
+	).map((item) => item.id);
 
 	if (sectionIds.length === EMPTY_LENGTH) {
 		return null;
