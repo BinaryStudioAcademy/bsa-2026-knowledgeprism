@@ -21,6 +21,8 @@ const PROJECT_ID = 3;
 const DOCUMENT_ID = 10;
 const FIRST_SECTION_ID = 20;
 const SECOND_SECTION_ID = 21;
+const CHILD_SECTION_ID = 40;
+const GRANDCHILD_SECTION_ID = 41;
 const SINGLE_CALL_COUNT = 1;
 const EMPTY_COUNT = 0;
 const FIRST_CALL_INDEX = 0;
@@ -80,7 +82,7 @@ const createSetup = (
 		database: {} as Database,
 		knowledgeNodeRepository: {
 			findByIdAndProjectId: readDocument,
-			findEntriesByParentId: readSections,
+			findEntriesByDocumentId: readSections,
 		} as unknown as KnowledgeNodeRepository,
 		logger: {} as Logger,
 		projectService: {
@@ -164,23 +166,43 @@ void describe("knowledge document sections", () => {
 		});
 	});
 
-	void it("reads only direct entry children in the requested project with one ordered query", async () => {
+	void it("reads nested entries in tree order with project boundaries on both recursive query branches", async () => {
 		const connection = knex({ client: "pg", ...knexSnakeCaseMappers() });
 		const query = KnowledgeNodeModel.query();
 		query.knex(connection);
 		const queryStub = mock.method(KnowledgeNodeModel, "query", () => query);
+		const nodes = [
+			createNode(FIRST_SECTION_ID, KnowledgeNodeType.ENTRY, DOCUMENT_ID),
+			createNode(CHILD_SECTION_ID, KnowledgeNodeType.ENTRY, FIRST_SECTION_ID),
+			createNode(
+				GRANDCHILD_SECTION_ID,
+				KnowledgeNodeType.ENTRY,
+				CHILD_SECTION_ID,
+			),
+			createNode(SECOND_SECTION_ID, KnowledgeNodeType.ENTRY, DOCUMENT_ID),
+		];
+		const rows = nodes.toReversed().map((entity) => {
+			const node = entity.toObject();
+
+			return KnowledgeNodeModel.fromJson({
+				...node,
+				createdAt: new Date(node.createdAt),
+				updatedAt: new Date(node.updatedAt),
+			});
+		});
 		const executeStub = mock.method(query, "execute", () =>
-			Promise.resolve([]),
+			Promise.resolve(rows),
 		);
 
 		try {
 			const repository = new KnowledgeNodeRepository(KnowledgeNodeModel);
+			const sections = await repository.findEntriesByDocumentId({
+				parentId: DOCUMENT_ID,
+				projectId: PROJECT_ID,
+			});
 			assert.deepEqual(
-				await repository.findEntriesByParentId({
-					parentId: DOCUMENT_ID,
-					projectId: PROJECT_ID,
-				}),
-				[],
+				sections.map((node) => node.toObject()),
+				nodes.map((node) => node.toObject()),
 			);
 			const compiled = query.toKnexQuery().toSQL();
 
@@ -194,8 +216,15 @@ void describe("knowledge document sections", () => {
 				DOCUMENT_ID,
 				PROJECT_ID,
 				KnowledgeNodeType.ENTRY,
+				PROJECT_ID,
+				KnowledgeNodeType.ENTRY,
 			]);
-			assert.match(compiled.sql, /order by "position" asc, "id" asc/u);
+			assert.match(compiled.sql, /with recursive "document_entries" as/u);
+			assert.match(
+				compiled.sql,
+				/"child_entry"\."parent_id" = "parent_entry"\."id" where "child_entry"\."project_id" = \? and "child_entry"\."type" = \?/u,
+			);
+			assert.doesNotMatch(compiled.sql, /union all/u);
 		} finally {
 			executeStub.mock.restore();
 			queryStub.mock.restore();
