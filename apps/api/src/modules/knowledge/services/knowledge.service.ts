@@ -155,7 +155,7 @@ class KnowledgeService {
 			projectId,
 		);
 
-		if (!document) {
+		if (!document || document.toObject().type !== KnowledgeNodeType.PAGE) {
 			throw new HTTPError({
 				message: KnowledgeValidationMessage.NOT_FOUND,
 				status: HTTPCode.NOT_FOUND,

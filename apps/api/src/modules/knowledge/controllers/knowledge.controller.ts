@@ -313,7 +313,7 @@ class KnowledgeController extends BaseController {
 	 *        403:
 	 *          description: Forbidden (non-member)
 	 *        404:
-	 *          description: Document not found
+	 *          description: Document not found, or the node is not a document page
 	 */
 	private async findDocumentSections(
 		options: APIHandlerOptions<{
