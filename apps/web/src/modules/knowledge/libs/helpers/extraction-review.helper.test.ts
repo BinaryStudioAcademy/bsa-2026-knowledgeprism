@@ -9,7 +9,10 @@ import {
 import { describe, expect, it } from "vitest";
 
 import { type ProposedSection } from "../types/types.js";
-import { toExtractionReviewPayload } from "./extraction-review.helper.js";
+import {
+	mapExtractionItemsToProposedStructure,
+	toExtractionReviewPayload,
+} from "./extraction-review.helper.js";
 
 const ITEM_ID = 12;
 const CONFIDENCE = 0.9;
@@ -17,6 +20,10 @@ const PAGE_NUMBER = 1;
 const POSITION = 0;
 const FIRST_SECTION_INDEX = 0;
 const FIRST_ITEM_INDEX = 0;
+const SECOND_ITEM_ID = 13;
+const SECOND_PAGE_NUMBER = 7;
+const SINGLE_SECTION_COUNT = 1;
+const UNGROUPED_ITEMS_TITLE = "Ungrouped items";
 
 const extractionItem = (): ExtractionItemResponseDto => ({
 	confidence: CONFIDENCE,
@@ -112,5 +119,27 @@ describe("toExtractionReviewPayload", () => {
 				type: "checkListItem",
 			},
 		]);
+	});
+});
+
+describe("mapExtractionItemsToProposedStructure", () => {
+	it("groups unsectioned items from different pages into one ungrouped section", () => {
+		const structure = mapExtractionItemsToProposedStructure([
+			extractionItem(),
+			{
+				...extractionItem(),
+				id: SECOND_ITEM_ID,
+				sourcePageNumber: SECOND_PAGE_NUMBER,
+			},
+		]);
+
+		expect(structure).toHaveLength(SINGLE_SECTION_COUNT);
+		expect(structure[FIRST_SECTION_INDEX]).toMatchObject({
+			title: UNGROUPED_ITEMS_TITLE,
+			type: KnowledgeNodeType.SECTION,
+		});
+		expect(
+			structure[FIRST_SECTION_INDEX]?.pages.map((page) => page.id),
+		).toEqual([String(ITEM_ID), String(SECOND_ITEM_ID)]);
 	});
 });

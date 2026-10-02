@@ -13,7 +13,8 @@ import {
 import { type ProposedSection } from "../types/types.js";
 
 const EMPTY_LENGTH = 0;
-const EXTRACTION_SECTION_ID_PREFIX = "source-page";
+const UNSECTIONED_GROUP_ID = "unsectioned";
+const UNSECTIONED_GROUP_TITLE = "Ungrouped items";
 const TEXT_RUN_TYPE = "text";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
@@ -233,25 +234,21 @@ const mapExtractionItemsToProposedStructure = (
 		});
 	}
 
-	const unsectionedItemsByPage = new Map<number, ProposedSection["pages"]>();
+	const unsectionedPages: ProposedSection["pages"] = [];
 
 	for (const item of extractionItems) {
 		const sectionId = item.extractionSectionId;
 
 		if (sectionId === null) {
-			const pages = unsectionedItemsByPage.get(item.sourcePageNumber) ?? [];
+			unsectionedPages.push(toProposedPage(item));
 
-			pages.push(toProposedPage(item));
-			unsectionedItemsByPage.set(item.sourcePageNumber, pages);
 			continue;
 		}
 
 		const section = sectionsById.get(sectionId) ?? {
 			pages: [],
 			position: item.sectionPosition ?? item.sourcePageNumber,
-			title:
-				item.sectionTitle ??
-				`Extracted from Page ${String(item.sourcePageNumber)}`,
+			title: item.sectionTitle ?? UNSECTIONED_GROUP_TITLE,
 		};
 
 		section.pages.push(toProposedPage(item));
@@ -274,17 +271,20 @@ const mapExtractionItemsToProposedStructure = (
 			type: KnowledgeNodeType.SECTION,
 		}));
 
-	const unsectionedGroups = [...unsectionedItemsByPage]
-		.toSorted(([pageA], [pageB]) => pageA - pageB)
-		.map(([pageNumber, pages]) => ({
-			id: `${EXTRACTION_SECTION_ID_PREFIX}-${String(pageNumber)}`,
-			pages: sortPagesByItemPosition(pages, itemPositionById),
-			status: "created" as const,
-			title: `Extracted from Page ${String(pageNumber)}`,
-			type: KnowledgeNodeType.SECTION,
-		}));
+	if (unsectionedPages.length === EMPTY_LENGTH) {
+		return savedSections;
+	}
 
-	return [...savedSections, ...unsectionedGroups];
+	return [
+		...savedSections,
+		{
+			id: UNSECTIONED_GROUP_ID,
+			pages: sortPagesByItemPosition(unsectionedPages, itemPositionById),
+			status: "created" as const,
+			title: UNSECTIONED_GROUP_TITLE,
+			type: KnowledgeNodeType.SECTION,
+		},
+	];
 };
 
 const parseExtractionItemId = (pageId: string): null | number => {
