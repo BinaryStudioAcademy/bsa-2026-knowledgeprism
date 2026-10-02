@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
-import { locateSourceSpan } from "./locate-source-span.helper.js";
+import {
+	locateAnchoredSpan,
+	locateSourceSpan,
+} from "./locate-source-span.helper.js";
 
 const GLOSSARY_PAGE = [
 	"Epic 6: Glossary Engine",
@@ -105,5 +108,30 @@ void describe("locateSourceSpan", () => {
 
 	void it("rejects a blank excerpt", () => {
 		assert.equal(locateSourceSpan(GLOSSARY_PAGE, " \n "), null);
+	});
+});
+
+void describe("locateAnchoredSpan", () => {
+	void it("returns the passage between the anchors when the end anchor's punctuation differs", () => {
+		assert.equal(
+			locateAnchoredSpan(GLOSSARY_PAGE, {
+				end: "enforces documentation consistency:",
+				start: "A terminology governance system",
+			}),
+			[
+				"A terminology governance system that defines canonical project terms,",
+				"detects inconsistent usage, and enforces documentation consistency.",
+			].join("\n"),
+		);
+	});
+
+	void it("returns null when an anchor is not in the page", () => {
+		assert.equal(
+			locateAnchoredSpan(GLOSSARY_PAGE, {
+				end: "a sentence that is missing",
+				start: "A terminology governance system",
+			}),
+			null,
+		);
 	});
 });

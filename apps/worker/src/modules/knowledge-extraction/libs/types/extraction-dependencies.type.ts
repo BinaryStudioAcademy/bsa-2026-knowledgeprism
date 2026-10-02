@@ -10,6 +10,7 @@ type ExtractionDependencies = {
 	invoke: (
 		content: string,
 		previousHeading?: null | string,
+		feedback?: null | string,
 	) => Promise<unknown>;
 	logger: Logger;
 	onProgress?: (progress: DocumentProcessingProgressDto) => Promise<void>;

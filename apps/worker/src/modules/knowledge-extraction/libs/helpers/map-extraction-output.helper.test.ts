@@ -182,6 +182,23 @@ void describe("mapExtractionOutput", () => {
 		);
 	});
 
+	void it("stores a callout without a variant as a paragraph", () => {
+		const [item] = mapSections(
+			[
+				section({
+					blocks: [
+						headingBlock("Overview"),
+						{ content: [textRun("Use Postgres.")], type: "callout" },
+					],
+				}),
+			],
+			PAGE_NUMBER,
+			CHUNK,
+		);
+
+		assert.equal(item?.blocks.at(PARAGRAPH_BLOCK_INDEX)?.type, "paragraph");
+	});
+
 	void it("rebuilds the source passage from excerptStart and excerptEnd", () => {
 		const items = mapSections(
 			[

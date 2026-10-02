@@ -10,11 +10,16 @@ import {
 import { type DocumentLine } from "../types/types.js";
 
 const FIRST_INDEX = 0;
+const INDENTED_LINE = /^\s/u;
 const LEVEL_OFFSET = 1;
 const LINE_BREAK = /\r?\n/u;
 const MARKER_GROUP = 1;
 
 const readTextHeadingLevel = (text: string): null | number => {
+	if (INDENTED_LINE.test(text)) {
+		return null;
+	}
+
 	const trimmed = text.trim();
 	const markdown = MARKDOWN_HEADING.exec(trimmed);
 

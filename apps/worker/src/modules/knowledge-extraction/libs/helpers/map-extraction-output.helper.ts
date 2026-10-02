@@ -312,11 +312,9 @@ const toStoredBlock = (value: unknown): ExtractionContentBlock | null => {
 				? value["props"]["variant"]
 				: undefined;
 
-			if (!isCalloutVariant(variant)) {
-				return null;
-			}
-
-			return toCalloutParagraph(content, variant);
+			return isCalloutVariant(variant)
+				? toCalloutParagraph(content, variant)
+				: { content, type: ExtractionBlockType.PARAGRAPH };
 		}
 		case ExtractionBlockType.CHECK_LIST_ITEM: {
 			const checked = readChecked(value);

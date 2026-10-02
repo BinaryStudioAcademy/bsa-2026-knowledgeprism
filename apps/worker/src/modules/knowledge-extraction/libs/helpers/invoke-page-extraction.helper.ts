@@ -12,13 +12,18 @@ import { toExtractionUserMessage } from "./to-extraction-user-message.helper.js"
 const invokePageExtraction = async (
 	content: string,
 	previousHeading?: null | string,
+	feedback?: null | string,
 ): Promise<unknown> => {
 	const body = JSON.stringify({
 		anthropic_version: BedrockRequest.ANTHROPIC_VERSION,
 		max_tokens: ExtractionBedrockConfig.MAX_TOKENS,
 		messages: [
 			{
-				content: toExtractionUserMessage(content, previousHeading ?? null),
+				content: toExtractionUserMessage(
+					content,
+					previousHeading ?? null,
+					feedback ?? null,
+				),
 				role: "user",
 			},
 		],

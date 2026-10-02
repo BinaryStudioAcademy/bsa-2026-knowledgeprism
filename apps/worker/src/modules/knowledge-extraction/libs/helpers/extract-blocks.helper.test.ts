@@ -652,3 +652,30 @@ void describe("extraction page numbers", () => {
 		assert.equal(result.items[EMPTY_COUNT]?.sourcePageNumber, NEXT_PAGE_NUMBER);
 	});
 });
+
+void describe("extraction retry feedback", () => {
+	void it("tells the model why its previous answer was rejected", async () => {
+		const feedbacks: (null | string | undefined)[] = [];
+		let calls = 0;
+		const setup = createSetup((content) =>
+			Promise.resolve(
+				++calls === SINGLE_CALL
+					? { items: [{ heading: "Broken" }] }
+					: outputFor(content),
+			),
+		);
+		const invoke = setup.dependencies.invoke;
+
+		const result = await extractBlocks([BLOCK], {
+			...setup.dependencies,
+			invoke: (content, previousHeading, feedback) => {
+				feedbacks.push(feedback);
+				return invoke(content, previousHeading, feedback);
+			},
+		});
+
+		assert.equal(result.failedPageNumbers.length, EMPTY_COUNT);
+		assert.equal(feedbacks[EMPTY_COUNT], null);
+		assert.equal(typeof feedbacks[SINGLE_CALL], "string");
+	});
+});
