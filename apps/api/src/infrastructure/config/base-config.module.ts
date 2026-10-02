@@ -97,6 +97,14 @@ class BaseConfig implements Config {
 					format: Number,
 				},
 			},
+			EXTRACTION: {
+				CHUNK_LENGTH: {
+					default: 24_000,
+					doc: "Sonnet extraction chunk size in characters",
+					env: "EXTRACTION_CHUNK_LENGTH",
+					format: "nat",
+				},
+			},
 			SESSION: {
 				SECRET: {
 					default: null,

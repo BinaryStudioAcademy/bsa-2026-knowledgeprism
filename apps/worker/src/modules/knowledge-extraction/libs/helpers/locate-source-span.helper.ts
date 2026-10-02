@@ -1,4 +1,7 @@
 const FIRST_FOLLOWING_FRAGMENT = 1;
+const EDGE_CHARACTER = /[\s\p{P}]/u;
+const TRAILING_PUNCTUATION = /\p{P}/u;
+const FIRST_INDEX = 0;
 const LAST_CHARACTER_OFFSET = 1;
 const LINE_BREAK = /\r?\n/u;
 const NOT_FOUND_INDEX = -1;
@@ -103,4 +106,62 @@ const locateSourceSpan = (
 	);
 };
 
-export { locateSourceSpan };
+const trimEdgePunctuation = (value: string): string => {
+	let start = FIRST_INDEX;
+	let end = value.length;
+
+	while (start < end && EDGE_CHARACTER.test(value.charAt(start))) {
+		start++;
+	}
+
+	while (
+		end > start &&
+		EDGE_CHARACTER.test(value.charAt(end - LAST_CHARACTER_OFFSET))
+	) {
+		end--;
+	}
+
+	return value.slice(start, end);
+};
+
+const locateAnchor = (content: string, anchor: string): null | string => {
+	const trimmed = trimEdgePunctuation(anchor);
+
+	return (
+		locateSourceSpan(content, anchor) ??
+		(trimmed === "" ? null : locateSourceSpan(content, trimmed))
+	);
+};
+
+const locateAnchoredSpan = (
+	chunkContent: string,
+	{ end, start }: { end: string; start: string },
+): null | string => {
+	const startSpan = locateAnchor(chunkContent, start);
+
+	if (startSpan === null) {
+		return null;
+	}
+
+	const rest = chunkContent.slice(chunkContent.indexOf(startSpan));
+	const endSpan = locateAnchor(rest, end);
+
+	if (endSpan === null) {
+		return null;
+	}
+
+	let spanEnd = rest.indexOf(endSpan) + endSpan.length;
+
+	while (
+		spanEnd < rest.length &&
+		TRAILING_PUNCTUATION.test(rest.charAt(spanEnd))
+	) {
+		spanEnd++;
+	}
+
+	return spanEnd < startSpan.length
+		? startSpan
+		: rest.slice(FIRST_INDEX, spanEnd);
+};
+
+export { locateAnchoredSpan, locateSourceSpan };
