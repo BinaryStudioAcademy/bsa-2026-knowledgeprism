@@ -1,12 +1,12 @@
 import { type ExtractionItemEntity } from "~/modules/documents/models/extraction-item.entity.js";
 
-const UNSECTIONED_GROUP_PREFIX = "page-";
+const UNSECTIONED_GROUP_KEY = "unsectioned";
 
 const toSectionGroupKey = (item: ExtractionItemEntity): string => {
-	const { extractionSectionId, sourcePageNumber } = item.toObject();
+	const { extractionSectionId } = item.toObject();
 
 	return extractionSectionId === null
-		? `${UNSECTIONED_GROUP_PREFIX}${String(sourcePageNumber)}`
+		? UNSECTIONED_GROUP_KEY
 		: String(extractionSectionId);
 };
 
