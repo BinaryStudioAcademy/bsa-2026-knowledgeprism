@@ -1,6 +1,6 @@
 import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
-import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
+import { sendBedrockRequest } from "~/bedrock/send-bedrock-request.helper.js";
 
 import { CohereEmbeddingModel } from "../constants/cohere-embedding-model.constant.js";
 import { type EmbeddingInputTypeValue } from "../types/embedding-input-type-value.type.js";
@@ -19,7 +19,7 @@ const invokeEmbedding = async (
 		modelId: CohereEmbeddingModel.ID,
 	});
 
-	const response = await bedrockRuntimeClient.send(command);
+	const response = await sendBedrockRequest(command);
 
 	const responseText = response.body.transformToString();
 

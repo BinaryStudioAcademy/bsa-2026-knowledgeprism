@@ -20,6 +20,16 @@ const readRequiredEnvironmentVariable = (name: string): string => {
 	return value;
 };
 
+const readRequiredNumberEnvironmentVariable = (name: string): number => {
+	const value = Number(readRequiredEnvironmentVariable(name));
+
+	if (!Number.isSafeInteger(value) || value <= Number.EPSILON) {
+		throw new Error(`${name} must be a positive integer`);
+	}
+
+	return value;
+};
+
 class BaseConfig implements Config {
 	public ENV: EnvironmentSchema;
 
@@ -28,6 +38,10 @@ class BaseConfig implements Config {
 
 		this.ENV = {
 			AWS: {
+				BEDROCK_MAXIMUM_CONCURRENT_REQUESTS:
+					readRequiredNumberEnvironmentVariable(
+						"BEDROCK_MAXIMUM_CONCURRENT_REQUESTS",
+					),
 				REGION: readRequiredEnvironmentVariable("AWS_REGION"),
 				S3_BUCKET_NAME: readRequiredEnvironmentVariable("AWS_S3_BUCKET_NAME"),
 			},
