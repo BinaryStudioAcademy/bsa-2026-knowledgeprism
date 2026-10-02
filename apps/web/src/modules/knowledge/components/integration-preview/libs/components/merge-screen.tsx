@@ -160,9 +160,13 @@ const MergeScreen = ({
 					const nextIndex =
 						(currentIndex + stepDelta + matchCount) % matchCount;
 
+					const nextMatch = item.wordingMatches?.[nextIndex];
+
 					return {
 						...item,
+						currentValue: nextMatch?.content ?? item.currentValue,
 						matchIndex: nextIndex,
+						matchedNodeId: nextMatch?.nodeId ?? item.matchedNodeId,
 					};
 				}),
 			);
@@ -260,7 +264,11 @@ const MergeScreen = ({
 										<div className="flex items-center justify-between">
 											<span className="font-mono text-2xs font-bold uppercase tracking-wider text-text-muted">
 												Live Version (in KB)
+												{hasWordingMatches && wordingMatches[matchIndex]?.title
+													? ` · ${wordingMatches[matchIndex].title}`
+													: ""}
 											</span>
+
 											{isKeepActive && (
 												<span className="font-sans text-2xs font-semibold text-accent">
 													✓ Selected
