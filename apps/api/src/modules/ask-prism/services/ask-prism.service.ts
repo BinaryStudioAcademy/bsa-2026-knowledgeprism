@@ -122,6 +122,7 @@ class AskPrismService {
 		const [queryVector] = await embed(
 			[question],
 			EmbeddingInputType.SEARCH_QUERY,
+			{ isLimited: false },
 		);
 
 		if (!queryVector) {
@@ -137,6 +138,7 @@ class AskPrismService {
 		const passageVectors = await embed(
 			passages.map(({ text }) => text),
 			EmbeddingInputType.SEARCH_DOCUMENT,
+			{ isLimited: false },
 		);
 
 		const candidates = passages.map(({ item }, index) => {
