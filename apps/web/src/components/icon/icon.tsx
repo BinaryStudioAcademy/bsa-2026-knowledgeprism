@@ -26,6 +26,7 @@ import { HelpIcon } from "./icons/help.icon.js";
 import { HexagonNodeIcon } from "./icons/hexagon-node.icon.js";
 import { KnowledgeTreeIcon } from "./icons/knowledge-tree.icon.js";
 import { LinkIcon } from "./icons/link.icon.js";
+import { MoreIcon } from "./icons/more.icon.js";
 import { ParagraphIcon } from "./icons/paragraph.icon.js";
 import { PasteTextIcon } from "./icons/paste-text.icon.js";
 import { PhoneIcon } from "./icons/phone.icon.js";
@@ -75,6 +76,7 @@ const iconNameToComponent = {
 	"hexagon-node": HexagonNodeIcon,
 	"knowledge-tree": KnowledgeTreeIcon,
 	link: LinkIcon,
+	more: MoreIcon,
 	paragraph: ParagraphIcon,
 	"paste-text": PasteTextIcon,
 	phone: PhoneIcon,

@@ -287,7 +287,7 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 				tabIndex={-1}
 			>
 				<div className="flex min-h-0 flex-1 flex-col">
-					<div className="flex items-center justify-between px-4.5 pb-3 pt-4.5">
+					<div className="flex items-center justify-between px-4.5 pb-3 pt-4.5 @5xl:hidden">
 						<span className="text-control font-medium text-text">
 							Knowledge Tree
 						</span>
@@ -309,16 +309,6 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 						onClear={handleSearchClear}
 						value={searchQuery}
 					/>
-
-					{canStructure && onCreateDocument && (
-						<div className="px-3 pb-3">
-							<KnowledgeTreeDocumentForm
-								isPending={isStructurePending}
-								onSubmit={handleCreateRootDocument}
-								submitLabel="Create document"
-							/>
-						</div>
-					)}
 
 					<div
 						aria-label="Knowledge Tree"
@@ -354,6 +344,16 @@ const KnowledgeTreeSidebar: React.FC<Properties> = ({
 							</div>
 						)}
 					</div>
+
+					{canStructure && onCreateDocument && (
+						<div className="shrink-0 px-3 pb-4 pt-3 border-t border-border bg-surface">
+							<KnowledgeTreeDocumentForm
+								isPending={isStructurePending}
+								onSubmit={handleCreateRootDocument}
+								submitLabel="Create document"
+							/>
+						</div>
+					)}
 				</div>
 			</aside>
 		</>

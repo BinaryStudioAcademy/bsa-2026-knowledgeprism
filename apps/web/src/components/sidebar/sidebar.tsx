@@ -1,7 +1,7 @@
 import { ProjectMemberRole } from "@knowledgeprism/constants";
 import { useFocusReturn, useFocusTrap, useMergedRef } from "@mantine/hooks";
-import React, { useCallback, useEffect, useRef } from "react";
-import { generatePath, Link } from "react-router-dom";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import { generatePath, Link, useNavigate } from "react-router-dom";
 
 import { useKnowledgeTreePanel } from "~/app/layouts/knowledge-tree-panel-context.js";
 import { Icon } from "~/components/icon/icon.js";
@@ -211,47 +211,176 @@ const Sidebar: React.FC<SidebarProperties> = ({
 	);
 };
 
-const MobileNav: React.FC = () => {
+type MobileNavProperties = {
+	isAdmin?: boolean;
+	projectName?: string;
+	role?: string;
+};
+
+const MobileNav: React.FC<MobileNavProperties> = ({
+	isAdmin,
+	projectName,
+	role,
+}) => {
 	const { pathname } = useLocation();
+	const navigate = useNavigate();
 	const projectId = useOptionalCurrentProjectId();
 	const { openKnowledgeTree } = useKnowledgeTreePanel();
 	const mobileNavItems = buildMobileNavItems(projectId, openKnowledgeTree);
+	const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+	const canAddKnowledge = useCanWriteKnowledge();
+	const { hideModal, isOpen, showModal } = useModal();
+
+	const handleCloseMoreMenu = useCallback((): void => {
+		setIsMoreMenuOpen(false);
+	}, [setIsMoreMenuOpen]);
+
+	const handleOpenMoreMenu = useCallback((): void => {
+		setIsMoreMenuOpen(true);
+	}, [setIsMoreMenuOpen]);
+
+	const handleOpenUserManagement = useCallback((): void => {
+		setIsMoreMenuOpen(false);
+		if (projectId) {
+			void navigate(buildUserManagementPath(projectId));
+		}
+	}, [navigate, projectId, setIsMoreMenuOpen]);
+
+	const handleBackToProjects = useCallback((): void => {
+		setIsMoreMenuOpen(false);
+		void navigate(AppRoute.WORKSPACES);
+	}, [navigate, setIsMoreMenuOpen]);
+
+	const handleAddKnowledge = useCallback((): void => {
+		setIsMoreMenuOpen(false);
+		showModal();
+	}, [setIsMoreMenuOpen, showModal]);
 
 	return (
-		<nav className="flex h-14 w-full shrink-0 items-center justify-around border-t border-border bg-surface">
-			{mobileNavItems.map(({ icon, id, label, onNavigate, to }) => {
-				const isActive = Boolean(to) && pathname === to;
-				const className = getValidClassNames(
-					"flex h-full flex-1 flex-col items-center justify-center gap-1 py-2 text-2xs transition-colors",
-					isActive
-						? "font-semibold text-accent"
-						: "text-text-muted hover:text-text",
-					!to && "cursor-not-allowed opacity-40",
-				);
+		<>
+			<nav className="flex h-14 w-full shrink-0 items-center justify-around border-t border-border bg-surface">
+				{mobileNavItems.map(({ icon, id, label, onNavigate, to }) => {
+					const isActive = Boolean(to) && pathname === to;
+					const className = getValidClassNames(
+						"flex h-full flex-1 flex-col items-center justify-center gap-1 py-2 text-2xs transition-colors no-underline hover:no-underline focus:no-underline",
+						isActive
+							? "font-semibold text-accent"
+							: "text-text-muted hover:text-text",
+						!to && "cursor-not-allowed opacity-40",
+					);
 
-				if (to) {
+					if (to) {
+						return (
+							<Link
+								aria-current={isActive ? "page" : undefined}
+								className={className}
+								key={id}
+								onClick={onNavigate}
+								to={to}
+							>
+								{icon}
+								<span>{label}</span>
+							</Link>
+						);
+					}
+
 					return (
-						<Link
-							aria-current={isActive ? "page" : undefined}
-							className={className}
-							key={id}
-							onClick={onNavigate}
-							to={to}
-						>
+						<button className={className} disabled key={id} type="button">
 							{icon}
 							<span>{label}</span>
-						</Link>
+						</button>
 					);
-				}
+				})}
+				<button
+					className="flex h-full flex-1 flex-col items-center justify-center gap-1 py-2 text-2xs text-text-muted transition-colors hover:text-text"
+					onClick={handleOpenMoreMenu}
+					type="button"
+				>
+					<Icon name="more" size={MOBILE_NAV_ICON_SIZE} />
+					<span>More</span>
+				</button>
+			</nav>
 
-				return (
-					<button className={className} disabled key={id} type="button">
-						{icon}
-						<span>{label}</span>
-					</button>
-				);
-			})}
-		</nav>
+			<>
+				<button
+					aria-label="Close menu"
+					className={getValidClassNames(
+						"fixed inset-0 z-40 cursor-default border-none bg-black/15 outline-none transition-opacity duration-300 ease-in-out lg:hidden",
+						isMoreMenuOpen ? "opacity-100" : "pointer-events-none opacity-0",
+					)}
+					onClick={handleCloseMoreMenu}
+					type="button"
+				/>
+				<div
+					className={getValidClassNames(
+						"fixed inset-x-0 bottom-0 z-50 flex w-full flex-col rounded-t-2xl border-t border-(--color-border-subtle) bg-surface px-3.5 pb-5 pt-2 shadow-2xl transition-transform duration-300 ease-out",
+						isMoreMenuOpen ? "translate-y-0" : "translate-y-full",
+					)}
+					inert={isMoreMenuOpen ? undefined : ""}
+				>
+					<div className="mx-auto mb-2 h-1 w-8 rounded-full bg-border" />
+
+					{projectName && role && (
+						<div className="mb-2 flex items-center gap-2.5 border-b border-(--color-border-subtle) pb-3 pt-1">
+							<div className="flex h-8 w-8 items-center justify-center rounded-md bg-accent/10 text-accent">
+								<Icon name="project" size={16} />
+							</div>
+							<div className="flex min-w-0 flex-col">
+								<span className="truncate text-sm font-semibold text-text">
+									{projectName}
+								</span>
+								<span className="font-mono text-2xs text-text-muted">
+									{role} ROLE
+								</span>
+							</div>
+						</div>
+					)}
+
+					<div className="flex flex-col gap-1.5 pt-1">
+						{canAddKnowledge && (
+							<button
+								className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left text-sm font-medium text-text transition-colors hover:bg-secondary focus:outline-none"
+								onClick={handleAddKnowledge}
+								type="button"
+							>
+								<Icon name="plus" size={16} />
+								<span>Add Knowledge</span>
+							</button>
+						)}
+
+						{isAdmin && (
+							<button
+								className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left text-sm font-medium text-text transition-colors hover:bg-secondary focus:outline-none"
+								onClick={handleOpenUserManagement}
+								type="button"
+							>
+								<Icon name="users" size={16} />
+								<span>Project Members</span>
+							</button>
+						)}
+
+						<button
+							className="flex w-full items-center gap-3 rounded-md px-3 py-3 text-left text-sm font-medium text-text transition-colors hover:bg-secondary focus:outline-none"
+							onClick={handleBackToProjects}
+							type="button"
+						>
+							<span className="inline-flex rotate-180">
+								<Icon name="chevron-filled-right" size={16} />
+							</span>
+							<span>Back to Projects</span>
+						</button>
+					</div>
+				</div>
+			</>
+
+			{isOpen && canAddKnowledge && projectName && (
+				<AddKnowledgeModal
+					isOpen={isOpen}
+					onClose={hideModal}
+					projectName={projectName}
+				/>
+			)}
+		</>
 	);
 };
 

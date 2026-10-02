@@ -24,7 +24,7 @@ const KnowledgeTreeSearchBar: React.FC<Properties> = ({
 	}, [onClear]);
 
 	return (
-		<div className="px-3 pb-3">
+		<div className="px-3 pb-3 @5xl:pt-4.5">
 			<div className="relative w-full">
 				<input
 					aria-label="Search knowledge base"
