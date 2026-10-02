@@ -1,7 +1,4 @@
-name: Run Worker Tests
-env:
-    BEDROCK_MAXIMUM_CONCURRENT_REQUESTS: 4
-run: npm test -w apps/worker
+name: Continuous Integration
 
 on:
   pull_request:
@@ -38,6 +35,7 @@ jobs:
           key: ci-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ci-
+
       - name: Install Dependencies
         if: steps.cache.outputs.cache-hit != 'true'
         run: npm install
@@ -69,10 +67,13 @@ jobs:
           EC_VERSION: v3.11.2
         run: |
           npm run lint
+
   test:
     name: Tests
     needs: dependencies
     runs-on: ubuntu-latest
+    env:
+      BEDROCK_MAXIMUM_CONCURRENT_REQUESTS: 4
 
     steps:
       - name: Checkout Source Code
@@ -99,6 +100,7 @@ jobs:
 
       - name: Run Web Tests
         run: npm test -w apps/web
+
   build:
     name: Code Building
     needs: dependencies
@@ -124,3 +126,4 @@ jobs:
       - name: Code Building
         run: |
           npm run build
+
