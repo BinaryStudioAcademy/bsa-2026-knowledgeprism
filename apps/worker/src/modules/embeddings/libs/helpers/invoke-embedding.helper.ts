@@ -1,5 +1,6 @@
 import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 
+import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
 import { sendBedrockRequest } from "~/bedrock/send-bedrock-request.helper.js";
 
 import { CohereEmbeddingModel } from "../constants/cohere-embedding-model.constant.js";
@@ -11,6 +12,7 @@ import { parseEmbeddingResponse } from "./parse-embedding-response.helper.js";
 const invokeEmbedding = async (
 	texts: string[],
 	inputType: EmbeddingInputTypeValue,
+	isLimited: boolean,
 ): Promise<EmbeddingVector[]> => {
 	const command = new InvokeModelCommand({
 		accept: "application/json",
@@ -19,7 +21,9 @@ const invokeEmbedding = async (
 		modelId: CohereEmbeddingModel.ID,
 	});
 
-	const response = await sendBedrockRequest(command);
+	const response = isLimited
+		? await sendBedrockRequest(command)
+		: await bedrockRuntimeClient.send(command);
 
 	const responseText = response.body.transformToString();
 

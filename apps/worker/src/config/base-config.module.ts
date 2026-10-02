@@ -11,6 +11,7 @@ const ENV_FILE_PATH = path.join(
 );
 
 const MINIMUM_POSITIVE_INTEGER = 1;
+const DEFAULT_BEDROCK_MAXIMUM_CONCURRENT_REQUESTS = 4;
 
 const readRequiredEnvironmentVariable = (name: string): string => {
 	const value = process.env[name];
@@ -22,8 +23,15 @@ const readRequiredEnvironmentVariable = (name: string): string => {
 	return value;
 };
 
-const readRequiredNumberEnvironmentVariable = (name: string): number => {
-	const value = Number(readRequiredEnvironmentVariable(name));
+const readPositiveIntegerEnvironmentVariable = (
+	name: string,
+	defaultValue: number,
+): number => {
+	if (!process.env[name]) {
+		return defaultValue;
+	}
+
+	const value = Number(process.env[name]);
 
 	if (!Number.isSafeInteger(value) || value < MINIMUM_POSITIVE_INTEGER) {
 		throw new Error(`${name} must be a positive integer`);
@@ -41,8 +49,9 @@ class BaseConfig implements Config {
 		this.ENV = {
 			AWS: {
 				BEDROCK_MAXIMUM_CONCURRENT_REQUESTS:
-					readRequiredNumberEnvironmentVariable(
+					readPositiveIntegerEnvironmentVariable(
 						"BEDROCK_MAXIMUM_CONCURRENT_REQUESTS",
+						DEFAULT_BEDROCK_MAXIMUM_CONCURRENT_REQUESTS,
 					),
 				REGION: readRequiredEnvironmentVariable("AWS_REGION"),
 				S3_BUCKET_NAME: readRequiredEnvironmentVariable("AWS_S3_BUCKET_NAME"),
