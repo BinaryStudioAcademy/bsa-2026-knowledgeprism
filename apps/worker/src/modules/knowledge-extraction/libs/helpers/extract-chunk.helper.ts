@@ -24,6 +24,7 @@ type ChunkResult = {
 	successfulChunkCount: number;
 };
 
+const ERROR_DETAIL_SEPARATOR = ":";
 const INVOCATION_ERROR_REASON = "invocation_error";
 const NO_SUCCESSFUL_CHUNKS = 0;
 const ONE_SUCCESSFUL_CHUNK = 1;
@@ -64,6 +65,10 @@ const extractSplitChunk = async (
 };
 
 const toErrorReason = (error: unknown): string => {
+	if (error instanceof ExtractionOutputError && error.detail) {
+		return `${error.reason}${ERROR_DETAIL_SEPARATOR}${error.detail}`;
+	}
+
 	return error instanceof ExtractionOutputError ||
 		error instanceof BedrockResponseError
 		? error.reason

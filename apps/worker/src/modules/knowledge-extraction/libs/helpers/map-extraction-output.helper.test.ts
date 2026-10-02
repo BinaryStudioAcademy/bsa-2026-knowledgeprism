@@ -182,6 +182,42 @@ void describe("mapExtractionOutput", () => {
 		);
 	});
 
+	void it("rebuilds the source passage from excerptStart and excerptEnd", () => {
+		const items = mapSections(
+			[
+				section({
+					excerptEnd: "Use Postgres.",
+					excerptStart: "The limit is",
+					sourceExcerpt: undefined,
+				}),
+			],
+			PAGE_NUMBER,
+			CHUNK,
+		);
+		const [item] = items;
+
+		assert.equal(items.length, SINGLE_ITEM_COUNT);
+		assert.equal(
+			item?.sourceExcerpt,
+			"The limit is 10.\nKeep a backup.\nUse Postgres.",
+		);
+	});
+
+	void it("rejects the attempt when excerptEnd is not in the chunk", () => {
+		const output = toOutput([
+			section({
+				excerptEnd: "not in the chunk",
+				excerptStart: "The limit is",
+				sourceExcerpt: undefined,
+			}),
+		]);
+
+		assert.throws(
+			() => mapExtractionOutput(output, PAGE_NUMBER, CHUNK),
+			isInvalidItemError,
+		);
+	});
+
 	void it("sorts sections by order", () => {
 		const items = mapSections(
 			[

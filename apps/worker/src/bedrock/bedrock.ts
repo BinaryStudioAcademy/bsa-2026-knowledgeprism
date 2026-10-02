@@ -1,11 +1,12 @@
 import { config } from "~/config/config.js";
 
+import { ExtractionBedrockConfig } from "./bedrock-request.constant.js";
 import { createBedrockRuntimeClient } from "./create-bedrock-runtime-client.helper.js";
 
 const { BEDROCK_ACCESS_KEY_ID, BEDROCK_SECRET_ACCESS_KEY, REGION } =
 	config.ENV.AWS;
 
-const bedrockRuntimeClient = createBedrockRuntimeClient({
+const clientOptions = {
 	...(BEDROCK_ACCESS_KEY_ID &&
 		BEDROCK_SECRET_ACCESS_KEY && {
 			credentials: {
@@ -14,6 +15,13 @@ const bedrockRuntimeClient = createBedrockRuntimeClient({
 			},
 		}),
 	region: REGION,
+};
+
+const bedrockRuntimeClient = createBedrockRuntimeClient(clientOptions);
+
+const extractionBedrockRuntimeClient = createBedrockRuntimeClient({
+	...clientOptions,
+	requestTimeout: ExtractionBedrockConfig.REQUEST_TIMEOUT_MS,
 });
 
-export { bedrockRuntimeClient };
+export { bedrockRuntimeClient, extractionBedrockRuntimeClient };

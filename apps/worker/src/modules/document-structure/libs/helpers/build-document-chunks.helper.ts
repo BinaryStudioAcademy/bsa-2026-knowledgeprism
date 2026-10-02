@@ -1,4 +1,5 @@
 import { splitIntoChunks } from "~/modules/knowledge-extraction/libs/helpers/split-into-chunks.helper.js";
+import { type PageStart } from "~/modules/knowledge-extraction/libs/types/page-start.type.js";
 import { type ParsedPageBlock } from "~/parsers/libs/types/parsed-page-block.type.js";
 
 import {
@@ -9,11 +10,6 @@ import { type DocumentChunk, type DocumentLine } from "../types/types.js";
 import { detectPdfHeadings } from "./detect-pdf-headings.helper.js";
 import { detectTextHeadings } from "./detect-text-headings.helper.js";
 
-type LineStart = {
-	offset: number;
-	pageNumber: number;
-};
-
 type Section = {
 	lines: DocumentLine[];
 	title: null | string;
@@ -23,6 +19,7 @@ type UnpositionedChunk = Omit<DocumentChunk, "position">;
 
 const FIRST_INDEX = 0;
 const LAST_CHARACTER_OFFSET = 1;
+const LAST_ITEM_INDEX = -1;
 const LINE_JOINER = "\n";
 const MARKDOWN_TITLE_GROUP = 2;
 const NOT_FOUND_INDEX = -1;
@@ -82,7 +79,7 @@ const toSections = (lines: DocumentLine[]): Section[] => {
 	return foldShortPreamble(sections.filter((section) => hasBody(section)));
 };
 
-const findPageAt = (starts: LineStart[], offset: number): number => {
+const findPageAt = (starts: PageStart[], offset: number): number => {
 	return (
 		starts.findLast((start) => start.offset <= offset)?.pageNumber ??
 		starts[FIRST_INDEX]?.pageNumber ??
@@ -90,11 +87,39 @@ const findPageAt = (starts: LineStart[], offset: number): number => {
 	);
 };
 
+const toPartPageStarts = (
+	starts: PageStart[],
+	{
+		end,
+		offset,
+		pageNumber,
+	}: { end: number; offset: number; pageNumber: number },
+): PageStart[] => {
+	const partStarts: PageStart[] = [{ offset: FIRST_INDEX, pageNumber }];
+
+	for (const start of starts) {
+		const previous = partStarts.at(LAST_ITEM_INDEX);
+
+		if (
+			start.offset > offset &&
+			start.offset < end &&
+			start.pageNumber !== previous?.pageNumber
+		) {
+			partStarts.push({
+				offset: start.offset - offset,
+				pageNumber: start.pageNumber,
+			});
+		}
+	}
+
+	return partStarts;
+};
+
 const toSectionChunks = (
 	section: Section,
 	sectionIndex: number,
 ): UnpositionedChunk[] => {
-	const starts: LineStart[] = [];
+	const starts: PageStart[] = [];
 	let content = "";
 
 	for (const { pageNumber, text } of section.lines) {
@@ -113,10 +138,17 @@ const toSectionChunks = (
 		const offset = foundAt === NOT_FOUND_INDEX ? searchFrom : foundAt;
 		searchFrom = offset + part.length;
 
+		const pageNumber = findPageAt(starts, offset);
+
 		return {
 			content: part,
 			pageEnd: findPageAt(starts, offset + part.length - LAST_CHARACTER_OFFSET),
-			pageNumber: findPageAt(starts, offset),
+			pageNumber,
+			pageStarts: toPartPageStarts(starts, {
+				end: offset + part.length,
+				offset,
+				pageNumber,
+			}),
 			part: partIndex,
 			sectionIndex,
 			sectionTitle: section.title,
@@ -130,6 +162,7 @@ const toPageChunks = (pages: ParsedPageBlock[]): UnpositionedChunk[] => {
 			content: part,
 			pageEnd: pageNumber,
 			pageNumber,
+			pageStarts: [{ offset: FIRST_INDEX, pageNumber }],
 			part: partIndex,
 			sectionIndex: null,
 			sectionTitle: null,

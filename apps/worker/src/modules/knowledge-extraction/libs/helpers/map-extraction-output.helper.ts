@@ -15,7 +15,10 @@ import {
 	createSourceVocabulary,
 	isGroundedText,
 } from "./is-grounded-text.helper.js";
-import { locateSourceSpan } from "./locate-source-span.helper.js";
+import {
+	locateAnchoredSpan,
+	locateSourceSpan,
+} from "./locate-source-span.helper.js";
 import { promoteParallelItems } from "./promote-parallel-items.helper.js";
 
 const CalloutLabel = {
@@ -450,11 +453,29 @@ const parseExtractionCandidates = (raw: unknown): unknown[] => {
 	return parsed.items;
 };
 
+const locateCandidateSpan = (
+	candidate: Record<string, unknown>,
+	chunkContent: string,
+): null | string => {
+	const { excerptEnd, excerptStart, sourceExcerpt } = candidate;
+
+	if (isNonEmptyString(excerptStart) && isNonEmptyString(excerptEnd)) {
+		return locateAnchoredSpan(chunkContent, {
+			end: excerptEnd,
+			start: excerptStart,
+		});
+	}
+
+	return isNonEmptyString(sourceExcerpt)
+		? locateSourceSpan(chunkContent, sourceExcerpt)
+		: null;
+};
+
 const readCandidateRejection = (
 	candidate: Record<string, unknown>,
 	chunkContent: string,
 ): null | Rejection => {
-	const { blocks, confidence, heading, order, sourceExcerpt } = candidate;
+	const { blocks, confidence, heading, order } = candidate;
 
 	if (!isNonEmptyString(heading) || heading.length > TITLE_MAXIMUM_LENGTH) {
 		return ExtractionItemRejection.INVALID_HEADING;
@@ -464,10 +485,7 @@ const readCandidateRejection = (
 		return ExtractionItemRejection.INVALID_ORDER;
 	}
 
-	if (
-		!isNonEmptyString(sourceExcerpt) ||
-		locateSourceSpan(chunkContent, sourceExcerpt) === null
-	) {
+	if (locateCandidateSpan(candidate, chunkContent) === null) {
 		return ExtractionItemRejection.EXCERPT_NOT_IN_CHUNK;
 	}
 
@@ -500,12 +518,11 @@ const toKnowledgeItem = (
 		return reject(rejection);
 	}
 
-	const { blocks, confidence, heading, order, sourceExcerpt } = candidate as {
+	const { blocks, confidence, heading, order } = candidate as {
 		blocks: unknown[];
 		confidence: number;
 		heading: string;
 		order: number;
-		sourceExcerpt: string;
 	};
 	const storedBlocks = toStoredBlocks(blocks, heading, {
 		canInheritHeading,
@@ -516,8 +533,7 @@ const toKnowledgeItem = (
 		return reject(storedBlocks.rejection);
 	}
 
-	const sourceSpan =
-		locateSourceSpan(chunkContent, sourceExcerpt) ?? sourceExcerpt.trim();
+	const sourceSpan = locateCandidateSpan(candidate, chunkContent) ?? "";
 	const promotedBlocks = promoteParallelItems(
 		storedBlocks.value.blocks,
 		sourceSpan,

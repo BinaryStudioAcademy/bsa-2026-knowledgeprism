@@ -26,6 +26,7 @@ const TWO_CALLS = 2;
 const THREE_CALLS = 3;
 const MAXIMUM_RECOVERY_CALLS = 9;
 const EMPTY_COUNT = 0;
+const LINE_BREAK_LENGTH = 1;
 const PARAGRAPH_REPETITIONS = 12;
 const SINGLE_SENTENCE_LENGTH = 600;
 const THIRD_PAGE_NUMBER = 18;
@@ -596,5 +597,58 @@ void describe("extraction recovery", () => {
 		);
 		assert.deepEqual(result, { failedPageNumbers: [PAGE_NUMBER], items: [] });
 		assert.equal(setup.calls.length, TWO_CALLS);
+	});
+});
+
+void describe("extraction page numbers", () => {
+	void it("marks every page of a failed chunk as failed", async () => {
+		const setup = createSetup((content) =>
+			content === SOURCE
+				? Promise.resolve({ items: [{ heading: "Broken" }] })
+				: Promise.resolve(outputFor(content)),
+		);
+
+		const result = await extractBlocks(
+			[
+				{ ...BLOCK, pageEnd: THIRD_PAGE_NUMBER },
+				{ content: BOUNDARY_RULE, pageNumber: THIRD_PAGE_NUMBER },
+			],
+			setup.dependencies,
+		);
+
+		assert.deepEqual(result.failedPageNumbers, [
+			PAGE_NUMBER,
+			NEXT_PAGE_NUMBER,
+			THIRD_PAGE_NUMBER,
+		]);
+	});
+
+	void it("uses the page where the excerpt starts", async () => {
+		const content = `${SOURCE}\n${BOUNDARY_RULE}`;
+		const setup = createSetup(() =>
+			Promise.resolve({
+				items: [sectionFor(toSourceHeading(BOUNDARY_RULE), BOUNDARY_RULE)],
+			}),
+		);
+
+		const result = await extractBlocks(
+			[
+				{
+					content,
+					pageEnd: NEXT_PAGE_NUMBER,
+					pageNumber: PAGE_NUMBER,
+					pageStarts: [
+						{ offset: EMPTY_COUNT, pageNumber: PAGE_NUMBER },
+						{
+							offset: SOURCE.length + LINE_BREAK_LENGTH,
+							pageNumber: NEXT_PAGE_NUMBER,
+						},
+					],
+				},
+			],
+			setup.dependencies,
+		);
+
+		assert.equal(result.items[EMPTY_COUNT]?.sourcePageNumber, NEXT_PAGE_NUMBER);
 	});
 });

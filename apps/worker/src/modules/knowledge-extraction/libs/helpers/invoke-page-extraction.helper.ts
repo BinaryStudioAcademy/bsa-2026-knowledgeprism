@@ -2,7 +2,7 @@ import { InvokeModelCommand } from "@aws-sdk/client-bedrock-runtime";
 import { BedrockRequest, ClaudeModelId } from "@knowledgeprism/constants";
 
 import { ExtractionBedrockConfig } from "~/bedrock/bedrock-request.constant.js";
-import { bedrockRuntimeClient } from "~/bedrock/bedrock.js";
+import { extractionBedrockRuntimeClient } from "~/bedrock/bedrock.js";
 import { toResponseText } from "~/bedrock/to-response-text.helper.js";
 
 import { EXTRACTION_OUTPUT_SCHEMA } from "../constants/extraction-output-schema.constant.js";
@@ -15,7 +15,7 @@ const invokePageExtraction = async (
 ): Promise<unknown> => {
 	const body = JSON.stringify({
 		anthropic_version: BedrockRequest.ANTHROPIC_VERSION,
-		max_tokens: BedrockRequest.MAX_TOKENS,
+		max_tokens: ExtractionBedrockConfig.MAX_TOKENS,
 		messages: [
 			{
 				content: toExtractionUserMessage(content, previousHeading ?? null),
@@ -29,7 +29,7 @@ const invokePageExtraction = async (
 		temperature: ExtractionBedrockConfig.TEMPERATURE,
 	});
 
-	const response = await bedrockRuntimeClient.send(
+	const response = await extractionBedrockRuntimeClient.send(
 		new InvokeModelCommand({
 			accept: "application/json",
 			body,

@@ -52,11 +52,18 @@ const applyTranslatedSectionTitles = (
 		}
 	}
 
-	return translated.map((chunk) => {
+	return translated.map((chunk, index) => {
 		const title =
 			chunk.sectionIndex === null ? undefined : titles.get(chunk.sectionIndex);
+		const isTranslated = chunk.content !== originals[index]?.content;
 
-		return title === undefined ? chunk : { ...chunk, sectionTitle: title };
+		return {
+			...chunk,
+			pageStarts: isTranslated
+				? [{ offset: FIRST_INDEX, pageNumber: chunk.pageNumber }]
+				: chunk.pageStarts,
+			sectionTitle: title ?? chunk.sectionTitle,
+		};
 	});
 };
 

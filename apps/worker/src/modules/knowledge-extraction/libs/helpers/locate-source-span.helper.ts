@@ -1,4 +1,5 @@
 const FIRST_FOLLOWING_FRAGMENT = 1;
+const FIRST_INDEX = 0;
 const LAST_CHARACTER_OFFSET = 1;
 const LINE_BREAK = /\r?\n/u;
 const NOT_FOUND_INDEX = -1;
@@ -103,4 +104,28 @@ const locateSourceSpan = (
 	);
 };
 
-export { locateSourceSpan };
+const locateAnchoredSpan = (
+	chunkContent: string,
+	{ end, start }: { end: string; start: string },
+): null | string => {
+	const startSpan = locateSourceSpan(chunkContent, start);
+
+	if (startSpan === null) {
+		return null;
+	}
+
+	const rest = chunkContent.slice(chunkContent.indexOf(startSpan));
+	const endSpan = locateSourceSpan(rest, end);
+
+	if (endSpan === null) {
+		return null;
+	}
+
+	const spanEnd = rest.indexOf(endSpan) + endSpan.length;
+
+	return spanEnd < startSpan.length
+		? startSpan
+		: rest.slice(FIRST_INDEX, spanEnd);
+};
+
+export { locateAnchoredSpan, locateSourceSpan };

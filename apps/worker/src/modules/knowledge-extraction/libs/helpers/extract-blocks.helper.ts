@@ -8,6 +8,7 @@ import { type ExtractionDependencies } from "../types/extraction-dependencies.ty
 import { type ExtractionResult } from "../types/extraction-result.type.js";
 import { type KnowledgeItem } from "../types/knowledge-item.type.js";
 import { extractChunk } from "./extract-chunk.helper.js";
+import { findExcerptPage } from "./find-excerpt-page.helper.js";
 import { isBlankPageContent } from "./is-blank-page-content.helper.js";
 import { withInheritedHeading } from "./map-extraction-output.helper.js";
 import { readPreviousHeading } from "./read-previous-heading.helper.js";
@@ -173,11 +174,18 @@ const extractBlocks = async (
 				chunkIndex: chunk.chunkIndex,
 				sectionIndex: chunk.sectionIndex ?? null,
 				sectionTitle: chunk.sectionTitle ?? null,
+				sourcePageNumber: findExcerptPage(chunk, item.sourceExcerpt),
 			})),
 		);
 
 		if (result.hasFailures) {
-			failedPageNumbers.add(chunk.pageNumber);
+			for (
+				let pageNumber = chunk.pageNumber;
+				pageNumber <= (chunk.pageEnd ?? chunk.pageNumber);
+				pageNumber++
+			) {
+				failedPageNumbers.add(pageNumber);
+			}
 			dependencies.logger.error(
 				"Extraction chunk recovery exhausted; page is incomplete.",
 				{
