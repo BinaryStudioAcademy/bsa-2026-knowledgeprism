@@ -42,6 +42,7 @@ import { TabletIcon } from "./icons/tablet.icon.js";
 import { ToastCheckIcon } from "./icons/toast-check.icon.js";
 import { UploadIcon } from "./icons/upload.icon.js";
 import { UsersIcon } from "./icons/users.icon.js";
+import { WarningIcon } from "./icons/warning.icon.js";
 import { type SvgIconProperties } from "./types.js";
 
 const DEFAULT_ICON_SIZE = 14;
@@ -91,6 +92,7 @@ const iconNameToComponent = {
 	"toast-check": ToastCheckIcon,
 	upload: UploadIcon,
 	users: UsersIcon,
+	warning: WarningIcon,
 } as const satisfies Record<string, React.FC<SvgIconProperties>>;
 
 type IconName = keyof typeof iconNameToComponent;
