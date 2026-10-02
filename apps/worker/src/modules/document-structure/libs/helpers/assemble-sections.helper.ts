@@ -6,11 +6,7 @@ import {
 import { toPlainText } from "~/modules/knowledge-extraction/libs/helpers/map-extraction-output.helper.js";
 import { type KnowledgeItem } from "~/modules/knowledge-extraction/libs/types/knowledge-item.type.js";
 
-import { SectionAssembly } from "../constants/document-structure.constant.js";
-
 type SectionGroup = {
-	blocks: ExtractionContentBlock[];
-	isSection: boolean;
 	items: KnowledgeItem[];
 	title: string;
 };
@@ -26,9 +22,6 @@ const SECTION_NUMBER_PREFIXES = [
 	/^appendix [a-z\d]+\.?\s+/iu,
 	/^[a-z]{1,4}-\d+\s+/iu,
 ];
-const SENTENCE_SEGMENTER = new Intl.Segmenter("en", {
-	granularity: "sentence",
-});
 const TEXT_RUN_TYPE = "text";
 
 const normalizeText = (text: string): string => {
@@ -49,10 +42,6 @@ const isSameTitle = (left: string, right: string): boolean => {
 		normalizeText(left) === normalizeText(right) ||
 		toComparableTitle(left) === toComparableTitle(right)
 	);
-};
-
-const readBlockText = (block: ExtractionContentBlock): string => {
-	return block.content.map(({ text }) => text).join("");
 };
 
 const isHeadingBlock = (block: ExtractionContentBlock): boolean => {
@@ -76,17 +65,17 @@ const toBodyBlocks = (item: KnowledgeItem): ExtractionContentBlock[] => {
 	return first && isHeadingBlock(first) ? rest : item.blocks;
 };
 
-const toGroupKey = (item: KnowledgeItem): string => {
+const toGroupKey = (item: KnowledgeItem, index: number): string => {
 	return item.sectionIndex === undefined || item.sectionIndex === null
-		? `heading:${normalizeText(item.heading)}`
+		? `item:${String(index)}`
 		: `section:${String(item.sectionIndex)}`;
 };
 
 const groupItems = (items: KnowledgeItem[]): SectionGroup[] => {
 	const groups = new Map<string, SectionGroup>();
 
-	for (const item of items) {
-		const key = toGroupKey(item);
+	for (const [index, item] of items.entries()) {
+		const key = toGroupKey(item, index);
 		const group = groups.get(key);
 
 		if (group) {
@@ -95,8 +84,6 @@ const groupItems = (items: KnowledgeItem[]): SectionGroup[] => {
 		}
 
 		groups.set(key, {
-			blocks: [],
-			isSection: item.sectionIndex !== undefined && item.sectionIndex !== null,
 			items: [item],
 			title: item.sectionTitle ?? item.heading,
 		});
@@ -116,64 +103,6 @@ const toGroupBlocks = (group: SectionGroup): ExtractionContentBlock[] => {
 	);
 };
 
-const isNewText = (text: string, seenTexts: Set<string>): boolean => {
-	const normalized = normalizeText(text);
-
-	if (normalized.length < SectionAssembly.MINIMUM_DUPLICATE_LENGTH) {
-		return true;
-	}
-
-	if (seenTexts.has(normalized)) {
-		return false;
-	}
-
-	seenTexts.add(normalized);
-
-	return true;
-};
-
-const isPlainBlock = (block: ExtractionContentBlock): boolean => {
-	return block.content.every(({ styles }) => styles === undefined);
-};
-
-const removeDuplicateSentences = (
-	block: ExtractionContentBlock,
-	seenTexts: Set<string>,
-): ExtractionContentBlock[] => {
-	const sentences = Array.from(
-		SENTENCE_SEGMENTER.segment(readBlockText(block)),
-		({ segment }) => segment,
-	);
-	const kept = sentences.filter((sentence) => isNewText(sentence, seenTexts));
-
-	if (kept.length === sentences.length) {
-		return [block];
-	}
-
-	const text = kept.join("").trim();
-
-	return text === ""
-		? []
-		: [{ ...block, content: [{ text, type: TEXT_RUN_TYPE }] }];
-};
-
-const removeDuplicateBlocks = (
-	blocks: ExtractionContentBlock[],
-	seenTexts: Set<string>,
-): ExtractionContentBlock[] => {
-	return blocks.flatMap((block) => {
-		if (isHeadingBlock(block)) {
-			return [block];
-		}
-
-		if (isPlainBlock(block)) {
-			return removeDuplicateSentences(block, seenTexts);
-		}
-
-		return isNewText(readBlockText(block), seenTexts) ? [block] : [];
-	});
-};
-
 const removeEmptyHeadings = (
 	blocks: ExtractionContentBlock[],
 ): ExtractionContentBlock[] => {
@@ -186,55 +115,12 @@ const removeEmptyHeadings = (
 	});
 };
 
-const mergeSameTitles = (groups: SectionGroup[]): SectionGroup[] => {
-	const byTitle = new Map<string, SectionGroup>();
-
-	for (const group of groups) {
-		const key = normalizeText(group.title);
-		const existing = byTitle.get(key);
-
-		if (existing) {
-			existing.blocks.push(...group.blocks);
-			existing.items.push(...group.items);
-			continue;
-		}
-
-		byTitle.set(key, group);
-	}
-
-	return byTitle.values().toArray();
-};
-
-const foldShortGroups = (groups: SectionGroup[]): SectionGroup[] => {
-	const folded: SectionGroup[] = [];
-
-	for (const group of groups) {
-		const previous = folded.at(-NEXT_INDEX_OFFSET);
-		const canFold =
-			!group.isSection &&
-			toPlainText(group.blocks).length < SectionAssembly.MINIMUM_SECTION_LENGTH;
-
-		if (previous && canFold) {
-			previous.blocks.push(
-				toHeadingBlock(group.title, ExtractionHeadingLevel.NESTED),
-				...group.blocks,
-			);
-			previous.items.push(...group.items);
-			continue;
-		}
-
-		folded.push(group);
-	}
-
-	return folded;
-};
-
 const toSectionItem = (
 	group: SectionGroup,
 	position: number,
 ): KnowledgeItem | null => {
 	const [first] = group.items;
-	const bodyBlocks = removeEmptyHeadings(group.blocks);
+	const bodyBlocks = removeEmptyHeadings(toGroupBlocks(group));
 
 	if (!first || bodyBlocks.length === FIRST_INDEX) {
 		return null;
@@ -262,13 +148,7 @@ const toSectionItem = (
 };
 
 const assembleSections = (items: KnowledgeItem[]): KnowledgeItem[] => {
-	const seenTexts = new Set<string>();
-	const groups = groupItems(items).map((group) => ({
-		...group,
-		blocks: removeDuplicateBlocks(toGroupBlocks(group), seenTexts),
-	}));
-
-	return foldShortGroups(mergeSameTitles(groups))
+	return groupItems(items)
 		.map((group, index) => toSectionItem(group, index + FIRST_POSITION))
 		.filter((item): item is KnowledgeItem => item !== null);
 };

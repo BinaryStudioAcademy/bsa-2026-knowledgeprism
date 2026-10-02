@@ -504,6 +504,66 @@ void describe("IntegrationApplier placements", () => {
 		assert.equal(grandchild.position, FIRST_POSITION);
 	});
 
+	void it("nests a child of a dropped duplicate under the section it repeats", async () => {
+		const { applier, created } = createSetup();
+		const duplicate = toNestedChange({
+			extractionItemId: SECOND_ITEM_ID,
+			id: SECOND_CHANGE_ID,
+			parentExtractionItemId: FIRST_ITEM_ID,
+		}).toObject();
+
+		await applier.apply(
+			{
+				changes: [
+					toNestedChange({
+						extractionItemId: FIRST_ITEM_ID,
+						id: FIRST_CHANGE_ID,
+						parentExtractionItemId: null,
+					}),
+					IntegrationChangeEntity.initialize({
+						...duplicate,
+						duplicateOfExtractionItemId: FIRST_ITEM_ID,
+						type: IntegrationChangeType.DUPLICATE,
+					}),
+					toNestedChange({
+						extractionItemId: THIRD_ITEM_ID,
+						id: THIRD_CHANGE_ID,
+						parentExtractionItemId: SECOND_ITEM_ID,
+					}),
+				],
+				contentOverrides: [],
+				document: DOCUMENT,
+				placements: [
+					{
+						changeId: FIRST_CHANGE_ID,
+						parentExtractionItemId: null,
+						parentId: EXISTING_PAGE_ID,
+						position: FIRST_POSITION,
+					},
+					{
+						changeId: THIRD_CHANGE_ID,
+						parentExtractionItemId: SECOND_ITEM_ID,
+						parentId: null,
+						position: SECOND_POSITION,
+					},
+				],
+				resolutions: [],
+				userId: USER_ID,
+			},
+			{} as Transaction,
+		);
+
+		const [section] = created;
+		assert.ok(section);
+		assert.deepEqual(
+			created.map(({ parentId, title }) => [title, parentId]),
+			[
+				[`Item ${String(FIRST_ITEM_ID)}`, EXISTING_PAGE_ID],
+				[`Item ${String(THIRD_ITEM_ID)}`, section.id],
+			],
+		);
+	});
+
 	void it("rejects a missing incoming parent before creating any nodes", async () => {
 		const { applier, created } = createSetup();
 

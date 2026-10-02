@@ -9,6 +9,7 @@ const EMPTY_LENGTH = 0;
 const toEntity = (change: IntegrationChangeModel): IntegrationChangeEntity =>
 	IntegrationChangeEntity.initialize({
 		documentId: change.documentId,
+		duplicateOfExtractionItemId: change.duplicateOfExtractionItemId,
 		explanation: change.explanation,
 		extractionItemId: change.extractionItemId,
 		id: change.id,

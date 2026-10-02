@@ -9,8 +9,10 @@ export {
 	withTranslatedSectionTitles,
 } from "./modules/document-structure/services/document-structure.service.js";
 export { EmbeddingInputType } from "./modules/embeddings/libs/constants/embedding-input-type.constant.js";
+export { toEmbeddingEntry } from "./modules/embeddings/libs/helpers/to-embedding-entry.helper.js";
 export {
 	type EmbeddingCandidate,
+	type EmbeddingEntry,
 	type EmbeddingInputTypeValue,
 	type EmbeddingVector,
 	type SemanticSearchParameters,
@@ -18,7 +20,9 @@ export {
 } from "./modules/embeddings/libs/types/types.js";
 export {
 	embed,
+	embedChunked,
 	search,
+	searchGrouped,
 } from "./modules/embeddings/services/embedding.service.js";
 export { embedGlossaryTerm } from "./modules/glossary-consistency/libs/helpers/embed-glossary-term.helper.js";
 export {

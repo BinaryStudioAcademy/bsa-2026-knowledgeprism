@@ -108,6 +108,57 @@ const isNodeChangedSinceAnalysis = (
 
 class IntegrationAnalysisOutdatedError extends Error {}
 
+const withDroppedDuplicateParents = (
+	placements: Placement[],
+	{
+		changes,
+		createdChanges,
+	}: {
+		changes: IntegrationChangeEntity[];
+		createdChanges: IntegrationChangeEntity[];
+	},
+): Placement[] => {
+	const earlierItemIdByDroppedItemId = new Map(
+		changes
+			.filter((change) => !createdChanges.includes(change))
+			.flatMap((change) => {
+				const { duplicateOfExtractionItemId, extractionItemId } =
+					change.toObject();
+
+				return duplicateOfExtractionItemId == null
+					? []
+					: [[extractionItemId, duplicateOfExtractionItemId] as const];
+			}),
+	);
+
+	return placements.map((placement) => {
+		const earlierItemId =
+			placement.parentExtractionItemId == null
+				? undefined
+				: earlierItemIdByDroppedItemId.get(placement.parentExtractionItemId);
+
+		return earlierItemId === undefined
+			? placement
+			: { ...placement, parentExtractionItemId: earlierItemId };
+	});
+};
+
+const isEarlierSectionDuplicate = (
+	duplicateOfExtractionItemId: null | number | undefined,
+): boolean => {
+	return duplicateOfExtractionItemId != null;
+};
+
+const isIncomingKept = (
+	resolution: IntegrationConflictResolutionDto | undefined,
+): boolean => {
+	return [resolution?.content, resolution?.title].some(
+		(choice) =>
+			choice === IntegrationResolution.USE_NEW ||
+			choice === IntegrationResolution.BOTH,
+	);
+};
+
 class IntegrationApplier {
 	private extractionItemRepository: ExtractionItemRepository;
 
@@ -456,9 +507,13 @@ class IntegrationApplier {
 		const nodes = new Map<number, KnowledgeNodeEntity>();
 
 		for (const change of changes) {
-			const { matchedNodeId, type } = change.toObject();
+			const { duplicateOfExtractionItemId, matchedNodeId, type } =
+				change.toObject();
 
-			if (type === IntegrationChangeType.NEW) {
+			if (
+				type === IntegrationChangeType.NEW ||
+				isEarlierSectionDuplicate(duplicateOfExtractionItemId)
+			) {
 				continue;
 			}
 
@@ -509,11 +564,18 @@ class IntegrationApplier {
 			{ changes, projectId },
 			transaction,
 		);
-		const newChanges: IntegrationChangeEntity[] = [];
+		const isDuplicate = (change: IntegrationChangeEntity): boolean =>
+			isEarlierSectionDuplicate(change.toObject().duplicateOfExtractionItemId);
+		const analyzedChanges = changes.filter((change) => !isDuplicate(change));
+		const newChanges: IntegrationChangeEntity[] = changes.filter(
+			(change) =>
+				isDuplicate(change) &&
+				isIncomingKept(resolutionByChangeId.get(change.toObject().id)),
+		);
 		const existingNodeIdsByItemId = new Map<number, number>();
 		const writtenFieldKeys = new Set<string>();
 
-		for (const change of changes) {
+		for (const change of analyzedChanges) {
 			const { extractionItemId, id, matchedNodeId, type } = change.toObject();
 			const matchedNode =
 				matchedNodeId === null ? undefined : nodes.get(matchedNodeId);
@@ -563,7 +625,10 @@ class IntegrationApplier {
 				existingNodeIdsByItemId,
 				knownChangeIds: new Set(changes.map((change) => change.toObject().id)),
 				overrideByChangeId,
-				placements,
+				placements: withDroppedDuplicateParents(placements, {
+					changes,
+					createdChanges: newChanges,
+				}),
 				userId,
 			},
 			transaction,

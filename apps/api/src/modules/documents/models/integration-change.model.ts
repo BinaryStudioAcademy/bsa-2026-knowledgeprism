@@ -9,6 +9,8 @@ import {
 class IntegrationChangeModel extends AbstractModel {
 	public documentId!: number;
 
+	public duplicateOfExtractionItemId!: null | number;
+
 	public explanation!: string;
 
 	public extractionItemId!: number;
