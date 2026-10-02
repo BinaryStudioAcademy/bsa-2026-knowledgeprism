@@ -1,31 +1,16 @@
-import { type KnowledgeItem } from "../types/knowledge-item.type.js";
-
-const ExtractionBlockType = {
-	HEADING: "heading",
-} as const;
-
 const FIRST_INDEX = 0;
 const HASH_MARK = "#";
 const HASH_STEP = 1;
 const LAST_INDEX = -1;
+const LINE_BREAK = /\r?\n/u;
 const MAX_HEADING_HASHES = 6;
 const MIN_HEADING_HASHES = 1;
 
-const readLastNonEmptyLine = (content: string): null | string => {
-	const lines = content.split(/\r?\n/u);
-	let index = lines.length + LAST_INDEX;
-
-	while (index >= FIRST_INDEX) {
-		const line = lines[index]?.trim() ?? "";
-
-		if (line !== "") {
-			return line;
-		}
-
-		index += LAST_INDEX;
-	}
-
-	return null;
+const toNonEmptyLines = (content: string): string[] => {
+	return content
+		.split(LINE_BREAK)
+		.map((line) => line.trim())
+		.filter((line) => line !== "");
 };
 
 const readMarkdownTitle = (line: string): null | string => {
@@ -53,46 +38,24 @@ const readMarkdownTitle = (line: string): null | string => {
 	return title === "" ? null : title;
 };
 
-const readBlockText = (item: KnowledgeItem): null | string => {
-	const lastBlock = item.blocks.at(LAST_INDEX);
+const hasLeadingHeading = (content: string): boolean => {
+	const [firstLine] = toNonEmptyLines(content);
 
-	if (!lastBlock || lastBlock.type !== ExtractionBlockType.HEADING) {
-		return null;
-	}
-
-	return lastBlock.content
-		.map((run) => run.text)
-		.join("")
-		.trim();
+	return firstLine !== undefined && readMarkdownTitle(firstLine) !== null;
 };
 
-const readPreviousHeading = (
-	chunkContent: string,
-	items: readonly KnowledgeItem[],
-): null | string => {
-	const lastLine = readLastNonEmptyLine(chunkContent);
+const readPreviousHeading = (previousContent: string): null | string => {
+	const lines = toNonEmptyLines(previousContent);
 
-	if (lastLine === null) {
-		return null;
+	for (let index = lines.length + LAST_INDEX; index >= FIRST_INDEX; index--) {
+		const title = readMarkdownTitle(lines[index] ?? "");
+
+		if (title !== null) {
+			return title;
+		}
 	}
 
-	const markdownTitle = readMarkdownTitle(lastLine);
-
-	if (markdownTitle !== null) {
-		return markdownTitle;
-	}
-
-	const lastItem = items.at(LAST_INDEX);
-
-	if (!lastItem) {
-		return null;
-	}
-
-	if (readBlockText(lastItem) !== lastLine) {
-		return null;
-	}
-
-	return lastItem.heading;
+	return null;
 };
 
-export { readPreviousHeading };
+export { hasLeadingHeading, readPreviousHeading };

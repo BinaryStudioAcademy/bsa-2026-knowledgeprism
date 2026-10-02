@@ -3,6 +3,10 @@ import {
 	BedrockResponseFailure,
 } from "~/bedrock/bedrock-response-error.exception.js";
 
+import {
+	ExtractionRejectionFeedback,
+	GENERIC_EXTRACTION_FEEDBACK,
+} from "../constants/extraction-feedback.constant.js";
 import { ExtractionRecovery } from "../constants/extraction-recovery.constant.js";
 import { ExtractionOutputError } from "../exceptions/extraction-output-error.exception.js";
 import { type ExtractionBlock } from "../types/extraction-block.type.js";
@@ -24,6 +28,8 @@ type ChunkResult = {
 	successfulChunkCount: number;
 };
 
+const ERROR_DETAIL_SEPARATOR = ":";
+const INVOCATION_ERROR_REASON = "invocation_error";
 const NO_SUCCESSFUL_CHUNKS = 0;
 const ONE_SUCCESSFUL_CHUNK = 1;
 const FIRST_ATTEMPT = 1;
@@ -62,6 +68,50 @@ const extractSplitChunk = async (
 	return result;
 };
 
+const toErrorReason = (error: unknown): string => {
+	if (error instanceof ExtractionOutputError && error.detail) {
+		return `${error.reason}${ERROR_DETAIL_SEPARATOR}${error.detail}`;
+	}
+
+	return error instanceof ExtractionOutputError ||
+		error instanceof BedrockResponseError
+		? error.reason
+		: INVOCATION_ERROR_REASON;
+};
+
+const toFeedback = (error: unknown): null | string => {
+	if (!(error instanceof ExtractionOutputError)) {
+		return null;
+	}
+
+	return (
+		(error.detail && ExtractionRejectionFeedback[error.detail]) ??
+		GENERIC_EXTRACTION_FEEDBACK
+	);
+};
+
+const toRawResponse = (raw: unknown): null | string => {
+	if (raw === undefined || raw === null) {
+		return null;
+	}
+
+	return typeof raw === "string" ? raw : JSON.stringify(raw);
+};
+
+const recordResponse = async (
+	chunk: Chunk & { attempt: number },
+	dependencies: ExtractionDependencies,
+	{ error, raw }: { error: unknown; raw: unknown },
+): Promise<void> => {
+	await dependencies.onResponse?.({
+		attempt: chunk.attempt,
+		chunkIndex: chunk.chunkIndex,
+		errorReason: error === null ? null : toErrorReason(error),
+		rawResponse: toRawResponse(raw),
+		splitPart: chunk.splitPart ?? null,
+	});
+};
+
 const handleFailure = (
 	error: unknown,
 	chunk: Chunk & { attempt: number },
@@ -89,17 +139,26 @@ const extractChunk = async (
 	chunk: Chunk,
 	dependencies: ExtractionDependencies,
 ): Promise<ChunkResult> => {
+	let feedback: null | string = null;
+
 	for (
 		let attempt = FIRST_ATTEMPT;
 		attempt <= ExtractionRecovery.MAXIMUM_ATTEMPTS;
 		attempt++
 	) {
+		let raw: unknown = null;
+
 		try {
-			const raw = await dependencies.invoke(
+			raw = await dependencies.invoke(
 				chunk.content,
 				chunk.previousHeading ?? null,
+				feedback,
 			);
 			const items = mapExtractionOutput(raw, chunk.pageNumber, chunk.content);
+			await recordResponse({ ...chunk, attempt }, dependencies, {
+				error: null,
+				raw,
+			});
 
 			return {
 				hasFailures: false,
@@ -107,7 +166,12 @@ const extractChunk = async (
 				successfulChunkCount: ONE_SUCCESSFUL_CHUNK,
 			};
 		} catch (error) {
+			await recordResponse({ ...chunk, attempt }, dependencies, {
+				error,
+				raw,
+			});
 			handleFailure(error, { ...chunk, attempt }, dependencies);
+			feedback = toFeedback(error);
 
 			if (
 				error instanceof BedrockResponseError &&

@@ -26,6 +26,7 @@ import { type IntegrationChangeRepository } from "../repositories/integration-ch
 import { IntegrationAnalyzer } from "./integration-analyzer.js";
 
 const DOCUMENT_ID = 7;
+const ignoreLog = (): void => {};
 const PROJECT_ID = 3;
 const ATTEMPT = 2;
 const FIRST_ITEM_ID = 1;
@@ -152,6 +153,12 @@ const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
 				return Promise.resolve([]);
 			},
 		} as unknown as KnowledgeNodeRepository,
+		logger: {
+			debug: ignoreLog,
+			error: ignoreLog,
+			info: ignoreLog,
+			warn: ignoreLog,
+		},
 	});
 	return {
 		analyzer,

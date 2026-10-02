@@ -11,6 +11,7 @@ import { type SemanticSearchParameters } from "../libs/types/semantic-search-par
 import { type SimilarityMatch } from "../libs/types/similarity-match.type.js";
 
 const EMPTY_TEXTS_COUNT = 0;
+const FIRST_CHARACTER_INDEX = 0;
 const NOT_FOUND_INDEX = -1;
 const FIRST_MATCH_INDEX = 0;
 const MIN_TOP_K = 1;
@@ -32,16 +33,11 @@ const embed = async (
 		);
 	}
 
-	for (const [index, text] of texts.entries()) {
-		if (text.length > EmbeddingRequest.MAX_TEXT_LENGTH) {
-			logger.warn(
-				`Text at index ${index.toString()} is ${text.length.toString()} characters long, over the ${EmbeddingRequest.MAX_TEXT_LENGTH.toString()} limit. Cohere will truncate it`,
-			);
-		}
-	}
-
+	const limitedTexts = texts.map((text) =>
+		text.slice(FIRST_CHARACTER_INDEX, EmbeddingRequest.MAX_TEXT_LENGTH),
+	);
 	const batches = splitIntoBatches(
-		texts,
+		limitedTexts,
 		EmbeddingRequest.MAX_TEXTS_PER_REQUEST,
 	);
 
