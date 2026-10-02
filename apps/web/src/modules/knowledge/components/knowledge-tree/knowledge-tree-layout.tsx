@@ -337,7 +337,6 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 type ApprovedReading = {
 	entry: KnowledgeEntryResponseDto | undefined;
 	isDocumentReady: boolean;
-	scrollSectionId: number | undefined;
 	sections: KnowledgeEntryResponseDto[] | undefined;
 };
 
@@ -367,7 +366,6 @@ const selectApprovedReading = ({
 		return {
 			entry: selectedEntry,
 			isDocumentReady,
-			scrollSectionId: undefined,
 			sections: undefined,
 		};
 	}
@@ -375,7 +373,6 @@ const selectApprovedReading = ({
 	return {
 		entry: documentEntry,
 		isDocumentReady,
-		scrollSectionId: documentView.scrollSectionId,
 		sections: sectionEntries,
 	};
 };
@@ -976,7 +973,6 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 				onCancel={handleCancelEdit}
 				onRemoveSection={handleRemoveSection}
 				onSaveSection={handleSaveSection}
-				scrollSectionId={reading.scrollSectionId}
 				sections={reading.sections}
 			/>
 		);

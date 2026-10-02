@@ -61,20 +61,15 @@ const approvedDocument = [
 ];
 
 describe("resolveApprovedDocumentView", () => {
-	it("scrolls a sidebar heading to that section of the parent document", () => {
+	it("opens only the selected section", () => {
 		expect(
 			resolveApprovedDocumentView(approvedDocument, SECOND_SECTION_ID),
-		).toEqual({
-			documentId: DOCUMENT_ID,
-			scrollSectionId: SECOND_SECTION_ID,
-			sectionIds: [FIRST_SECTION_ID, SECOND_SECTION_ID],
-		});
+		).toBeNull();
 	});
 
-	it("opens the approved document at the top when the page itself is selected", () => {
+	it("opens the whole document when the page itself is selected", () => {
 		expect(resolveApprovedDocumentView(approvedDocument, DOCUMENT_ID)).toEqual({
 			documentId: DOCUMENT_ID,
-			scrollSectionId: undefined,
 			sectionIds: [FIRST_SECTION_ID, SECOND_SECTION_ID],
 		});
 	});
