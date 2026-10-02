@@ -30,6 +30,7 @@ const EXISTING_SECTION_ID = 70;
 const EXISTING_ENTRY_ID = 51;
 const SECOND_EXISTING_ENTRY_ID = 52;
 const LAST_EXISTING_CHILD_POSITION = 3;
+const SECOND_CHILD_OFFSET = 2;
 const NEXT_ROOT_POSITION = 7;
 const FIRST_APPENDED_POSITION = 4;
 const SECOND_APPENDED_POSITION = 5;
@@ -79,7 +80,7 @@ const EXISTING_NODES = [
 		contentJson: [{ content: "Glossary text", type: "paragraph" }],
 		id: SECOND_EXISTING_ENTRY_ID,
 		parentId: null,
-		position: LAST_EXISTING_CHILD_POSITION + 2,
+		position: LAST_EXISTING_CHILD_POSITION + SECOND_CHILD_OFFSET,
 		type: KnowledgeNodeType.ENTRY,
 	}),
 	toNode({

@@ -92,16 +92,16 @@ const resolveIncoming = (
 const getTargetMatch = (
 	change: IntegrationChangeEntity,
 	resolution: IntegrationConflictResolutionDto | undefined,
-): { content: string; nodeId: number; span: string; title: string } | null => {
+): null | { content: string; nodeId: number; span: string; title: string } => {
 	const { placement } = change.toObject();
 
-	if (resolution?.matchIndex !== undefined && placement?.matches) {
+	if (resolution?.matchIndex !== undefined) {
 		const match = placement.matches[resolution.matchIndex];
 
 		if (match) {
 			return {
 				content: match.content,
-				nodeId: Number(match.nodeId),
+				nodeId: match.nodeId,
 				span: match.span,
 				title: match.title,
 			};
@@ -121,14 +121,15 @@ const isNodeChangedSinceAnalysis = (
 	const targetMatch = getTargetMatch(change, resolution);
 
 	const expectedTitle = targetMatch ? targetMatch.title : liveTitle;
-	const expectedContent = targetMatch ? targetMatch.content : liveContent;
-	const expectedSpan = targetMatch
-		? targetMatch.span
-		: (placement?.matches?.[FIRST_MATCH_INDEX]?.span ?? "");
 
 	if (expectedTitle !== null && title !== expectedTitle) {
 		return true;
 	}
+
+	const expectedContent = targetMatch ? targetMatch.content : liveContent;
+	const expectedSpan = targetMatch
+		? targetMatch.span
+		: (placement.matches[FIRST_MATCH_INDEX]?.span ?? "");
 
 	const currentText = flattenContentToText(contentJson);
 
@@ -186,9 +187,7 @@ class IntegrationApplier {
 			const liveText = flattenContentToText(contentJson);
 			const targetMatch = getTargetMatch(change, resolution);
 			const span =
-				targetMatch?.span ??
-				placement?.matches?.[FIRST_MATCH_INDEX]?.span ??
-				"";
+				targetMatch?.span ?? placement.matches[FIRST_MATCH_INDEX]?.span ?? "";
 			const nextText = appendIncomingAtSpan(liveText, incomingContent, span);
 			const appliedNode =
 				nextText === liveText && nextTitle === title
