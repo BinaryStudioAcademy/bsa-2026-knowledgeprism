@@ -1,5 +1,8 @@
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
-import { type KnowledgeTreeResponseDto } from "@knowledgeprism/types";
+import {
+	type KnowledgeEntryResponseDto,
+	type KnowledgeTreeResponseDto,
+} from "@knowledgeprism/types";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import { type JSX, useCallback, useEffect } from "react";
 import { Provider } from "react-redux";
@@ -17,12 +20,14 @@ import { KnowledgeTreePage } from "./knowledge-tree-page.js";
 vi.mock("./knowledge-tree/knowledge-tree-layout.js", () => ({
 	KnowledgeTreeLayout: ({
 		entries,
+		isSectionsLoading,
 		isTreeReady,
 		items,
 		onSelectPage,
 		selectedPageId,
 	}: {
 		entries: Record<number, { title: string }>;
+		isSectionsLoading: boolean;
 		isTreeReady: boolean;
 		items: { title: string }[];
 		onSelectPage: (id: number) => void;
@@ -31,18 +36,28 @@ vi.mock("./knowledge-tree/knowledge-tree-layout.js", () => ({
 		const handleSelectSecondPage = useCallback((): void => {
 			onSelectPage(SECOND_PAGE_ID);
 		}, [onSelectPage]);
+		const handleSelectDocument = useCallback((): void => {
+			onSelectPage(PROJECT_A_NODE_ID);
+		}, [onSelectPage]);
 		const selectedEntry =
 			selectedPageId === undefined ? undefined : entries[selectedPageId];
 		const treeTitles = items.map((item) => item.title);
 
 		return (
 			<>
+				<div data-testid="sections-state">
+					{isSectionsLoading ? "loading" : "ready"}
+				</div>
 				<div data-testid="tree-state">
 					{isTreeReady ? "ready" : "loading"}:{treeTitles}
 				</div>
+				<button onClick={handleSelectDocument} type="button">
+					Select Document
+				</button>
 				<button onClick={handleSelectSecondPage} type="button">
 					Select B
 				</button>
+				<div data-testid="entry-count">{Object.keys(entries).length}</div>
 				<div data-testid="selected-entry">
 					{selectedPageId === undefined
 						? "none"
@@ -58,6 +73,9 @@ const PROJECT_B_NODE_ID = 2;
 const FIRST_PAGE_ID = 10;
 const SECOND_PAGE_ID = 20;
 const PROJECT_ID = "a";
+const LARGE_SECTION_COUNT = 200;
+const SINGLE_REQUEST_COUNT = 1;
+const FIRST_CALL_INDEX = 0;
 const REFRESH_TREE_REQUEST_COUNT = 2;
 const ENTRY_REQUEST_COUNT_AFTER_REFRESH = 3;
 const RETAINED_PAGE_REQUEST_COUNT = 2;
@@ -126,13 +144,20 @@ const createEntry = (id: number, title: string) => ({
 	updatedAt: "2026-09-28T00:00:00.000Z",
 });
 
-const ProjectRoute = ({ projectId }: { projectId: string }): JSX.Element => {
+const ProjectRoute = ({
+	nodeId,
+	projectId,
+}: {
+	nodeId?: number;
+	projectId: string;
+}): JSX.Element => {
 	const navigate = useNavigate();
 	useProjectKnowledgePipeline({ canEdit: false, projectId });
 
 	useEffect(() => {
-		void navigate(`/workspaces/${projectId}/knowledge-tree`);
-	}, [navigate, projectId]);
+		const query = nodeId === undefined ? "" : `?nodeId=${String(nodeId)}`;
+		void navigate(`/workspaces/${projectId}/knowledge-tree${query}`);
+	}, [navigate, nodeId, projectId]);
 
 	return (
 		<Routes>
@@ -144,6 +169,48 @@ const ProjectRoute = ({ projectId }: { projectId: string }): JSX.Element => {
 	);
 };
 
+const createDocumentTree = (): KnowledgeTreeResponseDto => ({
+	items: [
+		{
+			id: PROJECT_A_NODE_ID,
+			parentId: null,
+			position: 0,
+			title: "Document",
+			type: KnowledgeNodeType.PAGE,
+			updatedAt: "2026-09-28T00:00:00.000Z",
+		},
+		...Array.from({ length: LARGE_SECTION_COUNT }, (_, index) => ({
+			id: FIRST_PAGE_ID + index,
+			parentId: PROJECT_A_NODE_ID,
+			position: index,
+			title: `Section ${String(FIRST_PAGE_ID + index)}`,
+			type: KnowledgeNodeType.ENTRY,
+			updatedAt: "2026-09-28T00:00:00.000Z",
+		})),
+	],
+});
+
+const createDocumentContent = (
+	prefix = "Section",
+): { items: KnowledgeEntryResponseDto[] } => ({
+	items: createDocumentTree().items.map((item) => ({
+		...createEntry(item.id, `${prefix} ${String(item.id)}`),
+		parentId: item.parentId,
+		type: item.type,
+	})),
+});
+
+const renderProject = (): ReturnType<typeof render> =>
+	render(
+		<Provider store={store.instance}>
+			<MemoryRouter
+				initialEntries={[`/workspaces/${PROJECT_ID}/knowledge-tree`]}
+			>
+				<ProjectRoute nodeId={PROJECT_A_NODE_ID} projectId={PROJECT_ID} />
+			</MemoryRouter>
+		</Provider>,
+	);
+
 describe("KnowledgeTreePage project races", () => {
 	beforeEach(() => {
 		store.instance.dispatch(actions.resetState(null));
@@ -152,6 +219,215 @@ describe("KnowledgeTreePage project races", () => {
 	afterEach(() => {
 		store.instance.dispatch(actions.resetState(null));
 		vi.restoreAllMocks();
+	});
+
+	it("loads 200 sections once without a separate entry request", async () => {
+		const document = Promise.withResolvers<{
+			items: KnowledgeEntryResponseDto[];
+		}>();
+		vi.spyOn(knowledgeApi, "getKnowledgeTree").mockResolvedValue(
+			createDocumentTree(),
+		);
+		const getEntry = vi
+			.spyOn(knowledgeApi, "getKnowledgeEntry")
+			.mockImplementation(({ entryId }) =>
+				Promise.resolve(createEntry(entryId, `Section ${String(entryId)}`)),
+			);
+		const getDocument = vi
+			.spyOn(knowledgeApi, "getDocumentSections")
+			.mockReturnValue(document.promise);
+
+		renderProject();
+		await waitFor(() => {
+			expect(getDocument).toHaveBeenCalledTimes(SINGLE_REQUEST_COUNT);
+		});
+		const signal =
+			getDocument.mock.calls[FIRST_CALL_INDEX]?.[FIRST_CALL_INDEX].signal;
+		act(() => {
+			screen.getByRole("button", { name: "Select Document" }).click();
+		});
+		expect(signal?.aborted).toBe(false);
+		expect(getDocument).toHaveBeenCalledTimes(SINGLE_REQUEST_COUNT);
+		await act(async () => {
+			document.resolve(createDocumentContent());
+			await document.promise;
+		});
+		await waitFor(() => {
+			expect(screen.getByTestId("selected-entry")).toHaveTextContent(
+				`Section ${String(PROJECT_A_NODE_ID)}`,
+			);
+			expect(screen.getByTestId("sections-state")).toHaveTextContent("ready");
+			expect(screen.getByTestId("entry-count")).toHaveTextContent(
+				String(LARGE_SECTION_COUNT + SINGLE_REQUEST_COUNT),
+			);
+		});
+		expect(getEntry).not.toHaveBeenCalled();
+		expect(getDocument).toHaveBeenCalledTimes(SINGLE_REQUEST_COUNT);
+		expect(getDocument).toHaveBeenCalledWith(
+			expect.objectContaining({
+				documentId: PROJECT_A_NODE_ID,
+				projectId: PROJECT_ID,
+			}),
+		);
+	});
+
+	it("reloads document content once after a tree refresh", async () => {
+		vi.spyOn(knowledgeApi, "getKnowledgeTree").mockResolvedValue(
+			createDocumentTree(),
+		);
+		const getEntry = vi
+			.spyOn(knowledgeApi, "getKnowledgeEntry")
+			.mockImplementation(({ entryId }) =>
+				Promise.resolve(createEntry(entryId, `Section ${String(entryId)}`)),
+			);
+		const getDocument = vi
+			.spyOn(knowledgeApi, "getDocumentSections")
+			.mockResolvedValueOnce(createDocumentContent())
+			.mockResolvedValueOnce(createDocumentContent("Updated"));
+
+		renderProject();
+		await waitFor(() => {
+			expect(screen.getByTestId("selected-entry")).toHaveTextContent(
+				`Section ${String(PROJECT_A_NODE_ID)}`,
+			);
+		});
+		act(() => {
+			screen.getByRole("button", { name: "Select Document" }).click();
+		});
+		await waitFor(() => {
+			expect(screen.getByTestId("selected-entry")).toHaveTextContent(
+				`Section ${String(PROJECT_A_NODE_ID)}`,
+			);
+		});
+		expect(getDocument).toHaveBeenCalledTimes(SINGLE_REQUEST_COUNT);
+		await act(async () => {
+			await store.instance.dispatch(
+				fetchKnowledgeTree({ projectId: PROJECT_ID }),
+			);
+		});
+		await waitFor(() => {
+			expect(screen.getByTestId("selected-entry")).toHaveTextContent(
+				`Updated ${String(PROJECT_A_NODE_ID)}`,
+			);
+		});
+		expect(getDocument).toHaveBeenCalledTimes(REFRESH_TREE_REQUEST_COUNT);
+		expect(getEntry).not.toHaveBeenCalled();
+	});
+
+	it("shows a bulk-read error and does not retry on reselecting the document", async () => {
+		vi.spyOn(knowledgeApi, "getKnowledgeTree").mockResolvedValue(
+			createDocumentTree(),
+		);
+		const getEntry = vi
+			.spyOn(knowledgeApi, "getKnowledgeEntry")
+			.mockImplementation(({ entryId }) =>
+				Promise.resolve(createEntry(entryId, `Section ${String(entryId)}`)),
+			);
+		const getDocument = vi
+			.spyOn(knowledgeApi, "getDocumentSections")
+			.mockRejectedValue(new Error("Document unavailable"));
+
+		renderProject();
+		await waitFor(() => {
+			expect(screen.getByTestId("sections-state")).toHaveTextContent("ready");
+		});
+		await waitFor(() => {
+			expect(store.instance.getState().knowledge.knowledgeErrorMessage).toBe(
+				"Document unavailable",
+			);
+		});
+		act(() => {
+			screen.getByRole("button", { name: "Select Document" }).click();
+		});
+		expect(getDocument).toHaveBeenCalledTimes(SINGLE_REQUEST_COUNT);
+		expect(getEntry).not.toHaveBeenCalled();
+		expect(store.instance.getState().knowledge.isEntryLoading).toBe(false);
+	});
+
+	it("clears cached content when a refreshed document cannot be loaded", async () => {
+		vi.spyOn(knowledgeApi, "getKnowledgeTree").mockResolvedValue(
+			createDocumentTree(),
+		);
+		vi.spyOn(knowledgeApi, "getKnowledgeEntry").mockImplementation(
+			({ entryId }) =>
+				Promise.resolve(createEntry(entryId, `Section ${String(entryId)}`)),
+		);
+		const getDocument = vi
+			.spyOn(knowledgeApi, "getDocumentSections")
+			.mockResolvedValueOnce(createDocumentContent())
+			.mockRejectedValueOnce(new Error("Refresh unavailable"));
+
+		renderProject();
+		await waitFor(() => {
+			expect(screen.getByTestId("selected-entry")).toHaveTextContent(
+				`Section ${String(PROJECT_A_NODE_ID)}`,
+			);
+		});
+		await act(async () => {
+			await store.instance.dispatch(
+				fetchKnowledgeTree({ projectId: PROJECT_ID }),
+			);
+		});
+		await waitFor(() => {
+			expect(store.instance.getState().knowledge.knowledgeErrorMessage).toBe(
+				"Refresh unavailable",
+			);
+			expect(screen.getByTestId("entry-count")).toHaveTextContent(/^0$/u);
+		});
+		expect(getDocument).toHaveBeenCalledTimes(REFRESH_TREE_REQUEST_COUNT);
+	});
+
+	it("aborts an old project document request and ignores its late response", async () => {
+		vi.spyOn(knowledgeApi, "getKnowledgeEntry").mockImplementation(
+			({ entryId, projectId }) =>
+				Promise.resolve(
+					createEntry(
+						entryId,
+						`${projectId === PROJECT_ID ? "Project A" : "Project B"} ${String(entryId)}`,
+					),
+				),
+		);
+		const oldDocument = Promise.withResolvers<{
+			items: KnowledgeEntryResponseDto[];
+		}>();
+		vi.spyOn(knowledgeApi, "getKnowledgeTree").mockResolvedValue(
+			createDocumentTree(),
+		);
+		const getDocument = vi
+			.spyOn(knowledgeApi, "getDocumentSections")
+			.mockImplementation(({ projectId }) =>
+				projectId === PROJECT_ID
+					? oldDocument.promise
+					: Promise.resolve(createDocumentContent("Project B")),
+			);
+		const view = renderProject();
+		await waitFor(() => {
+			expect(getDocument).toHaveBeenCalledTimes(SINGLE_REQUEST_COUNT);
+		});
+		const oldSignal =
+			getDocument.mock.calls[FIRST_CALL_INDEX]?.[FIRST_CALL_INDEX].signal;
+		view.rerender(
+			<Provider store={store.instance}>
+				<MemoryRouter
+					initialEntries={[`/workspaces/${PROJECT_ID}/knowledge-tree`]}
+				>
+					<ProjectRoute nodeId={PROJECT_A_NODE_ID} projectId="b" />
+				</MemoryRouter>
+			</Provider>,
+		);
+		await waitFor(() => {
+			expect(screen.getByTestId("selected-entry")).toHaveTextContent(
+				`Project B ${String(PROJECT_A_NODE_ID)}`,
+			);
+		});
+		expect(oldSignal?.aborted).toBe(true);
+		await act(async () => {
+			oldDocument.resolve(createDocumentContent("Project A"));
+			await oldDocument.promise;
+		});
+		expect(screen.getByTestId("selected-entry")).toHaveTextContent(
+			`Project B ${String(PROJECT_A_NODE_ID)}`,
+		);
 	});
 
 	it("keeps fast project B ready after slow project A settles", async () => {
