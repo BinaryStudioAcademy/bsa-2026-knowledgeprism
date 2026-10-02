@@ -1,5 +1,6 @@
 export { type KnowledgeDocumentCreateRequestDto } from "./knowledge-document-create-request-dto.type.js";
 export { type KnowledgeDocumentMoveRequestDto } from "./knowledge-document-move-request-dto.type.js";
+export { type KnowledgeDocumentSectionsResponseDto } from "./knowledge-document-sections-response-dto.type.js";
 export { type KnowledgeEntryResponseDto } from "./knowledge-entry-response-dto.type.js";
 export { type KnowledgeEntryRouteParametersDto } from "./knowledge-entry-route-parameters-dto.type.js";
 export { type KnowledgeEntryUpdateRequestDto } from "./knowledge-entry-update-request-dto.type.js";

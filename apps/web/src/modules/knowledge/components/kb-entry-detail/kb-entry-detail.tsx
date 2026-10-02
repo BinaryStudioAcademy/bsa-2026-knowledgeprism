@@ -14,7 +14,6 @@ import {
 } from "~/modules/knowledge/libs/types/types.js";
 
 import { EMPTY_LENGTH } from "../../libs/constants/constants.js";
-import { KNOWLEDGE_SECTION_ATTRIBUTE } from "../../libs/helpers/scroll-to-knowledge-section.helper.js";
 import { parseInitialContent } from "./libs/helpers/parse-initial-content.helper.js";
 import { KbEntryForm } from "./libs/kb-entry-form.js";
 
@@ -176,13 +175,7 @@ const KbEntryDetail = ({
 					) : null}
 					{hasSections ? (
 						sectionList.map((section) => (
-							<section
-								className="knowledge-section"
-								key={section.id}
-								{...{
-									[KNOWLEDGE_SECTION_ATTRIBUTE]: String(section.id),
-								}}
-							>
+							<section className="knowledge-section" key={section.id}>
 								<h2 className="knowledge-section-heading">{section.title}</h2>
 								<KnowledgeEditor
 									initialContent={parseInitialContent(

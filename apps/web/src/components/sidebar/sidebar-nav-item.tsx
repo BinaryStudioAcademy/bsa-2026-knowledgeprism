@@ -1,10 +1,4 @@
-import {
-	type FocusEvent,
-	type MouseEvent,
-	type ReactNode,
-	useCallback,
-	useState,
-} from "react";
+import { type MouseEvent, type ReactNode, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 
@@ -60,34 +54,17 @@ const NavTooltip = ({
 	isEnabled,
 	label,
 }: NavTooltipProperties): React.JSX.Element => {
-	const [isFocused, setIsFocused] = useState(false);
 	const [isHovered, setIsHovered] = useState(false);
 	const [tooltipPosition, setTooltipPosition] =
 		useState<null | TooltipPosition>(null);
-	const isTooltipVisible = isEnabled && (isFocused || isHovered);
+	const isTooltipVisible = isEnabled && isHovered;
 
-	const showTooltip = useCallback(
-		(event: FocusEvent<HTMLDivElement> | MouseEvent<HTMLDivElement>): void => {
-			setTooltipPosition(readTooltipPosition(event.currentTarget));
-		},
-		[],
-	);
-	const handleFocus = useCallback(
-		(event: FocusEvent<HTMLDivElement>): void => {
-			setIsFocused(true);
-			showTooltip(event);
-		},
-		[showTooltip],
-	);
-	const handleBlur = useCallback((): void => {
-		setIsFocused(false);
-	}, []);
 	const handleMouseEnter = useCallback(
 		(event: MouseEvent<HTMLDivElement>): void => {
 			setIsHovered(true);
-			showTooltip(event);
+			setTooltipPosition(readTooltipPosition(event.currentTarget));
 		},
-		[showTooltip],
+		[],
 	);
 	const handleMouseLeave = useCallback((): void => {
 		setIsHovered(false);
@@ -100,8 +77,6 @@ const NavTooltip = ({
 	return (
 		<div
 			className={className}
-			onBlur={handleBlur}
-			onFocus={handleFocus}
 			onMouseEnter={handleMouseEnter}
 			onMouseLeave={handleMouseLeave}
 		>

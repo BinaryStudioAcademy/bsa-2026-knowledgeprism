@@ -9,6 +9,7 @@ import {
 	type GlossaryConsistencyCheckResponseDto,
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationChangesResponseDto,
+	type KnowledgeDocumentSectionsResponseDto,
 	type KnowledgeEntryResponseDto,
 	type KnowledgeEntryUpdateRequestDto,
 	type KnowledgeSearchResponseDto,
@@ -427,6 +428,17 @@ const applyIntegrationChanges = createAppAsyncThunk<
 	{
 		condition: (request, { getState }) =>
 			isTrackedDocumentRequestCurrent(request, getState()),
+	},
+);
+
+const fetchDocumentSections = createAsyncThunk<
+	KnowledgeDocumentSectionsResponseDto,
+	{ documentId: number; projectId: string },
+	AsyncThunkConfig
+>(
+	`${sliceName}/fetch-document-sections`,
+	async (payload, { extra, signal }) => {
+		return await extra.knowledgeApi.getDocumentSections({ ...payload, signal });
 	},
 );
 
@@ -1276,6 +1288,7 @@ export {
 	checkGlossaryConsistency,
 	confirmDocumentUpload,
 	createDocumentNode,
+	fetchDocumentSections,
 	fetchExtractionItems,
 	fetchIntegrationChanges,
 	fetchKnowledgeEntry,

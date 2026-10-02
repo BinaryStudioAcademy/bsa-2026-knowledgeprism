@@ -123,6 +123,7 @@ type ProposedPage = {
 	matchedNodeId?: number;
 	originalContent?: string;
 	originalTitle?: string;
+	placementParentExtractionItemId?: null | number;
 	placementParentId?: null | number;
 	proposedHeading?: string;
 	proposedPlace?: string;

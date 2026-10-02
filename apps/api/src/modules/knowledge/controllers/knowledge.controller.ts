@@ -155,6 +155,20 @@ class KnowledgeController extends BaseController {
 
 		this.addRoute({
 			handler: (options) =>
+				this.findDocumentSections(
+					options as APIHandlerOptions<{
+						params: KnowledgeEntryRouteParametersDto;
+					}>,
+				),
+			method: "GET",
+			path: KnowledgeApiPath.ENTRY_$ID_SECTIONS,
+			validation: {
+				params: knowledgeEntryRouteParametersValidationSchema,
+			},
+		});
+
+		this.addRoute({
+			handler: (options) =>
 				this.search(
 					options as APIHandlerOptions<{
 						params: KnowledgeSearchRouteParametersDto;
@@ -263,6 +277,56 @@ class KnowledgeController extends BaseController {
 				projectId: Number(options.params.projectId),
 			}),
 			status: HTTPCode.CREATED,
+		};
+	}
+
+	/**
+	 * @swagger
+	 * /projects/{projectId}/knowledge/{id}/sections:
+	 *    get:
+	 *      description: Get a document page and all its sections in one request
+	 *      parameters:
+	 *        - in: path
+	 *          name: projectId
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *        - in: path
+	 *          name: id
+	 *          required: true
+	 *          schema:
+	 *            type: integer
+	 *      responses:
+	 *        200:
+	 *          description: The document first, then its sections by position
+	 *          content:
+	 *            application/json:
+	 *              schema:
+	 *                type: object
+	 *                properties:
+	 *                  items:
+	 *                    type: array
+	 *                    items:
+	 *                      $ref: "#/components/schemas/KnowledgeEntryResponse"
+	 *        401:
+	 *          description: Unauthorized
+	 *        403:
+	 *          description: Forbidden (non-member)
+	 *        404:
+	 *          description: Document not found, or the node is not a document page
+	 */
+	private async findDocumentSections(
+		options: APIHandlerOptions<{
+			params: KnowledgeEntryRouteParametersDto;
+		}>,
+	): Promise<APIHandlerResponse> {
+		return {
+			payload: await this.knowledgeService.findDocumentSections({
+				context: this.getAuthenticatedSessionContext(options),
+				documentId: Number(options.params.id),
+				projectId: Number(options.params.projectId),
+			}),
+			status: HTTPCode.OK,
 		};
 	}
 
