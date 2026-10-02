@@ -187,6 +187,7 @@ class AskPrismService {
 		const [queryVector] = await this.embedder(
 			[question],
 			EmbeddingInputType.SEARCH_QUERY,
+			{ isLimited: false },
 		);
 
 		if (!queryVector) {
@@ -196,6 +197,7 @@ class AskPrismService {
 		const nodeVectors = await this.embedder(
 			contexts.map((c) => c.indexedContent),
 			EmbeddingInputType.SEARCH_DOCUMENT,
+			{ isLimited: false },
 		);
 
 		const candidates = contexts.map((contextItem, index) => {

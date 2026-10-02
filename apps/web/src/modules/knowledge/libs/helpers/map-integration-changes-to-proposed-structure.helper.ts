@@ -64,6 +64,7 @@ const mapIntegrationChangeToPage = (
 			.join(", ");
 	}
 
+	page.placementParentExtractionItemId = item.placement.parentExtractionItemId;
 	page.placementParentId = item.placement.parentId;
 
 	if (item.placement.matches.length > EMPTY_LENGTH) {
