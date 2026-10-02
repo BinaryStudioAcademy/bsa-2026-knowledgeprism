@@ -1,8 +1,3 @@
-const SectionAssembly = {
-	MINIMUM_DUPLICATE_LENGTH: 20,
-	MINIMUM_SECTION_LENGTH: 200,
-} as const;
-
 const HeadingDetection = {
 	FONT_SIZE_RATIO: 1.15,
 	FONT_SIZE_ROUNDING: 2,
@@ -28,5 +23,4 @@ export {
 	MINIMUM_PREAMBLE_LENGTH,
 	NUMBER_SEPARATOR,
 	NUMBERED_HEADING,
-	SectionAssembly,
 };

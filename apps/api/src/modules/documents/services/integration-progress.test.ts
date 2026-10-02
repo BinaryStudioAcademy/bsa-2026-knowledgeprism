@@ -34,6 +34,7 @@ const SECOND_ITEM_ID = 2;
 const THIRD_ITEM_ID = 3;
 const ZERO_COUNT = 0;
 const SINGLE_COUNT = 1;
+const TWO_COUNT = 2;
 const FIRST_SECTION_ID = 10;
 const SECOND_SECTION_ID = 20;
 const FIRST_PARAMETER_INDEX = 0;
@@ -134,6 +135,8 @@ const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
 				callback({} as Transaction),
 		} as Database,
 		documentRepository,
+		embedChunked: (entries) =>
+			Promise.resolve(entries.map(({ item }) => ({ item, vector: [] }))),
 		extractionItemRepository: {
 			findByDocumentId: () => Promise.resolve(items),
 		} as unknown as ExtractionItemRepository,
@@ -254,7 +257,7 @@ void describe("integration progress", () => {
 		assert.deepEqual(setup.persistedCounts, []);
 	});
 
-	void it("places each section's items in order while sections run independently", async () => {
+	void it("places every item of the document in order after the earlier decisions", async () => {
 		const setup = createSetup([
 			createItem(FIRST_ITEM_ID, "Section one start", {
 				extractionSectionId: FIRST_SECTION_ID,
@@ -270,10 +273,10 @@ void describe("integration progress", () => {
 		await setup.analyzer.process({ attempt: ATTEMPT, documentId: DOCUMENT_ID });
 
 		assert.equal(setup.priorCountByText.get("Section one start"), ZERO_COUNT);
-		assert.equal(setup.priorCountByText.get("Section two start"), ZERO_COUNT);
+		assert.equal(setup.priorCountByText.get("Section two start"), SINGLE_COUNT);
 		assert.equal(
 			setup.priorCountByText.get("Section one follow-up"),
-			SINGLE_COUNT,
+			TWO_COUNT,
 		);
 	});
 });

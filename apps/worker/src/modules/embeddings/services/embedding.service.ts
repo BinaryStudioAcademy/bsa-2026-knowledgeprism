@@ -4,7 +4,10 @@ import { EmbeddingRequest } from "../libs/constants/embedding-request.constant.j
 import { SemanticSearchDefault } from "../libs/constants/semantic-search-default.constant.js";
 import { calculateCosineSimilarity } from "../libs/helpers/calculate-cosine-similarity.helper.js";
 import { invokeEmbedding } from "../libs/helpers/invoke-embedding.helper.js";
+import { splitForEmbedding } from "../libs/helpers/split-for-embedding.helper.js";
 import { splitIntoBatches } from "../libs/helpers/split-into-batches.helper.js";
+import { type EmbeddingCandidate } from "../libs/types/embedding-candidate.type.js";
+import { type EmbeddingEntry } from "../libs/types/embedding-entry.type.js";
 import { type EmbeddingInputTypeValue } from "../libs/types/embedding-input-type-value.type.js";
 import { type EmbeddingVector } from "../libs/types/embedding-vector.type.js";
 import { type SemanticSearchParameters } from "../libs/types/semantic-search-parameters.type.js";
@@ -81,4 +84,25 @@ const search = <T>(
 	return sortedMatches.slice(FIRST_MATCH_INDEX, topK);
 };
 
-export { embed, search };
+const embedChunked = async <T>(
+	entries: { entry: EmbeddingEntry; item: T }[],
+	inputType: EmbeddingInputTypeValue,
+): Promise<EmbeddingCandidate<T>[]> => {
+	const chunks = entries.flatMap(({ entry, item }) =>
+		splitForEmbedding(entry).map((text) => ({ item, text })),
+	);
+	const vectors = await embed(
+		chunks.map(({ text }) => text),
+		inputType,
+	);
+
+	return chunks.flatMap(({ item }, index) => {
+		const vector = vectors[index];
+
+		return vector ? [{ item, vector }] : [];
+	});
+};
+
+export { embed, embedChunked, search };
+
+export { searchGrouped } from "../libs/helpers/search-grouped.helper.js";

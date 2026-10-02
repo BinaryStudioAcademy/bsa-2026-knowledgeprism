@@ -1,26 +1,27 @@
-import {
-	flattenContentToText,
-	mapWithConcurrency,
-} from "@knowledgeprism/config";
+import { flattenContentToText } from "@knowledgeprism/config";
 import {
 	DocumentErrorMessage,
 	DocumentProcessingPhase,
 	DocumentStatus,
 	ExtractionItemStatus,
+	IntegrationChangeType,
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
 import {
 	type DocumentPlacementDto,
 	type DocumentProcessingProgressDto,
+	type ExtractionContentBlock,
 } from "@knowledgeprism/types";
 import {
 	analyze,
-	embed,
+	embedChunked,
 	type EmbeddingCandidate,
+	type EmbeddingEntry,
 	EmbeddingInputType,
 	isAutoNewResult,
 	type PlacementTreeNode,
 	type RecordedSectionPlacement,
+	toEmbeddingEntry,
 	toRecordedSectionPlacement,
 } from "@knowledgeprism/worker";
 
@@ -44,20 +45,26 @@ type Constructor = {
 	analyze?: Analyze;
 	database: Database;
 	documentRepository: DocumentRepository;
+	embedChunked?: EmbedChunked;
 	extractionItemRepository: ExtractionItemRepository;
 	integrationChangeRepository: IntegrationChangeRepository;
 	knowledgeNodeRepository: KnowledgeNodeRepository;
 	logger: Logger;
 };
 
+type EmbedChunked = typeof embedChunked<KnowledgeCandidate>;
+
 type KnowledgeCandidate = {
 	content: string;
-	id: number;
+	extractionItemId: null | number;
+	id: null | number;
 	title: string;
 };
 
 const ANALYSIS_TEXT_SEPARATOR = "\n";
-const MAXIMUM_CONCURRENT_ANALYSES = 8;
+const EMPTY_BLOCK_COUNT = 0;
+const EARLIER_SECTION_EXPLANATION =
+	"It overlaps an earlier section of this document, so both are kept.";
 
 const toAnalysisText = (title: string, content: string): string =>
 	[title, content].join(ANALYSIS_TEXT_SEPARATOR).trim();
@@ -70,27 +77,36 @@ type AnalysisContext = {
 	skippedClassification: { count: number };
 };
 
-const UNSECTIONED_GROUP_PREFIX = "page-";
-
-const toSectionGroupKey = (item: ExtractionItemEntity): string => {
-	const { extractionSectionId, sourcePageNumber } = item.toObject();
-
-	return extractionSectionId === null
-		? `${UNSECTIONED_GROUP_PREFIX}${String(sourcePageNumber)}`
-		: String(extractionSectionId);
+const toItemEntry = ({
+	blocks,
+	text,
+	title,
+}: {
+	blocks: ExtractionContentBlock[];
+	text: string;
+	title: string;
+}): EmbeddingEntry => {
+	return blocks.length === EMPTY_BLOCK_COUNT
+		? { text, title }
+		: toEmbeddingEntry({ blocks, title });
 };
 
-const groupBySection = (
-	items: ExtractionItemEntity[],
-): ExtractionItemEntity[][] => {
-	const groups = new Map<string, ExtractionItemEntity[]>();
+const toDocumentResult = (
+	result: Awaited<ReturnType<Analyze>>,
+): Awaited<ReturnType<Analyze>> => {
+	const isEarlierSection = result.matchedItem?.extractionItemId != null;
 
-	for (const item of items) {
-		const key = toSectionGroupKey(item);
-		groups.set(key, [...(groups.get(key) ?? []), item]);
+	if (!isEarlierSection || result.type === IntegrationChangeType.DUPLICATE) {
+		return result;
 	}
 
-	return groups.values().toArray();
+	return {
+		...result,
+		explanation: `${result.explanation} ${EARLIER_SECTION_EXPLANATION}`,
+		matchedItem: null,
+		matches: [],
+		type: IntegrationChangeType.NEW,
+	};
 };
 
 class IntegrationAnalyzer {
@@ -99,6 +115,8 @@ class IntegrationAnalyzer {
 	private database: Database;
 
 	private documentRepository: DocumentRepository;
+
+	private embedChunked: EmbedChunked;
 
 	private extractionItemRepository: ExtractionItemRepository;
 
@@ -112,6 +130,7 @@ class IntegrationAnalyzer {
 		analyze: analyzeItem = analyze,
 		database,
 		documentRepository,
+		embedChunked: embedChunkedEntries = embedChunked,
 		extractionItemRepository,
 		integrationChangeRepository,
 		knowledgeNodeRepository,
@@ -119,6 +138,7 @@ class IntegrationAnalyzer {
 	}: Constructor) {
 		this.analyze = analyzeItem;
 		this.database = database;
+		this.embedChunked = embedChunkedEntries;
 		this.documentRepository = documentRepository;
 		this.extractionItemRepository = extractionItemRepository;
 		this.integrationChangeRepository = integrationChangeRepository;
@@ -127,7 +147,13 @@ class IntegrationAnalyzer {
 	}
 
 	private async analyzeItem(
-		item: ExtractionItemEntity,
+		{
+			item,
+			itemCandidates,
+		}: {
+			item: ExtractionItemEntity;
+			itemCandidates: EmbeddingCandidate<KnowledgeCandidate>[];
+		},
 		priorPlacements: RecordedSectionPlacement[],
 		{
 			candidates,
@@ -145,6 +171,7 @@ class IntegrationAnalyzer {
 				candidates,
 				documents,
 				itemText: toAnalysisText(title, text),
+				itemVectors: itemCandidates.map(({ vector }) => vector),
 				priorPlacements,
 			});
 		} catch (error) {
@@ -161,10 +188,16 @@ class IntegrationAnalyzer {
 			skippedClassification.count++;
 		}
 
+		const resolved = toDocumentResult(result);
+
+		if (resolved.type === IntegrationChangeType.NEW) {
+			candidates.push(...itemCandidates);
+		}
+
 		const placed = toRecordedSectionPlacement({
 			extractionItemId: id,
 			priorPlacements,
-			result,
+			result: resolved,
 			title,
 			tree: documents,
 		});
@@ -172,12 +205,18 @@ class IntegrationAnalyzer {
 		priorPlacements.push(placed.recorded);
 
 		const placement: DocumentPlacementDto = {
-			matches: result.matches.map((match) => ({
-				content: match.item.content,
-				nodeId: match.item.id,
-				span: match.span,
-				title: match.item.title,
-			})),
+			matches: resolved.matches.flatMap((match) =>
+				match.item.id === null
+					? []
+					: [
+							{
+								content: match.item.content,
+								nodeId: match.item.id,
+								span: match.span,
+								title: match.item.title,
+							},
+						],
+			),
 			parentExtractionItemId: placed.parentExtractionItemId,
 			parentId: placed.parentId,
 			parentTitle: placed.parentTitle,
@@ -187,16 +226,20 @@ class IntegrationAnalyzer {
 
 		return IntegrationChangeEntity.initializeNew({
 			documentId,
-			explanation: result.explanation,
+			duplicateOfExtractionItemId:
+				resolved.type === IntegrationChangeType.DUPLICATE
+					? (resolved.matchedItem?.extractionItemId ?? null)
+					: null,
+			explanation: resolved.explanation,
 			extractionItemId: id,
 			incomingContent: text,
 			incomingTitle: title,
-			liveContent: result.matchedItem?.content ?? null,
-			liveTitle: result.matchedItem?.title ?? null,
-			matchedNodeId: result.matchedItem?.id ?? null,
+			liveContent: resolved.matchedItem?.content ?? null,
+			liveTitle: resolved.matchedItem?.title ?? null,
+			matchedNodeId: resolved.matchedItem?.id ?? null,
 			placement,
-			score: result.score,
-			type: result.type,
+			score: resolved.score,
+			type: resolved.type,
 		});
 	}
 
@@ -225,32 +268,37 @@ class IntegrationAnalyzer {
 			},
 			skippedClassification,
 		};
-		const analyzedGroups = await mapWithConcurrency(
-			groupBySection(items),
-			MAXIMUM_CONCURRENT_ANALYSES,
-			async (group) => {
-				const priorPlacements: RecordedSectionPlacement[] = [];
-				const groupChanges: IntegrationChangeEntity[] = [];
+		const priorPlacements: RecordedSectionPlacement[] = [];
+		const changes: IntegrationChangeEntity[] = [];
 
-				for (const item of group) {
-					groupChanges.push(
-						await this.analyzeItem(item, priorPlacements, context),
-					);
-				}
+		const itemCandidates = await this.embedChunked(
+			items.map((item) => {
+				const { blocks, id, text, title } = item.toObject();
 
-				return groupChanges;
-			},
+				return {
+					entry: toItemEntry({ blocks: blocks ?? [], text, title }),
+					item: { content: text, extractionItemId: id, id: null, title },
+				};
+			}),
+			EmbeddingInputType.SEARCH_DOCUMENT,
 		);
-		const changeByItemId = new Map(
-			analyzedGroups
-				.flat()
-				.map((change) => [change.toObject().extractionItemId, change]),
-		);
-		const changes = items.flatMap((item) => {
-			const change = changeByItemId.get(item.toObject().id);
 
-			return change ? [change] : [];
-		});
+		for (const item of items) {
+			const { id } = item.toObject();
+
+			changes.push(
+				await this.analyzeItem(
+					{
+						item,
+						itemCandidates: itemCandidates.filter(
+							(candidate) => candidate.item.extractionItemId === id,
+						),
+					},
+					priorPlacements,
+					context,
+				),
+			);
+		}
 
 		return toResolvableChanges(changes);
 	}
@@ -258,25 +306,21 @@ class IntegrationAnalyzer {
 	private async loadCandidates(
 		nodes: KnowledgeNodeEntity[],
 	): Promise<EmbeddingCandidate<KnowledgeCandidate>[]> {
-		const candidates = nodes
+		const entries = nodes
 			.map((node) => node.toObject())
 			.filter(({ type }) => type === KnowledgeNodeType.ENTRY)
 			.map(({ contentJson, id, title }) => ({
-				content: flattenContentToText(contentJson),
-				id,
-				title,
+				entry: toEmbeddingEntry({ blocks: contentJson, title }),
+				item: {
+					content: flattenContentToText(contentJson),
+					extractionItemId: null,
+					id,
+					title,
+				},
 			}))
-			.filter(({ content, title }) => toAnalysisText(title, content) !== "");
-		const vectors = await embed(
-			candidates.map(({ content, title }) => toAnalysisText(title, content)),
-			EmbeddingInputType.SEARCH_DOCUMENT,
-		);
+			.filter(({ item }) => toAnalysisText(item.title, item.content) !== "");
 
-		return candidates.flatMap((item, index) => {
-			const vector = vectors[index];
-
-			return vector ? [{ item, vector }] : [];
-		});
+		return await this.embedChunked(entries, EmbeddingInputType.SEARCH_DOCUMENT);
 	}
 
 	private loadDocuments(nodes: KnowledgeNodeEntity[]): PlacementTreeNode[] {

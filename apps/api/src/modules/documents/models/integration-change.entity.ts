@@ -6,6 +6,7 @@ import { type Entity } from "~/shared/types/types.js";
 
 type IntegrationChangeObject = {
 	documentId: number;
+	duplicateOfExtractionItemId?: null | number;
 	explanation: string;
 	extractionItemId: number;
 	id: number;
@@ -23,6 +24,8 @@ type NewIntegrationChangeObject = Omit<IntegrationChangeObject, "id">;
 
 class IntegrationChangeEntity implements Entity {
 	private documentId: number;
+
+	private duplicateOfExtractionItemId: null | number;
 
 	private explanation: string;
 
@@ -48,6 +51,7 @@ class IntegrationChangeEntity implements Entity {
 
 	private constructor({
 		documentId,
+		duplicateOfExtractionItemId = null,
 		explanation,
 		extractionItemId,
 		id,
@@ -61,6 +65,7 @@ class IntegrationChangeEntity implements Entity {
 		type,
 	}: NewIntegrationChangeObject & { id: null | number }) {
 		this.documentId = documentId;
+		this.duplicateOfExtractionItemId = duplicateOfExtractionItemId;
 		this.explanation = explanation;
 		this.extractionItemId = extractionItemId;
 		this.id = id;
@@ -89,6 +94,7 @@ class IntegrationChangeEntity implements Entity {
 	public toNewObject(): NewIntegrationChangeObject {
 		return {
 			documentId: this.documentId,
+			duplicateOfExtractionItemId: this.duplicateOfExtractionItemId,
 			explanation: this.explanation,
 			extractionItemId: this.extractionItemId,
 			incomingContent: this.incomingContent,

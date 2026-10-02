@@ -8,18 +8,32 @@ import {
 import { assembleSections } from "./assemble-sections.helper.js";
 
 const NOT_FOUND = -1;
-const SECOND_SECTION_INDEX = 1;
 const SECTION_COUNT = 2;
 
 void describe("assembleSections", () => {
-	void it("keeps a fact repeated in two sections only once", () => {
+	void it("keeps a fact repeated in two different sections in both", () => {
 		const sections = assembleSections(REPEATED_FACT_ITEMS);
 		const occurrences = sections.filter(({ text }) =>
 			text.includes(REPEATED_FACT),
 		);
 
 		assert.equal(sections.length, SECTION_COUNT);
-		assert.equal(occurrences.length, SECTION_COUNT - SECOND_SECTION_INDEX);
+		assert.equal(occurrences.length, SECTION_COUNT);
+	});
+
+	void it("keeps items without a source section separate even with the same title", () => {
+		const [first] = REPEATED_FACT_ITEMS;
+
+		if (!first) {
+			throw new Error("Fixture items are missing");
+		}
+
+		const sections = assembleSections([
+			{ ...first, sectionIndex: null },
+			{ ...first, sectionIndex: null },
+		]);
+
+		assert.equal(sections.length, SECTION_COUNT);
 	});
 
 	void it("puts a second AI section from the same source section under a nested heading", () => {

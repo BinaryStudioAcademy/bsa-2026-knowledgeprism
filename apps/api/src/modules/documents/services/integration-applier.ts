@@ -103,6 +103,25 @@ const isNodeChangedSinceAnalysis = (
 
 class IntegrationAnalysisOutdatedError extends Error {}
 
+const isEarlierSectionDuplicate = (
+	duplicateOfExtractionItemId: null | number | undefined,
+): boolean => {
+	return (
+		duplicateOfExtractionItemId !== null &&
+		duplicateOfExtractionItemId !== undefined
+	);
+};
+
+const isIncomingKept = (
+	resolution: IntegrationConflictResolutionDto | undefined,
+): boolean => {
+	return [resolution?.content, resolution?.title].some(
+		(choice) =>
+			choice === IntegrationResolution.USE_NEW ||
+			choice === IntegrationResolution.BOTH,
+	);
+};
+
 class IntegrationApplier {
 	private extractionItemRepository: ExtractionItemRepository;
 
@@ -392,9 +411,13 @@ class IntegrationApplier {
 		const nodes = new Map<number, KnowledgeNodeEntity>();
 
 		for (const change of changes) {
-			const { matchedNodeId, type } = change.toObject();
+			const { duplicateOfExtractionItemId, matchedNodeId, type } =
+				change.toObject();
 
-			if (type === IntegrationChangeType.NEW) {
+			if (
+				type === IntegrationChangeType.NEW ||
+				isEarlierSectionDuplicate(duplicateOfExtractionItemId)
+			) {
 				continue;
 			}
 
@@ -445,11 +468,19 @@ class IntegrationApplier {
 			{ changes, projectId },
 			transaction,
 		);
-		const newChanges: IntegrationChangeEntity[] = [];
+		const isDuplicate = (change: IntegrationChangeEntity): boolean =>
+			isEarlierSectionDuplicate(change.toObject().duplicateOfExtractionItemId);
+		const analyzedChanges = changes.filter((change) => !isDuplicate(change));
+		const newChanges: IntegrationChangeEntity[] = changes.filter(
+			(change) =>
+				isDuplicate(change) &&
+				isIncomingKept(resolutionByChangeId.get(change.toObject().id)),
+		);
 		const writtenFieldKeys = new Set<string>();
 
-		for (const change of changes) {
+		for (const change of analyzedChanges) {
 			const { id, matchedNodeId, type } = change.toObject();
+
 			const matchedNode =
 				matchedNodeId === null ? undefined : nodes.get(matchedNodeId);
 			const fieldKeys =
