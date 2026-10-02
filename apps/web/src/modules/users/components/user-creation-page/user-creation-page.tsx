@@ -145,12 +145,12 @@ const UserCreationPage: React.FC = () => {
 	return (
 		<PageLayout>
 			<div>
-				<Heading level="2">Add New User</Heading>
+				<Heading level="2">Add New Member</Heading>
 				<Paragraph
 					className="mt-1.5 hidden text-text-muted desktop:block"
 					size={ParagraphSize.BODY_SMALL}
 				>
-					Invite a new member to the organisation.
+					Invite a new member to this project
 				</Paragraph>
 			</div>
 
