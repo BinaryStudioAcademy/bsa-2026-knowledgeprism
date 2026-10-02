@@ -1,5 +1,5 @@
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
-import { type AskPrismResponseDto, type ValueOf } from "@knowledgeprism/types";
+import { type AskPrismResponseDto } from "@knowledgeprism/types";
 import {
 	embed,
 	EmbeddingInputType,
@@ -31,10 +31,7 @@ type AskPrismContextItem = {
 };
 
 type Constructor = {
-	embedder?: (
-		texts: string[],
-		inputType: ValueOf<typeof EmbeddingInputType>,
-	) => Promise<number[][]>;
+	embedder?: typeof embed;
 	extractionItemRepository?: ExtractionItemRepository | undefined;
 	knowledgeNodeRepository: KnowledgeNodeRepository;
 	projectService: ProjectService;
@@ -51,10 +48,7 @@ const MAX_SUGGESTIONS = 3;
 const SCORE_THRESHOLD = 0.3;
 
 class AskPrismService {
-	private embedder: (
-		texts: string[],
-		inputType: ValueOf<typeof EmbeddingInputType>,
-	) => Promise<number[][]>;
+	private embedder: typeof embed;
 	private extractionItemRepository?: ExtractionItemRepository | undefined;
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
 	private projectService: ProjectService;
