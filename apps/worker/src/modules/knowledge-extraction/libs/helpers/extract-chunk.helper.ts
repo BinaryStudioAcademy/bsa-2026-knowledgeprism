@@ -120,6 +120,7 @@ const handleFailure = (
 	const isOutputFailure =
 		error instanceof ExtractionOutputError ||
 		error instanceof BedrockResponseError;
+
 	dependencies.logger.warn("Extraction chunk attempt failed.", {
 		...dependencies.context,
 		attempt: chunk.attempt,
@@ -154,7 +155,13 @@ const extractChunk = async (
 				chunk.previousHeading ?? null,
 				feedback,
 			);
-			const items = mapExtractionOutput(raw, chunk.pageNumber, chunk.content);
+
+			const items = mapExtractionOutput(
+				raw,
+				chunk.pageNumber,
+				chunk.originalContent ?? chunk.content,
+			);
+
 			await recordResponse({ ...chunk, attempt }, dependencies, {
 				error: null,
 				raw,
@@ -179,7 +186,6 @@ const extractChunk = async (
 				chunk.splitPart === undefined &&
 				chunk.content.length >= ExtractionRecovery.MINIMUM_SPLIT_LENGTH
 			) {
-				// One split level only: at most three parent calls plus three per half.
 				return await extractSplitChunk(chunk, dependencies);
 			}
 
