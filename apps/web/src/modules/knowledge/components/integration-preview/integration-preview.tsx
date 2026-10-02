@@ -37,6 +37,7 @@ import {
 	toGlossaryHighlightId,
 	toGlossaryHighlights,
 } from "~/modules/glossary/libs/helpers/helpers.js";
+import { getCurrentMerge } from "~/modules/knowledge/libs/helpers/get-current-merge.helper.js";
 import {
 	isManualPage,
 	movePageGroup,
@@ -347,6 +348,12 @@ const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
 		contentConflict.wordingMatches = section.wordingMatches;
 	}
 
+	const merge = getCurrentMerge(section);
+
+	if (merge) {
+		contentConflict.mergedValue = merge.content;
+	}
+
 	return [
 		{
 			changeId: section.integrationChangeId,
@@ -426,6 +433,46 @@ type GlossaryHighlightTooltipContentProperties = {
 	onAccept: (match: GlossaryConsistencyMatchDto) => void;
 	onEdit: (match: GlossaryConsistencyMatchDto) => void;
 	onKeep: (match: GlossaryConsistencyMatchDto) => void;
+};
+const MergedEntryPreview = ({
+	section,
+}: {
+	section: ProposedPage;
+}): JSX.Element | null => {
+	if (!section.merge) {
+		return null;
+	}
+
+	const merge = getCurrentMerge(section);
+
+	return (
+		<div className="flex flex-col gap-2 rounded-md border border-info/25 bg-info-bg/40 p-3.5 tablet:p-5">
+			<span className="font-sans text-2xs font-semibold uppercase tracking-wide text-info">
+				After publishing
+			</span>
+			{merge ? (
+				<>
+					<Paragraph
+						className="text-text-muted"
+						size={ParagraphSize.BODY_SMALL}
+					>
+						Merged with the existing entry, keeping the facts of both.
+					</Paragraph>
+					<SectionContentEditor
+						blocks={merge.blocks}
+						content={merge.content}
+						isEditable={false}
+						key={merge.content}
+					/>
+				</>
+			) : (
+				<Paragraph className="text-text-muted" size={ParagraphSize.BODY_SMALL}>
+					This section was edited, so it is added after the existing entry
+					instead of being merged into it.
+				</Paragraph>
+			)}
+		</div>
+	);
 };
 
 const GlossaryHighlightTooltipContent = ({
@@ -741,6 +788,10 @@ const SectionDetails = ({
 								renderHighlightTooltip={renderGlossaryHighlightTooltip}
 							/>
 						</div>
+					)}
+
+					{!isEditMode && activeSection.status === "modified" && (
+						<MergedEntryPreview section={activeSection} />
 					)}
 
 					<GlossarySuggestions
