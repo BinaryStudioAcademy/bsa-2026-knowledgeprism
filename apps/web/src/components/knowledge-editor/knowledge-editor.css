@@ -115,8 +115,6 @@
 .knowledge-editor {
 	box-sizing: border-box;
 	max-width: 100%;
-	contain: paint;
-	overflow-x: clip;
 }
 
 .knowledge-editor .bn-side-menu,

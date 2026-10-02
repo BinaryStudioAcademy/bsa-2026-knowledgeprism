@@ -14,6 +14,7 @@ import {
 } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
 import {
+	type DefaultReactSuggestionItem,
 	DragHandleMenu,
 	getDefaultReactSlashMenuItems,
 	RemoveBlockItem,
@@ -24,6 +25,7 @@ import {
 	useCreateBlockNote,
 	useExtension,
 } from "@blocknote/react";
+import { useMediaQuery } from "@mantine/hooks";
 import { type ReactNode, useCallback, useEffect, useMemo } from "react";
 
 import { HighlightTooltip } from "./libs/components/components.js";
@@ -106,6 +108,7 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	renderHighlightTooltip,
 	theme = "light",
 }: Properties) => {
+	const isMobile = useMediaQuery("(max-width: 768px)");
 	const disabledBlocksKey = disabledBlocks.join(",");
 
 	const editorSchema = useMemo(() => {
@@ -152,15 +155,26 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	);
 
 	const handleGetSlashMenuItems = useCallback(
-		(query: string) => {
+		(query: string): Promise<DefaultReactSuggestionItem[]> => {
 			const defaultItems = getDefaultReactSlashMenuItems(editor);
-			const filteredItems = defaultItems.filter(
-				(item) => item.group !== "Advanced" && item.group !== "Media",
-			);
+			const filteredItems: DefaultReactSuggestionItem[] = defaultItems
+				.filter((item) => item.group !== "Advanced" && item.group !== "Media")
+				.map((item) => {
+					if (isMobile) {
+						const itemWithoutBadge: DefaultReactSuggestionItem = {
+							...item,
+						};
+						delete itemWithoutBadge.badge;
+
+						return itemWithoutBadge;
+					}
+
+					return item;
+				});
 
 			return Promise.resolve(filterSuggestionItems(filteredItems, query));
 		},
-		[editor],
+		[editor, isMobile],
 	);
 
 	useEffect(() => {
