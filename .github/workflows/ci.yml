@@ -73,6 +73,8 @@ jobs:
     needs: dependencies
     runs-on: ubuntu-latest
     env:
+      AWS_REGION: eu-central-1
+      AWS_S3_BUCKET_NAME: bucket
       BEDROCK_MAXIMUM_CONCURRENT_REQUESTS: 4
 
     steps:
