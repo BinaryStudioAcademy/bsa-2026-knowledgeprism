@@ -109,6 +109,7 @@ class AskPrismService {
 		const [queryVector] = await embed(
 			[question],
 			EmbeddingInputType.SEARCH_QUERY,
+			{ isLimited: false },
 		);
 
 		if (!queryVector) {
@@ -121,6 +122,7 @@ class AskPrismService {
 				item: contextItem,
 			})),
 			EmbeddingInputType.SEARCH_DOCUMENT,
+			{ isLimited: false },
 		);
 		const relevantMatches = searchGrouped({
 			candidates,
