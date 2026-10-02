@@ -20,6 +20,9 @@ type EnvironmentSchema = {
 	EXTRACTION: {
 		CHUNK_LENGTH: number;
 	};
+	FEATURE: {
+		NODE_MERGE_LLM: boolean;
+	};
 	SESSION: {
 		SECRET: string;
 	};

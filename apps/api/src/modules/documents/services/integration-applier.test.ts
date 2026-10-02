@@ -9,7 +9,9 @@ import {
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
 import {
+	type ExtractionContentBlock,
 	type IntegrationChangesApplyRequestDto,
+	type KnowledgeNodeContentDto,
 	type ValueOf,
 } from "@knowledgeprism/types";
 import assert from "node:assert/strict";
@@ -17,9 +19,11 @@ import { describe, it } from "node:test";
 import { type Transaction } from "objection";
 
 import { HTTPError } from "~/infrastructure/http/http.js";
+import { type Logger } from "~/infrastructure/logger/logger.js";
 import { KnowledgeNodeEntity } from "~/modules/knowledge/models/knowledge-node.entity.js";
 import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/knowledge-node.repository.js";
 
+import { NodeMergeMethod } from "../libs/constants/node-merge-method.constant.js";
 import { DocumentEntity } from "../models/document.entity.js";
 import { IntegrationChangeEntity } from "../models/integration-change.entity.js";
 import { type ExtractionItemRepository } from "../repositories/extraction-item.repository.js";
@@ -49,6 +53,16 @@ const THIRD_ITEM_ID = 203;
 const FIRST_POSITION = 0;
 const SECOND_POSITION = 1;
 const NEXT_ID_START = 1000;
+const LIVE_ENTRY_TEXT = "Admins manage users.";
+const LIVE_ENTRY_CONTENT: KnowledgeNodeContentDto = [
+	{ content: LIVE_ENTRY_TEXT, type: "paragraph" },
+];
+const MERGED_BLOCKS: ExtractionContentBlock[] = [
+	{
+		content: [{ text: "Admins manage users and roles.", type: "text" }],
+		type: "paragraph",
+	},
+];
 
 type CreatedNode = {
 	id: number;
@@ -77,6 +91,7 @@ const toNestedChange = ({
 };
 
 const toNode = (data: {
+	contentJson?: KnowledgeNodeContentDto;
 	id: number;
 	parentId: null | number;
 	position: number;
@@ -99,6 +114,7 @@ const EXISTING_NODES = [
 		type: KnowledgeNodeType.PAGE,
 	}),
 	toNode({
+		contentJson: LIVE_ENTRY_CONTENT,
 		id: EXISTING_ENTRY_ID,
 		parentId: EXISTING_PAGE_ID,
 		position: LAST_EXISTING_CHILD_POSITION,
@@ -130,7 +146,7 @@ const toChange = (
 		id,
 		incomingContent: `${title} content`,
 		incomingTitle: title,
-		liveContent: matchedNodeId === null ? null : "",
+		liveContent: matchedNodeId === null ? null : LIVE_ENTRY_TEXT,
 		liveTitle: matchedNodeId === null ? null : `Node ${String(matchedNodeId)}`,
 		matchedNodeId,
 		placement: {
@@ -146,6 +162,17 @@ const toChange = (
 			matchedNodeId === null
 				? IntegrationChangeType.NEW
 				: IntegrationChangeType.UPDATE,
+	});
+
+const toMergedEntryUpdate = (
+	merge: Pick<
+		ReturnType<IntegrationChangeEntity["toObject"]>,
+		"mergedBlocks" | "mergeMethod"
+	>,
+): IntegrationChangeEntity =>
+	IntegrationChangeEntity.initialize({
+		...toChange(FIRST_CHANGE_ID, "Glossary", EXISTING_ENTRY_ID).toObject(),
+		...merge,
 	});
 
 const DOCUMENT = DocumentEntity.initialize({
@@ -168,15 +195,29 @@ const DOCUMENT = DocumentEntity.initialize({
 	uploadedBy: USER_ID,
 });
 
+const ignoreLog = (): void => {};
+
 const createSetup = (
 	existingNodes = EXISTING_NODES,
 ): {
 	applier: IntegrationApplier;
 	created: CreatedNode[];
+	loggedOutcomes: Record<string, unknown>[];
+	updatedContents: KnowledgeNodeContentDto[];
 	updatedIds: number[];
 	updatedTitles: string[];
 } => {
 	const created: CreatedNode[] = [];
+	const loggedOutcomes: Record<string, unknown>[] = [];
+	const logger: Logger = {
+		debug: ignoreLog,
+		error: ignoreLog,
+		info: (_message: string, parameters: Record<string, unknown> = {}) => {
+			loggedOutcomes.push(parameters);
+		},
+		warn: ignoreLog,
+	};
+	const updatedContents: KnowledgeNodeContentDto[] = [];
 	const updatedIds: number[] = [];
 	const updatedTitles: string[] = [];
 	let nextId = NEXT_ID_START;
@@ -220,7 +261,16 @@ const createSetup = (
 					return details.id === id && details.projectId === projectId;
 				}),
 			),
-		update: ({ id, title }: { id: number; title: string }) => {
+		update: ({
+			contentJson,
+			id,
+			title,
+		}: {
+			contentJson: KnowledgeNodeContentDto;
+			id: number;
+			title: string;
+		}) => {
+			updatedContents.push(contentJson);
 			updatedIds.push(id);
 			updatedTitles.push(title);
 
@@ -238,12 +288,40 @@ const createSetup = (
 		applier: new IntegrationApplier({
 			extractionItemRepository,
 			knowledgeNodeRepository,
+			logger,
 		}),
 		created,
+		loggedOutcomes,
+		updatedContents,
 		updatedIds,
 		updatedTitles,
 	};
 };
+
+const applyToEntry = (
+	applier: IntegrationApplier,
+	change: IntegrationChangeEntity,
+	content?: ValueOf<typeof IntegrationResolution>,
+): Promise<void> =>
+	applier.apply(
+		{
+			changes: [change],
+			contentOverrides: [],
+			document: DOCUMENT,
+			placements: [],
+			resolutions: content
+				? [
+						{
+							changeId: change.toObject().id,
+							content,
+							title: IntegrationResolution.KEEP,
+						},
+					]
+				: [],
+			userId: USER_ID,
+		},
+		{} as Transaction,
+	);
 
 const apply = (
 	applier: IntegrationApplier,
@@ -844,5 +922,87 @@ void describe("IntegrationApplier placements", () => {
 		);
 
 		assert.deepEqual(updatedTitles, ["Glossary"]);
+	});
+
+	void it("keeps the entry's blocks and adds the incoming section after them on Merge both", async () => {
+		const { applier, updatedContents } = createSetup();
+
+		await applyToEntry(
+			applier,
+			toChange(FIRST_CHANGE_ID, "Glossary", EXISTING_ENTRY_ID),
+			IntegrationResolution.BOTH,
+		);
+
+		assert.deepEqual(updatedContents, [
+			[
+				...LIVE_ENTRY_CONTENT,
+				{ content: "Glossary content", type: "paragraph" },
+			],
+		]);
+	});
+
+	void it("writes the Sonnet merge for an update", async () => {
+		const { applier, loggedOutcomes, updatedContents } = createSetup();
+
+		await applyToEntry(
+			applier,
+			toMergedEntryUpdate({
+				mergedBlocks: MERGED_BLOCKS,
+				mergeMethod: NodeMergeMethod.LLM,
+			}),
+		);
+
+		assert.deepEqual(updatedContents, [
+			[
+				{
+					content: [
+						{
+							styles: {},
+							text: "Admins manage users and roles.",
+							type: "text",
+						},
+					],
+					type: "paragraph",
+				},
+			],
+		]);
+		assert.deepEqual(loggedOutcomes, [
+			{
+				accepted: 1,
+				declined: 0,
+				documentId: DOCUMENT_ID,
+				edited: 0,
+				fallback: 0,
+			},
+		]);
+	});
+
+	void it("adds the incoming section after the entry when an update's merge fell back", async () => {
+		const { applier, updatedContents } = createSetup();
+
+		await applyToEntry(
+			applier,
+			toMergedEntryUpdate({ mergeMethod: NodeMergeMethod.FALLBACK }),
+		);
+
+		assert.deepEqual(updatedContents, [
+			[
+				...LIVE_ENTRY_CONTENT,
+				{ content: "Glossary content", type: "paragraph" },
+			],
+		]);
+	});
+
+	void it("replaces the entry's content for an update without a merge", async () => {
+		const { applier, updatedContents } = createSetup();
+
+		await applyToEntry(
+			applier,
+			toChange(FIRST_CHANGE_ID, "Glossary", EXISTING_ENTRY_ID),
+		);
+
+		assert.deepEqual(updatedContents, [
+			[{ content: "Glossary content", type: "paragraph" }],
+		]);
 	});
 });

@@ -51,6 +51,8 @@ export { type ExtractionResponseRecord } from "./modules/knowledge-extraction/li
 export { type ExtractionResult } from "./modules/knowledge-extraction/libs/types/extraction-result.type.js";
 export { type KnowledgeItem } from "./modules/knowledge-extraction/libs/types/knowledge-item.type.js";
 export { extract } from "./modules/knowledge-extraction/services/knowledge-extraction.service.js";
+export { type NodeMergeResult } from "./modules/node-merge/libs/types/types.js";
+export { mergeNodeBlocks } from "./modules/node-merge/services/node-merge.service.js";
 export { translateFileName } from "./modules/translation/libs/helpers/translate-file-name.helper.js";
 export {
 	translate,

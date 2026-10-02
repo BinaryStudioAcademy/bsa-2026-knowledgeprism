@@ -58,12 +58,14 @@ const integrationAnalyzer = new IntegrationAnalyzer({
 	documentRepository,
 	extractionItemRepository,
 	integrationChangeRepository,
+	isNodeMergeEnabled: config.ENV.FEATURE.NODE_MERGE_LLM,
 	knowledgeNodeRepository,
 	logger,
 });
 const integrationApplier = new IntegrationApplier({
 	extractionItemRepository,
 	knowledgeNodeRepository,
+	logger,
 });
 const documentJobScheduler = new DocumentJobScheduler({
 	documentProcessor,
