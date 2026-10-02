@@ -41,6 +41,7 @@ const PAGE_TEXT_SEPARATOR = "\n\n";
 type Constructor = {
 	database: Database;
 	documentRepository: DocumentRepository;
+	extractionChunkLength: number;
 	extractionItemRepository: ExtractionItemRepository;
 	extractionRunRepository: ExtractionRunRepository;
 	glossaryService: GlossaryService;
@@ -83,6 +84,8 @@ class DocumentProcessor {
 
 	private documentRepository: DocumentRepository;
 
+	private extractionChunkLength: number;
+
 	private extractionItemRepository: ExtractionItemRepository;
 
 	private extractionRunRepository: ExtractionRunRepository;
@@ -94,6 +97,7 @@ class DocumentProcessor {
 	public constructor({
 		database,
 		documentRepository,
+		extractionChunkLength,
 		extractionItemRepository,
 		extractionRunRepository,
 		glossaryService,
@@ -101,6 +105,7 @@ class DocumentProcessor {
 	}: Constructor) {
 		this.database = database;
 		this.documentRepository = documentRepository;
+		this.extractionChunkLength = extractionChunkLength;
 		this.extractionItemRepository = extractionItemRepository;
 		this.extractionRunRepository = extractionRunRepository;
 		this.glossaryService = glossaryService;
@@ -208,7 +213,7 @@ class DocumentProcessor {
 		extractionRunId: number;
 		pages: ParsedPageBlock[];
 	}): Promise<RunExtraction> {
-		const chunks = toDocumentChunks(pages);
+		const chunks = toDocumentChunks(pages, this.extractionChunkLength);
 		const chunkIds = await this.extractionRunRepository.createChunks({
 			chunks: chunks.map((chunk) => ({
 				content: chunk.content,
@@ -254,6 +259,7 @@ class DocumentProcessor {
 		};
 		const extraction = await extract(translatedChunks, {
 			context: { documentId, processingAttempt: attempt },
+			maximumChunkLength: this.extractionChunkLength,
 			onProgress: createOrderedProgressReporter((progress) =>
 				this.documentRepository.updateProcessingProgress({
 					id: documentId,

@@ -1,3 +1,4 @@
+import { config } from "~/infrastructure/config/config.js";
 import { database } from "~/infrastructure/database/database.js";
 import { logger } from "~/infrastructure/logger/logger.js";
 import { generatePresignedUploadUrl } from "~/infrastructure/s3/presigned-url.js";
@@ -46,6 +47,7 @@ const integrationChangeRepository = new IntegrationChangeRepository(
 const documentProcessor = new DocumentProcessor({
 	database,
 	documentRepository,
+	extractionChunkLength: config.ENV.EXTRACTION.CHUNK_LENGTH,
 	extractionItemRepository,
 	extractionRunRepository,
 	glossaryService,

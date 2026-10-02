@@ -4,8 +4,11 @@ import { applyTranslatedSectionTitles } from "../libs/helpers/apply-translated-s
 import { buildDocumentChunks } from "../libs/helpers/build-document-chunks.helper.js";
 import { type DocumentChunk } from "../libs/types/types.js";
 
-const toDocumentChunks = (pages: ParsedPageBlock[]): DocumentChunk[] => {
-	return buildDocumentChunks(pages);
+const toDocumentChunks = (
+	pages: ParsedPageBlock[],
+	maximumLength?: number,
+): DocumentChunk[] => {
+	return buildDocumentChunks(pages, maximumLength);
 };
 
 const withTranslatedSectionTitles = (

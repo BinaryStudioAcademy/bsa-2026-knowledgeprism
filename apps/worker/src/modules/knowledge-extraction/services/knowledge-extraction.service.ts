@@ -13,18 +13,25 @@ import { type ExtractionResult } from "../libs/types/extraction-result.type.js";
 
 type ExtractOptions = {
 	context?: ExtractionContext;
+	maximumChunkLength?: number;
 	onProgress?: (progress: DocumentProcessingProgressDto) => Promise<void>;
 	onResponse?: (response: ExtractionResponseRecord) => Promise<void>;
 };
 
 const extract = async (
 	blocks: ExtractionBlock[],
-	{ context = {}, onProgress, onResponse }: ExtractOptions = {},
+	{
+		context = {},
+		maximumChunkLength,
+		onProgress,
+		onResponse,
+	}: ExtractOptions = {},
 ): Promise<ExtractionResult> => {
 	const result = await extractBlocks(blocks, {
 		context,
 		invoke: invokePageExtraction,
 		logger,
+		...(maximumChunkLength && { maximumChunkLength }),
 		...(onProgress && { onProgress }),
 		...(onResponse && { onResponse }),
 		pause: setTimeout,
