@@ -5,6 +5,7 @@ const DocumentValidationMessage = {
 	CONTENT_REQUIRED: "Content is required",
 	CONTENT_TOO_SHORT: `Type more so Prism can extract knowledge. Use at least ${DocumentValidationRule.MANUAL_TEXT_CONTENT_MINIMUM_LENGTH.toString()} characters.`,
 	IDENTIFIER_INVALID: "Identifier is invalid",
+	PLACEMENT_PARENT_AMBIGUOUS: "A placement must reference only one parent.",
 	TEXT_REQUIRED: "Text is required",
 	TITLE_MAXIMUM_LENGTH: "Title must be at most 255 characters",
 	TITLE_REQUIRED: "Title is required",
