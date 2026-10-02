@@ -13,6 +13,7 @@ type ExtractionDependencies = {
 		feedback?: null | string,
 	) => Promise<unknown>;
 	logger: Logger;
+	maximumChunkLength?: number;
 	onProgress?: (progress: DocumentProcessingProgressDto) => Promise<void>;
 	onResponse?: (response: ExtractionResponseRecord) => Promise<void>;
 	pause: (milliseconds: number) => Promise<void>;

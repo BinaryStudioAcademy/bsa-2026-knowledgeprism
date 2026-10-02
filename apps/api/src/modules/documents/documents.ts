@@ -47,6 +47,7 @@ const integrationChangeRepository = new IntegrationChangeRepository(
 const documentProcessor = new DocumentProcessor({
 	database,
 	documentRepository,
+	extractionChunkLength: config.ENV.EXTRACTION.CHUNK_LENGTH,
 	extractionItemRepository,
 	extractionRunRepository,
 	glossaryService,

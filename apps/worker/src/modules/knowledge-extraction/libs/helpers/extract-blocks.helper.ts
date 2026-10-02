@@ -11,7 +11,10 @@ import { extractChunk } from "./extract-chunk.helper.js";
 import { findExcerptPage } from "./find-excerpt-page.helper.js";
 import { isBlankPageContent } from "./is-blank-page-content.helper.js";
 import { withInheritedHeading } from "./map-extraction-output.helper.js";
-import { readPreviousHeading } from "./read-previous-heading.helper.js";
+import {
+	hasLeadingHeading,
+	readPreviousHeading,
+} from "./read-previous-heading.helper.js";
 import { splitIntoChunks } from "./split-into-chunks.helper.js";
 
 const EMPTY_COUNT = 0;
@@ -19,7 +22,6 @@ const LAST_ITEM_INDEX = -1;
 const LINE_BREAK = /\r?\n/u;
 const TITLE_MAXIMUM_LENGTH = 80;
 const TITLE_START = 0;
-const FIRST_FOLLOWING_CHUNK = 1;
 const FIRST_PART = 0;
 const PREVIOUS_CHUNK_OFFSET = 1;
 
@@ -30,10 +32,16 @@ type ChunkOutcome = {
 
 type IndexedChunk = ExtractionBlock & { chunkIndex: number };
 
-const toNonBlankChunks = (blocks: ExtractionBlock[]): IndexedChunk[] =>
+const toNonBlankChunks = (
+	blocks: ExtractionBlock[],
+	maximumLength?: number,
+): IndexedChunk[] =>
 	blocks
 		.flatMap((block) =>
-			splitIntoChunks(block.content).map((content) => ({ ...block, content })),
+			splitIntoChunks(block.content, maximumLength).map((content) => ({
+				...block,
+				content,
+			})),
 		)
 		.map((chunk, chunkIndex) => ({ ...chunk, chunkIndex }))
 		.filter((chunk) => !isBlankPageContent(chunk.content));
@@ -42,54 +50,19 @@ const isSectionChunk = (chunk: IndexedChunk): boolean => {
 	return chunk.sectionTitle !== undefined && chunk.sectionTitle !== null;
 };
 
-const withSectionHeading = (
+const toPreviousHeading = (
 	chunk: IndexedChunk,
-): IndexedChunk & { previousHeading?: string } => {
-	return isSectionChunk(chunk) && (chunk.part ?? FIRST_PART) > FIRST_PART
-		? { ...chunk, previousHeading: chunk.sectionTitle ?? "" }
-		: chunk;
-};
-
-const readOpenHeading = (outcome: ChunkOutcome | undefined): null | string => {
-	if (!outcome || outcome.result.hasFailures) {
-		return null;
+	previous: IndexedChunk | undefined,
+): null | string => {
+	if (isSectionChunk(chunk)) {
+		return (chunk.part ?? FIRST_PART) > FIRST_PART
+			? (chunk.sectionTitle ?? null)
+			: null;
 	}
 
-	return readPreviousHeading(outcome.chunk.content, outcome.result.items);
-};
-
-const carryOpenHeadings = async (
-	outcomes: ChunkOutcome[],
-	dependencies: ExtractionDependencies,
-): Promise<ChunkOutcome[]> => {
-	const carried = [...outcomes];
-
-	for (let index = FIRST_FOLLOWING_CHUNK; index < carried.length; index++) {
-		const current = carried[index];
-		const previousHeading = readOpenHeading(
-			carried[index - PREVIOUS_CHUNK_OFFSET],
-		);
-
-		if (
-			previousHeading === null ||
-			!current ||
-			current.result.hasFailures ||
-			isSectionChunk(current.chunk)
-		) {
-			continue;
-		}
-
-		const result = await extractChunk(
-			{ ...current.chunk, previousHeading },
-			dependencies,
-		);
-
-		if (!result.hasFailures) {
-			carried[index] = { chunk: current.chunk, result };
-		}
-	}
-
-	return carried;
+	return previous && !hasLeadingHeading(chunk.content)
+		? readPreviousHeading(previous.content)
+		: null;
 };
 
 const readFirstSourceLine = (content: string): string => {
@@ -131,7 +104,7 @@ const extractBlocks = async (
 	const items: KnowledgeItem[] = [];
 	const failedPageNumbers = new Set<number>();
 	let successfulChunkCount = 0;
-	const chunks = toNonBlankChunks(blocks);
+	const chunks = toNonBlankChunks(blocks, dependencies.maximumChunkLength);
 	const progress: DocumentProcessingProgressDto = {
 		failedUnits: 0,
 		phase: DocumentProcessingPhase.EXTRACTING,
@@ -139,13 +112,23 @@ const extractBlocks = async (
 		totalUnits: chunks.length,
 	};
 	await dependencies.onProgress?.({ ...progress });
+	const headedChunks = chunks.map((chunk, index) => ({
+		chunk,
+		previousHeading: toPreviousHeading(
+			chunk,
+			chunks[index - PREVIOUS_CHUNK_OFFSET],
+		),
+	}));
 	const outcomes = await mapWithConcurrency(
-		chunks,
+		headedChunks,
 		ExtractionChunk.MAXIMUM_CONCURRENT_REQUESTS,
-		async (chunk): Promise<ChunkOutcome> => {
+		async ({ chunk, previousHeading }): Promise<ChunkOutcome> => {
 			let result: Awaited<ReturnType<typeof extractChunk>>;
 			try {
-				result = await extractChunk(withSectionHeading(chunk), dependencies);
+				result = await extractChunk(
+					{ ...chunk, previousHeading },
+					dependencies,
+				);
 			} catch (error) {
 				progress.processedUnits++;
 				progress.failedUnits++;
@@ -162,9 +145,7 @@ const extractBlocks = async (
 		},
 	);
 
-	const carriedOutcomes = inheritOpenHeadings(
-		await carryOpenHeadings(outcomes, dependencies),
-	);
+	const carriedOutcomes = inheritOpenHeadings(outcomes);
 
 	for (const { chunk, result } of carriedOutcomes) {
 		successfulChunkCount += result.successfulChunkCount;

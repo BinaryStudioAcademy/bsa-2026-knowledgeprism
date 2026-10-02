@@ -2,21 +2,23 @@ import { ExtractionChunk } from "../constants/extraction-chunk.constant.js";
 
 type Separator = (typeof ExtractionChunk.SEPARATORS)[number];
 
-const sliceByMaximumLength = (text: string): string[] => {
+const sliceByMaximumLength = (
+	text: string,
+	maximumLength: number,
+): string[] => {
 	const slices: string[] = [];
 
-	for (
-		let start = 0;
-		start < text.length;
-		start += ExtractionChunk.MAXIMUM_LENGTH
-	) {
-		slices.push(text.slice(start, start + ExtractionChunk.MAXIMUM_LENGTH));
+	for (let start = 0; start < text.length; start += maximumLength) {
+		slices.push(text.slice(start, start + maximumLength));
 	}
 
 	return slices;
 };
 
-const mergePieces = (pieces: string[], separator: Separator): string[] => {
+const mergePieces = (
+	pieces: string[],
+	{ maximumLength, separator }: { maximumLength: number; separator: Separator },
+): string[] => {
 	const chunks: string[] = [];
 	let current = "";
 
@@ -27,7 +29,7 @@ const mergePieces = (pieces: string[], separator: Separator): string[] => {
 
 		const candidate = current === "" ? piece : `${current}${separator}${piece}`;
 
-		if (candidate.length <= ExtractionChunk.MAXIMUM_LENGTH) {
+		if (candidate.length <= maximumLength) {
 			current = candidate;
 			continue;
 		}
@@ -49,26 +51,30 @@ const mergePieces = (pieces: string[], separator: Separator): string[] => {
 const splitWithSeparators = (
 	text: string,
 	separators: readonly Separator[],
+	maximumLength: number,
 ): string[] => {
-	if (text.length <= ExtractionChunk.MAXIMUM_LENGTH) {
+	if (text.length <= maximumLength) {
 		return [text];
 	}
 
 	const [separator, ...nextSeparators] = separators;
 
 	if (!separator) {
-		return sliceByMaximumLength(text);
+		return sliceByMaximumLength(text, maximumLength);
 	}
 
 	const pieces = text.split(separator).flatMap((piece) => {
-		return splitWithSeparators(piece, nextSeparators);
+		return splitWithSeparators(piece, nextSeparators, maximumLength);
 	});
 
-	return mergePieces(pieces, separator);
+	return mergePieces(pieces, { maximumLength, separator });
 };
 
-const splitIntoChunks = (text: string): string[] => {
-	return splitWithSeparators(text, ExtractionChunk.SEPARATORS);
+const splitIntoChunks = (
+	text: string,
+	maximumLength: number = ExtractionChunk.MAXIMUM_LENGTH,
+): string[] => {
+	return splitWithSeparators(text, ExtractionChunk.SEPARATORS, maximumLength);
 };
 
 export { splitIntoChunks };

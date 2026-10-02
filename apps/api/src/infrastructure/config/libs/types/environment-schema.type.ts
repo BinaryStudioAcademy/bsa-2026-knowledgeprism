@@ -17,6 +17,9 @@ type EnvironmentSchema = {
 		POOL_MAX: number;
 		POOL_MIN: number;
 	};
+	EXTRACTION: {
+		CHUNK_LENGTH: number;
+	};
 	FEATURE: {
 		NODE_MERGE_LLM: boolean;
 	};
