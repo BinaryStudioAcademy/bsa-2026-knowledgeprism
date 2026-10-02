@@ -610,4 +610,4 @@ const mapExtractionOutput = (
 		.toSorted(byPosition);
 };
 
-export { mapExtractionOutput, withInheritedHeading };
+export { mapExtractionOutput, toPlainText, withInheritedHeading };

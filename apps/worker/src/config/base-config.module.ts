@@ -20,6 +20,10 @@ const readRequiredEnvironmentVariable = (name: string): string => {
 	return value;
 };
 
+const readOptionalEnvironmentVariable = (name: string): null | string => {
+	return process.env[name] || null;
+};
+
 class BaseConfig implements Config {
 	public ENV: EnvironmentSchema;
 
@@ -28,6 +32,12 @@ class BaseConfig implements Config {
 
 		this.ENV = {
 			AWS: {
+				BEDROCK_ACCESS_KEY_ID: readOptionalEnvironmentVariable(
+					"BEDROCK_ACCESS_KEY_ID",
+				),
+				BEDROCK_SECRET_ACCESS_KEY: readOptionalEnvironmentVariable(
+					"BEDROCK_SECRET_ACCESS_KEY",
+				),
 				REGION: readRequiredEnvironmentVariable("AWS_REGION"),
 				S3_BUCKET_NAME: readRequiredEnvironmentVariable("AWS_S3_BUCKET_NAME"),
 			},

@@ -19,6 +19,7 @@ const LINE_BREAK = /\r?\n/u;
 const TITLE_MAXIMUM_LENGTH = 80;
 const TITLE_START = 0;
 const FIRST_FOLLOWING_CHUNK = 1;
+const FIRST_PART = 0;
 const PREVIOUS_CHUNK_OFFSET = 1;
 
 type ChunkOutcome = {
@@ -35,6 +36,18 @@ const toNonBlankChunks = (blocks: ExtractionBlock[]): IndexedChunk[] =>
 		)
 		.map((chunk, chunkIndex) => ({ ...chunk, chunkIndex }))
 		.filter((chunk) => !isBlankPageContent(chunk.content));
+
+const isSectionChunk = (chunk: IndexedChunk): boolean => {
+	return chunk.sectionTitle !== undefined && chunk.sectionTitle !== null;
+};
+
+const withSectionHeading = (
+	chunk: IndexedChunk,
+): IndexedChunk & { previousHeading?: string } => {
+	return isSectionChunk(chunk) && (chunk.part ?? FIRST_PART) > FIRST_PART
+		? { ...chunk, previousHeading: chunk.sectionTitle ?? "" }
+		: chunk;
+};
 
 const readOpenHeading = (outcome: ChunkOutcome | undefined): null | string => {
 	if (!outcome || outcome.result.hasFailures) {
@@ -56,7 +69,12 @@ const carryOpenHeadings = async (
 			carried[index - PREVIOUS_CHUNK_OFFSET],
 		);
 
-		if (previousHeading === null || !current || current.result.hasFailures) {
+		if (
+			previousHeading === null ||
+			!current ||
+			current.result.hasFailures ||
+			isSectionChunk(current.chunk)
+		) {
 			continue;
 		}
 
@@ -91,7 +109,9 @@ const inheritOpenHeadings = (outcomes: ChunkOutcome[]): ChunkOutcome[] => {
 			item.isHeadingInherited
 				? withInheritedHeading(
 						item,
-						openHeading ?? readFirstSourceLine(chunk.content),
+						chunk.sectionTitle ??
+							openHeading ??
+							readFirstSourceLine(chunk.content),
 					)
 				: item,
 		);
@@ -124,7 +144,7 @@ const extractBlocks = async (
 		async (chunk): Promise<ChunkOutcome> => {
 			let result: Awaited<ReturnType<typeof extractChunk>>;
 			try {
-				result = await extractChunk(chunk, dependencies);
+				result = await extractChunk(withSectionHeading(chunk), dependencies);
 			} catch (error) {
 				progress.processedUnits++;
 				progress.failedUnits++;
@@ -147,7 +167,14 @@ const extractBlocks = async (
 
 	for (const { chunk, result } of carriedOutcomes) {
 		successfulChunkCount += result.successfulChunkCount;
-		items.push(...result.items);
+		items.push(
+			...result.items.map((item) => ({
+				...item,
+				chunkIndex: chunk.chunkIndex,
+				sectionIndex: chunk.sectionIndex ?? null,
+				sectionTitle: chunk.sectionTitle ?? null,
+			})),
+		);
 
 		if (result.hasFailures) {
 			failedPageNumbers.add(chunk.pageNumber);
