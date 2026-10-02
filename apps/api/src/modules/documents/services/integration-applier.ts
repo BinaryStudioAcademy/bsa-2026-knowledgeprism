@@ -241,6 +241,7 @@ class IntegrationApplier {
 			blocksByItemId,
 			changes,
 			document,
+			existingNodeIdsByItemId,
 			knownChangeIds,
 			overrideByChangeId,
 			placements,
@@ -250,6 +251,7 @@ class IntegrationApplier {
 			"changes" | "document" | "placements" | "userId"
 		> & {
 			blocksByItemId: Map<number, ExtractionContentBlock[]>;
+			existingNodeIdsByItemId: ReadonlyMap<number, number>;
 			knownChangeIds: ReadonlySet<number>;
 			overrideByChangeId: Map<number, IntegrationChangeContentOverrideDto>;
 		},
@@ -257,6 +259,7 @@ class IntegrationApplier {
 	): Promise<void> {
 		const entries = planIntegrationEntries({
 			changes,
+			existingParentItemIds: new Set(existingNodeIdsByItemId.keys()),
 			knownChangeIds,
 			placements,
 		});
@@ -267,15 +270,17 @@ class IntegrationApplier {
 
 		const { projectId } = document.toObject();
 		const nextPositionByParentId = await this.findChosenParents(
-			entries.map(({ change, parentId, position }) => ({
+			entries.map(({ change, parentExtractionItemId, parentId, position }) => ({
 				changeId: change.toObject().id,
+				parentExtractionItemId,
 				parentId,
 				position,
 			})),
 			projectId,
+			existingNodeIdsByItemId,
 		);
 		let documentPageId: null | number = null;
-		const nodeIdsByItemId = new Map<number, number>();
+		const nodeIdsByItemId = new Map(existingNodeIdsByItemId);
 
 		for (const {
 			change,
@@ -378,24 +383,31 @@ class IntegrationApplier {
 	private async findChosenParents(
 		placements: Placement[],
 		projectId: number,
+		existingNodeIdsByItemId: ReadonlyMap<number, number>,
 	): Promise<Map<number, number>> {
-		const parentIds = [
-			...new Set(
-				placements.flatMap((placement) =>
-					placement.parentId === null ? [] : [placement.parentId],
-				),
-			),
-		];
+		const parents = placements.flatMap(
+			({ parentExtractionItemId, parentId }) => {
+				const isIncomingParent = parentExtractionItemId != null;
+				const id = isIncomingParent
+					? existingNodeIdsByItemId.get(parentExtractionItemId)
+					: parentId;
+
+				return id == null ? [] : [{ id, isIncomingParent }];
+			},
+		);
 		const nodes =
-			parentIds.length === EMPTY_LENGTH
+			parents.length === EMPTY_LENGTH
 				? []
 				: await this.knowledgeNodeRepository.findAllByProjectId(projectId);
 		const nextPositionByParentId = new Map<number, number>();
 
-		for (const parentId of parentIds) {
+		for (const { id: parentId, isIncomingParent } of parents) {
 			const parent = nodes.find((node) => node.toObject().id === parentId);
 
-			if (!parent || !isDocumentNode(parent.toObject().type)) {
+			if (
+				!parent ||
+				(!isIncomingParent && !isDocumentNode(parent.toObject().type))
+			) {
 				throw createInvalidPlacementError();
 			}
 
@@ -498,10 +510,11 @@ class IntegrationApplier {
 			transaction,
 		);
 		const newChanges: IntegrationChangeEntity[] = [];
+		const existingNodeIdsByItemId = new Map<number, number>();
 		const writtenFieldKeys = new Set<string>();
 
 		for (const change of changes) {
-			const { id, matchedNodeId, type } = change.toObject();
+			const { extractionItemId, id, matchedNodeId, type } = change.toObject();
 			const matchedNode =
 				matchedNodeId === null ? undefined : nodes.get(matchedNodeId);
 			const fieldKeys =
@@ -536,6 +549,7 @@ class IntegrationApplier {
 				);
 
 				nodes.set(matchedNodeId, appliedNode);
+				existingNodeIdsByItemId.set(extractionItemId, matchedNodeId);
 			} else {
 				newChanges.push(change);
 			}
@@ -546,6 +560,7 @@ class IntegrationApplier {
 				blocksByItemId,
 				changes: newChanges,
 				document,
+				existingNodeIdsByItemId,
 				knownChangeIds: new Set(changes.map((change) => change.toObject().id)),
 				overrideByChangeId,
 				placements,

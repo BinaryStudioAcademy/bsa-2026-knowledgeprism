@@ -878,6 +878,7 @@ const PreviewFooter = ({
 
 const syncIncomingReviewPages = ({
 	appliedPlacement,
+	backupPages,
 	pages,
 	placementStructure,
 	proposedStructure,
@@ -888,6 +889,7 @@ const syncIncomingReviewPages = ({
 	setSeededProposal,
 }: {
 	appliedPlacement: ProposedSection[] | undefined;
+	backupPages: ProposedSection[];
 	pages: ProposedSection[];
 	placementStructure: ProposedSection[] | undefined;
 	proposedStructure: ProposedSection[];
@@ -924,7 +926,7 @@ const syncIncomingReviewPages = ({
 		pages.length > EMPTY_LENGTH
 	) {
 		setPages(mergePlacementIntoPages(pages, placementStructure));
-		setBackupPages(mergePlacementIntoPages(pages, placementStructure));
+		setBackupPages(mergePlacementIntoPages(backupPages, placementStructure));
 	}
 };
 
@@ -978,6 +980,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 
 	syncIncomingReviewPages({
 		appliedPlacement,
+		backupPages,
 		pages,
 		placementStructure,
 		proposedStructure,

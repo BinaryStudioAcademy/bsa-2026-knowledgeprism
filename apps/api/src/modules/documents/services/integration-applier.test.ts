@@ -23,14 +23,19 @@ import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/k
 import { DocumentEntity } from "../models/document.entity.js";
 import { IntegrationChangeEntity } from "../models/integration-change.entity.js";
 import { type ExtractionItemRepository } from "../repositories/extraction-item.repository.js";
-import { IntegrationApplier } from "./integration-applier.js";
+import {
+	IntegrationAnalysisOutdatedError,
+	IntegrationApplier,
+} from "./integration-applier.js";
 
 const DOCUMENT_ID = 9;
 const PROJECT_ID = 4;
+const OTHER_PROJECT_ID = 5;
 const USER_ID = 2;
 const EXISTING_PAGE_ID = 50;
 const EXISTING_SECTION_ID = 70;
 const EXISTING_ENTRY_ID = 51;
+const EXISTING_CHILD_ID = 52;
 const LAST_EXISTING_CHILD_POSITION = 3;
 const NEXT_ROOT_POSITION = 7;
 const FIRST_APPENDED_POSITION = 4;
@@ -100,6 +105,12 @@ const EXISTING_NODES = [
 		type: KnowledgeNodeType.ENTRY,
 	}),
 	toNode({
+		id: EXISTING_CHILD_ID,
+		parentId: EXISTING_ENTRY_ID,
+		position: LAST_EXISTING_CHILD_POSITION,
+		type: KnowledgeNodeType.ENTRY,
+	}),
+	toNode({
 		id: EXISTING_SECTION_ID,
 		parentId: null,
 		position: LAST_EXISTING_CHILD_POSITION,
@@ -157,7 +168,9 @@ const DOCUMENT = DocumentEntity.initialize({
 	uploadedBy: USER_ID,
 });
 
-const createSetup = (): {
+const createSetup = (
+	existingNodes = EXISTING_NODES,
+): {
 	applier: IntegrationApplier;
 	created: CreatedNode[];
 	updatedIds: number[];
@@ -188,16 +201,31 @@ const createSetup = (): {
 				}),
 			);
 		},
-		findAllByProjectId: () => Promise.resolve(EXISTING_NODES),
+		findAllByProjectId: (projectId: number) =>
+			Promise.resolve(
+				existingNodes.filter((node) => node.toObject().projectId === projectId),
+			),
 		findNextRootPosition: () => Promise.resolve(NEXT_ROOT_POSITION),
-		lockByIdAndProjectId: ({ id }: { id: number }) =>
-			Promise.resolve(EXISTING_NODES.find((node) => node.toObject().id === id)),
+		lockByIdAndProjectId: ({
+			id,
+			projectId,
+		}: {
+			id: number;
+			projectId: number;
+		}) =>
+			Promise.resolve(
+				existingNodes.find((node) => {
+					const details = node.toObject();
+
+					return details.id === id && details.projectId === projectId;
+				}),
+			),
 		update: ({ id, title }: { id: number; title: string }) => {
 			updatedIds.push(id);
 			updatedTitles.push(title);
 
 			return Promise.resolve(
-				EXISTING_NODES.find((node) => node.toObject().id === id),
+				existingNodes.find((node) => node.toObject().id === id),
 			);
 		},
 	} as unknown as KnowledgeNodeRepository;
@@ -237,6 +265,180 @@ const apply = (
 	);
 
 void describe("IntegrationApplier placements", () => {
+	for (const type of [
+		IntegrationChangeType.UPDATE,
+		IntegrationChangeType.DUPLICATE,
+		IntegrationChangeType.CONFLICT,
+	]) {
+		void it(`preserves nested children under a reused ${type} parent`, async () => {
+			const { applier, created, updatedIds } = createSetup();
+			const parent = IntegrationChangeEntity.initialize({
+				...toChange(FIRST_CHANGE_ID, "Parent", EXISTING_ENTRY_ID).toObject(),
+				extractionItemId: FIRST_ITEM_ID,
+				type,
+			});
+
+			await applier.apply(
+				{
+					changes: [
+						toNestedChange({
+							extractionItemId: THIRD_ITEM_ID,
+							id: THIRD_CHANGE_ID,
+							parentExtractionItemId: SECOND_ITEM_ID,
+						}),
+						toNestedChange({
+							extractionItemId: SECOND_ITEM_ID,
+							id: SECOND_CHANGE_ID,
+							parentExtractionItemId: FIRST_ITEM_ID,
+						}),
+						parent,
+					],
+					contentOverrides: [],
+					document: DOCUMENT,
+					placements: [
+						{
+							changeId: THIRD_CHANGE_ID,
+							parentExtractionItemId: SECOND_ITEM_ID,
+							parentId: null,
+							position: FIRST_POSITION,
+						},
+						{
+							changeId: SECOND_CHANGE_ID,
+							parentExtractionItemId: FIRST_ITEM_ID,
+							parentId: null,
+							position: SECOND_POSITION,
+						},
+					],
+					resolutions:
+						type === IntegrationChangeType.CONFLICT
+							? [
+									{
+										changeId: FIRST_CHANGE_ID,
+										content: IntegrationResolution.KEEP,
+										title: IntegrationResolution.KEEP,
+									},
+								]
+							: [],
+					userId: USER_ID,
+				},
+				{} as Transaction,
+			);
+
+			const [child, grandchild] = created;
+			assert.ok(child && grandchild);
+			assert.deepEqual(
+				created.map(({ parentId, position, title, type: nodeType }) => ({
+					parentId,
+					position,
+					title,
+					type: nodeType,
+				})),
+				[
+					{
+						parentId: EXISTING_ENTRY_ID,
+						position: FIRST_APPENDED_POSITION,
+						title: `Item ${String(SECOND_ITEM_ID)}`,
+						type: KnowledgeNodeType.ENTRY,
+					},
+					{
+						parentId: child.id,
+						position: FIRST_POSITION,
+						title: `Item ${String(THIRD_ITEM_ID)}`,
+						type: KnowledgeNodeType.ENTRY,
+					},
+				],
+			);
+			assert.deepEqual(
+				updatedIds,
+				type === IntegrationChangeType.UPDATE ? [EXISTING_ENTRY_ID] : [],
+			);
+		});
+	}
+
+	void it("keeps children under an update that becomes a new entry after a competing write", async () => {
+		const { applier, created } = createSetup();
+
+		await applier.apply(
+			{
+				changes: [
+					toChange(FIRST_CHANGE_ID, "First parent", EXISTING_ENTRY_ID),
+					toChange(SECOND_CHANGE_ID, "Second parent", EXISTING_ENTRY_ID),
+					toNestedChange({
+						extractionItemId: THIRD_ITEM_ID,
+						id: THIRD_CHANGE_ID,
+						parentExtractionItemId: SECOND_CHANGE_ID,
+					}),
+				],
+				contentOverrides: [],
+				document: DOCUMENT,
+				placements: [
+					{
+						changeId: THIRD_CHANGE_ID,
+						parentExtractionItemId: SECOND_CHANGE_ID,
+						parentId: null,
+						position: FIRST_POSITION,
+					},
+				],
+				resolutions: [],
+				userId: USER_ID,
+			},
+			{} as Transaction,
+		);
+
+		const parent = created.find(({ title }) => title === "Second parent");
+		const child = created.find(
+			({ title }) => title === `Item ${String(THIRD_ITEM_ID)}`,
+		);
+		assert.ok(parent && child);
+		assert.equal(child.parentId, parent.id);
+		assert.notEqual(child.parentId, EXISTING_ENTRY_ID);
+	});
+
+	void it("rejects an incoming parent matched to a node in another project", async () => {
+		const { applier, created } = createSetup(
+			EXISTING_NODES.map((node) => {
+				const details = node.toObject();
+
+				return KnowledgeNodeEntity.initialize({
+					...details,
+					createdAt: new Date(details.createdAt),
+					projectId: OTHER_PROJECT_ID,
+					updatedAt: new Date(details.updatedAt),
+				});
+			}),
+		);
+
+		await assert.rejects(
+			applier.apply(
+				{
+					changes: [
+						toChange(FIRST_CHANGE_ID, "Parent", EXISTING_ENTRY_ID),
+						toNestedChange({
+							extractionItemId: SECOND_ITEM_ID,
+							id: SECOND_CHANGE_ID,
+							parentExtractionItemId: FIRST_CHANGE_ID,
+						}),
+					],
+					contentOverrides: [],
+					document: DOCUMENT,
+					placements: [
+						{
+							changeId: SECOND_CHANGE_ID,
+							parentExtractionItemId: FIRST_CHANGE_ID,
+							parentId: null,
+							position: FIRST_POSITION,
+						},
+					],
+					resolutions: [],
+					userId: USER_ID,
+				},
+				{} as Transaction,
+			),
+			IntegrationAnalysisOutdatedError,
+		);
+		assert.deepEqual(created, []);
+	});
+
 	void it("persists three nested levels even when children precede their parents", async () => {
 		const { applier, created } = createSetup();
 		const changes = [

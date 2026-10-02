@@ -46,12 +46,13 @@ const mapPlacements = (
 
 const orderEntries = (
 	entries: PlannedIntegrationEntry[],
+	existingParentItemIds: ReadonlySet<number>,
 ): PlannedIntegrationEntry[] => {
 	const pending = new Map(
 		entries.map((entry) => [entry.change.toObject().extractionItemId, entry]),
 	);
 	const ordered: PlannedIntegrationEntry[] = [];
-	const completed = new Set<number>();
+	const completed = new Set(existingParentItemIds);
 
 	while (pending.size > EMPTY_LENGTH) {
 		const ready = pending
@@ -80,17 +81,20 @@ const orderEntries = (
 
 const planIntegrationEntries = ({
 	changes,
+	existingParentItemIds,
 	knownChangeIds,
 	placements,
 }: {
 	changes: IntegrationChangeEntity[];
+	existingParentItemIds: ReadonlySet<number>;
 	knownChangeIds: ReadonlySet<number>;
 	placements: Placement[];
 }): PlannedIntegrationEntry[] => {
 	const byChangeId = mapPlacements(placements, knownChangeIds);
-	const itemIds = new Set(
-		changes.map((change) => change.toObject().extractionItemId),
-	);
+	const itemIds = new Set([
+		...existingParentItemIds,
+		...changes.map((change) => change.toObject().extractionItemId),
+	]);
 	const entries = changes
 		.map((change, index) => {
 			const placement = byChangeId.get(change.toObject().id);
@@ -112,7 +116,7 @@ const planIntegrationEntries = ({
 		})
 		.toSorted((left, right) => left.position - right.position);
 
-	return orderEntries(entries);
+	return orderEntries(entries, existingParentItemIds);
 };
 
 export { createInvalidIncomingPlacementError, planIntegrationEntries };

@@ -320,6 +320,11 @@ describe("IntegrationPreview extraction review", () => {
 			/>,
 		);
 
+		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
+		fireEvent.change(screen.getByDisplayValue(createExtractionItem().title), {
+			target: { value: "Unsaved parent title" },
+		});
+
 		view.rerender(
 			<Provider store={store.instance}>
 				<MemoryRouter>
@@ -333,13 +338,29 @@ describe("IntegrationPreview extraction review", () => {
 				</MemoryRouter>
 			</Provider>,
 		);
-		fireEvent.click(screen.getByRole("button", { name: "Edit" }));
 		fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
 		fireEvent.click(screen.getByRole("button", { name: "Approve & save" }));
 
 		await waitFor(() => {
 			expect(approve).toHaveBeenCalledWith(
 				expect.objectContaining({
+					contentOverrides: [
+						{
+							changeId: createExtractionItem().id + CHANGE_ID_OFFSET,
+							content: createExtractionItem().text,
+							title: createExtractionItem().title,
+						},
+						{
+							changeId: CHILD_ITEM_ID + CHANGE_ID_OFFSET,
+							content: createExtractionItem().text,
+							title: "Child section",
+						},
+						{
+							changeId: GRANDCHILD_ITEM_ID + CHANGE_ID_OFFSET,
+							content: createExtractionItem().text,
+							title: "Grandchild section",
+						},
+					],
 					placements: [
 						{
 							changeId: createExtractionItem().id + CHANGE_ID_OFFSET,
