@@ -9,6 +9,7 @@ import {
 	toEmbeddingEntry,
 } from "@knowledgeprism/worker";
 
+import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
 import { type KnowledgeNodeEntity } from "~/modules/knowledge/models/knowledge-node.entity.js";
 import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/knowledge-node.repository.js";
 import {
@@ -21,9 +22,31 @@ import { RAG_FALLBACK_MESSAGE } from "../libs/constants/rag-fallback-message.con
 import { formatSuggestedQuestion } from "../libs/helpers/format-suggested-question.helper.js";
 import { invokeRagGeneration } from "../libs/helpers/invoke-rag-generation.helper.js";
 
+type AskPrismContextItem = {
+	content: string;
+	id: number;
+	indexedContent: string;
+	nodeId: number;
+	sectionTitle: string;
+	title: string;
+};
+
+type AskPrismSearcher = (parameters: {
+	candidates: { item: AskPrismContextItem; vector: number[] }[];
+	queryVectors: number[][];
+	topK?: number;
+}) => { item: AskPrismContextItem; score: number }[];
+
 type Constructor = {
+	chunkedEmbedder?: typeof embedChunked | undefined;
+	embedder?: typeof embed | undefined;
+	extractionItemRepository?: ExtractionItemRepository | undefined;
 	knowledgeNodeRepository: KnowledgeNodeRepository;
 	projectService: ProjectService;
+	ragGenerator?:
+		| ((question: string, contextChunks: string[]) => Promise<string>)
+		| undefined;
+	searcher?: AskPrismSearcher | undefined;
 };
 
 const EMPTY_LENGTH = 0;
@@ -33,12 +56,33 @@ const MAX_SUGGESTIONS = 3;
 const SCORE_THRESHOLD = 0.3;
 
 class AskPrismService {
+	private chunkedEmbedder: typeof embedChunked;
+	private embedder: typeof embed;
+	private extractionItemRepository?: ExtractionItemRepository | undefined;
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
 	private projectService: ProjectService;
+	private ragGenerator: (
+		question: string,
+		contextChunks: string[],
+	) => Promise<string>;
+	private searcher: AskPrismSearcher;
 
-	public constructor({ knowledgeNodeRepository, projectService }: Constructor) {
+	public constructor({
+		chunkedEmbedder = embedChunked,
+		embedder = embed,
+		extractionItemRepository,
+		knowledgeNodeRepository,
+		projectService,
+		ragGenerator = invokeRagGeneration,
+		searcher = searchGrouped,
+	}: Constructor) {
+		this.chunkedEmbedder = chunkedEmbedder;
+		this.embedder = embedder;
+		this.extractionItemRepository = extractionItemRepository;
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
 		this.projectService = projectService;
+		this.ragGenerator = ragGenerator;
+		this.searcher = searcher;
 	}
 
 	private isEligibleForSuggestion(node: KnowledgeNodeEntity): boolean {
@@ -57,6 +101,24 @@ class AskPrismService {
 		}
 
 		return textContent.length > EMPTY_LENGTH;
+	}
+
+	private resolveFallbackDocumentName(
+		parentNode: null | ReturnType<KnowledgeNodeEntity["toObject"]>,
+		currentNode: null | ReturnType<KnowledgeNodeEntity["toObject"]> | undefined,
+	): null | string {
+		if (parentNode?.type === KnowledgeNodeType.PAGE) {
+			return parentNode.title;
+		}
+
+		if (
+			currentNode?.type === KnowledgeNodeType.PAGE &&
+			FILE_EXTENSION_PATTERN.test(currentNode.title)
+		) {
+			return currentNode.title;
+		}
+
+		return null;
 	}
 
 	public async generateAnswer(
@@ -106,7 +168,7 @@ class AskPrismService {
 			};
 		}
 
-		const [queryVector] = await embed(
+		const [queryVector] = await this.embedder(
 			[question],
 			EmbeddingInputType.SEARCH_QUERY,
 			{ isLimited: false },
@@ -116,7 +178,7 @@ class AskPrismService {
 			throw new Error("Failed to generate embedding for the question");
 		}
 
-		const candidates = await embedChunked(
+		const candidates = await this.chunkedEmbedder(
 			contexts.map((contextItem) => ({
 				entry: contextItem.entry,
 				item: contextItem,
@@ -124,7 +186,7 @@ class AskPrismService {
 			EmbeddingInputType.SEARCH_DOCUMENT,
 			{ isLimited: false },
 		);
-		const relevantMatches = searchGrouped({
+		const relevantMatches = this.searcher({
 			candidates,
 			queryVectors: [queryVector],
 			topK: MAX_SIMILAR_NODES,
@@ -140,7 +202,7 @@ class AskPrismService {
 		const contextChunks = relevantMatches.map(
 			(match) => match.item.indexedContent,
 		);
-		const answer = await invokeRagGeneration(question, contextChunks);
+		const answer = await this.ragGenerator(question, contextChunks);
 
 		if (answer.trim() === RAG_FALLBACK_MESSAGE) {
 			return {
@@ -149,15 +211,43 @@ class AskPrismService {
 			};
 		}
 
+		const relevantNodeIds = relevantMatches.map((match) => match.item.nodeId);
+
+		const sourceByKnowledgeNodeId = this.extractionItemRepository
+			? await this.extractionItemRepository.findSourcesByKnowledgeNodeIds(
+					relevantNodeIds,
+				)
+			: new Map<number, { documentName: string; pageNumber: number }>();
+
+		const nodeById = new Map(
+			nodes.map((node) => [node.toObject().id, node.toObject()]),
+		);
+
 		return {
 			answer,
-			sources: relevantMatches.map((match) => ({
-				excerpt: match.item.content,
-				id: match.item.id,
-				nodeId: match.item.nodeId,
-				sectionTitle: match.item.sectionTitle,
-				title: match.item.title,
-			})),
+			sources: relevantMatches.map((match) => {
+				const nodeId = match.item.nodeId;
+				const sourceMetadata = sourceByKnowledgeNodeId.get(nodeId);
+				const currentNode = nodeById.get(nodeId);
+				const parentNode = currentNode?.parentId
+					? (nodeById.get(currentNode.parentId) ?? null)
+					: null;
+				const fallbackDocumentName = this.resolveFallbackDocumentName(
+					parentNode,
+					currentNode,
+				);
+
+				return {
+					documentName:
+						sourceMetadata?.documentName ?? fallbackDocumentName ?? null,
+					excerpt: match.item.content,
+					id: match.item.id,
+					nodeId: match.item.nodeId,
+					pageNumber: sourceMetadata?.pageNumber ?? null,
+					sectionTitle: match.item.sectionTitle,
+					title: match.item.title,
+				};
+			}),
 		};
 	}
 
@@ -184,4 +274,8 @@ class AskPrismService {
 	}
 }
 
-export { AskPrismService, MAX_SIMILAR_NODES };
+export {
+	type Constructor as AskPrismServiceOptions,
+	AskPrismService,
+	MAX_SIMILAR_NODES,
+};
