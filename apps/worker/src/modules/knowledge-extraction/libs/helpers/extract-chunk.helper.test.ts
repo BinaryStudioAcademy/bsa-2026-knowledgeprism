@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { alignTranslatedText } from "~/modules/translation/libs/helpers/align-translated-text.helper.js";
+
 import { type ExtractionDependencies } from "../types/extraction-dependencies.type.js";
 import { extractChunk } from "./extract-chunk.helper.js";
 
@@ -10,15 +12,20 @@ const EXPECTED_ITEM_COUNT = 1;
 const FIRST_ITEM_INDEX = 0;
 
 const ORIGINAL_CONTENT = [
+	"Übersicht",
+	"Das Limit ist 10.",
+	"Erstellen Sie ein Backup.",
+	"Verwenden Sie Postgres.",
+	"Einrichtung",
+].join("\n");
+
+const TRANSLATED_CONTENT = [
 	"Overview",
 	"The limit is 10.",
 	"Keep a backup.",
 	"Use Postgres.",
 	"Setup",
 ].join("\n");
-
-const TRANSLATED_CONTENT =
-	"Übersicht\nDas Limit ist 10.\nErstellen Sie ein Backup.\nVerwenden Sie Postgres.\nEinrichtung";
 
 const createDependencies = (
 	invoke: ExtractionDependencies["invoke"],
@@ -35,7 +42,7 @@ const createDependencies = (
 });
 
 void describe("extractChunk", () => {
-	void it("uses translated content for extraction and original content for grounding", async () => {
+	void it("uses translated content for extraction and grounds the source in original content", async () => {
 		let invokedContent: string | undefined;
 
 		const dependencies = createDependencies((content) => {
@@ -84,6 +91,10 @@ void describe("extractChunk", () => {
 				content: TRANSLATED_CONTENT,
 				originalContent: ORIGINAL_CONTENT,
 				pageNumber: PAGE_NUMBER,
+				sourceMappings: alignTranslatedText(
+					ORIGINAL_CONTENT,
+					TRANSLATED_CONTENT,
+				),
 			},
 			dependencies,
 		);
@@ -93,7 +104,7 @@ void describe("extractChunk", () => {
 		assert.equal(result.items.length, EXPECTED_ITEM_COUNT);
 		assert.equal(
 			result.items[FIRST_ITEM_INDEX]?.sourceExcerpt,
-			"The limit is 10.",
+			"Das Limit ist 10.",
 		);
 	});
 });

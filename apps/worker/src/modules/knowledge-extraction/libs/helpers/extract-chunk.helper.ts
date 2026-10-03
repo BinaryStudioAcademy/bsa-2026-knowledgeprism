@@ -2,6 +2,7 @@ import {
 	BedrockResponseError,
 	BedrockResponseFailure,
 } from "~/bedrock/bedrock-response-error.exception.js";
+import { mapTranslatedRangeToSourceRange } from "~/modules/translation/libs/helpers/align-translated-text.helper.js";
 
 import {
 	ExtractionRejectionFeedback,
@@ -12,7 +13,9 @@ import { ExtractionOutputError } from "../exceptions/extraction-output-error.exc
 import { type ExtractionBlock } from "../types/extraction-block.type.js";
 import { type ExtractionDependencies } from "../types/extraction-dependencies.type.js";
 import { type KnowledgeItem } from "../types/knowledge-item.type.js";
+import { createTranslatedChunk } from "./create-translated-chunk.helper.js";
 import { isTransientExtractionError } from "./is-transient-extraction-error.helper.js";
+import { locateSourceSpanWithRange } from "./locate-source-span.helper.js";
 import { mapExtractionOutput } from "./map-extraction-output.helper.js";
 import { splitTruncatedChunk } from "./split-truncated-chunk.helper.js";
 
@@ -40,6 +43,48 @@ const isRetryable = (error: unknown): boolean =>
 		error.reason === BedrockResponseFailure.INVALID_RESPONSE) ||
 	isTransientExtractionError(error);
 
+const mapItemsToOriginalContent = (
+	items: KnowledgeItem[],
+	chunk: Chunk,
+): KnowledgeItem[] => {
+	const { originalContent, sourceMappings } = chunk;
+
+	if (originalContent === undefined || sourceMappings === undefined) {
+		return items;
+	}
+
+	return items.map((item) => {
+		if (item.sourceExcerpt === "") {
+			return item;
+		}
+
+		const translatedSpan = locateSourceSpanWithRange(
+			chunk.content,
+			item.sourceExcerpt,
+		);
+
+		if (translatedSpan === null) {
+			return item;
+		}
+
+		const originalRange = mapTranslatedRangeToSourceRange(
+			sourceMappings,
+			translatedSpan.range,
+		);
+
+		if (originalRange === null) {
+			return item;
+		}
+
+		return {
+			...item,
+			sourceExcerpt: originalContent
+				.slice(originalRange.start, originalRange.end)
+				.trim(),
+		};
+	});
+};
+
 const extractSplitChunk = async (
 	chunk: Chunk,
 	dependencies: ExtractionDependencies,
@@ -55,11 +100,18 @@ const extractSplitChunk = async (
 		return { ...result, hasFailures: true };
 	}
 
+	let searchFrom = 0;
+
 	for (const [splitPart, content] of parts.entries()) {
+		const translatedChunk = createTranslatedChunk(chunk, content, searchFrom);
+
+		searchFrom += content.length;
+
 		const partial = await extractChunk(
-			{ ...chunk, content, splitPart },
+			{ ...chunk, ...translatedChunk, splitPart },
 			dependencies,
 		);
+
 		result.hasFailures ||= partial.hasFailures;
 		result.items.push(...partial.items);
 		result.successfulChunkCount += partial.successfulChunkCount;
@@ -156,10 +208,9 @@ const extractChunk = async (
 				feedback,
 			);
 
-			const items = mapExtractionOutput(
-				raw,
-				chunk.pageNumber,
-				chunk.originalContent ?? chunk.content,
+			const items = mapItemsToOriginalContent(
+				mapExtractionOutput(raw, chunk.pageNumber, chunk.content),
+				chunk,
 			);
 
 			await recordResponse({ ...chunk, attempt }, dependencies, {
@@ -177,6 +228,7 @@ const extractChunk = async (
 				error,
 				raw,
 			});
+
 			handleFailure(error, { ...chunk, attempt }, dependencies);
 			feedback = toFeedback(error);
 

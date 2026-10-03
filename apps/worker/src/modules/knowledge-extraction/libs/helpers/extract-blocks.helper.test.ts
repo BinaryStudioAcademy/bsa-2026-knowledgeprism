@@ -11,6 +11,7 @@ import {
 	BedrockResponseError,
 	BedrockResponseFailure,
 } from "~/bedrock/bedrock-response-error.exception.js";
+import { alignTranslatedText } from "~/modules/translation/libs/helpers/align-translated-text.helper.js";
 
 import { ExtractionChunk } from "../constants/extraction-chunk.constant.js";
 import { ExtractionRecovery } from "../constants/extraction-recovery.constant.js";
@@ -658,6 +659,49 @@ void describe("extraction page numbers", () => {
 		);
 
 		assert.equal(result.items[EMPTY_COUNT]?.sourcePageNumber, NEXT_PAGE_NUMBER);
+	});
+
+	void it("attributes translated extraction to the original-language page", async () => {
+		const originalSecondPageText = "Seite zwei Regel.";
+		const originalContent = `Seite eins Text.\n${originalSecondPageText}`;
+		const translatedContent = "Page one text.\nPage two rule.";
+		const setup = createSetup(() =>
+			Promise.resolve({
+				items: [
+					sectionFor(toSourceHeading("Page two rule."), "Page two rule."),
+				],
+			}),
+		);
+
+		const result = await extractBlocks(
+			[
+				{
+					content: translatedContent,
+					originalContent,
+					originalPageStarts: [
+						{ offset: EMPTY_COUNT, pageNumber: PAGE_NUMBER },
+						{
+							offset: "Seite eins Text.".length + LINE_BREAK_LENGTH,
+							pageNumber: NEXT_PAGE_NUMBER,
+						},
+					],
+					pageEnd: NEXT_PAGE_NUMBER,
+					pageNumber: PAGE_NUMBER,
+					pageStarts: [{ offset: EMPTY_COUNT, pageNumber: PAGE_NUMBER }],
+					sourceMappings: alignTranslatedText(
+						originalContent,
+						translatedContent,
+					),
+				},
+			],
+			setup.dependencies,
+		);
+
+		const item = result.items[EMPTY_COUNT];
+
+		assert.ok(item);
+		assert.equal(item.sourcePageNumber, NEXT_PAGE_NUMBER);
+		assert.equal(item.sourceExcerpt, originalSecondPageText);
 	});
 });
 

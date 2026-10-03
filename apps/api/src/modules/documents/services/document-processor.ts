@@ -233,7 +233,8 @@ class DocumentProcessor {
 
 		const extractionChunks = translatedChunks.map((chunk, index) => ({
 			...chunk,
-			originalContent: chunks[index]?.content ?? chunk.content,
+			originalContent:
+				chunk.originalContent ?? chunks[index]?.content ?? chunk.content,
 		}));
 
 		await this.extractionRunRepository.updateTranslations(
