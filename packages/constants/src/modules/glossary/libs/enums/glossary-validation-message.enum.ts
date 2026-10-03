@@ -1,6 +1,8 @@
+import { GlossaryValidationRule } from "./glossary-validation-rule.enum.js";
+
 const GlossaryValidationMessage = {
 	CONTENT_EMPTY: "Content is required",
-	CONTENT_MAXIMUM_LENGTH: "Content must be at most 20000 characters",
+	CONTENT_MAXIMUM_LENGTH: `Content must be at most ${GlossaryValidationRule.CONTENT_MAXIMUM_LENGTH.toLocaleString("en-US")} characters`,
 	DEFINITION_EMPTY: "Definition is required",
 	DEFINITION_MAXIMUM_LENGTH: "Definition must be at most 1000 characters",
 	ID_WRONG: "Glossary term ID must be a positive integer",

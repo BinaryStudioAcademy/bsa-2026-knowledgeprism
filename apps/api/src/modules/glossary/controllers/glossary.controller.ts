@@ -97,7 +97,7 @@ import { type GlossaryService } from "../services/glossary.service.js";
  *        properties:
  *          content:
  *            type: string
- *            maxLength: 20000
+ *            maxLength: 100000
  *      GlossaryConsistencyMatch:
  *        type: object
  *        properties:
