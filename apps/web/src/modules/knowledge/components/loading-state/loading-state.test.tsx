@@ -75,8 +75,9 @@ describe("document processing progress", () => {
 				<DocumentProcessingList />
 			</Provider>,
 		);
+		fireEvent.click(screen.getByText(/2 sources/i));
 		expect(
-			screen.getByRole("list", { name: "Document processing progress" }),
+			screen.getByLabelText("Document processing progress"),
 		).toBeInTheDocument();
 		expect(screen.getByText("First.pdf")).toBeInTheDocument();
 		expect(screen.getByText("Second.pdf")).toBeInTheDocument();
@@ -302,6 +303,147 @@ describe("document processing progress", () => {
 		expect(
 			screen.queryByText("Something went wrong. Please try again."),
 		).not.toBeInTheDocument();
+	});
+
+	it("disables interactive actions when required props are missing", () => {
+		const projectId = "batch-project";
+		store.instance.dispatch(actions.resetState(projectId));
+		const pipelineSessionId =
+			store.instance.getState().knowledge.pipelineSessionId;
+
+		for (const document of [
+			{ id: 1, name: "Ready.pdf", status: DocumentStatus.WAITING_FOR_APPROVAL },
+			{ id: 2, name: "Failed.pdf", status: DocumentStatus.FAILED },
+		]) {
+			store.instance.dispatch(
+				actions.trackDocument({
+					documentId: document.id,
+					label: document.name,
+					projectId,
+				}),
+			);
+			store.instance.dispatch(
+				actions.syncTrackedDocumentStatus({
+					documentId: document.id,
+					pipelineSessionId,
+					projectId,
+					snapshot: {
+						createdAt: "2026-09-30T00:00:00Z",
+						errorMessage: null,
+						id: document.id,
+						name: document.name,
+						processingAttempt: 1,
+						processingProgress: PROGRESS,
+						projectId: 1,
+						sourceType: DocumentSourceType.UPLOAD,
+						status: document.status,
+						updatedAt: "2026-09-30T00:00:00Z",
+					},
+					status: document.status,
+				}),
+			);
+		}
+
+		render(
+			<Provider store={store.instance}>
+				<DocumentProcessingList />
+			</Provider>,
+		);
+
+		fireEvent.click(screen.getByText(/2 sources/i));
+
+		const readyButton = screen.getByText("Ready.pdf").closest("button");
+		expect(readyButton).toBeDisabled();
+
+		expect(screen.queryByText("Discard all")).not.toBeInTheDocument();
+	});
+
+	it("classifies active documents by their actual workflow status", () => {
+		const projectId = "batch-project";
+		store.instance.dispatch(actions.resetState(projectId));
+		const pipelineSessionId =
+			store.instance.getState().knowledge.pipelineSessionId;
+
+		store.instance.dispatch(
+			actions.trackDocument({
+				documentId: 1,
+				label: "ReadyActive.pdf",
+				projectId,
+			}),
+		);
+		store.instance.dispatch(
+			actions.syncTrackedDocumentStatus({
+				documentId: 1,
+				pipelineSessionId,
+				projectId,
+				snapshot: {
+					createdAt: "2026-09-30T00:00:00Z",
+					errorMessage: null,
+					id: 1,
+					name: "ReadyActive.pdf",
+					processingAttempt: 1,
+					processingProgress: PROGRESS,
+					projectId: 1,
+					sourceType: DocumentSourceType.UPLOAD,
+					status: DocumentStatus.WAITING_FOR_VALIDATION,
+					updatedAt: "2026-09-30T00:00:00Z",
+				},
+				status: DocumentStatus.WAITING_FOR_VALIDATION,
+			}),
+		);
+
+		store.instance.dispatch(
+			actions.trackDocument({
+				documentId: 2,
+				label: "ReadyInactive.pdf",
+				projectId,
+			}),
+		);
+		store.instance.dispatch(
+			actions.syncTrackedDocumentStatus({
+				documentId: 2,
+				pipelineSessionId,
+				projectId,
+				snapshot: {
+					createdAt: "2026-09-30T00:00:00Z",
+					errorMessage: null,
+					id: 2,
+					name: "ReadyInactive.pdf",
+					processingAttempt: 1,
+					processingProgress: PROGRESS,
+					projectId: 1,
+					sourceType: DocumentSourceType.UPLOAD,
+					status: DocumentStatus.WAITING_FOR_APPROVAL,
+					updatedAt: "2026-09-30T00:00:00Z",
+				},
+				status: DocumentStatus.WAITING_FOR_APPROVAL,
+			}),
+		);
+
+		render(
+			<Provider store={store.instance}>
+				<DocumentProcessingList
+					activeDocumentId={1}
+					onSwitchDocument={vi.fn()}
+					projectId={projectId}
+				/>
+			</Provider>,
+		);
+
+		expect(screen.getByText("2 ready")).toBeInTheDocument();
+		expect(screen.queryByText(/processing/i)).not.toBeInTheDocument();
+
+		fireEvent.click(screen.getByText(/2 sources/i));
+
+		const activeReadyButton = screen
+			.getByText("ReadyActive.pdf")
+			.closest("button");
+		expect(activeReadyButton).toBeDisabled();
+
+		const inactiveReadyButton = screen
+			.getByText("ReadyInactive.pdf")
+			.closest("button");
+		expect(inactiveReadyButton).toBeEnabled();
 	});
 });
 
