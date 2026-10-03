@@ -170,6 +170,13 @@ const isNodeChangedSinceAnalysis = (
 		return true;
 	}
 
+	const isReplacingContent =
+		resolution?.content === IntegrationResolution.USE_NEW;
+
+	if (isReplacingContent) {
+		return expectedContent === null || currentText !== expectedContent;
+	}
+
 	const expectedSpan = targetMatch
 		? targetMatch.span
 		: (placement.matches[FIRST_MATCH_INDEX]?.span ?? "");
