@@ -182,6 +182,90 @@ void describe("mapExtractionOutput", () => {
 		);
 	});
 
+	void it("stores a callout without a variant as a paragraph", () => {
+		const [item] = mapSections(
+			[
+				section({
+					blocks: [
+						headingBlock("Overview"),
+						{ content: [textRun("Use Postgres.")], type: "callout" },
+					],
+				}),
+			],
+			PAGE_NUMBER,
+			CHUNK,
+		);
+
+		assert.equal(item?.blocks.at(PARAGRAPH_BLOCK_INDEX)?.type, "paragraph");
+	});
+
+	void it("drops a block the model cut off and then wrote again in full", () => {
+		const [item] = mapSections(
+			[
+				section({
+					blocks: [
+						headingBlock("Overview"),
+						{
+							content: [textRun("Keep a "), textRun("backup ")],
+							type: "bulletListItem",
+						},
+						{
+							content: [textRun("Keep a "), textRun("backup of the limit.")],
+							type: "bulletListItem",
+						},
+						{ content: [textRun("Keep")], type: "bulletListItem" },
+						{ content: [textRun("Keep a backup.")], type: "bulletListItem" },
+					],
+				}),
+			],
+			PAGE_NUMBER,
+			CHUNK,
+		);
+
+		assert.deepEqual(
+			item?.blocks.map((block) =>
+				block.content.map(({ text }) => text).join(""),
+			),
+			["Overview", "Keep a backup of the limit.", "Keep", "Keep a backup."],
+		);
+	});
+
+	void it("rebuilds the source passage from excerptStart and excerptEnd", () => {
+		const items = mapSections(
+			[
+				section({
+					excerptEnd: "Use Postgres.",
+					excerptStart: "The limit is",
+					sourceExcerpt: undefined,
+				}),
+			],
+			PAGE_NUMBER,
+			CHUNK,
+		);
+		const [item] = items;
+
+		assert.equal(items.length, SINGLE_ITEM_COUNT);
+		assert.equal(
+			item?.sourceExcerpt,
+			"The limit is 10.\nKeep a backup.\nUse Postgres.",
+		);
+	});
+
+	void it("rejects the attempt when excerptEnd is not in the chunk", () => {
+		const output = toOutput([
+			section({
+				excerptEnd: "not in the chunk",
+				excerptStart: "The limit is",
+				sourceExcerpt: undefined,
+			}),
+		]);
+
+		assert.throws(
+			() => mapExtractionOutput(output, PAGE_NUMBER, CHUNK),
+			isInvalidItemError,
+		);
+	});
+
 	void it("sorts sections by order", () => {
 		const items = mapSections(
 			[

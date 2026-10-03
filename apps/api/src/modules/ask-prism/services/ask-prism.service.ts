@@ -1,11 +1,12 @@
+import { flattenContentToText } from "@knowledgeprism/config";
 import { KnowledgeNodeType } from "@knowledgeprism/constants";
 import { type AskPrismResponseDto } from "@knowledgeprism/types";
 import {
 	embed,
+	embedChunked,
 	EmbeddingInputType,
-	search,
-	type SemanticSearchParameters,
-	type SimilarityMatch,
+	searchGrouped,
+	toEmbeddingEntry,
 } from "@knowledgeprism/worker";
 
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
@@ -32,13 +33,12 @@ type AskPrismContextItem = {
 
 type Constructor = {
 	embedder?: typeof embed;
+	embedChunkedFn?: typeof embedChunked;
 	extractionItemRepository?: ExtractionItemRepository | undefined;
 	knowledgeNodeRepository: KnowledgeNodeRepository;
 	projectService: ProjectService;
 	ragGenerator?: (question: string, contextChunks: string[]) => Promise<string>;
-	searcher?: (
-		parameters: SemanticSearchParameters<AskPrismContextItem>,
-	) => SimilarityMatch<AskPrismContextItem>[];
+	searcher?: typeof searchGrouped;
 };
 
 const EMPTY_LENGTH = 0;
@@ -49,6 +49,7 @@ const SCORE_THRESHOLD = 0.3;
 
 class AskPrismService {
 	private embedder: typeof embed;
+	private embedChunkedFn: typeof embedChunked;
 	private extractionItemRepository?: ExtractionItemRepository | undefined;
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
 	private projectService: ProjectService;
@@ -56,19 +57,19 @@ class AskPrismService {
 		question: string,
 		contextChunks: string[],
 	) => Promise<string>;
-	private searcher: (
-		parameters: SemanticSearchParameters<AskPrismContextItem>,
-	) => SimilarityMatch<AskPrismContextItem>[];
+	private searcher: typeof searchGrouped;
 
 	public constructor({
 		embedder = embed,
+		embedChunkedFn = embedChunked,
 		extractionItemRepository,
 		knowledgeNodeRepository,
 		projectService,
 		ragGenerator = invokeRagGeneration,
-		searcher = search,
+		searcher = searchGrouped,
 	}: Constructor) {
 		this.embedder = embedder;
+		this.embedChunkedFn = embedChunkedFn;
 		this.extractionItemRepository = extractionItemRepository;
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
 		this.projectService = projectService;
@@ -76,32 +77,9 @@ class AskPrismService {
 		this.searcher = searcher;
 	}
 
-	private extractTextFromBlocks(blocks: Record<string, unknown>[]): string {
-		let text = "";
-		const traverse = (node: unknown): void => {
-			if (typeof node === "string") {
-				text += node + " ";
-			} else if (Array.isArray(node)) {
-				for (const child of node) {
-					traverse(child);
-				}
-			} else if (typeof node === "object" && node !== null) {
-				const record = node as Record<string, unknown>;
-				if (record["type"] === "text" && typeof record["text"] === "string") {
-					text += record["text"] + " ";
-				}
-				if (record["content"]) {
-					traverse(record["content"]);
-				}
-			}
-		};
-		traverse(blocks);
-		return text.trim();
-	}
-
 	private isEligibleForSuggestion(node: KnowledgeNodeEntity): boolean {
 		const nodeObject = node.toObject();
-		const textContent = this.extractTextFromBlocks(nodeObject.contentJson);
+		const textContent = flattenContentToText(nodeObject.contentJson);
 
 		if (
 			nodeObject.type === KnowledgeNodeType.PAGE &&
@@ -155,13 +133,17 @@ class AskPrismService {
 		const contexts = nodes
 			.map((node) => {
 				const nodeObject = node.toObject();
-				const textContent = this.extractTextFromBlocks(nodeObject.contentJson);
+				const textContent = flattenContentToText(nodeObject.contentJson);
 				const indexedContent = nodeObject.title
 					? `${nodeObject.title}\n${textContent}`
 					: textContent;
 
 				return {
 					content: textContent,
+					entry: toEmbeddingEntry({
+						blocks: nodeObject.contentJson,
+						title: nodeObject.title,
+					}),
 					id: nodeObject.id,
 					indexedContent,
 					nodeId: nodeObject.id,
@@ -188,34 +170,19 @@ class AskPrismService {
 			throw new Error("Failed to generate embedding for the question");
 		}
 
-		const nodeVectors = await this.embedder(
-			contexts.map((c) => c.indexedContent),
+		const candidates = await this.embedChunkedFn(
+			contexts.map((contextItem) => ({
+				entry: contextItem.entry,
+				item: contextItem,
+			})),
 			EmbeddingInputType.SEARCH_DOCUMENT,
 			{ isLimited: false },
 		);
-
-		const candidates = contexts.map((contextItem, index) => {
-			const vector = nodeVectors[index];
-
-			if (!vector) {
-				throw new Error("Missing vector for context item");
-			}
-
-			return {
-				item: contextItem,
-				vector,
-			};
-		});
-
-		const matches = this.searcher({
+		const relevantMatches = this.searcher({
 			candidates,
-			queryVector,
+			queryVectors: [queryVector],
 			topK: MAX_SIMILAR_NODES,
-		});
-
-		const relevantMatches = matches.filter(
-			(match) => match.score >= SCORE_THRESHOLD,
-		);
+		}).filter(({ score }) => score >= SCORE_THRESHOLD);
 
 		if (relevantMatches.length === EMPTY_LENGTH) {
 			return {

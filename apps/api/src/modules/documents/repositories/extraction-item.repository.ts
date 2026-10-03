@@ -12,6 +12,7 @@ import { type ExtractionItemModel } from "~/modules/documents/models/extraction-
 type NewExtractionItem = {
 	blocks?: ExtractionContentBlock[];
 	confidence: number;
+	extractionRunId?: null | number;
 	extractionSectionId?: null | number;
 	heading: null | string;
 	position?: number;
@@ -336,4 +337,4 @@ class ExtractionItemRepository {
 	}
 }
 
-export { ExtractionItemRepository };
+export { type NewExtractionItem, ExtractionItemRepository };

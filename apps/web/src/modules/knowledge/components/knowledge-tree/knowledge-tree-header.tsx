@@ -13,6 +13,7 @@ type Properties = {
 	breadcrumbs: string[];
 	canEdit?: boolean;
 	currentStatus: "IDLE" | "UPLOADED" | ValueOf<typeof DocumentStatus>;
+	errorMessage?: null | string;
 	hasError?: boolean;
 	isEditing?: boolean;
 	onCancel?: () => void;
@@ -98,6 +99,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 	breadcrumbs,
 	canEdit = false,
 	currentStatus,
+	errorMessage = null,
 	hasError = false,
 	isEditing = false,
 	onCancel,
@@ -126,6 +128,7 @@ const KnowledgeTreeHeader: React.FC<Properties> = ({
 						{hasError || currentStatus === "FAILED" ? (
 							<LoadingState
 								currentStatus={currentStatus}
+								errorMessage={errorMessage}
 								hasError={true}
 								onCancel={onResetState}
 								onRetry={onRetry}
