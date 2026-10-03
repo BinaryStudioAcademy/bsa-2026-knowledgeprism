@@ -3,7 +3,9 @@ import { describe, it } from "node:test";
 
 import {
 	locateAnchoredSpan,
+	locateAnchoredSpanWithRange,
 	locateSourceSpan,
+	locateSourceSpanWithRange,
 } from "./locate-source-span.helper.js";
 
 const GLOSSARY_PAGE = [
@@ -109,6 +111,19 @@ void describe("locateSourceSpan", () => {
 	void it("rejects a blank excerpt", () => {
 		assert.equal(locateSourceSpan(GLOSSARY_PAGE, " \n "), null);
 	});
+
+	void it("returns the source text with its exact range", () => {
+		const excerpt = "Epic 6: Glossary Engine";
+		const start = GLOSSARY_PAGE.indexOf(excerpt);
+
+		assert.deepEqual(locateSourceSpanWithRange(GLOSSARY_PAGE, excerpt), {
+			range: {
+				end: start + excerpt.length,
+				start,
+			},
+			text: excerpt,
+		});
+	});
 });
 
 void describe("locateAnchoredSpan", () => {
@@ -132,6 +147,29 @@ void describe("locateAnchoredSpan", () => {
 				start: "A terminology governance system",
 			}),
 			null,
+		);
+	});
+
+	void it("returns the anchored passage with its exact range", () => {
+		const expectedText = [
+			"A terminology governance system that defines canonical project terms,",
+			"detects inconsistent usage, and enforces documentation consistency.",
+		].join("\n");
+
+		const start = GLOSSARY_PAGE.indexOf(expectedText);
+
+		assert.deepEqual(
+			locateAnchoredSpanWithRange(GLOSSARY_PAGE, {
+				end: "enforces documentation consistency:",
+				start: "A terminology governance system",
+			}),
+			{
+				range: {
+					end: start + expectedText.length,
+					start,
+				},
+				text: expectedText,
+			},
 		);
 	});
 });

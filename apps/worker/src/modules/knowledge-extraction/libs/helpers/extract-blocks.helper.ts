@@ -7,6 +7,7 @@ import { type ExtractionBlock } from "../types/extraction-block.type.js";
 import { type ExtractionDependencies } from "../types/extraction-dependencies.type.js";
 import { type ExtractionResult } from "../types/extraction-result.type.js";
 import { type KnowledgeItem } from "../types/knowledge-item.type.js";
+import { createTranslatedChunk } from "./create-translated-chunk.helper.js";
 import { extractChunk } from "./extract-chunk.helper.js";
 import { findExcerptPage } from "./find-excerpt-page.helper.js";
 import { isBlankPageContent } from "./is-blank-page-content.helper.js";
@@ -37,12 +38,20 @@ const toNonBlankChunks = (
 	maximumLength?: number,
 ): IndexedChunk[] =>
 	blocks
-		.flatMap((block) =>
-			splitIntoChunks(block.content, maximumLength).map((content) => ({
-				...block,
-				content,
-			})),
-		)
+		.flatMap((block) => {
+			let searchFrom = 0;
+
+			return splitIntoChunks(block.content, maximumLength).map((content) => {
+				const chunk = createTranslatedChunk(block, content, searchFrom);
+
+				searchFrom += content.length;
+
+				return {
+					...block,
+					...chunk,
+				};
+			});
+		})
 		.map((chunk, chunkIndex) => ({ ...chunk, chunkIndex }))
 		.filter((chunk) => !isBlankPageContent(chunk.content));
 

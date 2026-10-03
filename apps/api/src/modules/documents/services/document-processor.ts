@@ -215,6 +215,7 @@ class DocumentProcessor {
 		pages: ParsedPageBlock[];
 	}): Promise<RunExtraction> {
 		const chunks = toDocumentChunks(pages, this.extractionChunkLength);
+
 		const chunkIds = await this.extractionRunRepository.createChunks({
 			chunks: chunks.map((chunk) => ({
 				content: chunk.content,
@@ -225,10 +226,18 @@ class DocumentProcessor {
 			})),
 			extractionRunId,
 		});
+
 		const translatedChunks = withTranslatedSectionTitles(
 			chunks,
 			await translate(chunks),
 		);
+
+		const extractionChunks = translatedChunks.map((chunk, index) => ({
+			...chunk,
+			originalContent:
+				chunk.originalContent ?? chunks[index]?.content ?? chunk.content,
+		}));
+
 		await this.extractionRunRepository.updateTranslations(
 			translatedChunks.flatMap(({ content, position }) => {
 				const id = chunkIds.get(position);
@@ -239,7 +248,9 @@ class DocumentProcessor {
 					: [];
 			}),
 		);
+
 		const responses: ExtractionResponseRecord[] = [];
+
 		const saveResponse = async (
 			response: ExtractionResponseRecord,
 		): Promise<void> => {
@@ -258,7 +269,8 @@ class DocumentProcessor {
 				splitPart: response.splitPart,
 			});
 		};
-		const extraction = await extract(translatedChunks, {
+
+		const extraction = await extract(extractionChunks, {
 			context: { documentId, processingAttempt: attempt },
 			maximumChunkLength: this.extractionChunkLength,
 			onProgress: createOrderedProgressReporter((progress) =>
@@ -308,9 +320,11 @@ class DocumentProcessor {
 			},
 			status: DocumentStatus.PROCESSING,
 		});
+
 		if (!isCurrent) {
 			return false;
 		}
+
 		const pages = await this.loadPages(document);
 		const hasExtractableText = pages.some(
 			(page) => page.content.trim().length > EMPTY_TEXT_LENGTH,
@@ -335,6 +349,7 @@ class DocumentProcessor {
 				extractionRunId,
 				pages,
 			});
+
 			await this.extractionRunRepository.finish({
 				id: extractionRunId,
 				status: isCompleted
