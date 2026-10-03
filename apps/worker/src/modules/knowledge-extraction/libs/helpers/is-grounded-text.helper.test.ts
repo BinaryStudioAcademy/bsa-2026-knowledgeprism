@@ -10,6 +10,8 @@ const SOURCE = [
 	"Approval requirements",
 	"A reviewer approves each proposal before it is published.",
 	"Uploads are limited to 20 MB per file.",
+	"Epic 10: Feedback",
+	"Epic 13: Billing",
 	"Decision: approved knowledge stays in the project knowledge base.",
 ].join("\n");
 
@@ -59,5 +61,9 @@ void describe("isGroundedText", () => {
 
 	void it("accepts a heading taken from the source", () => {
 		assert.equal(isGroundedText("Approval requirements", vocabulary), true);
+	});
+
+	void it("accepts a plural of a source word", () => {
+		assert.equal(isGroundedText("Epics 10–13", vocabulary), true);
 	});
 });

@@ -7,6 +7,7 @@ const Grounding = {
 } as const;
 
 const DIGIT = /\p{N}/u;
+const PLURAL_ENDING = /s$/u;
 const WORD_SEPARATOR = /[^\p{L}\p{N}]+/u;
 
 const toWords = (text: string): string[] => {
@@ -22,7 +23,9 @@ const toWords = (text: string): string[] => {
 const toStem = (word: string): string => {
 	return DIGIT.test(word)
 		? word
-		: word.slice(Grounding.STEM_START, Grounding.STEM_LENGTH);
+		: word
+				.replace(PLURAL_ENDING, "")
+				.slice(Grounding.STEM_START, Grounding.STEM_LENGTH);
 };
 
 const createSourceVocabulary = (sourceText: string): Set<string> => {
