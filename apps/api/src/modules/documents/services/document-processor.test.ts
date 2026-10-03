@@ -9,15 +9,18 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
 import { type Database } from "~/infrastructure/database/database.js";
+import { type Logger } from "~/infrastructure/logger/logger.js";
 import { DocumentProcessingError } from "~/modules/documents/libs/exceptions/document-processing.exception.js";
 import { DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type DocumentRepository } from "~/modules/documents/repositories/document.repository.js";
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
+import { type ExtractionRunRepository } from "~/modules/documents/repositories/extraction-run.repository.js";
 import { type GlossaryService } from "~/modules/glossary/services/glossary.service.js";
 
 import { DocumentProcessor } from "./document-processor.js";
 
 const DOCUMENT_ID = 101;
+const EXTRACTION_CHUNK_LENGTH = 1000;
 const PROCESSING_ATTEMPT = 1;
 const PROJECT_ID = 5;
 const USER_ID = 1;
@@ -53,8 +56,11 @@ const createProcessor = (document: DocumentEntity): DocumentProcessor => {
 	return new DocumentProcessor({
 		database: {} as Database,
 		documentRepository,
+		extractionChunkLength: EXTRACTION_CHUNK_LENGTH,
 		extractionItemRepository: {} as ExtractionItemRepository,
+		extractionRunRepository: {} as ExtractionRunRepository,
 		glossaryService: {} as GlossaryService,
+		logger: {} as Logger,
 	});
 };
 
