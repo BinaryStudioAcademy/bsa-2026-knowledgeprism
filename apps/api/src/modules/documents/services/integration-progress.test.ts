@@ -20,6 +20,7 @@ import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/k
 
 import { DocumentEntity } from "../models/document.entity.js";
 import { ExtractionItemEntity } from "../models/extraction-item.entity.js";
+import { type IntegrationChangeEntity } from "../models/integration-change.entity.js";
 import { type DocumentRepository } from "../repositories/document.repository.js";
 import { type ExtractionItemRepository } from "../repositories/extraction-item.repository.js";
 import { type IntegrationChangeRepository } from "../repositories/integration-change.repository.js";
@@ -38,6 +39,8 @@ const TWO_COUNT = 2;
 const FIRST_SECTION_ID = 10;
 const SECOND_SECTION_ID = 20;
 const FIRST_PARAMETER_INDEX = 0;
+const FIRST_SECTION_INDEX = 0;
+const LAST_SECTION_INDEX = 2;
 
 const createItem = (
 	id: number,
@@ -67,7 +70,9 @@ const createItem = (
 	});
 
 const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
-	const priorCountByText = new Map<string, number>();
+	const candidateCountByText = new Map<string, number>();
+	const outlinedSections: string[][] = [];
+	const persistedChanges: IntegrationChangeEntity[] = [];
 	const updates: Parameters<
 		DocumentRepository["updateProcessingProgress"]
 	>[typeof FIRST_PARAMETER_INDEX][] = [];
@@ -109,8 +114,8 @@ const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
 		},
 	} as unknown as DocumentRepository;
 	const analyzer = new IntegrationAnalyzer({
-		analyze: ({ itemText, priorPlacements = [] }) => {
-			priorCountByText.set(itemText, priorPlacements.length);
+		analyze: ({ candidates, itemText }) => {
+			candidateCountByText.set(itemText, candidates.length);
 
 			if (itemText.trim() === "") {
 				return Promise.reject(
@@ -147,6 +152,7 @@ const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
 				IntegrationChangeRepository["replaceByDocumentId"]
 			>[typeof FIRST_PARAMETER_INDEX]) => {
 				persistedCounts.push(changes.length);
+				persistedChanges.push(...changes);
 				return Promise.resolve();
 			},
 		} as unknown as IntegrationChangeRepository,
@@ -162,11 +168,26 @@ const createSetup = (items: ExtractionItemEntity[], isCurrent = true) => {
 			info: ignoreLog,
 			warn: ignoreLog,
 		},
+		placeSections: ({ sections }) => {
+			outlinedSections.push(sections.map(({ text }) => text));
+
+			return Promise.resolve(
+				sections.map((_section, index) => ({
+					parentIndex: null,
+					parentPriorIndex:
+						index === LAST_SECTION_INDEX ? FIRST_SECTION_INDEX : null,
+					proposesParent: true,
+					siblingOrder: ZERO_COUNT,
+				})),
+			);
+		},
 	});
 	return {
 		analyzer,
+		candidateCountByText,
+		outlinedSections,
+		persistedChanges,
 		persistedCounts,
-		priorCountByText,
 		projects,
 		transitions,
 		updates,
@@ -257,7 +278,7 @@ void describe("integration progress", () => {
 		assert.deepEqual(setup.persistedCounts, []);
 	});
 
-	void it("places every item of the document in order after the earlier decisions", async () => {
+	void it("lays out the document once and compares each item with the earlier ones", async () => {
 		const setup = createSetup([
 			createItem(FIRST_ITEM_ID, "Section one start", {
 				extractionSectionId: FIRST_SECTION_ID,
@@ -272,11 +293,26 @@ void describe("integration progress", () => {
 
 		await setup.analyzer.process({ attempt: ATTEMPT, documentId: DOCUMENT_ID });
 
-		assert.equal(setup.priorCountByText.get("Section one start"), ZERO_COUNT);
-		assert.equal(setup.priorCountByText.get("Section two start"), SINGLE_COUNT);
+		assert.deepEqual(setup.outlinedSections, [
+			["Section one start", "Section two start", "Section one follow-up"],
+		]);
 		assert.equal(
-			setup.priorCountByText.get("Section one follow-up"),
+			setup.candidateCountByText.get("Section one start"),
+			ZERO_COUNT,
+		);
+		assert.equal(
+			setup.candidateCountByText.get("Section two start"),
+			SINGLE_COUNT,
+		);
+		assert.equal(
+			setup.candidateCountByText.get("Section one follow-up"),
 			TWO_COUNT,
+		);
+		assert.deepEqual(
+			setup.persistedChanges.map(
+				(change) => change.toObject().placement.parentExtractionItemId,
+			),
+			[null, null, FIRST_ITEM_ID],
 		);
 	});
 });
