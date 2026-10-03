@@ -101,5 +101,5 @@ const toClassificationPrompt = ({
 	].join("\n");
 };
 
-export { toClassificationPrompt };
+export { toClassificationPrompt, toTreeLines };
 export type { ClassificationRequest };

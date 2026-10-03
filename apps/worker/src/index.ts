@@ -44,7 +44,12 @@ export {
 } from "./modules/integration-analysis/libs/types/integration-analysis-parameters.type.js";
 export { type IntegrationAnalysisResult } from "./modules/integration-analysis/libs/types/integration-analysis-result.type.js";
 export { type IntegrationChangeTypeValue } from "./modules/integration-analysis/libs/types/integration-change-type-value.type.js";
+export {
+	type OutlineSection,
+	type SectionOutline,
+} from "./modules/integration-analysis/libs/types/section-outline.type.js";
 export { analyze } from "./modules/integration-analysis/services/integration-analysis.service.js";
+export { placeSections } from "./modules/integration-analysis/services/section-outline.service.js";
 export { downloadDocument } from "./modules/knowledge-extraction/libs/helpers/download-document.helper.js";
 export { type ExtractionBlock } from "./modules/knowledge-extraction/libs/types/extraction-block.type.js";
 export { type ExtractionResponseRecord } from "./modules/knowledge-extraction/libs/types/extraction-response-record.type.js";
