@@ -98,16 +98,13 @@ const createTestSetup = (
 		: undefined;
 
 	const service = new AskPrismService({
-		...(options.embedder && { embedder: options.embedder }),
-		...((options.embedChunkedFn ?? defaultEmbedChunkedFn) && {
-			embedChunkedFn: (options.embedChunkedFn ??
-				defaultEmbedChunkedFn) as AskPrismServiceOptions["embedChunkedFn"],
-		}),
+		embedChunkedFn: options.embedChunkedFn ?? defaultEmbedChunkedFn,
+		embedder: options.embedder,
 		extractionItemRepository: options.extractionItemRepository,
 		knowledgeNodeRepository,
 		projectService,
-		...(options.ragGenerator && { ragGenerator: options.ragGenerator }),
-		...(options.searcher && { searcher: options.searcher }),
+		ragGenerator: options.ragGenerator,
+		searcher: options.searcher,
 	});
 
 	return { service };

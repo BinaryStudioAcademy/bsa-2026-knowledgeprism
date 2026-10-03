@@ -31,14 +31,22 @@ type AskPrismContextItem = {
 	title: string;
 };
 
+type AskPrismSearcher = (parameters: {
+	candidates: { item: AskPrismContextItem; vector: number[] }[];
+	queryVectors: number[][];
+	topK?: number;
+}) => { item: AskPrismContextItem; score: number }[];
+
 type Constructor = {
-	embedder?: typeof embed;
-	embedChunkedFn?: typeof embedChunked;
+	embedder?: typeof embed | undefined;
+	embedChunkedFn?: typeof embedChunked | undefined;
 	extractionItemRepository?: ExtractionItemRepository | undefined;
 	knowledgeNodeRepository: KnowledgeNodeRepository;
 	projectService: ProjectService;
-	ragGenerator?: (question: string, contextChunks: string[]) => Promise<string>;
-	searcher?: typeof searchGrouped;
+	ragGenerator?:
+		| ((question: string, contextChunks: string[]) => Promise<string>)
+		| undefined;
+	searcher?: AskPrismSearcher | undefined;
 };
 
 const EMPTY_LENGTH = 0;
@@ -57,7 +65,7 @@ class AskPrismService {
 		question: string,
 		contextChunks: string[],
 	) => Promise<string>;
-	private searcher: typeof searchGrouped;
+	private searcher: AskPrismSearcher;
 
 	public constructor({
 		embedder = embed,
