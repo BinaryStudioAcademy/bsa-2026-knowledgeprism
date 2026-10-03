@@ -53,7 +53,7 @@ const EMPTY_LENGTH = 0;
 const FILE_EXTENSION_PATTERN = /\.(pdf|txt|docx?|md|json)$/iu;
 const MAX_SIMILAR_NODES = 3;
 const MAX_SUGGESTIONS = 3;
-const SCORE_THRESHOLD = 0.3;
+const SCORE_THRESHOLD = 0.4;
 
 class AskPrismService {
 	private chunkedEmbedder: typeof embedChunked;
