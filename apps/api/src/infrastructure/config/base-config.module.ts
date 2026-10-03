@@ -97,6 +97,22 @@ class BaseConfig implements Config {
 					format: Number,
 				},
 			},
+			EXTRACTION: {
+				CHUNK_LENGTH: {
+					default: 24_000,
+					doc: "Sonnet extraction chunk size in characters",
+					env: "EXTRACTION_CHUNK_LENGTH",
+					format: "nat",
+				},
+			},
+			FEATURE: {
+				NODE_MERGE_LLM: {
+					default: false,
+					doc: "Merge integration changes into knowledge nodes with Sonnet",
+					env: "NODE_MERGE_LLM",
+					format: Boolean,
+				},
+			},
 			SESSION: {
 				SECRET: {
 					default: null,

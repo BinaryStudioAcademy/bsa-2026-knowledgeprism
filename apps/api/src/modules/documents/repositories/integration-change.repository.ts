@@ -1,14 +1,17 @@
-import { type Transaction } from "objection";
+import { raw, type Transaction } from "objection";
 
 import { toDocumentPlacement } from "~/modules/documents/libs/helpers/to-document-placement.helper.js";
 import { IntegrationChangeEntity } from "~/modules/documents/models/integration-change.entity.js";
 import { type IntegrationChangeModel } from "~/modules/documents/models/integration-change.model.js";
 
 const EMPTY_LENGTH = 0;
+const UNCHANGED_INCOMING_MERGED_BLOCKS =
+	"CASE WHEN incoming_content = ? AND incoming_title = ? THEN merged_blocks END";
 
 const toEntity = (change: IntegrationChangeModel): IntegrationChangeEntity =>
 	IntegrationChangeEntity.initialize({
 		documentId: change.documentId,
+		duplicateOfExtractionItemId: change.duplicateOfExtractionItemId,
 		explanation: change.explanation,
 		extractionItemId: change.extractionItemId,
 		id: change.id,
@@ -17,6 +20,8 @@ const toEntity = (change: IntegrationChangeModel): IntegrationChangeEntity =>
 		liveContent: change.liveContent,
 		liveTitle: change.liveTitle,
 		matchedNodeId: change.matchedNodeId,
+		mergedBlocks: change.mergedBlocks,
+		mergeMethod: change.mergeMethod,
 		placement: toDocumentPlacement(change.placement),
 		score: change.score,
 		type: change.type,
@@ -81,7 +86,14 @@ class IntegrationChangeRepository {
 	): Promise<boolean> {
 		const updatedCount = await this.integrationChangeModel
 			.query(transaction)
-			.patch({ incomingContent, incomingTitle })
+			.patch({
+				incomingContent,
+				incomingTitle,
+				mergedBlocks: raw(UNCHANGED_INCOMING_MERGED_BLOCKS, [
+					incomingContent,
+					incomingTitle,
+				]),
+			})
 			.where({ documentId, extractionItemId })
 			.execute();
 

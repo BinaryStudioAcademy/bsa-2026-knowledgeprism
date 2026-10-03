@@ -19,4 +19,11 @@ void describe("toExtractionUserMessage", () => {
 			`<previous_heading>Installation</previous_heading>\n<page>\n${CHUNK}\n</page>`,
 		);
 	});
+
+	void it("adds previous_attempt_error after page when the previous answer was rejected", () => {
+		assert.equal(
+			toExtractionUserMessage(CHUNK, null, "Copy the anchors exactly."),
+			`<page>\n${CHUNK}\n</page>\n<previous_attempt_error>Copy the anchors exactly.</previous_attempt_error>`,
+		);
+	});
 });

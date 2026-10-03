@@ -61,7 +61,6 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 	const { hideModal, isOpen, showModal } = useModal();
 	const { pathname } = useLocation();
 	const projectId = useOptionalCurrentProjectId();
-
 	const canWriteKnowledge = useCanWriteKnowledge();
 	const { isAddingKnowledge } = useAppSelector((state) => state.knowledge);
 	const { projects } = useAppSelector(({ workspaces }) => workspaces);
@@ -220,75 +219,87 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProperties> = ({
 									/>
 								</button>
 
-								{isDropdownOpen && (
-									<>
-										<button
-											aria-label="Close menu"
-											className="fixed inset-0 z-40 cursor-default border-none bg-black/15 outline-none transition-opacity duration-300 ease-in-out animate-in fade-in lg:hidden"
-											onClick={handleCloseDropdown}
-											type="button"
-										/>
+								<>
+									<button
+										aria-label="Close menu"
+										className={getValidClassNames(
+											"fixed inset-0 z-40 cursor-default border-none bg-black/15 outline-none transition-opacity duration-300 ease-in-out lg:hidden",
+											isDropdownOpen
+												? "opacity-100"
+												: "pointer-events-none opacity-0",
+										)}
+										onClick={handleCloseDropdown}
+										type="button"
+									/>
 
-										<div className="fixed inset-x-0 bottom-0 z-50 flex w-full flex-col rounded-t-2xl border-t border-(--color-border-subtle) bg-surface px-3.5 pb-3 pt-2 shadow-2xl transition-all duration-300 ease-out animate-in slide-in-from-bottom sm:absolute sm:bottom-auto sm:left-auto sm:-right-2 sm:top-full sm:mt-2 sm:w-44 sm:rounded-xl sm:border sm:p-2.5 sm:shadow-xl sm:slide-in-from-top-2">
-											<div className="mx-auto mb-2 h-1 w-8 rounded-full bg-border sm:hidden" />
+									<div
+										className={getValidClassNames(
+											"fixed inset-x-0 bottom-0 z-50 flex w-full flex-col rounded-t-2xl border-t border-(--color-border-subtle) bg-surface px-3.5 pb-3 pt-2 shadow-2xl transition-transform duration-300 ease-out",
+											"sm:absolute sm:bottom-auto sm:left-auto sm:-right-2 sm:top-full sm:mt-2 sm:w-44 sm:rounded-xl sm:border sm:p-2.5 sm:shadow-xl",
+											isDropdownOpen
+												? "translate-y-0 sm:visible"
+												: "translate-y-full sm:-translate-y-2 sm:invisible sm:pointer-events-none",
+										)}
+										inert={isDropdownOpen ? undefined : true}
+									>
+										<div className="mx-auto mb-2 h-1 w-8 rounded-full bg-border sm:hidden" />
 
-											<div className="mb-2 flex items-center gap-2.5 border-b border-(--color-border-subtle) pb-2 sm:hidden">
-												<Avatar
-													alt={fullName || "User Avatar"}
-													initials={initials}
-													{...(avatarUrl ? { src: avatarUrl } : {})}
-												/>
-												<div className="flex min-w-0 flex-col">
-													<span className="truncate text-xs font-semibold text-text">
-														{fullName}
+										<div className="mb-2 flex items-center gap-2.5 border-b border-(--color-border-subtle) pb-2 sm:hidden">
+											<Avatar
+												alt={fullName || "User Avatar"}
+												initials={initials}
+												{...(avatarUrl ? { src: avatarUrl } : {})}
+											/>
+											<div className="flex min-w-0 flex-col">
+												<span className="truncate text-xs font-semibold text-text">
+													{fullName}
+												</span>
+												{trimmedOrgName && (
+													<span className="truncate text-2xs text-text-muted">
+														{trimmedOrgName}
 													</span>
-													{trimmedOrgName && (
-														<span className="truncate text-2xs text-text-muted">
-															{trimmedOrgName}
-														</span>
-													)}
-												</div>
+												)}
 											</div>
+										</div>
 
-											<div className="flex flex-col gap-0.5 sm:gap-1.5">
+										<div className="flex flex-col gap-0.5 sm:gap-1.5">
+											<button
+												className={getValidClassNames(
+													ACCOUNT_MENU_ITEM_CLASS,
+													"text-text-muted hover:bg-secondary hover:text-text",
+												)}
+												onClick={handleOpenSettings}
+												type="button"
+											>
+												{ACCOUNT_SETTINGS_LABEL}
+											</button>
+
+											{isAdmin && (
 												<button
 													className={getValidClassNames(
 														ACCOUNT_MENU_ITEM_CLASS,
 														"text-text-muted hover:bg-secondary hover:text-text",
 													)}
-													onClick={handleOpenSettings}
+													onClick={handleOpenUserManagement}
 													type="button"
 												>
-													{ACCOUNT_SETTINGS_LABEL}
+													{ORGANISATION_USERS_MENU_LABEL}
 												</button>
+											)}
 
-												{isAdmin && (
-													<button
-														className={getValidClassNames(
-															ACCOUNT_MENU_ITEM_CLASS,
-															"text-text-muted hover:bg-secondary hover:text-text",
-														)}
-														onClick={handleOpenUserManagement}
-														type="button"
-													>
-														{ORGANISATION_USERS_MENU_LABEL}
-													</button>
+											<button
+												className={getValidClassNames(
+													ACCOUNT_MENU_ITEM_CLASS,
+													"text-error hover:bg-error-bg hover:text-error-hover",
 												)}
-
-												<button
-													className={getValidClassNames(
-														ACCOUNT_MENU_ITEM_CLASS,
-														"text-error hover:bg-error-bg hover:text-error-hover",
-													)}
-													onClick={handleLogOut}
-													type="button"
-												>
-													Log out
-												</button>
-											</div>
+												onClick={handleLogOut}
+												type="button"
+											>
+												Log out
+											</button>
 										</div>
-									</>
-								)}
+									</div>
+								</>
 							</div>
 						)}
 					</div>

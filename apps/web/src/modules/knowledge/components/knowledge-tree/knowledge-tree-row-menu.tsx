@@ -1,10 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
+import {
+	EMPTY_LENGTH,
+	KNOWLEDGE_TREE_ITEM_CONFIG,
+} from "../../libs/constants/constants.js";
+
 const FOCUS_STEP = 1;
 const FIRST_ITEM_INDEX = 0;
 const MENU_ICON_SIZE = 12;
 
+const { TAB_INDEX_FOCUSABLE, TAB_INDEX_UNFOCUSABLE } =
+	KNOWLEDGE_TREE_ITEM_CONFIG;
+
 type Properties = {
+	isFocused?: boolean;
 	items: RowMenuItem[];
 	title: string;
 };
@@ -22,6 +31,7 @@ const getMenuButtons = (menu: HTMLElement | null): HTMLButtonElement[] => {
 };
 
 const KnowledgeTreeRowMenu: React.FC<Properties> = ({
+	isFocused = false,
 	items,
 	title,
 }: Properties) => {
@@ -70,11 +80,27 @@ const KnowledgeTreeRowMenu: React.FC<Properties> = ({
 				return;
 			}
 
+			if (!isOpen) {
+				if (event.key === "ArrowLeft" || event.key === "Escape") {
+					event.stopPropagation();
+					event.preventDefault();
+					const row = triggerReference.current?.closest(".group");
+					const treeItem =
+						row?.querySelector<HTMLButtonElement>("[role='treeitem']");
+					treeItem?.focus();
+				}
+				return;
+			}
+
 			if (event.key !== "ArrowDown" && event.key !== "ArrowUp") {
 				return;
 			}
 
 			const buttons = getMenuButtons(menuReference.current);
+			if (buttons.length === EMPTY_LENGTH) {
+				return;
+			}
+
 			const currentIndex = buttons.indexOf(
 				document.activeElement as HTMLButtonElement,
 			);
@@ -82,6 +108,7 @@ const KnowledgeTreeRowMenu: React.FC<Properties> = ({
 			const nextIndex = (currentIndex + step + buttons.length) % buttons.length;
 
 			event.preventDefault();
+			event.stopPropagation();
 			buttons[nextIndex]?.focus();
 		},
 		[handleDismiss, isOpen],
@@ -106,6 +133,7 @@ const KnowledgeTreeRowMenu: React.FC<Properties> = ({
 				className={`flex size-6 cursor-pointer items-center justify-center rounded text-text-muted hover:bg-border-subtle hover:text-text focus-visible:opacity-100 focus-visible:ring-3 focus-visible:ring-accent/35 focus-visible:outline-none group-focus-within:opacity-100 group-hover:opacity-100 ${isOpen ? "opacity-100" : "opacity-0"}`}
 				onClick={handleToggle}
 				ref={triggerReference}
+				tabIndex={isFocused ? TAB_INDEX_FOCUSABLE : TAB_INDEX_UNFOCUSABLE}
 				type="button"
 			>
 				<svg

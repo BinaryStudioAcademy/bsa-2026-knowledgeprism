@@ -59,11 +59,19 @@ const EXTRACTION_OUTPUT_SCHEMA = {
 				properties: {
 					blocks: { items: BLOCK_SCHEMA, type: "array" },
 					confidence: { type: "number" },
+					excerptEnd: { type: "string" },
+					excerptStart: { type: "string" },
 					heading: { type: "string" },
 					order: { type: "integer" },
-					sourceExcerpt: { type: "string" },
 				},
-				required: ["blocks", "confidence", "heading", "order", "sourceExcerpt"],
+				required: [
+					"blocks",
+					"confidence",
+					"excerptEnd",
+					"excerptStart",
+					"heading",
+					"order",
+				],
 				type: "object",
 			},
 			type: "array",
@@ -73,4 +81,4 @@ const EXTRACTION_OUTPUT_SCHEMA = {
 	type: "object",
 } as const;
 
-export { EXTRACTION_OUTPUT_SCHEMA };
+export { BLOCK_SCHEMA, EXTRACTION_OUTPUT_SCHEMA };
