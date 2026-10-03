@@ -143,27 +143,53 @@ const MergeScreen = ({
 				return;
 			}
 
-			setConflicts((previousConflicts) =>
-				previousConflicts.map((item) => {
-					if (item.id !== conflictId) {
+			setConflicts((previousConflicts) => {
+				const activeConflict = previousConflicts.find(
+					(item) => item.id === conflictId,
+				);
+
+				if (!activeConflict) {
+					return previousConflicts;
+				}
+
+				const matchCount =
+					activeConflict.wordingMatches?.length ?? FIRST_MATCH_INDEX;
+
+				if (matchCount <= SINGLE_MATCH_COUNT) {
+					return previousConflicts;
+				}
+
+				const currentIndex = activeConflict.matchIndex ?? FIRST_MATCH_INDEX;
+				const stepDelta =
+					step === "next" ? NEXT_MATCH_STEP : PREVIOUS_MATCH_STEP;
+				const nextIndex = (currentIndex + stepDelta + matchCount) % matchCount;
+
+				const nextMatch = activeConflict.wordingMatches?.[nextIndex];
+				const nextMatchedNodeId =
+					nextMatch?.nodeId ?? activeConflict.matchedNodeId;
+
+				return previousConflicts.map((item) => {
+					if (item.changeId !== activeConflict.changeId) {
 						return item;
 					}
 
-					const matchCount = item.wordingMatches?.length ?? FIRST_MATCH_INDEX;
-
-					if (matchCount <= SINGLE_MATCH_COUNT) {
-						return item;
+					if (item.field === "title") {
+						return {
+							...item,
+							currentValue: nextMatch?.title ?? item.currentValue,
+							matchedNodeId: nextMatchedNodeId,
+							matchIndex: nextIndex,
+						};
 					}
 
-					const currentIndex = item.matchIndex ?? FIRST_MATCH_INDEX;
-					const stepDelta =
-						step === "next" ? NEXT_MATCH_STEP : PREVIOUS_MATCH_STEP;
-					const nextIndex =
-						(currentIndex + stepDelta + matchCount) % matchCount;
-
-					return { ...item, matchIndex: nextIndex };
-				}),
-			);
+					return {
+						...item,
+						currentValue: nextMatch?.content ?? item.currentValue,
+						matchedNodeId: nextMatchedNodeId,
+						matchIndex: nextIndex,
+					};
+				});
+			});
 		},
 		[isApplying],
 	);
@@ -262,7 +288,11 @@ const MergeScreen = ({
 										<div className="flex items-center justify-between">
 											<span className="font-mono text-2xs font-bold uppercase tracking-wider text-text-muted">
 												Live Version (in KB)
+												{hasWordingMatches && wordingMatches[matchIndex]?.title
+													? ` · ${wordingMatches[matchIndex].title}`
+													: ""}
 											</span>
+
 											{isKeepActive && (
 												<span className="font-sans text-2xs font-semibold text-accent">
 													✓ Selected
