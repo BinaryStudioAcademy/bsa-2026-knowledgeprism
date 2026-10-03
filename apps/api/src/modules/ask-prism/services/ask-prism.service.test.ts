@@ -58,7 +58,7 @@ const CONTEXT: ProjectAccessContext = {
 };
 
 type CreateTestSetupOptions = {
-	embedChunkedFn?: AskPrismServiceOptions["embedChunkedFn"];
+	chunkedEmbedder?: AskPrismServiceOptions["chunkedEmbedder"];
 	embedder?: AskPrismServiceOptions["embedder"];
 	extractionItemRepository?: ExtractionItemRepository | undefined;
 	nodes?: KnowledgeNodeEntity[];
@@ -85,7 +85,7 @@ const createTestSetup = (
 		findById: (): Promise<unknown> => Promise.resolve({}),
 	} as unknown as ProjectService;
 
-	const defaultEmbedChunkedFn = options.embedder
+	const defaultChunkedEmbedder = options.embedder
 		? ((<T>(
 				entries: { entry: unknown; item: T }[],
 			): Promise<{ item: T; vector: number[] }[]> =>
@@ -94,11 +94,11 @@ const createTestSetup = (
 						item,
 						vector: [COMPONENT_ONE, COMPONENT_ZERO],
 					})),
-				)) as unknown as AskPrismServiceOptions["embedChunkedFn"])
+				)) as unknown as AskPrismServiceOptions["chunkedEmbedder"])
 		: undefined;
 
 	const service = new AskPrismService({
-		embedChunkedFn: options.embedChunkedFn ?? defaultEmbedChunkedFn,
+		chunkedEmbedder: options.chunkedEmbedder ?? defaultChunkedEmbedder,
 		embedder: options.embedder,
 		extractionItemRepository: options.extractionItemRepository,
 		knowledgeNodeRepository,

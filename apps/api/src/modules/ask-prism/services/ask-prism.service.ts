@@ -38,8 +38,8 @@ type AskPrismSearcher = (parameters: {
 }) => { item: AskPrismContextItem; score: number }[];
 
 type Constructor = {
+	chunkedEmbedder?: typeof embedChunked | undefined;
 	embedder?: typeof embed | undefined;
-	embedChunkedFn?: typeof embedChunked | undefined;
 	extractionItemRepository?: ExtractionItemRepository | undefined;
 	knowledgeNodeRepository: KnowledgeNodeRepository;
 	projectService: ProjectService;
@@ -56,8 +56,8 @@ const MAX_SUGGESTIONS = 3;
 const SCORE_THRESHOLD = 0.3;
 
 class AskPrismService {
+	private chunkedEmbedder: typeof embedChunked;
 	private embedder: typeof embed;
-	private embedChunkedFn: typeof embedChunked;
 	private extractionItemRepository?: ExtractionItemRepository | undefined;
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
 	private projectService: ProjectService;
@@ -68,16 +68,16 @@ class AskPrismService {
 	private searcher: AskPrismSearcher;
 
 	public constructor({
+		chunkedEmbedder = embedChunked,
 		embedder = embed,
-		embedChunkedFn = embedChunked,
 		extractionItemRepository,
 		knowledgeNodeRepository,
 		projectService,
 		ragGenerator = invokeRagGeneration,
 		searcher = searchGrouped,
 	}: Constructor) {
+		this.chunkedEmbedder = chunkedEmbedder;
 		this.embedder = embedder;
-		this.embedChunkedFn = embedChunkedFn;
 		this.extractionItemRepository = extractionItemRepository;
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
 		this.projectService = projectService;
@@ -178,7 +178,7 @@ class AskPrismService {
 			throw new Error("Failed to generate embedding for the question");
 		}
 
-		const candidates = await this.embedChunkedFn(
+		const candidates = await this.chunkedEmbedder(
 			contexts.map((contextItem) => ({
 				entry: contextItem.entry,
 				item: contextItem,
