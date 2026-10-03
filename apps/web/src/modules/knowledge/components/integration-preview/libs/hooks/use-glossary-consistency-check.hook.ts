@@ -1,3 +1,4 @@
+import { GlossaryValidationRule } from "@knowledgeprism/constants";
 import { type GlossaryConsistencyMatchDto } from "@knowledgeprism/types";
 import { useCallback, useEffect, useState } from "react";
 
@@ -78,6 +79,20 @@ const useGlossaryConsistencyCheck = ({
 
 		const runGlossaryCheck = async (): Promise<void> => {
 			if (!debouncedContent.trim()) {
+				setIsCheckingGlossary(false);
+				return;
+			}
+
+			if (
+				debouncedContent.trim().length >
+				GlossaryValidationRule.CONTENT_MAXIMUM_LENGTH
+			) {
+				setGlossaryCheck({
+					content: debouncedContent,
+					matches: [],
+					projectId,
+					revision,
+				});
 				setIsCheckingGlossary(false);
 				return;
 			}
