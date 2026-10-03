@@ -17,7 +17,6 @@ import {
 	type ManualTextCreateRequestDto,
 	type ManualTextResponseDto,
 } from "@knowledgeprism/types";
-import { translateFileName } from "@knowledgeprism/worker";
 import { ForeignKeyViolationError } from "objection";
 
 import { DatabaseConstraintName } from "~/infrastructure/database/libs/enums/database-constraint-name.enum.js";
@@ -540,8 +539,6 @@ class DocumentService {
 			projectId: routeParameters.projectId,
 		});
 
-		const translatedFileName = await translateFileName(payload.fileName);
-
 		let uploadUrl: string;
 
 		try {
@@ -571,7 +568,7 @@ class DocumentService {
 					contentHash: null,
 					errorMessage: null,
 					mimeType: payload.contentType,
-					name: translatedFileName,
+					name: payload.fileName,
 					projectId,
 					s3Key: storageKey,
 					sizeInBytes: payload.sizeInBytes ?? null,

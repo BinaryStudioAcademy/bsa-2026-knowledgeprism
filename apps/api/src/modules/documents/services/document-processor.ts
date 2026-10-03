@@ -35,6 +35,7 @@ import { type ExtractionRunRepository } from "~/modules/documents/repositories/e
 import { type GlossaryService } from "~/modules/glossary/services/glossary.service.js";
 
 const EMPTY_EXTRACTION_ITEM_COUNT = 0;
+const EMPTY_TEXT_LENGTH = 0;
 const MANUAL_TEXT_PAGE_NUMBER = 1;
 const PAGE_TEXT_SEPARATOR = "\n\n";
 
@@ -311,6 +312,16 @@ class DocumentProcessor {
 			return false;
 		}
 		const pages = await this.loadPages(document);
+		const hasExtractableText = pages.some(
+			(page) => page.content.trim().length > EMPTY_TEXT_LENGTH,
+		);
+
+		if (!hasExtractableText) {
+			throw new DocumentProcessingError(
+				DocumentErrorMessage.NO_EXTRACTABLE_TEXT,
+			);
+		}
+
 		const extractionRunId = await this.extractionRunRepository.create({
 			documentId,
 			processingAttempt: attempt,
