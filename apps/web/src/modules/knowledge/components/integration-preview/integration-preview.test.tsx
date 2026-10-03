@@ -505,7 +505,7 @@ describe("IntegrationPreview extraction review", () => {
 		]);
 	});
 
-	it("does not allow editing a synthetic source-page group title", () => {
+	it("does not allow editing the ungrouped items group title", () => {
 		renderPreview(
 			<IntegrationPreview
 				onAddMore={vi.fn()}
@@ -517,9 +517,7 @@ describe("IntegrationPreview extraction review", () => {
 			/>,
 		);
 
-		fireEvent.click(
-			screen.getByRole("button", { name: /Extracted from Page 3/u }),
-		);
+		fireEvent.click(screen.getByRole("button", { name: /Ungrouped items/u }));
 
 		expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
 	});
@@ -592,7 +590,7 @@ describe("IntegrationPreview extraction review", () => {
 		expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
 		expect(screen.getByRole("button", { name: "Edit" })).toBeDisabled();
 		expect(
-			screen.getByRole("button", { name: /Extracted from Page 3/u }),
+			screen.getByRole("button", { name: /Ungrouped items/u }),
 		).toBeDisabled();
 
 		await act(async () => {
