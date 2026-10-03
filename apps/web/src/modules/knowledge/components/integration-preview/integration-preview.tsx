@@ -332,20 +332,27 @@ const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
 		return [];
 	}
 
-	const liveTitle = section.originalTitle ?? section.title;
-	const liveContent = section.originalContent ?? LIVE_KB_CONTENT_FALLBACK;
+	const wordingMatches = section.wordingMatches ?? [];
+	const firstMatch = wordingMatches[FIRST_MATCH_INDEX];
+
+	const liveTitle = firstMatch?.title ?? section.originalTitle ?? section.title;
+	const liveContent =
+		firstMatch?.content ?? section.originalContent ?? LIVE_KB_CONTENT_FALLBACK;
+	const targetMatchedNodeId =
+		firstMatch?.nodeId ?? section.matchedNodeId ?? null;
+
 	const contentConflict: FieldConflict = {
 		changeId: section.integrationChangeId,
 		currentValue: liveContent,
 		field: "content",
 		id: `conf-content-${String(section.integrationChangeId)}`,
 		incomingValue: section.content,
-		matchedNodeId: section.matchedNodeId ?? null,
+		matchedNodeId: targetMatchedNodeId,
 	};
 
-	if (section.wordingMatches && section.wordingMatches.length > EMPTY_LENGTH) {
+	if (wordingMatches.length > EMPTY_LENGTH) {
 		contentConflict.matchIndex = FIRST_MATCH_INDEX;
-		contentConflict.wordingMatches = section.wordingMatches;
+		contentConflict.wordingMatches = wordingMatches;
 	}
 
 	const merge = getCurrentMerge(section);
@@ -361,7 +368,7 @@ const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
 			field: "title",
 			id: `conf-title-${String(section.integrationChangeId)}`,
 			incomingValue: section.title,
-			matchedNodeId: section.matchedNodeId ?? null,
+			matchedNodeId: targetMatchedNodeId,
 		},
 		contentConflict,
 	];
@@ -434,6 +441,7 @@ type GlossaryHighlightTooltipContentProperties = {
 	onEdit: (match: GlossaryConsistencyMatchDto) => void;
 	onKeep: (match: GlossaryConsistencyMatchDto) => void;
 };
+
 const MergedEntryPreview = ({
 	section,
 }: {
