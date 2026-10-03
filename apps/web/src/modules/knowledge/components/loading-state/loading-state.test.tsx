@@ -134,16 +134,85 @@ describe("document processing progress", () => {
 				variant="compact"
 			/>,
 		);
-		expect(
-			screen.getByText("Ready for review: 20 of 20 chunks processed — 100%"),
-		).toBeInTheDocument();
+		expect(screen.getByText("Ready for review")).toBeInTheDocument();
+		expect(screen.getByText("· 18 of 20 chunks")).toBeInTheDocument();
+		expect(screen.getByText("2 failed")).toBeInTheDocument();
 		expect(
 			screen.getByText("2 chunks failed or incomplete"),
 		).toBeInTheDocument();
 		expect(
 			screen.getByRole("button", { name: "Review extraction" }),
 		).toBeInTheDocument();
+		expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
 		expect(screen.queryByText("Published")).not.toBeInTheDocument();
+	});
+	it("shows live counters in the compact status while extracting", () => {
+		render(
+			<LoadingState
+				currentStatus={DocumentStatus.PROCESSING}
+				onPreview={vi.fn()}
+				progress={PROGRESS}
+				variant="compact"
+			/>,
+		);
+		expect(screen.getByText("Extracting knowledge")).toBeInTheDocument();
+		expect(screen.getByText("· 14 of 20 chunks")).toBeInTheDocument();
+		expect(screen.getByRole("progressbar")).toHaveAttribute(
+			"aria-valuenow",
+			"70",
+		);
+		expect(screen.queryByRole("button")).not.toBeInTheDocument();
+	});
+	it("offers retry and cancel in the compact status when processing fails", () => {
+		render(
+			<LoadingState
+				currentStatus={DocumentStatus.FAILED}
+				hasError={true}
+				onCancel={vi.fn()}
+				onRetry={vi.fn()}
+				progress={PROGRESS}
+				variant="compact"
+			/>,
+		);
+		expect(screen.getByText("Processing failed")).toBeInTheDocument();
+		expect(screen.queryByText(/of 20 chunks/u)).not.toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+	});
+	it("colors only the failed share of the progress bar as an error", () => {
+		render(
+			<ProcessingProgress
+				currentStatus={DocumentStatus.WAITING_FOR_VALIDATION}
+				progress={{
+					...PROGRESS,
+					failedUnits: 2,
+					processedUnits: COMPLETE_COUNT,
+				}}
+			/>,
+		);
+		const [succeeded, failed] = screen.getByRole("progressbar").children;
+		expect(succeeded).toHaveStyle({ width: "90%" });
+		expect(succeeded).not.toHaveClass("bg-error");
+		expect(failed).toHaveStyle({ width: "10%" });
+		expect(failed).toHaveClass("bg-error");
+	});
+	it("shows the failure message under the compact retry actions", () => {
+		render(
+			<LoadingState
+				currentStatus={DocumentStatus.FAILED}
+				errorMessage={DocumentErrorMessage.INTEGRATION_FAILED}
+				hasError
+				onCancel={vi.fn()}
+				onRetry={vi.fn()}
+				progress={PROGRESS}
+				variant="compact"
+			/>,
+		);
+		expect(screen.getByText("Processing failed")).toBeInTheDocument();
+		expect(
+			screen.getByText(DocumentErrorMessage.INTEGRATION_FAILED),
+		).toBeInTheDocument();
+		expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
 	});
 	it("uses item counters for integration and still requires final approval", () => {
 		render(
@@ -158,9 +227,8 @@ describe("document processing progress", () => {
 				variant="compact"
 			/>,
 		);
-		expect(
-			screen.getByText("Ready for approval: 20 of 20 items processed — 100%"),
-		).toBeInTheDocument();
+		expect(screen.getByText("Ready for approval")).toBeInTheDocument();
+		expect(screen.getByText("· 20 of 20 items")).toBeInTheDocument();
 		expect(
 			screen.getByRole("button", { name: "Review integration" }),
 		).toBeInTheDocument();

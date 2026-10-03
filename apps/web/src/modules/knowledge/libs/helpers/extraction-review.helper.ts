@@ -358,6 +358,7 @@ const toExtractionReviewPayload = (
 
 export {
 	mapExtractionItemsToProposedStructure,
+	toEditorBlocks,
 	toExtractionContentBlocks,
 	toExtractionReviewPayload,
 };

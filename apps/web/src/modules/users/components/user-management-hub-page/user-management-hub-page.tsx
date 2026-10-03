@@ -150,7 +150,7 @@ const UserManagementHubPage: React.FC = () => {
 							<span className="inline-flex rotate-180">
 								<Icon name="chevron-filled-right" size={GO_BACK_CHEVRON_SIZE} />
 							</span>
-							Go back
+							Back to projects
 						</button>
 					)}
 					<Heading level="2">{pageCopy.TITLE}</Heading>

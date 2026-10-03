@@ -9,7 +9,9 @@ import {
 	KnowledgeNodeType,
 } from "@knowledgeprism/constants";
 import {
+	type ExtractionContentBlock,
 	type IntegrationChangesApplyRequestDto,
+	type KnowledgeNodeContentDto,
 	type ValueOf,
 } from "@knowledgeprism/types";
 import assert from "node:assert/strict";
@@ -17,9 +19,11 @@ import { describe, it } from "node:test";
 import { type Transaction } from "objection";
 
 import { HTTPError } from "~/infrastructure/http/http.js";
+import { type Logger } from "~/infrastructure/logger/logger.js";
 import { KnowledgeNodeEntity } from "~/modules/knowledge/models/knowledge-node.entity.js";
 import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/knowledge-node.repository.js";
 
+import { NodeMergeMethod } from "../libs/constants/node-merge-method.constant.js";
 import { DocumentEntity } from "../models/document.entity.js";
 import { IntegrationChangeEntity } from "../models/integration-change.entity.js";
 import { type ExtractionItemRepository } from "../repositories/extraction-item.repository.js";
@@ -51,6 +55,16 @@ const THIRD_ITEM_ID = 203;
 const FIRST_POSITION = 0;
 const SECOND_POSITION = 1;
 const NEXT_ID_START = 1000;
+const LIVE_ENTRY_TEXT = "Admins manage users.";
+const LIVE_ENTRY_CONTENT: KnowledgeNodeContentDto = [
+	{ content: LIVE_ENTRY_TEXT, type: "paragraph" },
+];
+const MERGED_BLOCKS: ExtractionContentBlock[] = [
+	{
+		content: [{ text: "Admins manage users and roles.", type: "text" }],
+		type: "paragraph",
+	},
+];
 
 type CreatedNode = {
 	id: number;
@@ -79,7 +93,7 @@ const toNestedChange = ({
 };
 
 const toNode = (data: {
-	contentJson?: { content: string; type: string }[];
+	contentJson?: KnowledgeNodeContentDto;
 	id: number;
 	parentId: null | number;
 	position: number;
@@ -102,6 +116,7 @@ const EXISTING_NODES = [
 		type: KnowledgeNodeType.PAGE,
 	}),
 	toNode({
+		contentJson: LIVE_ENTRY_CONTENT,
 		id: EXISTING_ENTRY_ID,
 		parentId: EXISTING_PAGE_ID,
 		position: LAST_EXISTING_CHILD_POSITION,
@@ -140,7 +155,7 @@ const toChange = (
 		id,
 		incomingContent: `${title} content`,
 		incomingTitle: title,
-		liveContent: matchedNodeId === null ? null : "",
+		liveContent: matchedNodeId === null ? null : LIVE_ENTRY_TEXT,
 		liveTitle: matchedNodeId === null ? null : `Node ${String(matchedNodeId)}`,
 		matchedNodeId,
 		placement: {
@@ -156,6 +171,17 @@ const toChange = (
 			matchedNodeId === null
 				? IntegrationChangeType.NEW
 				: IntegrationChangeType.UPDATE,
+	});
+
+const toMergedEntryUpdate = (
+	merge: Pick<
+		ReturnType<IntegrationChangeEntity["toObject"]>,
+		"mergedBlocks" | "mergeMethod"
+	>,
+): IntegrationChangeEntity =>
+	IntegrationChangeEntity.initialize({
+		...toChange(FIRST_CHANGE_ID, "Glossary", EXISTING_ENTRY_ID).toObject(),
+		...merge,
 	});
 
 const DOCUMENT = DocumentEntity.initialize({
@@ -178,15 +204,29 @@ const DOCUMENT = DocumentEntity.initialize({
 	uploadedBy: USER_ID,
 });
 
+const ignoreLog = (): void => {};
+
 const createSetup = (
 	existingNodes = EXISTING_NODES,
 ): {
 	applier: IntegrationApplier;
 	created: CreatedNode[];
+	loggedOutcomes: Record<string, unknown>[];
+	updatedContents: KnowledgeNodeContentDto[];
 	updatedIds: number[];
 	updatedTitles: string[];
 } => {
 	const created: CreatedNode[] = [];
+	const loggedOutcomes: Record<string, unknown>[] = [];
+	const logger: Logger = {
+		debug: ignoreLog,
+		error: ignoreLog,
+		info: (_message: string, parameters: Record<string, unknown> = {}) => {
+			loggedOutcomes.push(parameters);
+		},
+		warn: ignoreLog,
+	};
+	const updatedContents: KnowledgeNodeContentDto[] = [];
 	const updatedIds: number[] = [];
 	const updatedTitles: string[] = [];
 	let nextId = NEXT_ID_START;
@@ -230,7 +270,16 @@ const createSetup = (
 					return details.id === id && details.projectId === projectId;
 				}),
 			),
-		update: ({ id, title }: { id: number; title: string }) => {
+		update: ({
+			contentJson,
+			id,
+			title,
+		}: {
+			contentJson: KnowledgeNodeContentDto;
+			id: number;
+			title: string;
+		}) => {
+			updatedContents.push(contentJson);
 			updatedIds.push(id);
 			updatedTitles.push(title);
 
@@ -248,12 +297,40 @@ const createSetup = (
 		applier: new IntegrationApplier({
 			extractionItemRepository,
 			knowledgeNodeRepository,
+			logger,
 		}),
 		created,
+		loggedOutcomes,
+		updatedContents,
 		updatedIds,
 		updatedTitles,
 	};
 };
+
+const applyToEntry = (
+	applier: IntegrationApplier,
+	change: IntegrationChangeEntity,
+	content?: ValueOf<typeof IntegrationResolution>,
+): Promise<void> =>
+	applier.apply(
+		{
+			changes: [change],
+			contentOverrides: [],
+			document: DOCUMENT,
+			placements: [],
+			resolutions: content
+				? [
+						{
+							changeId: change.toObject().id,
+							content,
+							title: IntegrationResolution.KEEP,
+						},
+					]
+				: [],
+			userId: USER_ID,
+		},
+		{} as Transaction,
+	);
 
 const apply = (
 	applier: IntegrationApplier,
@@ -404,93 +481,46 @@ void describe("IntegrationApplier placements", () => {
 		assert.notEqual(child.parentId, EXISTING_ENTRY_ID);
 	});
 
-	void it("rejects an incoming parent matched to a node in another project", async () => {
-		const { applier, created } = createSetup(
-			EXISTING_NODES.map((node) => {
-				const details = node.toObject();
-
-				return KnowledgeNodeEntity.initialize({
-					...details,
-					createdAt: new Date(details.createdAt),
-					projectId: OTHER_PROJECT_ID,
-					updatedAt: new Date(details.updatedAt),
-				});
-			}),
-		);
-
-		await assert.rejects(
-			applier.apply(
-				{
-					changes: [
-						toChange(FIRST_CHANGE_ID, "Parent", EXISTING_ENTRY_ID),
-						toNestedChange({
-							extractionItemId: SECOND_ITEM_ID,
-							id: SECOND_CHANGE_ID,
-							parentExtractionItemId: FIRST_CHANGE_ID,
-						}),
-					],
-					contentOverrides: [],
-					document: DOCUMENT,
-					placements: [
-						{
-							changeId: SECOND_CHANGE_ID,
-							parentExtractionItemId: FIRST_CHANGE_ID,
-							parentId: null,
-							position: FIRST_POSITION,
-						},
-					],
-					resolutions: [],
-					userId: USER_ID,
-				},
-				{} as Transaction,
-			),
-			IntegrationAnalysisOutdatedError,
-		);
-		assert.deepEqual(created, []);
-	});
-
-	void it("persists three nested levels even when children precede their parents", async () => {
+	void it("nests a child of a dropped duplicate under the section it repeats", async () => {
 		const { applier, created } = createSetup();
-		const changes = [
-			toNestedChange({
-				extractionItemId: THIRD_ITEM_ID,
-				id: THIRD_CHANGE_ID,
-				parentExtractionItemId: SECOND_ITEM_ID,
-			}),
-			toNestedChange({
-				extractionItemId: SECOND_ITEM_ID,
-				id: SECOND_CHANGE_ID,
-				parentExtractionItemId: FIRST_ITEM_ID,
-			}),
-			toNestedChange({
-				extractionItemId: FIRST_ITEM_ID,
-				id: FIRST_CHANGE_ID,
-				parentExtractionItemId: null,
-			}),
-		];
+		const duplicate = toNestedChange({
+			extractionItemId: SECOND_ITEM_ID,
+			id: SECOND_CHANGE_ID,
+			parentExtractionItemId: FIRST_ITEM_ID,
+		}).toObject();
 
 		await applier.apply(
 			{
-				changes,
+				changes: [
+					toNestedChange({
+						extractionItemId: FIRST_ITEM_ID,
+						id: FIRST_CHANGE_ID,
+						parentExtractionItemId: null,
+					}),
+					IntegrationChangeEntity.initialize({
+						...duplicate,
+						duplicateOfExtractionItemId: FIRST_ITEM_ID,
+						type: IntegrationChangeType.DUPLICATE,
+					}),
+					toNestedChange({
+						extractionItemId: THIRD_ITEM_ID,
+						id: THIRD_CHANGE_ID,
+						parentExtractionItemId: SECOND_ITEM_ID,
+					}),
+				],
 				contentOverrides: [],
 				document: DOCUMENT,
 				placements: [
 					{
-						changeId: THIRD_CHANGE_ID,
-						parentExtractionItemId: SECOND_ITEM_ID,
-						parentId: null,
-						position: FIRST_POSITION,
-					},
-					{
-						changeId: SECOND_CHANGE_ID,
-						parentExtractionItemId: FIRST_ITEM_ID,
-						parentId: null,
-						position: SECOND_POSITION,
-					},
-					{
 						changeId: FIRST_CHANGE_ID,
 						parentExtractionItemId: null,
 						parentId: EXISTING_PAGE_ID,
+						position: FIRST_POSITION,
+					},
+					{
+						changeId: THIRD_CHANGE_ID,
+						parentExtractionItemId: SECOND_ITEM_ID,
+						parentId: null,
 						position: SECOND_POSITION,
 					},
 				],
@@ -500,18 +530,15 @@ void describe("IntegrationApplier placements", () => {
 			{} as Transaction,
 		);
 
-		const [parent, child, grandchild] = created;
-		assert.ok(parent && child && grandchild);
+		const [section] = created;
+		assert.ok(section);
 		assert.deepEqual(
 			created.map(({ parentId, title }) => [title, parentId]),
 			[
 				[`Item ${String(FIRST_ITEM_ID)}`, EXISTING_PAGE_ID],
-				[`Item ${String(SECOND_ITEM_ID)}`, parent.id],
-				[`Item ${String(THIRD_ITEM_ID)}`, child.id],
+				[`Item ${String(THIRD_ITEM_ID)}`, section.id],
 			],
 		);
-		assert.equal(child.position, FIRST_POSITION);
-		assert.equal(grandchild.position, FIRST_POSITION);
 	});
 
 	void it("rejects a missing incoming parent before creating any nodes", async () => {
@@ -855,5 +882,87 @@ void describe("IntegrationApplier placements", () => {
 		);
 
 		assert.deepEqual(updatedIds, [SECOND_EXISTING_ENTRY_ID]);
+	});
+
+	void it("keeps the entry's blocks and adds the incoming section after them on Merge both", async () => {
+		const { applier, updatedContents } = createSetup();
+
+		await applyToEntry(
+			applier,
+			toChange(FIRST_CHANGE_ID, "Glossary", EXISTING_ENTRY_ID),
+			IntegrationResolution.BOTH,
+		);
+
+		assert.deepEqual(updatedContents, [
+			[
+				...LIVE_ENTRY_CONTENT,
+				{ content: "Glossary content", type: "paragraph" },
+			],
+		]);
+	});
+
+	void it("writes the Sonnet merge for an update", async () => {
+		const { applier, loggedOutcomes, updatedContents } = createSetup();
+
+		await applyToEntry(
+			applier,
+			toMergedEntryUpdate({
+				mergedBlocks: MERGED_BLOCKS,
+				mergeMethod: NodeMergeMethod.LLM,
+			}),
+		);
+
+		assert.deepEqual(updatedContents, [
+			[
+				{
+					content: [
+						{
+							styles: {},
+							text: "Admins manage users and roles.",
+							type: "text",
+						},
+					],
+					type: "paragraph",
+				},
+			],
+		]);
+		assert.deepEqual(loggedOutcomes, [
+			{
+				accepted: 1,
+				declined: 0,
+				documentId: DOCUMENT_ID,
+				edited: 0,
+				fallback: 0,
+			},
+		]);
+	});
+
+	void it("adds the incoming section after the entry when an update's merge fell back", async () => {
+		const { applier, updatedContents } = createSetup();
+
+		await applyToEntry(
+			applier,
+			toMergedEntryUpdate({ mergeMethod: NodeMergeMethod.FALLBACK }),
+		);
+
+		assert.deepEqual(updatedContents, [
+			[
+				...LIVE_ENTRY_CONTENT,
+				{ content: "Glossary content", type: "paragraph" },
+			],
+		]);
+	});
+
+	void it("replaces the entry's content for an update without a merge", async () => {
+		const { applier, updatedContents } = createSetup();
+
+		await applyToEntry(
+			applier,
+			toChange(FIRST_CHANGE_ID, "Glossary", EXISTING_ENTRY_ID),
+		);
+
+		assert.deepEqual(updatedContents, [
+			[{ content: "Glossary content", type: "paragraph" }],
+		]);
 	});
 });

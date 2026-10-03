@@ -11,17 +11,20 @@ import {
 	type IntegrationChangesApplyRequestDto,
 	type IntegrationConflictResolutionDto,
 	type KnowledgeNodeContentDto,
+	type ValueOf,
 } from "@knowledgeprism/types";
 import { type Transaction } from "objection";
 
 import { HTTPCode, HTTPError } from "~/infrastructure/http/http.js";
-import { appendIncomingAtSpan } from "~/modules/documents/libs/helpers/append-incoming-at-span.helper.js";
+import { type Logger } from "~/infrastructure/logger/logger.js";
+import { NodeMergeMethod } from "~/modules/documents/libs/constants/node-merge-method.constant.js";
 import { getIncomingFields } from "~/modules/documents/libs/helpers/get-incoming-fields.helper.js";
 import {
 	createInvalidIncomingPlacementError,
 	planIntegrationEntries,
 } from "~/modules/documents/libs/helpers/plan-integration-entries.helper.js";
 import { toKnowledgeContentJson } from "~/modules/documents/libs/helpers/to-knowledge-content-json.helper.js";
+import { toMergeOutcomes } from "~/modules/documents/libs/helpers/to-merge-outcomes.helper.js";
 import { type DocumentEntity } from "~/modules/documents/models/document.entity.js";
 import { type IntegrationChangeEntity } from "~/modules/documents/models/integration-change.entity.js";
 import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
@@ -45,6 +48,8 @@ type ApplyPlacement = NonNullable<
 const NEXT_POSITION_OFFSET = 1;
 const NO_CHILD_POSITION = -1;
 const FIRST_CHILD_POSITION = 0;
+const FIRST_MATCH_INDEX = 0;
+const EMPTY_LENGTH = 0;
 
 const toWrittenFieldKeys = (
 	matchedNodeId: number,
@@ -72,15 +77,42 @@ const createInvalidPlacementError = (): HTTPError =>
 type Constructor = {
 	extractionItemRepository: ExtractionItemRepository;
 	knowledgeNodeRepository: KnowledgeNodeRepository;
+	logger: Logger;
 };
 
-const EMPTY_LENGTH = 0;
-const FIRST_MATCH_INDEX = 0;
-const PARAGRAPH_BLOCK_TYPE = "paragraph";
+const isMergeAnalyzed = (
+	mergeMethod: null | undefined | ValueOf<typeof NodeMergeMethod>,
+): boolean => {
+	return mergeMethod !== null && mergeMethod !== undefined;
+};
 
-const toContentJson = (text: string): KnowledgeNodeContentDto => [
-	{ content: text, type: PARAGRAPH_BLOCK_TYPE },
-];
+const toMergedContent = ({
+	contentJson,
+	incomingContent,
+	incomingContentJson,
+	mergedBlocks,
+	title,
+}: {
+	contentJson: KnowledgeNodeContentDto;
+	incomingContent: string;
+	incomingContentJson: KnowledgeNodeContentDto;
+	mergedBlocks: ExtractionContentBlock[] | null;
+	title: string;
+}): KnowledgeNodeContentDto => {
+	if (mergedBlocks) {
+		return toKnowledgeContentJson({
+			blocks: mergedBlocks,
+			fallbackText: incomingContent,
+			title,
+		});
+	}
+
+	const incoming = incomingContent.trim();
+
+	return incoming === "" || flattenContentToText(contentJson).includes(incoming)
+		? contentJson
+		: [...contentJson, ...incomingContentJson];
+};
 
 const resolveIncoming = (
 	change: IntegrationChangeEntity,
@@ -147,17 +179,72 @@ const isNodeChangedSinceAnalysis = (
 
 class IntegrationAnalysisOutdatedError extends Error {}
 
+const withDroppedDuplicateParents = (
+	placements: ApplyPlacement[],
+	{
+		changes,
+		createdChanges,
+	}: {
+		changes: IntegrationChangeEntity[];
+		createdChanges: IntegrationChangeEntity[];
+	},
+): ApplyPlacement[] => {
+	const earlierItemIdByDroppedItemId = new Map(
+		changes
+			.filter((change) => !createdChanges.includes(change))
+			.flatMap((change) => {
+				const { duplicateOfExtractionItemId, extractionItemId } =
+					change.toObject();
+
+				return duplicateOfExtractionItemId == null
+					? []
+					: [[extractionItemId, duplicateOfExtractionItemId] as const];
+			}),
+	);
+
+	return placements.map((placement) => {
+		const earlierItemId =
+			placement.parentExtractionItemId == null
+				? undefined
+				: earlierItemIdByDroppedItemId.get(placement.parentExtractionItemId);
+
+		return earlierItemId === undefined
+			? placement
+			: { ...placement, parentExtractionItemId: earlierItemId };
+	});
+};
+
+const isEarlierSectionDuplicate = (
+	duplicateOfExtractionItemId: null | number | undefined,
+): boolean => {
+	return duplicateOfExtractionItemId != null;
+};
+
+const isIncomingKept = (
+	resolution: IntegrationConflictResolutionDto | undefined,
+): boolean => {
+	return [resolution?.content, resolution?.title].some(
+		(choice) =>
+			choice === IntegrationResolution.USE_NEW ||
+			choice === IntegrationResolution.BOTH,
+	);
+};
+
 class IntegrationApplier {
 	private extractionItemRepository: ExtractionItemRepository;
 
 	private knowledgeNodeRepository: KnowledgeNodeRepository;
 
+	private logger: Logger;
+
 	public constructor({
 		extractionItemRepository,
 		knowledgeNodeRepository,
+		logger,
 	}: Constructor) {
 		this.extractionItemRepository = extractionItemRepository;
 		this.knowledgeNodeRepository = knowledgeNodeRepository;
+		this.logger = logger;
 	}
 
 	private async applyToMatchedNode(
@@ -178,65 +265,48 @@ class IntegrationApplier {
 		},
 		transaction: Transaction,
 	): Promise<KnowledgeNodeEntity> {
-		const { extractionItemId, placement, type } = change.toObject();
+		const { extractionItemId, mergedBlocks, mergeMethod, type } =
+			change.toObject();
 		const { incomingContent, incomingTitle } = resolveIncoming(
 			change,
 			override,
 		);
 		const { contentJson, id, title } = node.toObject();
 
-		if (resolution?.content === IntegrationResolution.BOTH) {
-			const nextTitle = getIncomingFields(type, resolution).title
-				? incomingTitle
-				: title;
-			const liveText = flattenContentToText(contentJson);
-			const targetMatch = getTargetMatch(change, resolution);
-			const span =
-				targetMatch?.span ?? placement.matches[FIRST_MATCH_INDEX]?.span ?? "";
-			const nextText = appendIncomingAtSpan(liveText, incomingContent, span);
-			const appliedNode =
-				nextText === liveText && nextTitle === title
-					? node
-					: await this.knowledgeNodeRepository.update(
-							{
-								contentJson: toContentJson(nextText),
-								id,
-								title: nextTitle,
-								updatedBy: userId,
-							},
-							transaction,
-						);
-
-			await this.extractionItemRepository.linkKnowledgeNode(
-				{ id: extractionItemId, knowledgeNodeId: id },
-				transaction,
-			);
-
-			return appliedNode;
-		}
-
 		const { content: isUseIncomingContent, title: isUseIncomingTitle } =
 			getIncomingFields(type, resolution);
-		const incomingBlocks = blocksByItemId.get(extractionItemId) ?? [];
+		const isMerge =
+			resolution?.content === IntegrationResolution.BOTH ||
+			(type === IntegrationChangeType.UPDATE && isMergeAnalyzed(mergeMethod));
 		const incomingContentJson = toKnowledgeContentJson({
-			blocks: incomingBlocks,
+			blocks: blocksByItemId.get(extractionItemId) ?? [],
 			fallbackText: incomingContent,
 			title: incomingTitle,
 		});
+		const replacedContent = isUseIncomingContent
+			? incomingContentJson
+			: contentJson;
+		const nextContent = isMerge
+			? toMergedContent({
+					contentJson,
+					incomingContent,
+					incomingContentJson,
+					mergedBlocks: mergedBlocks ?? null,
+					title,
+				})
+			: replacedContent;
 		const appliedNode =
-			isUseIncomingTitle || isUseIncomingContent
-				? await this.knowledgeNodeRepository.update(
+			nextContent === contentJson && !isUseIncomingTitle
+				? node
+				: await this.knowledgeNodeRepository.update(
 						{
-							contentJson: isUseIncomingContent
-								? incomingContentJson
-								: contentJson,
+							contentJson: nextContent,
 							id,
 							title: isUseIncomingTitle ? incomingTitle : title,
 							updatedBy: userId,
 						},
 						transaction,
-					)
-				: node;
+					);
 
 		await this.extractionItemRepository.linkKnowledgeNode(
 			{ id: extractionItemId, knowledgeNodeId: id },
@@ -499,9 +569,13 @@ class IntegrationApplier {
 		const nodes = new Map<number, KnowledgeNodeEntity>();
 
 		for (const change of changes) {
-			const { id, matchedNodeId, type } = change.toObject();
+			const { duplicateOfExtractionItemId, id, matchedNodeId, type } =
+				change.toObject();
 
-			if (type === IntegrationChangeType.NEW) {
+			if (
+				type === IntegrationChangeType.NEW ||
+				isEarlierSectionDuplicate(duplicateOfExtractionItemId)
+			) {
 				continue;
 			}
 
@@ -558,11 +632,18 @@ class IntegrationApplier {
 			{ changes, projectId, resolutionByChangeId },
 			transaction,
 		);
-		const newChanges: IntegrationChangeEntity[] = [];
+		const isDuplicate = (change: IntegrationChangeEntity): boolean =>
+			isEarlierSectionDuplicate(change.toObject().duplicateOfExtractionItemId);
+		const analyzedChanges = changes.filter((change) => !isDuplicate(change));
+		const newChanges: IntegrationChangeEntity[] = changes.filter(
+			(change) =>
+				isDuplicate(change) &&
+				isIncomingKept(resolutionByChangeId.get(change.toObject().id)),
+		);
 		const existingNodeIdsByItemId = new Map<number, number>();
 		const writtenFieldKeys = new Set<string>();
 
-		for (const change of changes) {
+		for (const change of analyzedChanges) {
 			const { extractionItemId, id, matchedNodeId, type } = change.toObject();
 			const resolution = resolutionByChangeId.get(id);
 			const targetMatch = getTargetMatch(change, resolution);
@@ -613,6 +694,11 @@ class IntegrationApplier {
 			}
 		}
 
+		this.logger.info("Node merge outcomes.", {
+			documentId,
+			...toMergeOutcomes(changes, resolutionByChangeId),
+		});
+
 		await this.createEntries(
 			{
 				blocksByItemId,
@@ -621,7 +707,10 @@ class IntegrationApplier {
 				existingNodeIdsByItemId,
 				knownChangeIds: new Set(changes.map((change) => change.toObject().id)),
 				overrideByChangeId,
-				placements,
+				placements: withDroppedDuplicateParents(placements, {
+					changes,
+					createdChanges: newChanges,
+				}),
 				userId,
 			},
 			transaction,

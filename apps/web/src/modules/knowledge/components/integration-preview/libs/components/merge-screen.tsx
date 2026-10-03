@@ -13,6 +13,7 @@ import {
 	type FieldConflict,
 } from "~/modules/knowledge/libs/types/types.js";
 
+const BOTH_SEPARATOR = "\n\n";
 const CHECK_ICON_SIZE = 14;
 const DUPLICATE_INCOMING_FIELD_MESSAGE =
 	"Two conflicts cannot both apply incoming values to the same field on the same knowledge entry. Change at least one resolution to Keep Live Version.";
@@ -236,6 +237,10 @@ const MergeScreen = ({
 						"";
 					const hasWordingMatches =
 						conflict.field === "content" && matchCount > FIRST_MATCH_INDEX;
+					const canKeepBoth =
+						hasWordingMatches ||
+						(conflict.field === "content" &&
+							conflict.mergedValue !== undefined);
 
 					return (
 						<div
@@ -346,9 +351,9 @@ const MergeScreen = ({
 								</div>
 							</div>
 
-							{hasWordingMatches && (
+							{canKeepBoth && (
 								<div className="flex flex-col gap-2">
-									{matchCount > SINGLE_MATCH_COUNT && (
+									{hasWordingMatches && matchCount > SINGLE_MATCH_COUNT && (
 										<div className="flex items-center justify-between gap-2">
 											<button
 												className="rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-semibold text-text-muted hover:bg-secondary hover:text-text"
@@ -390,6 +395,17 @@ const MergeScreen = ({
 									>
 										Both{isBothActive ? " · Selected" : ""}
 									</button>
+									{isBothActive && (
+										<div className="flex flex-col gap-1.5 rounded-xl border border-info/25 bg-info-bg/40 p-3.5">
+											<span className="font-mono text-2xs font-bold uppercase tracking-wider text-info">
+												After publishing
+											</span>
+											<div className="whitespace-pre-line font-sans text-sm leading-relaxed text-text">
+												{conflict.mergedValue ??
+													`${conflict.currentValue}${BOTH_SEPARATOR}${conflict.incomingValue}`}
+											</div>
+										</div>
+									)}
 								</div>
 							)}
 						</div>

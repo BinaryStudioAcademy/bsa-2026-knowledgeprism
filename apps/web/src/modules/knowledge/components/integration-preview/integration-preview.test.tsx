@@ -140,6 +140,7 @@ const createNestedReview = (): {
 			liveContent: null,
 			liveTitle: null,
 			matchedNodeId: null,
+			mergedBlocks: null,
 			placement: {
 				matches: [],
 				parentExtractionItemId,
@@ -858,6 +859,98 @@ describe("IntegrationPreview extraction review", () => {
 				}),
 			);
 		});
+	});
+
+	it("offers Both for a merged conflict and shows the merged entry", () => {
+		const structure: ProposedSection[] = [
+			{
+				id: "section",
+				pages: [
+					{
+						content: "Incoming content",
+						id: "page",
+						integrationChangeId: 9,
+						matchedNodeId: 3,
+						merge: {
+							blocks: [],
+							content: "Merged content",
+							incomingContent: "Incoming content",
+							incomingTitle: "Incoming title",
+						},
+						originalContent: "Live content",
+						originalTitle: "Live title",
+						status: "conflict",
+						title: "Incoming title",
+						type: KnowledgeNodeType.PAGE,
+					},
+				],
+				status: "conflict",
+				title: "Section",
+				type: KnowledgeNodeType.SECTION,
+			},
+		];
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={vi.fn().mockResolvedValue(false)}
+				onClose={vi.fn()}
+				proposedStructure={structure}
+			/>,
+		);
+
+		fireEvent.click(screen.getByRole("button", { name: "Both" }));
+
+		expect(screen.getByText("After publishing")).toBeInTheDocument();
+		expect(screen.getByText("Merged content")).toBeInTheDocument();
+	});
+
+	it.each([
+		{
+			content: "Incoming content",
+			message: "Merged with the existing entry, keeping the facts of both.",
+		},
+		{
+			content: "Edited content",
+			message:
+				"This section was edited, so it is added after the existing entry instead of being merged into it.",
+		},
+	])("shows what publishing an update writes", ({ content, message }) => {
+		const structure: ProposedSection[] = [
+			{
+				id: "section",
+				pages: [
+					{
+						content,
+						id: "page",
+						integrationChangeId: 9,
+						matchedNodeId: 3,
+						merge: {
+							blocks: [],
+							content: "Merged content",
+							incomingContent: "Incoming content",
+							incomingTitle: "Incoming title",
+						},
+						status: "modified",
+						title: "Incoming title",
+						type: KnowledgeNodeType.ENTRY,
+					},
+				],
+				status: "modified",
+				title: "Section",
+				type: KnowledgeNodeType.SECTION,
+			},
+		];
+		renderPreview(
+			<IntegrationPreview
+				onAddMore={vi.fn()}
+				onApprove={vi.fn().mockResolvedValue(false)}
+				onClose={vi.fn()}
+				proposedStructure={structure}
+			/>,
+		);
+
+		expect(screen.getByText("After publishing")).toBeInTheDocument();
+		expect(screen.getByText(message)).toBeInTheDocument();
 	});
 
 	it("asks for conflict decisions first and publishes them on approve", async () => {
