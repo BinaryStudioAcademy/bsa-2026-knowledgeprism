@@ -5,6 +5,7 @@ import { search } from "@knowledgeprism/worker";
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 
+import { type ExtractionItemRepository } from "~/modules/documents/repositories/extraction-item.repository.js";
 import { KnowledgeNodeEntity } from "~/modules/knowledge/models/knowledge-node.entity.js";
 import { type KnowledgeNodeRepository } from "~/modules/knowledge/repositories/knowledge-node.repository.js";
 import {
@@ -14,7 +15,11 @@ import {
 
 import { DEFAULT_SUGGESTED_QUESTIONS } from "../libs/constants/default-suggested-questions.constant.js";
 import { RAG_FALLBACK_MESSAGE } from "../libs/constants/rag-fallback-message.constant.js";
-import { AskPrismService, MAX_SIMILAR_NODES } from "./ask-prism.service.js";
+import {
+	AskPrismService,
+	type AskPrismServiceOptions,
+	MAX_SIMILAR_NODES,
+} from "./ask-prism.service.js";
 
 const COMPONENT_FRACTION_EIGHT = 0.8;
 const COMPONENT_FRACTION_FOUR = 0.4;
@@ -27,18 +32,24 @@ const COMPONENT_FRACTION_TWO = 0.2;
 const COMPONENT_ONE = 1;
 const COMPONENT_ZERO = 0;
 const EXPECTED_SIMILAR_NODES_LIMIT = 3;
+const FIRST_ELEMENT_INDEX = 0;
 const MAX_SUGGESTIONS = 3;
 const NODE_ID_FOUR = 4;
 const NODE_ID_ONE = 1;
 const NODE_ID_THREE = 3;
 const NODE_ID_TWO = 2;
 const ORGANISATION_ID = 1;
+const PAGE_NUMBER = 5;
+const PARENT_DOC_NAME = "architecture-overview.pdf";
 const POSITION_FOUR = 3;
 const POSITION_ONE = 0;
 const POSITION_THREE = 2;
 const POSITION_TWO = 1;
 const PROJECT_ID = 1;
 const QUESTION = "How does authentication work?";
+const SCORE_THRESHOLD = 0.9;
+const SINGLE_SOURCE = 1;
+const TEST_DOC_NAME = "security-spec.pdf";
 const USER_ID = 1;
 
 const CONTEXT: ProjectAccessContext = {
@@ -46,11 +57,25 @@ const CONTEXT: ProjectAccessContext = {
 	userId: USER_ID,
 };
 
+type CreateTestSetupOptions = {
+	chunkedEmbedder?: AskPrismServiceOptions["chunkedEmbedder"];
+	embedder?: AskPrismServiceOptions["embedder"];
+	extractionItemRepository?: ExtractionItemRepository | undefined;
+	nodes?: KnowledgeNodeEntity[];
+	ragGenerator?: AskPrismServiceOptions["ragGenerator"];
+	searcher?: AskPrismServiceOptions["searcher"];
+};
+
 const createTestSetup = (
-	nodes: KnowledgeNodeEntity[] = [],
+	nodesOrOptions: CreateTestSetupOptions | KnowledgeNodeEntity[] = [],
 ): {
 	service: AskPrismService;
 } => {
+	const options = Array.isArray(nodesOrOptions)
+		? { nodes: nodesOrOptions }
+		: nodesOrOptions;
+	const nodes = options.nodes ?? [];
+
 	const knowledgeNodeRepository = {
 		findAllByProjectId: (): Promise<KnowledgeNodeEntity[]> =>
 			Promise.resolve(nodes),
@@ -60,9 +85,26 @@ const createTestSetup = (
 		findById: (): Promise<unknown> => Promise.resolve({}),
 	} as unknown as ProjectService;
 
+	const defaultChunkedEmbedder = options.embedder
+		? ((<T>(
+				entries: { entry: unknown; item: T }[],
+			): Promise<{ item: T; vector: number[] }[]> =>
+				Promise.resolve(
+					entries.map(({ item }) => ({
+						item,
+						vector: [COMPONENT_ONE, COMPONENT_ZERO],
+					})),
+				)) as unknown as AskPrismServiceOptions["chunkedEmbedder"])
+		: undefined;
+
 	const service = new AskPrismService({
+		chunkedEmbedder: options.chunkedEmbedder ?? defaultChunkedEmbedder,
+		embedder: options.embedder,
+		extractionItemRepository: options.extractionItemRepository,
 		knowledgeNodeRepository,
 		projectService,
+		ragGenerator: options.ragGenerator,
+		searcher: options.searcher,
 	});
 
 	return { service };
@@ -383,6 +425,205 @@ void describe("AskPrismService.generateAnswer", () => {
 		assert.deepStrictEqual(response, {
 			answer: RAG_FALLBACK_MESSAGE,
 			sources: [],
+		});
+	});
+
+	void it("returns documentName and pageNumber in sources when extraction item metadata is present", async () => {
+		const entryNode = KnowledgeNodeEntity.initialize({
+			contentJson: [
+				{ content: "Authentication uses JWT tokens", type: "paragraph" },
+			],
+			createdAt: new Date(),
+			id: NODE_ID_TWO,
+			parentId: NODE_ID_ONE,
+			position: POSITION_TWO,
+			projectId: PROJECT_ID,
+			title: "Authentication",
+			type: KnowledgeNodeType.ENTRY,
+			updatedAt: new Date(),
+		});
+
+		const extractionItemRepository = {
+			findSourcesByKnowledgeNodeIds: (): Promise<
+				Map<number, { documentName: string; pageNumber: number }>
+			> =>
+				Promise.resolve(
+					new Map([
+						[
+							NODE_ID_TWO,
+							{
+								documentName: TEST_DOC_NAME,
+								pageNumber: PAGE_NUMBER,
+							},
+						],
+					]),
+				),
+		} as unknown as ExtractionItemRepository;
+
+		const { service } = createTestSetup({
+			embedder: () => Promise.resolve([[COMPONENT_ONE, COMPONENT_ZERO]]),
+			extractionItemRepository,
+			nodes: [entryNode],
+			ragGenerator: () => Promise.resolve("Authentication uses JWT tokens."),
+			searcher: () => [
+				{
+					item: {
+						content: "Authentication uses JWT tokens",
+						id: NODE_ID_TWO,
+						indexedContent: "Authentication\nAuthentication uses JWT tokens",
+						nodeId: NODE_ID_TWO,
+						sectionTitle: "Authentication",
+						title: "Authentication",
+					},
+					score: SCORE_THRESHOLD,
+				},
+			],
+		});
+
+		const response = await service.generateAnswer(
+			PROJECT_ID,
+			QUESTION,
+			CONTEXT,
+		);
+
+		assert.equal(response.answer, "Authentication uses JWT tokens.");
+		assert.equal(response.sources.length, SINGLE_SOURCE);
+		assert.deepStrictEqual(response.sources[FIRST_ELEMENT_INDEX], {
+			documentName: TEST_DOC_NAME,
+			excerpt: "Authentication uses JWT tokens",
+			id: NODE_ID_TWO,
+			nodeId: NODE_ID_TWO,
+			pageNumber: PAGE_NUMBER,
+			sectionTitle: "Authentication",
+			title: "Authentication",
+		});
+	});
+
+	void it("falls back to parent page title as documentName when no extraction item is linked", async () => {
+		const parentPageNode = KnowledgeNodeEntity.initialize({
+			contentJson: [],
+			createdAt: new Date(),
+			id: NODE_ID_ONE,
+			parentId: null,
+			position: POSITION_ONE,
+			projectId: PROJECT_ID,
+			title: PARENT_DOC_NAME,
+			type: KnowledgeNodeType.PAGE,
+			updatedAt: new Date(),
+		});
+
+		const entryNode = KnowledgeNodeEntity.initialize({
+			contentJson: [
+				{ content: "Microservices communicate via gRPC", type: "paragraph" },
+			],
+			createdAt: new Date(),
+			id: NODE_ID_TWO,
+			parentId: NODE_ID_ONE,
+			position: POSITION_TWO,
+			projectId: PROJECT_ID,
+			title: "Microservices",
+			type: KnowledgeNodeType.ENTRY,
+			updatedAt: new Date(),
+		});
+
+		const extractionItemRepository = {
+			findSourcesByKnowledgeNodeIds: (): Promise<
+				Map<number, { documentName: string; pageNumber: number }>
+			> =>
+				Promise.resolve(
+					new Map<number, { documentName: string; pageNumber: number }>(),
+				),
+		} as unknown as ExtractionItemRepository;
+
+		const { service } = createTestSetup({
+			embedder: () => Promise.resolve([[COMPONENT_ONE, COMPONENT_ZERO]]),
+			extractionItemRepository,
+			nodes: [parentPageNode, entryNode],
+			ragGenerator: () =>
+				Promise.resolve("Microservices communicate via gRPC."),
+			searcher: () => [
+				{
+					item: {
+						content: "Microservices communicate via gRPC",
+						id: NODE_ID_TWO,
+						indexedContent: "Microservices\nMicroservices communicate via gRPC",
+						nodeId: NODE_ID_TWO,
+						sectionTitle: "Microservices",
+						title: "Microservices",
+					},
+					score: SCORE_THRESHOLD,
+				},
+			],
+		});
+
+		const response = await service.generateAnswer(
+			PROJECT_ID,
+			QUESTION,
+			CONTEXT,
+		);
+
+		assert.equal(response.sources.length, SINGLE_SOURCE);
+		assert.deepStrictEqual(response.sources[FIRST_ELEMENT_INDEX], {
+			documentName: PARENT_DOC_NAME,
+			excerpt: "Microservices communicate via gRPC",
+			id: NODE_ID_TWO,
+			nodeId: NODE_ID_TWO,
+			pageNumber: null,
+			sectionTitle: "Microservices",
+			title: "Microservices",
+		});
+	});
+
+	void it("returns null documentName and pageNumber for manual entries without backing document", async () => {
+		const entryNode = KnowledgeNodeEntity.initialize({
+			contentJson: [
+				{ content: "Manual note regarding deployment", type: "paragraph" },
+			],
+			createdAt: new Date(),
+			id: NODE_ID_THREE,
+			parentId: null,
+			position: POSITION_THREE,
+			projectId: PROJECT_ID,
+			title: "Manual Deployment Note",
+			type: KnowledgeNodeType.ENTRY,
+			updatedAt: new Date(),
+		});
+
+		const { service } = createTestSetup({
+			embedder: () => Promise.resolve([[COMPONENT_ONE, COMPONENT_ZERO]]),
+			nodes: [entryNode],
+			ragGenerator: () => Promise.resolve("Manual note regarding deployment."),
+			searcher: () => [
+				{
+					item: {
+						content: "Manual note regarding deployment",
+						id: NODE_ID_THREE,
+						indexedContent:
+							"Manual Deployment Note\nManual note regarding deployment",
+						nodeId: NODE_ID_THREE,
+						sectionTitle: "Manual Deployment Note",
+						title: "Manual Deployment Note",
+					},
+					score: SCORE_THRESHOLD,
+				},
+			],
+		});
+
+		const response = await service.generateAnswer(
+			PROJECT_ID,
+			QUESTION,
+			CONTEXT,
+		);
+
+		assert.equal(response.sources.length, SINGLE_SOURCE);
+		assert.deepStrictEqual(response.sources[FIRST_ELEMENT_INDEX], {
+			documentName: null,
+			excerpt: "Manual note regarding deployment",
+			id: NODE_ID_THREE,
+			nodeId: NODE_ID_THREE,
+			pageNumber: null,
+			sectionTitle: "Manual Deployment Note",
+			title: "Manual Deployment Note",
 		});
 	});
 });

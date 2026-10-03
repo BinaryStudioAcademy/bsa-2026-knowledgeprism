@@ -24,6 +24,14 @@ type CompactText = {
 	text: string;
 };
 
+type LocatedSourceSpan = {
+	range: {
+		end: number;
+		start: number;
+	};
+	text: string;
+};
+
 const toPlainCharacter = (character: string): string => {
 	if (TypographicCharacter.SINGLE_QUOTES.test(character)) {
 		return PlainCharacter.SINGLE_QUOTE;
@@ -63,10 +71,10 @@ const toFragments = (excerpt: string): string[] => {
 		.filter((line) => line !== "");
 };
 
-const locateSourceSpan = (
+const locateSourceSpanWithRange = (
 	chunkContent: string,
 	sourceExcerpt: string,
-): null | string => {
+): LocatedSourceSpan | null => {
 	const fragments = toFragments(sourceExcerpt);
 	const [firstFragment] = fragments;
 
@@ -100,10 +108,22 @@ const locateSourceSpan = (
 		return null;
 	}
 
-	return chunkContent.slice(
-		startPosition,
-		lastPosition + LAST_CHARACTER_OFFSET,
-	);
+	const endPosition = lastPosition + LAST_CHARACTER_OFFSET;
+
+	return {
+		range: {
+			end: endPosition,
+			start: startPosition,
+		},
+		text: chunkContent.slice(startPosition, endPosition),
+	};
+};
+
+const locateSourceSpan = (
+	chunkContent: string,
+	sourceExcerpt: string,
+): null | string => {
+	return locateSourceSpanWithRange(chunkContent, sourceExcerpt)?.text ?? null;
 };
 
 const trimEdgePunctuation = (value: string): string => {
@@ -131,6 +151,60 @@ const locateAnchor = (content: string, anchor: string): null | string => {
 		locateSourceSpan(content, anchor) ??
 		(trimmed === "" ? null : locateSourceSpan(content, trimmed))
 	);
+};
+const locateAnchorWithRange = (
+	content: string,
+	anchor: string,
+): LocatedSourceSpan | null => {
+	const trimmed = trimEdgePunctuation(anchor);
+
+	return (
+		locateSourceSpanWithRange(content, anchor) ??
+		(trimmed === "" ? null : locateSourceSpanWithRange(content, trimmed))
+	);
+};
+
+const locateAnchoredSpanWithRange = (
+	chunkContent: string,
+	{ end, start }: { end: string; start: string },
+): LocatedSourceSpan | null => {
+	const startSpan = locateAnchorWithRange(chunkContent, start);
+
+	if (startSpan === null) {
+		return null;
+	}
+
+	const restOffset = chunkContent.indexOf(startSpan.text);
+	const rest = chunkContent.slice(restOffset);
+
+	const endSpan = locateAnchorWithRange(rest, end);
+
+	if (endSpan === null) {
+		return null;
+	}
+
+	let spanEnd = endSpan.range.end;
+
+	while (
+		spanEnd < rest.length &&
+		TRAILING_PUNCTUATION.test(rest.charAt(spanEnd))
+	) {
+		spanEnd++;
+	}
+
+	if (spanEnd < startSpan.text.length) {
+		return startSpan;
+	}
+
+	const endPosition = restOffset + spanEnd;
+
+	return {
+		range: {
+			end: endPosition,
+			start: restOffset,
+		},
+		text: chunkContent.slice(restOffset, endPosition),
+	};
 };
 
 const locateAnchoredSpan = (
@@ -164,4 +238,9 @@ const locateAnchoredSpan = (
 		: rest.slice(FIRST_INDEX, spanEnd);
 };
 
-export { locateAnchoredSpan, locateSourceSpan };
+export {
+	locateAnchoredSpan,
+	locateAnchoredSpanWithRange,
+	locateSourceSpan,
+	locateSourceSpanWithRange,
+};

@@ -35,9 +35,11 @@ const MOCK_ANSWER: AskPrismResponseDto = {
 	answer: "Authentication uses JWT tokens for security.",
 	sources: [
 		{
+			documentName: null,
 			excerpt: "Authentication uses JWT tokens",
 			id: 1,
 			nodeId: 1,
+			pageNumber: null,
 			sectionTitle: "Auth",
 			title: "Authentication",
 		},

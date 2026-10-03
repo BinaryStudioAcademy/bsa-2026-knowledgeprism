@@ -111,5 +111,6 @@ const startStaleProcessingSweep = (): void => {
 export {
 	documentController,
 	documentReviewController,
+	extractionItemRepository,
 	startStaleProcessingSweep,
 };

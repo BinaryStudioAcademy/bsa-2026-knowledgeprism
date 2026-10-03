@@ -40,12 +40,31 @@ const getUniqueSources = (
 	});
 };
 
+const getSourceTooltip = (source: AskPrismSourceDto): string => {
+	const target = source.sectionTitle || source.title;
+
+	if (!source.documentName) {
+		return `Jump to ${target}`;
+	}
+
+	const documentDetails =
+		typeof source.pageNumber === "number"
+			? `${source.documentName}, p. ${String(source.pageNumber)}`
+			: source.documentName;
+
+	return `Jump to ${target} (${documentDetails})`;
+};
+
 type SourceLabelProperties = {
 	source: AskPrismSourceDto;
 };
 
 const SourceLabel = ({ source }: SourceLabelProperties): JSX.Element => {
 	const hasDistinctSection = source.sectionTitle !== source.title;
+	const hasDocument = Boolean(source.documentName);
+	const hasDistinctDocument =
+		hasDocument && source.documentName !== source.title;
+	const hasPageNumber = typeof source.pageNumber === "number";
 
 	return (
 		<>
@@ -58,6 +77,23 @@ const SourceLabel = ({ source }: SourceLabelProperties): JSX.Element => {
 					<span className="shrink-0 opacity-60">·</span>
 					<span className="min-w-0 truncate opacity-85">
 						{source.sectionTitle}
+					</span>
+				</>
+			)}
+			{hasDistinctDocument && (
+				<>
+					<span className="shrink-0 opacity-60">·</span>
+					<span className="min-w-0 truncate opacity-85">
+						{source.documentName}
+						{hasPageNumber && `, p. ${String(source.pageNumber)}`}
+					</span>
+				</>
+			)}
+			{!hasDistinctDocument && hasDocument && hasPageNumber && (
+				<>
+					<span className="shrink-0 opacity-60">·</span>
+					<span className="min-w-0 truncate opacity-85">
+						p. {String(source.pageNumber)}
 					</span>
 				</>
 			)}
@@ -165,7 +201,7 @@ const AnswerCard = ({
 											className="inline-flex min-w-0 max-w-full cursor-pointer items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs transition-colors duration-200 hover:border-accent hover:bg-accent hover:text-white"
 											key={String(source.id)}
 											onClick={handleSourceClick(source)}
-											title={`Jump to ${source.sectionTitle}`}
+											title={getSourceTooltip(source)}
 											type="button"
 										>
 											<SourceLabel source={source} />
@@ -174,6 +210,7 @@ const AnswerCard = ({
 										<span
 											className="inline-flex min-w-0 max-w-full items-center gap-1.5 rounded-full border border-accent/20 bg-success-bg px-2.5 py-0.5 font-sans text-[11px] font-medium text-accent shadow-2xs"
 											key={String(source.id)}
+											title={getSourceTooltip(source)}
 										>
 											<SourceLabel source={source} />
 										</span>

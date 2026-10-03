@@ -55,10 +55,13 @@ const applyTranslatedSectionTitles = (
 	return translated.map((chunk, index) => {
 		const title =
 			chunk.sectionIndex === null ? undefined : titles.get(chunk.sectionIndex);
-		const isTranslated = chunk.content !== originals[index]?.content;
+		const original = originals[index];
+		const isTranslated =
+			original !== undefined && chunk.content !== original.content;
 
 		return {
 			...chunk,
+			...(isTranslated && { originalPageStarts: original.pageStarts }),
 			pageStarts: isTranslated
 				? [{ offset: FIRST_INDEX, pageNumber: chunk.pageNumber }]
 				: chunk.pageStarts,
