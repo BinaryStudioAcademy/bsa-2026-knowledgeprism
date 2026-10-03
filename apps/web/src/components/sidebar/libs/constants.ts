@@ -3,7 +3,6 @@ const ADD_KNOWLEDGE_LABEL = "Add Knowledge";
 const APP_SIDEBAR_ID = "app-sidebar";
 const BACK_CONTROL_ICON_SIZE = 12;
 const BACK_TO_PROJECTS_LABEL = "Back to projects";
-const CHEVRON_ICON_SIZE = 10;
 const COLLAPSE_SIDEBAR_LABEL = "Collapse sidebar";
 const EXPANDED_NAV_ITEM_CLASS = "h-auto w-full justify-start px-3 py-2.5";
 const EXPAND_SIDEBAR_LABEL = "Expand sidebar";
@@ -27,7 +26,6 @@ export {
 	APP_SIDEBAR_ID,
 	BACK_CONTROL_ICON_SIZE,
 	BACK_TO_PROJECTS_LABEL,
-	CHEVRON_ICON_SIZE,
 	COLLAPSE_SIDEBAR_LABEL,
 	EXPAND_SIDEBAR_LABEL,
 	EXPANDED_NAV_ITEM_CLASS,

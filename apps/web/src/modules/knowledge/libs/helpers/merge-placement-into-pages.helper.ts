@@ -12,11 +12,15 @@ const mergePlacedPage = (
 		...(placed.matchedNodeId !== undefined && {
 			matchedNodeId: placed.matchedNodeId,
 		}),
+		...(placed.merge && { merge: placed.merge }),
 		...(placed.originalContent !== undefined && {
 			originalContent: placed.originalContent,
 		}),
 		...(placed.originalTitle !== undefined && {
 			originalTitle: placed.originalTitle,
+		}),
+		...(placed.placementParentExtractionItemId !== undefined && {
+			placementParentExtractionItemId: placed.placementParentExtractionItemId,
 		}),
 		...(placed.placementParentId !== undefined && {
 			placementParentId: placed.placementParentId,

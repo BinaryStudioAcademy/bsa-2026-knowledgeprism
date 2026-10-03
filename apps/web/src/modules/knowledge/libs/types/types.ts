@@ -30,6 +30,7 @@ type FieldConflict = {
 	incomingValue: string;
 	matchedNodeId: null | number;
 	matchIndex?: number;
+	mergedValue?: string;
 	resolution?: ConflictResolution;
 	wordingMatches?: WordingMatchPreview[];
 };
@@ -113,6 +114,13 @@ type PlacementTarget = {
 	title: string;
 };
 
+type ProposedMerge = {
+	blocks: PartialBlock[];
+	content: string;
+	incomingContent: string;
+	incomingTitle: string;
+};
+
 type ProposedPage = {
 	blocks?: PartialBlock[];
 	conflicts?: FieldConflict[];
@@ -121,8 +129,10 @@ type ProposedPage = {
 	id: string;
 	integrationChangeId: number;
 	matchedNodeId?: number;
+	merge?: ProposedMerge;
 	originalContent?: string;
 	originalTitle?: string;
+	placementParentExtractionItemId?: null | number;
 	placementParentId?: null | number;
 	proposedHeading?: string;
 	proposedPlace?: string;
@@ -182,6 +192,7 @@ export {
 	type KnowledgeState,
 	type PipelineSessionScope,
 	type PlacementTarget,
+	type ProposedMerge,
 	type ProposedPage,
 	type ProposedSection,
 	type TrackedDocument,

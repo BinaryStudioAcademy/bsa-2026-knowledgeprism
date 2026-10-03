@@ -9,6 +9,7 @@ import {
 } from "../constants/pdfjs-resource.constant.js";
 import { DocumentParseFailedError } from "../exceptions/document-parse-failed.exception.js";
 import { type ParsedPageBlock } from "../types/parsed-page-block.type.js";
+import { reconstructPdfPageLines } from "./reconstruct-pdf-page-lines.helper.js";
 import { reconstructPdfPageText } from "./reconstruct-pdf-page-text.helper.js";
 
 const require = createRequire(import.meta.url);
@@ -54,6 +55,7 @@ const parsePdfPages = async (bytes: Uint8Array): Promise<ParsedPageBlock[]> => {
 
 			pages.push({
 				content: reconstructPdfPageText(textContent.items),
+				lines: reconstructPdfPageLines(textContent.items),
 				pageNumber,
 			});
 		}

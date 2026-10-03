@@ -9,6 +9,7 @@ import {
 	type ProposedPage,
 	type ProposedSection,
 } from "../types/types.js";
+import { toEditorBlocks } from "./extraction-review.helper.js";
 import { mapIntegrationChangeTypeToChangeStatus } from "./map-integration-change-type-to-change-status.helper.js";
 
 const DISPLAY_ORDER_OFFSET = 1;
@@ -19,6 +20,20 @@ const PROPOSED_CHANGES_SECTION_TITLE = "Proposed changes";
 const UNDER_PLACE_PREFIX = "Under ";
 
 const EMPTY_LENGTH = 0;
+const BLOCK_TEXT_SEPARATOR = "\n\n";
+
+const toMergedText = (
+	blocks: NonNullable<IntegrationChangeResponseDto["mergedBlocks"]>,
+): string =>
+	blocks
+		.map((block) =>
+			block.content
+				.map((run) => run.text)
+				.join("")
+				.trim(),
+		)
+		.filter((text) => text !== "")
+		.join(BLOCK_TEXT_SEPARATOR);
 
 const mapIntegrationChangeToPage = (
 	item: IntegrationChangeResponseDto,
@@ -48,6 +63,15 @@ const mapIntegrationChangeToPage = (
 		page.originalContent = item.liveContent;
 	}
 
+	if (item.mergedBlocks && item.mergedBlocks.length > EMPTY_LENGTH) {
+		page.merge = {
+			blocks: toEditorBlocks(item.mergedBlocks),
+			content: toMergedText(item.mergedBlocks),
+			incomingContent: item.incomingContent,
+			incomingTitle: item.incomingTitle,
+		};
+	}
+
 	if (item.placement.proposesParent || item.placement.siblingOrder !== null) {
 		const proposedParentLabel = item.placement.parentTitle
 			? `${UNDER_PLACE_PREFIX}${item.placement.parentTitle}`
@@ -64,6 +88,7 @@ const mapIntegrationChangeToPage = (
 			.join(", ");
 	}
 
+	page.placementParentExtractionItemId = item.placement.parentExtractionItemId;
 	page.placementParentId = item.placement.parentId;
 
 	if (item.placement.matches.length > EMPTY_LENGTH) {

@@ -2,16 +2,30 @@ import "@blocknote/core/fonts/inter.css";
 import "@blocknote/mantine/style.css";
 
 import "./knowledge-editor.css";
+
 import {
 	type Block,
 	BlockNoteSchema,
 	type BlockSchemaFromSpecs,
 	type BlockSpecs,
 	defaultBlockSpecs,
+	filterSuggestionItems,
 	type PartialBlock,
 } from "@blocknote/core";
 import { BlockNoteView } from "@blocknote/mantine";
-import { useCreateBlockNote, useExtension } from "@blocknote/react";
+import {
+	type DefaultReactSuggestionItem,
+	DragHandleMenu,
+	getDefaultReactSlashMenuItems,
+	RemoveBlockItem,
+	SideMenu,
+	SideMenuController,
+	type SideMenuProps,
+	SuggestionMenuController,
+	useCreateBlockNote,
+	useExtension,
+} from "@blocknote/react";
+import { useMediaQuery } from "@mantine/hooks";
 import { type ReactNode, useCallback, useEffect, useMemo } from "react";
 
 import { HighlightTooltip } from "./libs/components/components.js";
@@ -29,7 +43,7 @@ type KnowledgeEditorApi = {
 };
 
 type Properties = {
-	disabledBlocks?: EditorBlockType[];
+	disabledBlocks?: readonly EditorBlockType[];
 	highlights?: TextHighlight[];
 	initialContent?: PartialBlock[];
 	isEditable?: boolean;
@@ -42,8 +56,16 @@ type Properties = {
 	theme?: EditorTheme;
 };
 
+const DEFAULT_DISABLED_BLOCKS: readonly EditorBlockType[] = [
+	"table",
+	"image",
+	"video",
+	"audio",
+	"file",
+] as const;
+
 const getEditorBlockSpecs = (
-	disabledBlocks: readonly EditorBlockType[] = [],
+	disabledBlocks: readonly EditorBlockType[] = DEFAULT_DISABLED_BLOCKS,
 ): BlockSpecs => {
 	const disabledBlockSet = new Set<EditorBlockType>(disabledBlocks);
 
@@ -66,8 +88,18 @@ const getEditorSchema = (blockSpecs: BlockSpecs) => {
 	});
 };
 
+const CustomDragHandleMenu: React.FC = () => (
+	<DragHandleMenu>
+		<RemoveBlockItem>Delete</RemoveBlockItem>
+	</DragHandleMenu>
+);
+
+const CustomSideMenu: React.FC<SideMenuProps> = (properties) => (
+	<SideMenu {...properties} dragHandleMenu={CustomDragHandleMenu} />
+);
+
 const KnowledgeEditor: React.FC<Properties> = ({
-	disabledBlocks,
+	disabledBlocks = DEFAULT_DISABLED_BLOCKS,
 	highlights,
 	initialContent,
 	isEditable = true,
@@ -76,7 +108,9 @@ const KnowledgeEditor: React.FC<Properties> = ({
 	renderHighlightTooltip,
 	theme = "light",
 }: Properties) => {
-	const disabledBlocksKey = disabledBlocks?.join(",") ?? "";
+	const isMobile = useMediaQuery("(max-width: 768px)");
+	const disabledBlocksKey = disabledBlocks.join(",");
+
 	const editorSchema = useMemo(() => {
 		const disabledBlockTypes =
 			disabledBlocksKey === ""
@@ -85,6 +119,7 @@ const KnowledgeEditor: React.FC<Properties> = ({
 
 		return getEditorSchema(getEditorBlockSpecs(disabledBlockTypes));
 	}, [disabledBlocksKey]);
+
 	const editor = useCreateBlockNote(
 		initialContent === undefined
 			? { extensions: [textHighlightExtension()], schema: editorSchema }
@@ -95,21 +130,51 @@ const KnowledgeEditor: React.FC<Properties> = ({
 				},
 		[initialContent, editorSchema],
 	);
+
 	const highlightExtension = useExtension(textHighlightExtension, { editor });
+
 	const TypedBlockNoteView = BlockNoteView as unknown as React.FC<{
+		children?: ReactNode;
 		editable: boolean;
 		editor: typeof editor;
 		onChange: () => void;
+		sideMenu?: boolean;
+		slashMenu?: boolean;
 		theme: EditorTheme;
 	}>;
+
 	const handleEditorChange = useCallback((): void => {
 		onChange?.(editor.document);
 	}, [editor, onChange]);
+
 	const handleReplace = useCallback(
 		(highlightId: string, replacement: string): void => {
 			highlightExtension.replaceHighlight(highlightId, replacement);
 		},
 		[highlightExtension],
+	);
+
+	const handleGetSlashMenuItems = useCallback(
+		(query: string): Promise<DefaultReactSuggestionItem[]> => {
+			const defaultItems = getDefaultReactSlashMenuItems(editor);
+			const filteredItems: DefaultReactSuggestionItem[] = defaultItems
+				.filter((item) => item.group !== "Advanced" && item.group !== "Media")
+				.map((item) => {
+					if (isMobile) {
+						const itemWithoutBadge: DefaultReactSuggestionItem = {
+							...item,
+						};
+						delete itemWithoutBadge.badge;
+
+						return itemWithoutBadge;
+					}
+
+					return item;
+				});
+
+			return Promise.resolve(filterSuggestionItems(filteredItems, query));
+		},
+		[editor, isMobile],
 	);
 
 	useEffect(() => {
@@ -125,8 +190,16 @@ const KnowledgeEditor: React.FC<Properties> = ({
 			editable={isEditable}
 			editor={editor}
 			onChange={handleEditorChange}
+			sideMenu={false}
+			slashMenu={false}
 			theme={theme}
-		/>
+		>
+			<SuggestionMenuController
+				getItems={handleGetSlashMenuItems}
+				triggerCharacter="/"
+			/>
+			<SideMenuController sideMenu={CustomSideMenu} />
+		</TypedBlockNoteView>
 	);
 
 	return (

@@ -1,11 +1,17 @@
 import { type IntegrationChangeType } from "@knowledgeprism/constants";
-import { type DocumentPlacementDto, type ValueOf } from "@knowledgeprism/types";
+import {
+	type DocumentPlacementDto,
+	type ExtractionContentBlock,
+	type ValueOf,
+} from "@knowledgeprism/types";
 
+import { type NodeMergeMethod } from "~/modules/documents/libs/constants/node-merge-method.constant.js";
 import { toDocumentPlacement } from "~/modules/documents/libs/helpers/to-document-placement.helper.js";
 import { type Entity } from "~/shared/types/types.js";
 
 type IntegrationChangeObject = {
 	documentId: number;
+	duplicateOfExtractionItemId?: null | number;
 	explanation: string;
 	extractionItemId: number;
 	id: number;
@@ -14,6 +20,8 @@ type IntegrationChangeObject = {
 	liveContent: null | string;
 	liveTitle: null | string;
 	matchedNodeId: null | number;
+	mergedBlocks?: ExtractionContentBlock[] | null;
+	mergeMethod?: null | ValueOf<typeof NodeMergeMethod>;
 	placement: DocumentPlacementDto;
 	score: null | number;
 	type: ValueOf<typeof IntegrationChangeType>;
@@ -23,6 +31,8 @@ type NewIntegrationChangeObject = Omit<IntegrationChangeObject, "id">;
 
 class IntegrationChangeEntity implements Entity {
 	private documentId: number;
+
+	private duplicateOfExtractionItemId: null | number;
 
 	private explanation: string;
 
@@ -40,6 +50,10 @@ class IntegrationChangeEntity implements Entity {
 
 	private matchedNodeId: null | number;
 
+	private mergedBlocks: ExtractionContentBlock[] | null;
+
+	private mergeMethod: null | ValueOf<typeof NodeMergeMethod>;
+
 	private placement: DocumentPlacementDto;
 
 	private score: null | number;
@@ -48,6 +62,7 @@ class IntegrationChangeEntity implements Entity {
 
 	private constructor({
 		documentId,
+		duplicateOfExtractionItemId = null,
 		explanation,
 		extractionItemId,
 		id,
@@ -56,11 +71,14 @@ class IntegrationChangeEntity implements Entity {
 		liveContent,
 		liveTitle,
 		matchedNodeId,
+		mergedBlocks = null,
+		mergeMethod = null,
 		placement,
 		score,
 		type,
 	}: NewIntegrationChangeObject & { id: null | number }) {
 		this.documentId = documentId;
+		this.duplicateOfExtractionItemId = duplicateOfExtractionItemId;
 		this.explanation = explanation;
 		this.extractionItemId = extractionItemId;
 		this.id = id;
@@ -69,6 +87,8 @@ class IntegrationChangeEntity implements Entity {
 		this.liveContent = liveContent;
 		this.liveTitle = liveTitle;
 		this.matchedNodeId = matchedNodeId;
+		this.mergedBlocks = mergedBlocks;
+		this.mergeMethod = mergeMethod;
 		this.placement = toDocumentPlacement(placement);
 		this.score = score;
 		this.type = type;
@@ -89,6 +109,7 @@ class IntegrationChangeEntity implements Entity {
 	public toNewObject(): NewIntegrationChangeObject {
 		return {
 			documentId: this.documentId,
+			duplicateOfExtractionItemId: this.duplicateOfExtractionItemId,
 			explanation: this.explanation,
 			extractionItemId: this.extractionItemId,
 			incomingContent: this.incomingContent,
@@ -96,6 +117,8 @@ class IntegrationChangeEntity implements Entity {
 			liveContent: this.liveContent,
 			liveTitle: this.liveTitle,
 			matchedNodeId: this.matchedNodeId,
+			mergedBlocks: this.mergedBlocks,
+			mergeMethod: this.mergeMethod,
 			placement: this.placement,
 			score: this.score,
 			type: this.type,

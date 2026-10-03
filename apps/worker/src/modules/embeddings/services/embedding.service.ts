@@ -4,13 +4,17 @@ import { EmbeddingRequest } from "../libs/constants/embedding-request.constant.j
 import { SemanticSearchDefault } from "../libs/constants/semantic-search-default.constant.js";
 import { calculateCosineSimilarity } from "../libs/helpers/calculate-cosine-similarity.helper.js";
 import { invokeEmbedding } from "../libs/helpers/invoke-embedding.helper.js";
+import { splitForEmbedding } from "../libs/helpers/split-for-embedding.helper.js";
 import { splitIntoBatches } from "../libs/helpers/split-into-batches.helper.js";
+import { type EmbeddingCandidate } from "../libs/types/embedding-candidate.type.js";
+import { type EmbeddingEntry } from "../libs/types/embedding-entry.type.js";
 import { type EmbeddingInputTypeValue } from "../libs/types/embedding-input-type-value.type.js";
 import { type EmbeddingVector } from "../libs/types/embedding-vector.type.js";
 import { type SemanticSearchParameters } from "../libs/types/semantic-search-parameters.type.js";
 import { type SimilarityMatch } from "../libs/types/similarity-match.type.js";
 
 const EMPTY_TEXTS_COUNT = 0;
+const FIRST_CHARACTER_INDEX = 0;
 const NOT_FOUND_INDEX = -1;
 const FIRST_MATCH_INDEX = 0;
 const MIN_TOP_K = 1;
@@ -18,6 +22,7 @@ const MIN_TOP_K = 1;
 const embed = async (
 	texts: string[],
 	inputType: EmbeddingInputTypeValue,
+	{ isLimited = true }: { isLimited?: boolean } = {},
 ): Promise<EmbeddingVector[]> => {
 	if (texts.length === EMPTY_TEXTS_COUNT) {
 		return [];
@@ -31,23 +36,18 @@ const embed = async (
 		);
 	}
 
-	for (const [index, text] of texts.entries()) {
-		if (text.length > EmbeddingRequest.MAX_TEXT_LENGTH) {
-			logger.warn(
-				`Text at index ${index.toString()} is ${text.length.toString()} characters long, over the ${EmbeddingRequest.MAX_TEXT_LENGTH.toString()} limit. Cohere will truncate it`,
-			);
-		}
-	}
-
+	const limitedTexts = texts.map((text) =>
+		text.slice(FIRST_CHARACTER_INDEX, EmbeddingRequest.MAX_TEXT_LENGTH),
+	);
 	const batches = splitIntoBatches(
-		texts,
+		limitedTexts,
 		EmbeddingRequest.MAX_TEXTS_PER_REQUEST,
 	);
 
 	const vectors: EmbeddingVector[] = [];
 
 	for (const batch of batches) {
-		const batchVectors = await invokeEmbedding(batch, inputType);
+		const batchVectors = await invokeEmbedding(batch, inputType, isLimited);
 		vectors.push(...batchVectors);
 	}
 
@@ -85,4 +85,27 @@ const search = <T>(
 	return sortedMatches.slice(FIRST_MATCH_INDEX, topK);
 };
 
-export { embed, search };
+const embedChunked = async <T>(
+	entries: { entry: EmbeddingEntry; item: T }[],
+	inputType: EmbeddingInputTypeValue,
+	options: { isLimited?: boolean } = {},
+): Promise<EmbeddingCandidate<T>[]> => {
+	const chunks = entries.flatMap(({ entry, item }) =>
+		splitForEmbedding(entry).map((text) => ({ item, text })),
+	);
+	const vectors = await embed(
+		chunks.map(({ text }) => text),
+		inputType,
+		options,
+	);
+
+	return chunks.flatMap(({ item }, index) => {
+		const vector = vectors[index];
+
+		return vector ? [{ item, vector }] : [];
+	});
+};
+
+export { embed, embedChunked, search };
+
+export { searchGrouped } from "../libs/helpers/search-grouped.helper.js";

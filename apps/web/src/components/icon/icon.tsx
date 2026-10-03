@@ -26,6 +26,7 @@ import { HelpIcon } from "./icons/help.icon.js";
 import { HexagonNodeIcon } from "./icons/hexagon-node.icon.js";
 import { KnowledgeTreeIcon } from "./icons/knowledge-tree.icon.js";
 import { LinkIcon } from "./icons/link.icon.js";
+import { MoreIcon } from "./icons/more.icon.js";
 import { ParagraphIcon } from "./icons/paragraph.icon.js";
 import { PasteTextIcon } from "./icons/paste-text.icon.js";
 import { PhoneIcon } from "./icons/phone.icon.js";
@@ -42,6 +43,7 @@ import { TabletIcon } from "./icons/tablet.icon.js";
 import { ToastCheckIcon } from "./icons/toast-check.icon.js";
 import { UploadIcon } from "./icons/upload.icon.js";
 import { UsersIcon } from "./icons/users.icon.js";
+import { WarningIcon } from "./icons/warning.icon.js";
 import { type SvgIconProperties } from "./types.js";
 
 const DEFAULT_ICON_SIZE = 14;
@@ -75,6 +77,7 @@ const iconNameToComponent = {
 	"hexagon-node": HexagonNodeIcon,
 	"knowledge-tree": KnowledgeTreeIcon,
 	link: LinkIcon,
+	more: MoreIcon,
 	paragraph: ParagraphIcon,
 	"paste-text": PasteTextIcon,
 	phone: PhoneIcon,
@@ -91,6 +94,7 @@ const iconNameToComponent = {
 	"toast-check": ToastCheckIcon,
 	upload: UploadIcon,
 	users: UsersIcon,
+	warning: WarningIcon,
 } as const satisfies Record<string, React.FC<SvgIconProperties>>;
 
 type IconName = keyof typeof iconNameToComponent;

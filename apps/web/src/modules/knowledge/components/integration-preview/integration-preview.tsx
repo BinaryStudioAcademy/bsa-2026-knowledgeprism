@@ -37,6 +37,7 @@ import {
 	toGlossaryHighlightId,
 	toGlossaryHighlights,
 } from "~/modules/glossary/libs/helpers/helpers.js";
+import { getCurrentMerge } from "~/modules/knowledge/libs/helpers/get-current-merge.helper.js";
 import {
 	isManualPage,
 	movePageGroup,
@@ -95,7 +96,7 @@ const LIVE_KB_CONTENT_FALLBACK = "No live knowledge base content.";
 const PUBLISH_LABEL = "Approve & save";
 const ICON_SIZE_MEDIUM = 16;
 const NOT_FOUND_INDEX = -1;
-const TITLE_MAX_LENGTH = 250;
+const TITLE_MAX_LENGTH = 255;
 const EDIT_HINT = "Esc to exit · Alt+↓ next";
 const NEXT_SECTION_STEP = 1;
 const PREVIOUS_SECTION_STEP = -1;
@@ -347,6 +348,12 @@ const getSectionConflicts = (section: ProposedPage): FieldConflict[] => {
 		contentConflict.wordingMatches = section.wordingMatches;
 	}
 
+	const merge = getCurrentMerge(section);
+
+	if (merge) {
+		contentConflict.mergedValue = merge.content;
+	}
+
 	return [
 		{
 			changeId: section.integrationChangeId,
@@ -426,6 +433,46 @@ type GlossaryHighlightTooltipContentProperties = {
 	onAccept: (match: GlossaryConsistencyMatchDto) => void;
 	onEdit: (match: GlossaryConsistencyMatchDto) => void;
 	onKeep: (match: GlossaryConsistencyMatchDto) => void;
+};
+const MergedEntryPreview = ({
+	section,
+}: {
+	section: ProposedPage;
+}): JSX.Element | null => {
+	if (!section.merge) {
+		return null;
+	}
+
+	const merge = getCurrentMerge(section);
+
+	return (
+		<div className="flex flex-col gap-2 rounded-md border border-info/25 bg-info-bg/40 p-3.5 tablet:p-5">
+			<span className="font-sans text-2xs font-semibold uppercase tracking-wide text-info">
+				After publishing
+			</span>
+			{merge ? (
+				<>
+					<Paragraph
+						className="text-text-muted"
+						size={ParagraphSize.BODY_SMALL}
+					>
+						Merged with the existing entry, keeping the facts of both.
+					</Paragraph>
+					<SectionContentEditor
+						blocks={merge.blocks}
+						content={merge.content}
+						isEditable={false}
+						key={merge.content}
+					/>
+				</>
+			) : (
+				<Paragraph className="text-text-muted" size={ParagraphSize.BODY_SMALL}>
+					This section was edited, so it is added after the existing entry
+					instead of being merged into it.
+				</Paragraph>
+			)}
+		</div>
+	);
 };
 
 const GlossaryHighlightTooltipContent = ({
@@ -743,6 +790,10 @@ const SectionDetails = ({
 						</div>
 					)}
 
+					{!isEditMode && activeSection.status === "modified" && (
+						<MergedEntryPreview section={activeSection} />
+					)}
+
 					<GlossarySuggestions
 						canAccept={!isEditMode}
 						isChecking={isCheckingGlossary}
@@ -876,8 +927,17 @@ const PreviewFooter = ({
 	</div>
 );
 
+const seedReviewPages = (
+	proposedStructure: ProposedSection[],
+	placementStructure: ProposedSection[] | undefined,
+): ProposedSection[] =>
+	placementStructure && placementStructure.length > EMPTY_LENGTH
+		? mergePlacementIntoPages(proposedStructure, placementStructure)
+		: proposedStructure;
+
 const syncIncomingReviewPages = ({
 	appliedPlacement,
+	backupPages,
 	pages,
 	placementStructure,
 	proposedStructure,
@@ -888,6 +948,7 @@ const syncIncomingReviewPages = ({
 	setSeededProposal,
 }: {
 	appliedPlacement: ProposedSection[] | undefined;
+	backupPages: ProposedSection[];
 	pages: ProposedSection[];
 	placementStructure: ProposedSection[] | undefined;
 	proposedStructure: ProposedSection[];
@@ -902,10 +963,7 @@ const syncIncomingReviewPages = ({
 		proposedStructure.length > EMPTY_LENGTH &&
 		seededProposal.length === EMPTY_LENGTH
 	) {
-		const seededPages =
-			placementStructure && placementStructure.length > EMPTY_LENGTH
-				? mergePlacementIntoPages(proposedStructure, placementStructure)
-				: proposedStructure;
+		const seededPages = seedReviewPages(proposedStructure, placementStructure);
 
 		setSeededProposal(proposedStructure);
 		setPages(seededPages);
@@ -924,6 +982,7 @@ const syncIncomingReviewPages = ({
 		pages.length > EMPTY_LENGTH
 	) {
 		setPages(mergePlacementIntoPages(pages, placementStructure));
+		setBackupPages(mergePlacementIntoPages(backupPages, placementStructure));
 	}
 };
 
@@ -968,14 +1027,18 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 	proposedStructure,
 }: IntegrationPreviewProperties): JSX.Element => {
 	const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
-	const [pages, setPages] = useState<ProposedSection[]>(proposedStructure);
+	const [initialPages] = useState<ProposedSection[]>(() =>
+		seedReviewPages(proposedStructure, placementStructure),
+	);
+	const [pages, setPages] = useState<ProposedSection[]>(initialPages);
 	const [backupPages, setBackupPages] =
-		useState<ProposedSection[]>(proposedStructure);
+		useState<ProposedSection[]>(initialPages);
 	const [appliedPlacement, setAppliedPlacement] = useState(placementStructure);
 	const [seededProposal, setSeededProposal] = useState(proposedStructure);
 
 	syncIncomingReviewPages({
 		appliedPlacement,
+		backupPages,
 		pages,
 		placementStructure,
 		proposedStructure,
@@ -1217,6 +1280,7 @@ const IntegrationPreview: React.FC<IntegrationPreviewProperties> = ({
 					pageIndex,
 					pages: previousPages,
 					partialSection: {
+						placementParentExtractionItemId: null,
 						placementParentId: target?.id ?? null,
 						proposedPlace: target
 							? `${UNDER_PLACE_PREFIX}${target.title}`
