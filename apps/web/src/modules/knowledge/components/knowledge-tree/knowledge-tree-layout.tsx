@@ -295,6 +295,7 @@ const KnowledgeTreePreviewLayer: React.FC<PreviewLayerProperties> = ({
 					activeDocumentId={activeDocumentId}
 					isReviewMutationPending={isReviewMutationPending}
 					onSwitchDocument={onSwitchDocument}
+					projectId={projectId}
 				/>
 				<div className="min-h-0 flex-1">{previewContent}</div>
 			</div>

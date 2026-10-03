@@ -8,11 +8,7 @@ import {
 } from "react";
 
 import { Icon } from "~/components/components.js";
-import {
-	useAppDispatch,
-	useAppSelector,
-	useCurrentProjectId,
-} from "~/hooks/hooks.js";
+import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
 import { actions } from "../../knowledge.js";
@@ -25,6 +21,7 @@ type Properties = {
 	activeDocumentId?: null | number;
 	isReviewMutationPending?: boolean;
 	onSwitchDocument?: (documentId: number) => void;
+	projectId?: null | string;
 };
 
 const PLACEMENT_REVIEW_STATUSES = new Set<string>([
@@ -35,12 +32,12 @@ const DocumentProcessingList = ({
 	activeDocumentId = null,
 	isReviewMutationPending = false,
 	onSwitchDocument,
+	projectId = null,
 }: Properties): JSX.Element | null => {
 	const { documentStatuses, trackedDocuments } = useAppSelector(
 		(state) => state.knowledge,
 	);
 	const dispatch = useAppDispatch();
-	const projectId = useCurrentProjectId();
 	const [isExpanded, setIsExpanded] = useState(false);
 
 	const handleToggle = useCallback(() => {
@@ -48,7 +45,7 @@ const DocumentProcessingList = ({
 	}, []);
 
 	const handlePendingReviewClick = useCallback(
-		(event: MouseEvent<HTMLElement>): void => {
+		(event: MouseEvent<HTMLButtonElement>): void => {
 			if (isReviewMutationPending || !onSwitchDocument) {
 				return;
 			}

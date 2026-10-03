@@ -75,8 +75,9 @@ describe("document processing progress", () => {
 				<DocumentProcessingList />
 			</Provider>,
 		);
+		fireEvent.click(screen.getByText(/2 sources/i));
 		expect(
-			screen.getByRole("list", { name: "Document processing progress" }),
+			screen.getByLabelText("Document processing progress"),
 		).toBeInTheDocument();
 		expect(screen.getByText("First.pdf")).toBeInTheDocument();
 		expect(screen.getByText("Second.pdf")).toBeInTheDocument();
