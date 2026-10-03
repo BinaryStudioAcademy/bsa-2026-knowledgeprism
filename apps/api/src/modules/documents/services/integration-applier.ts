@@ -164,17 +164,21 @@ const isNodeChangedSinceAnalysis = (
 	}
 
 	const expectedContent = targetMatch ? targetMatch.content : liveContent;
+	const currentText = flattenContentToText(contentJson);
+
+	if (expectedContent !== null && currentText !== expectedContent) {
+		return true;
+	}
+
 	const expectedSpan = targetMatch
 		? targetMatch.span
 		: (placement.matches[FIRST_MATCH_INDEX]?.span ?? "");
-
-	const currentText = flattenContentToText(contentJson);
 
 	if (expectedSpan.length > EMPTY_LENGTH) {
 		return !currentText.includes(expectedSpan);
 	}
 
-	return expectedContent !== null && currentText !== expectedContent;
+	return false;
 };
 
 class IntegrationAnalysisOutdatedError extends Error {}
