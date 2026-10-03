@@ -7,7 +7,7 @@ import {
 	useState,
 } from "react";
 
-import { Icon } from "~/components/components.js";
+import { Button, Icon, Modal } from "~/components/components.js";
 import { useAppDispatch, useAppSelector } from "~/hooks/hooks.js";
 import { getValidClassNames } from "~/lib/helpers/helpers.js";
 
@@ -26,6 +26,7 @@ type Properties = {
 
 const PLACEMENT_REVIEW_STATUSES = new Set<string>([
 	DocumentStatus.WAITING_FOR_APPROVAL,
+	DocumentStatus.WAITING_FOR_VALIDATION,
 ]);
 
 const DocumentProcessingList = ({
@@ -39,6 +40,15 @@ const DocumentProcessingList = ({
 	);
 	const dispatch = useAppDispatch();
 	const [isExpanded, setIsExpanded] = useState(false);
+	const [isDiscardModalOpen, setIsDiscardModalOpen] = useState(false);
+
+	const handleOpenDiscardModal = useCallback((): void => {
+		setIsDiscardModalOpen(true);
+	}, []);
+
+	const handleCloseDiscardModal = useCallback((): void => {
+		setIsDiscardModalOpen(false);
+	}, []);
 
 	const handleToggle = useCallback(() => {
 		setIsExpanded((previous) => !previous);
@@ -64,10 +74,7 @@ const DocumentProcessingList = ({
 			const processing: typeof trackedDocuments = [];
 
 			for (const document of trackedDocuments) {
-				if (
-					document.documentId !== activeDocumentId &&
-					PLACEMENT_REVIEW_STATUSES.has(document.status)
-				) {
+				if (PLACEMENT_REVIEW_STATUSES.has(document.status)) {
 					pending.push(document);
 				} else if (document.status === DocumentStatus.FAILED) {
 					failed.push(document);
@@ -81,12 +88,15 @@ const DocumentProcessingList = ({
 				pendingReviewDocuments: pending,
 				processingDocuments: processing,
 			};
-		}, [activeDocumentId, trackedDocuments]);
+		}, [trackedDocuments]);
 
 	const handleClearAllFailedDocuments = useCallback((): void => {
 		if (!projectId) {
 			return;
 		}
+
+		setIsDiscardModalOpen(false);
+
 		for (const document of failedDocuments) {
 			void dispatch(
 				actions.cancelDocument({
@@ -164,19 +174,26 @@ const DocumentProcessingList = ({
 								<h3 className="text-xs font-semibold uppercase text-text-muted">
 									Waiting for review
 								</h3>
-								{pendingReviewDocuments.map((document) => (
-									<li key={document.documentId}>
-										<button
-											className="flex w-full cursor-pointer flex-col gap-2 rounded-md border border-border bg-secondary/30 p-3 text-left transition-colors hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-50"
-											data-document-id={document.documentId}
-											disabled={isReviewMutationPending}
-											onClick={handlePendingReviewClick}
-											type="button"
-										>
-											<p className="truncate font-medium">{document.label}</p>
-										</button>
-									</li>
-								))}
+								{pendingReviewDocuments.map((document) => {
+									const isActive = document.documentId === activeDocumentId;
+									return (
+										<li key={document.documentId}>
+											<button
+												className="flex w-full cursor-pointer flex-col gap-2 rounded-md border border-border bg-secondary/30 p-3 text-left transition-colors hover:bg-secondary/50 disabled:cursor-not-allowed disabled:opacity-50"
+												data-document-id={document.documentId}
+												disabled={
+													isReviewMutationPending ||
+													isActive ||
+													!onSwitchDocument
+												}
+												onClick={handlePendingReviewClick}
+												type="button"
+											>
+												<p className="truncate font-medium">{document.label}</p>
+											</button>
+										</li>
+									);
+								})}
 							</ul>
 						)}
 
@@ -211,13 +228,15 @@ const DocumentProcessingList = ({
 									<h3 className="text-xs font-semibold uppercase text-error">
 										Failed
 									</h3>
-									<button
-										className="cursor-pointer text-xs font-medium text-text-muted transition-colors hover:text-text"
-										onClick={handleClearAllFailedDocuments}
-										type="button"
-									>
-										Clear all
-									</button>
+									{Boolean(projectId) && (
+										<button
+											className="cursor-pointer text-xs font-medium text-text-muted transition-colors hover:text-text"
+											onClick={handleOpenDiscardModal}
+											type="button"
+										>
+											Discard all
+										</button>
+									)}
 								</div>
 								{failedDocuments.map((document) => (
 									<li
@@ -240,6 +259,30 @@ const DocumentProcessingList = ({
 						)}
 					</div>
 				</div>
+			)}
+			{isDiscardModalOpen && (
+				<Modal
+					className="w-full max-w-sm rounded-lg border border-border bg-(--color-surface) p-5 text-center shadow-md sm:p-6"
+					isOpen={isDiscardModalOpen}
+					onClose={handleCloseDiscardModal}
+					title="Discard All?"
+				>
+					<p className="mb-6 text-xs text-text-muted">
+						Are you sure you want to discard all failed documents? This will
+						permanently cancel their processing.
+					</p>
+					<div className="flex justify-center gap-2.5">
+						<Button onClick={handleCloseDiscardModal} variant="secondary">
+							Cancel
+						</Button>
+						<Button
+							onClick={handleClearAllFailedDocuments}
+							variant="destructive"
+						>
+							Discard
+						</Button>
+					</div>
+				</Modal>
 			)}
 		</div>
 	);

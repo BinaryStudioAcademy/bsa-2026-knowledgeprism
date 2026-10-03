@@ -893,7 +893,12 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 						/>
 					</div>
 					<div className="flex min-w-0 flex-1 flex-col items-center overflow-y-auto pt-8">
-						<DocumentProcessingList />
+						<DocumentProcessingList
+							activeDocumentId={activeDocumentId}
+							isReviewMutationPending={isReviewMutationPending}
+							onSwitchDocument={handleSwitchDocument}
+							projectId={projectId}
+						/>
 						<KnowledgeTreeEmptyPipeline
 							activeDocumentStatus={activeDocumentStatus}
 							isPreviewDismissed={canResumePreview && isActivePreviewDismissed}
@@ -1007,7 +1012,12 @@ const KnowledgeTreeLayout: React.FC<Properties> = ({
 						)}
 					</div>
 				)}
-				<DocumentProcessingList />
+				<DocumentProcessingList
+					activeDocumentId={activeDocumentId}
+					isReviewMutationPending={isReviewMutationPending}
+					onSwitchDocument={handleSwitchDocument}
+					projectId={projectId}
+				/>
 				{mainContent}
 			</div>
 			<AddKnowledgeModal
