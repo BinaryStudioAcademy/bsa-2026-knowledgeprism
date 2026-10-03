@@ -27,14 +27,10 @@ import { NodeMergeMethod } from "../libs/constants/node-merge-method.constant.js
 import { DocumentEntity } from "../models/document.entity.js";
 import { IntegrationChangeEntity } from "../models/integration-change.entity.js";
 import { type ExtractionItemRepository } from "../repositories/extraction-item.repository.js";
-import {
-	IntegrationAnalysisOutdatedError,
-	IntegrationApplier,
-} from "./integration-applier.js";
+import { IntegrationApplier } from "./integration-applier.js";
 
 const DOCUMENT_ID = 9;
 const PROJECT_ID = 4;
-const OTHER_PROJECT_ID = 5;
 const USER_ID = 2;
 const EXISTING_PAGE_ID = 50;
 const EXISTING_SECTION_ID = 70;
