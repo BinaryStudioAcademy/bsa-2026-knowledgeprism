@@ -143,11 +143,11 @@ class IntegrationAnalysisOutdatedError extends Error {}
 const getTargetMatch = (
 	change: IntegrationChangeEntity,
 	resolution: IntegrationConflictResolutionDto | undefined,
-): { nodeId: number } | null => {
+): null | { nodeId: number } => {
 	const { placement } = change.toObject();
 
 	if (resolution?.matchIndex !== undefined) {
-		const match = placement?.matches?.[resolution.matchIndex];
+		const match = placement.matches[resolution.matchIndex];
 
 		if (!match) {
 			throw new IntegrationAnalysisOutdatedError();
@@ -242,7 +242,7 @@ class IntegrationApplier {
 			node: KnowledgeNodeEntity;
 			override: IntegrationChangeContentOverrideDto | undefined;
 			resolution: IntegrationConflictResolutionDto | undefined;
-			targetMatch: { nodeId: number } | null;
+			targetMatch: null | { nodeId: number };
 			userId: number;
 		},
 		transaction: Transaction,
