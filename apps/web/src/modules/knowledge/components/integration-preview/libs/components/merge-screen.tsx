@@ -97,12 +97,54 @@ const MergeScreen = ({
 	onPublish,
 	submitLabel,
 }: MergeScreenProperties): JSX.Element => {
-	const [conflicts, setConflicts] = useState<FieldConflict[]>(() =>
-		initialConflicts.map((conflict) => ({
-			...conflict,
-			resolution: conflict.resolution ?? "use-new",
-		})),
+	const [initialMatchedNodeIds] = useState(
+		() =>
+			new Map(
+				initialConflicts.map((conflict) => [
+					conflict.id,
+					conflict.matchedNodeId,
+				]),
+			),
 	);
+	const [conflicts, setConflicts] = useState<FieldConflict[]>(() => {
+		const wordingMatchesByChangeId = new Map(
+			initialConflicts.flatMap((conflict) =>
+				conflict.wordingMatches &&
+				conflict.wordingMatches.length > FIRST_MATCH_INDEX
+					? [[conflict.changeId, conflict.wordingMatches] as const]
+					: [],
+			),
+		);
+
+		return initialConflicts.map((conflict) => {
+			const matchIndex = conflict.matchIndex ?? FIRST_MATCH_INDEX;
+			const wordingMatches =
+				conflict.wordingMatches ??
+				wordingMatchesByChangeId.get(conflict.changeId);
+			const match = wordingMatches?.[matchIndex];
+
+			if (match) {
+				const nextValue =
+					conflict.field === "title"
+						? (match.title ?? conflict.currentValue)
+						: (match.content ?? conflict.currentValue);
+
+				return {
+					...conflict,
+					currentValue: nextValue,
+					matchedNodeId: match.nodeId ?? conflict.matchedNodeId,
+					matchIndex,
+					resolution: conflict.resolution ?? "use-new",
+				};
+			}
+
+			return {
+				...conflict,
+				matchIndex,
+				resolution: conflict.resolution ?? "use-new",
+			};
+		});
+	});
 	const [validationError, setValidationError] = useState<null | string>(null);
 
 	const handleResolveConflict = useCallback(
@@ -248,22 +290,26 @@ const MergeScreen = ({
 					const isKeepActive = conflict.resolution === "keep";
 					const isUseNewActive = conflict.resolution === "use-new";
 					const isBothActive = conflict.resolution === "both";
-
 					const wordingMatches = conflict.wordingMatches ?? [];
 					const matchCount = wordingMatches.length;
-
 					const matchIndex = conflict.matchIndex ?? FIRST_MATCH_INDEX;
+					const activeMatch =
+						wordingMatches[matchIndex] ?? wordingMatches[FIRST_MATCH_INDEX];
 					const activeSpan =
-						wordingMatches[matchIndex]?.span ??
-						wordingMatches[FIRST_MATCH_INDEX]?.span ??
-						"";
+						activeMatch?.span ?? wordingMatches[FIRST_MATCH_INDEX]?.span ?? "";
 					const hasWordingMatches =
 						conflict.field === "content" && matchCount > FIRST_MATCH_INDEX;
 					const canKeepBoth =
 						hasWordingMatches ||
 						(conflict.field === "content" &&
 							conflict.mergedValue !== undefined);
-					const isOriginalMatch = matchIndex === FIRST_MATCH_INDEX;
+
+					const originalMatchedNodeId =
+						initialMatchedNodeIds.get(conflict.id) ?? conflict.matchedNodeId;
+					const isOriginalMatch =
+						originalMatchedNodeId !== null && activeMatch?.nodeId !== undefined
+							? activeMatch.nodeId === originalMatchedNodeId
+							: true;
 					const mergedPreviewValue =
 						(isOriginalMatch ? conflict.mergedValue : undefined) ??
 						`${conflict.currentValue}${BOTH_SEPARATOR}${conflict.incomingValue}`;
