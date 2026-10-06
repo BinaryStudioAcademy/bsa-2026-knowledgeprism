@@ -126,15 +126,29 @@ const resolveIncoming = (
 	};
 };
 
-const isNodeChangedSinceAnalysis = (
-	node: KnowledgeNodeEntity,
-	change: IntegrationChangeEntity,
-): boolean => {
+type TargetMatch = {
+	content?: null | string;
+	nodeId: number;
+	title?: null | string;
+};
+
+const isNodeChangedSinceAnalysis = ({
+	change,
+	node,
+	targetMatch,
+}: {
+	change: IntegrationChangeEntity;
+	node: KnowledgeNodeEntity;
+	targetMatch: null | TargetMatch;
+}): boolean => {
 	const { contentJson, title } = node.toObject();
 	const { liveContent, liveTitle } = change.toObject();
+	const expectedTitle = targetMatch?.title ?? liveTitle;
+	const expectedContent = targetMatch?.content ?? liveContent;
 
 	return (
-		title !== liveTitle || flattenContentToText(contentJson) !== liveContent
+		title !== expectedTitle ||
+		flattenContentToText(contentJson) !== expectedContent
 	);
 };
 
@@ -143,7 +157,7 @@ class IntegrationAnalysisOutdatedError extends Error {}
 const getTargetMatch = (
 	change: IntegrationChangeEntity,
 	resolution: IntegrationConflictResolutionDto | undefined,
-): null | { nodeId: number } => {
+): null | TargetMatch => {
 	const { placement } = change.toObject();
 
 	if (resolution?.matchIndex !== undefined) {
@@ -242,7 +256,7 @@ class IntegrationApplier {
 			node: KnowledgeNodeEntity;
 			override: IntegrationChangeContentOverrideDto | undefined;
 			resolution: IntegrationConflictResolutionDto | undefined;
-			targetMatch: null | { nodeId: number };
+			targetMatch: null | TargetMatch;
 			userId: number;
 		},
 		transaction: Transaction,
@@ -580,14 +594,7 @@ class IntegrationApplier {
 					transaction,
 				));
 
-			if (!node) {
-				throw new IntegrationAnalysisOutdatedError();
-			}
-
-			const isAlternateTarget =
-				targetMatch !== null && targetMatch.nodeId !== matchedNodeId;
-
-			if (!isAlternateTarget && isNodeChangedSinceAnalysis(node, change)) {
+			if (!node || isNodeChangedSinceAnalysis({ change, node, targetMatch })) {
 				throw new IntegrationAnalysisOutdatedError();
 			}
 
