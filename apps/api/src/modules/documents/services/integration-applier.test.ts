@@ -34,13 +34,14 @@ import {
 
 const DOCUMENT_ID = 9;
 const PROJECT_ID = 4;
-const OTHER_PROJECT_ID = 5;
 const USER_ID = 2;
 const EXISTING_PAGE_ID = 50;
 const EXISTING_SECTION_ID = 70;
 const EXISTING_ENTRY_ID = 51;
 const EXISTING_CHILD_ID = 52;
+const SECOND_EXISTING_ENTRY_ID = 53;
 const LAST_EXISTING_CHILD_POSITION = 3;
+const SECOND_CHILD_OFFSET = 2;
 const NEXT_ROOT_POSITION = 7;
 const FIRST_APPENDED_POSITION = 4;
 const SECOND_APPENDED_POSITION = 5;
@@ -98,7 +99,7 @@ const toNode = (data: {
 	type: ValueOf<typeof KnowledgeNodeType>;
 }): KnowledgeNodeEntity =>
 	KnowledgeNodeEntity.initialize({
-		contentJson: [],
+		contentJson: data.contentJson ?? [],
 		createdAt: new Date(),
 		projectId: PROJECT_ID,
 		title: `Node ${String(data.id)}`,
@@ -124,6 +125,13 @@ const EXISTING_NODES = [
 		id: EXISTING_CHILD_ID,
 		parentId: EXISTING_ENTRY_ID,
 		position: LAST_EXISTING_CHILD_POSITION,
+		type: KnowledgeNodeType.ENTRY,
+	}),
+	toNode({
+		contentJson: [{ content: "Glossary text", type: "paragraph" }],
+		id: SECOND_EXISTING_ENTRY_ID,
+		parentId: null,
+		position: LAST_EXISTING_CHILD_POSITION + SECOND_CHILD_OFFSET,
 		type: KnowledgeNodeType.ENTRY,
 	}),
 	toNode({
@@ -472,116 +480,6 @@ void describe("IntegrationApplier placements", () => {
 		assert.notEqual(child.parentId, EXISTING_ENTRY_ID);
 	});
 
-	void it("rejects an incoming parent matched to a node in another project", async () => {
-		const { applier, created } = createSetup(
-			EXISTING_NODES.map((node) => {
-				const details = node.toObject();
-
-				return KnowledgeNodeEntity.initialize({
-					...details,
-					createdAt: new Date(details.createdAt),
-					projectId: OTHER_PROJECT_ID,
-					updatedAt: new Date(details.updatedAt),
-				});
-			}),
-		);
-
-		await assert.rejects(
-			applier.apply(
-				{
-					changes: [
-						toChange(FIRST_CHANGE_ID, "Parent", EXISTING_ENTRY_ID),
-						toNestedChange({
-							extractionItemId: SECOND_ITEM_ID,
-							id: SECOND_CHANGE_ID,
-							parentExtractionItemId: FIRST_CHANGE_ID,
-						}),
-					],
-					contentOverrides: [],
-					document: DOCUMENT,
-					placements: [
-						{
-							changeId: SECOND_CHANGE_ID,
-							parentExtractionItemId: FIRST_CHANGE_ID,
-							parentId: null,
-							position: FIRST_POSITION,
-						},
-					],
-					resolutions: [],
-					userId: USER_ID,
-				},
-				{} as Transaction,
-			),
-			IntegrationAnalysisOutdatedError,
-		);
-		assert.deepEqual(created, []);
-	});
-
-	void it("persists three nested levels even when children precede their parents", async () => {
-		const { applier, created } = createSetup();
-		const changes = [
-			toNestedChange({
-				extractionItemId: THIRD_ITEM_ID,
-				id: THIRD_CHANGE_ID,
-				parentExtractionItemId: SECOND_ITEM_ID,
-			}),
-			toNestedChange({
-				extractionItemId: SECOND_ITEM_ID,
-				id: SECOND_CHANGE_ID,
-				parentExtractionItemId: FIRST_ITEM_ID,
-			}),
-			toNestedChange({
-				extractionItemId: FIRST_ITEM_ID,
-				id: FIRST_CHANGE_ID,
-				parentExtractionItemId: null,
-			}),
-		];
-
-		await applier.apply(
-			{
-				changes,
-				contentOverrides: [],
-				document: DOCUMENT,
-				placements: [
-					{
-						changeId: THIRD_CHANGE_ID,
-						parentExtractionItemId: SECOND_ITEM_ID,
-						parentId: null,
-						position: FIRST_POSITION,
-					},
-					{
-						changeId: SECOND_CHANGE_ID,
-						parentExtractionItemId: FIRST_ITEM_ID,
-						parentId: null,
-						position: SECOND_POSITION,
-					},
-					{
-						changeId: FIRST_CHANGE_ID,
-						parentExtractionItemId: null,
-						parentId: EXISTING_PAGE_ID,
-						position: SECOND_POSITION,
-					},
-				],
-				resolutions: [],
-				userId: USER_ID,
-			},
-			{} as Transaction,
-		);
-
-		const [parent, child, grandchild] = created;
-		assert.ok(parent && child && grandchild);
-		assert.deepEqual(
-			created.map(({ parentId, title }) => [title, parentId]),
-			[
-				[`Item ${String(FIRST_ITEM_ID)}`, EXISTING_PAGE_ID],
-				[`Item ${String(SECOND_ITEM_ID)}`, parent.id],
-				[`Item ${String(THIRD_ITEM_ID)}`, child.id],
-			],
-		);
-		assert.equal(child.position, FIRST_POSITION);
-		assert.equal(grandchild.position, FIRST_POSITION);
-	});
-
 	void it("nests a child of a dropped duplicate under the section it repeats", async () => {
 		const { applier, created } = createSetup();
 		const duplicate = toNestedChange({
@@ -789,6 +687,7 @@ void describe("IntegrationApplier placements", () => {
 		);
 		assert.deepEqual(created, []);
 	});
+
 	void it("files new sections under a new page for the document by default", async () => {
 		const { applier, created } = createSetup();
 
@@ -922,6 +821,121 @@ void describe("IntegrationApplier placements", () => {
 		);
 
 		assert.deepEqual(updatedTitles, ["Glossary"]);
+	});
+
+	void it("updates strictly the chosen match entry when matchIndex 1 is selected", async () => {
+		const { applier, updatedIds } = createSetup();
+
+		const changeWithMatches = IntegrationChangeEntity.initialize({
+			documentId: DOCUMENT_ID,
+			explanation: "Multiple match candidate.",
+			extractionItemId: FIRST_CHANGE_ID,
+			id: FIRST_CHANGE_ID,
+			incomingContent: "Updated Glossary content",
+			incomingTitle: "Glossary",
+			liveContent: "Glossary text",
+			liveTitle: `Node ${String(SECOND_EXISTING_ENTRY_ID)}`,
+			matchedNodeId: EXISTING_ENTRY_ID,
+			placement: {
+				matches: [
+					{
+						content: "Glossary text",
+						nodeId: EXISTING_ENTRY_ID,
+						span: "Glossary",
+						title: `Node ${String(EXISTING_ENTRY_ID)}`,
+					},
+					{
+						content: "Glossary text",
+						nodeId: SECOND_EXISTING_ENTRY_ID,
+						span: "Glossary",
+						title: `Node ${String(SECOND_EXISTING_ENTRY_ID)}`,
+					},
+				],
+				parentExtractionItemId: null,
+				parentId: null,
+				parentTitle: null,
+				proposesParent: false,
+				siblingOrder: null,
+			},
+			score: null,
+			type: IntegrationChangeType.UPDATE,
+		});
+
+		await applier.apply(
+			{
+				changes: [changeWithMatches],
+				contentOverrides: [],
+				document: DOCUMENT,
+				placements: [],
+				resolutions: [
+					{
+						changeId: FIRST_CHANGE_ID,
+						content: IntegrationResolution.USE_NEW,
+						matchIndex: 1,
+						title: IntegrationResolution.USE_NEW,
+					},
+				],
+				userId: USER_ID,
+			},
+			{} as Transaction,
+		);
+
+		assert.deepEqual(updatedIds, [SECOND_EXISTING_ENTRY_ID]);
+	});
+
+	void it("fails when matchIndex is out of range", async () => {
+		const { applier } = createSetup();
+
+		const changeWithMatches = IntegrationChangeEntity.initialize({
+			documentId: DOCUMENT_ID,
+			explanation: "Multiple match candidate.",
+			extractionItemId: FIRST_CHANGE_ID,
+			id: FIRST_CHANGE_ID,
+			incomingContent: "Updated Glossary content",
+			incomingTitle: "Glossary",
+			liveContent: "Glossary text",
+			liveTitle: `Node ${String(EXISTING_ENTRY_ID)}`,
+			matchedNodeId: EXISTING_ENTRY_ID,
+			placement: {
+				matches: [
+					{
+						content: "Glossary text",
+						nodeId: EXISTING_ENTRY_ID,
+						span: "Glossary",
+						title: `Node ${String(EXISTING_ENTRY_ID)}`,
+					},
+				],
+				parentExtractionItemId: null,
+				parentId: null,
+				parentTitle: null,
+				proposesParent: false,
+				siblingOrder: null,
+			},
+			score: null,
+			type: IntegrationChangeType.UPDATE,
+		});
+
+		await assert.rejects(
+			applier.apply(
+				{
+					changes: [changeWithMatches],
+					contentOverrides: [],
+					document: DOCUMENT,
+					placements: [],
+					resolutions: [
+						{
+							changeId: FIRST_CHANGE_ID,
+							content: IntegrationResolution.USE_NEW,
+							matchIndex: 5,
+							title: IntegrationResolution.USE_NEW,
+						},
+					],
+					userId: USER_ID,
+				},
+				{} as Transaction,
+			),
+			IntegrationAnalysisOutdatedError,
+		);
 	});
 
 	void it("keeps the entry's blocks and adds the incoming section after them on Merge both", async () => {

@@ -97,6 +97,15 @@ const MergeScreen = ({
 	onPublish,
 	submitLabel,
 }: MergeScreenProperties): JSX.Element => {
+	const [initialMatchedNodeIds] = useState(
+		() =>
+			new Map(
+				initialConflicts.map((conflict) => [
+					conflict.id,
+					conflict.matchedNodeId,
+				]),
+			),
+	);
 	const [conflicts, setConflicts] = useState<FieldConflict[]>(() =>
 		initialConflicts.map((conflict) => ({
 			...conflict,
@@ -143,27 +152,54 @@ const MergeScreen = ({
 				return;
 			}
 
-			setConflicts((previousConflicts) =>
-				previousConflicts.map((item) => {
-					if (item.id !== conflictId) {
+			setConflicts((previousConflicts) => {
+				const targetConflict = previousConflicts.find(
+					(item) => item.id === conflictId,
+				);
+
+				if (!targetConflict) {
+					return previousConflicts;
+				}
+
+				const wordingMatches =
+					targetConflict.wordingMatches ??
+					previousConflicts.find(
+						(item) =>
+							item.changeId === targetConflict.changeId &&
+							Boolean(item.wordingMatches),
+					)?.wordingMatches ??
+					[];
+
+				const matchCount = wordingMatches.length;
+
+				if (matchCount <= SINGLE_MATCH_COUNT) {
+					return previousConflicts;
+				}
+
+				const currentIndex = targetConflict.matchIndex ?? FIRST_MATCH_INDEX;
+				const stepDelta =
+					step === "next" ? NEXT_MATCH_STEP : PREVIOUS_MATCH_STEP;
+				const nextIndex = (currentIndex + stepDelta + matchCount) % matchCount;
+				const nextMatch = wordingMatches[nextIndex];
+
+				return previousConflicts.map((item) => {
+					if (item.changeId !== targetConflict.changeId) {
 						return item;
 					}
 
-					const matchCount = item.wordingMatches?.length ?? FIRST_MATCH_INDEX;
+					const nextValue =
+						item.field === "title"
+							? (nextMatch?.title ?? item.currentValue)
+							: (nextMatch?.content ?? item.currentValue);
 
-					if (matchCount <= SINGLE_MATCH_COUNT) {
-						return item;
-					}
-
-					const currentIndex = item.matchIndex ?? FIRST_MATCH_INDEX;
-					const stepDelta =
-						step === "next" ? NEXT_MATCH_STEP : PREVIOUS_MATCH_STEP;
-					const nextIndex =
-						(currentIndex + stepDelta + matchCount) % matchCount;
-
-					return { ...item, matchIndex: nextIndex };
-				}),
-			);
+					return {
+						...item,
+						currentValue: nextValue,
+						matchedNodeId: nextMatch?.nodeId ?? item.matchedNodeId,
+						matchIndex: nextIndex,
+					};
+				});
+			});
 		},
 		[isApplying],
 	);
@@ -224,16 +260,26 @@ const MergeScreen = ({
 					const wordingMatches = conflict.wordingMatches ?? [];
 					const matchCount = wordingMatches.length;
 					const matchIndex = conflict.matchIndex ?? FIRST_MATCH_INDEX;
+					const activeMatch =
+						wordingMatches[matchIndex] ?? wordingMatches[FIRST_MATCH_INDEX];
 					const activeSpan =
-						wordingMatches[matchIndex]?.span ??
-						wordingMatches[FIRST_MATCH_INDEX]?.span ??
-						"";
+						activeMatch?.span ?? wordingMatches[FIRST_MATCH_INDEX]?.span ?? "";
 					const hasWordingMatches =
 						conflict.field === "content" && matchCount > FIRST_MATCH_INDEX;
 					const canKeepBoth =
 						hasWordingMatches ||
 						(conflict.field === "content" &&
 							conflict.mergedValue !== undefined);
+
+					const originalMatchedNodeId =
+						initialMatchedNodeIds.get(conflict.id) ?? conflict.matchedNodeId;
+					const isOriginalMatch =
+						originalMatchedNodeId !== null && activeMatch?.nodeId !== undefined
+							? activeMatch.nodeId === originalMatchedNodeId
+							: true;
+					const mergedPreviewValue =
+						(isOriginalMatch ? conflict.mergedValue : undefined) ??
+						`${conflict.currentValue}${BOTH_SEPARATOR}${conflict.incomingValue}`;
 
 					return (
 						<div
@@ -390,8 +436,7 @@ const MergeScreen = ({
 												After publishing
 											</span>
 											<div className="whitespace-pre-line font-sans text-sm leading-relaxed text-text">
-												{conflict.mergedValue ??
-													`${conflict.currentValue}${BOTH_SEPARATOR}${conflict.incomingValue}`}
+												{mergedPreviewValue}
 											</div>
 										</div>
 									)}

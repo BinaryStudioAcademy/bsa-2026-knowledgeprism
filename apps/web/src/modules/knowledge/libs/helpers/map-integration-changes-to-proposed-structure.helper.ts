@@ -93,10 +93,12 @@ const mapIntegrationChangeToPage = (
 
 	if (item.placement.matches.length > EMPTY_LENGTH) {
 		page.wordingMatches = item.placement.matches.map((match) => ({
+			content: match.content,
+			nodeId: match.nodeId,
 			span: match.span,
+			title: match.title,
 		}));
 	}
-
 	return page;
 };
 

@@ -47,8 +47,18 @@ const toConflictResolutions = ({
 			title: getFieldResolution({ changeId, conflicts, field: "title" }),
 		};
 
-		if (contentConflict?.resolution === IntegrationResolution.BOTH) {
-			resolution.matchIndex = contentConflict.matchIndex ?? FIRST_MATCH_INDEX;
+		const matchedConflict = conflicts.find(
+			(conflict) =>
+				conflict.changeId === changeId && conflict.matchIndex !== undefined,
+		);
+		const matchIndex =
+			matchedConflict?.matchIndex ??
+			(contentConflict?.resolution === IntegrationResolution.BOTH
+				? FIRST_MATCH_INDEX
+				: undefined);
+
+		if (matchIndex !== undefined) {
+			resolution.matchIndex = matchIndex;
 		}
 
 		return resolution;
