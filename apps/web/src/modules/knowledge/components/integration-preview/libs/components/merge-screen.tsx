@@ -144,48 +144,49 @@ const MergeScreen = ({
 			}
 
 			setConflicts((previousConflicts) => {
-				const activeConflict = previousConflicts.find(
+				const targetConflict = previousConflicts.find(
 					(item) => item.id === conflictId,
 				);
 
-				if (!activeConflict) {
+				if (!targetConflict) {
 					return previousConflicts;
 				}
 
-				const matchCount =
-					activeConflict.wordingMatches?.length ?? FIRST_MATCH_INDEX;
+				const wordingMatches =
+					targetConflict.wordingMatches ??
+					previousConflicts.find(
+						(item) =>
+							item.changeId === targetConflict.changeId &&
+							Boolean(item.wordingMatches),
+					)?.wordingMatches ??
+					[];
+
+				const matchCount = wordingMatches.length;
 
 				if (matchCount <= SINGLE_MATCH_COUNT) {
 					return previousConflicts;
 				}
 
-				const currentIndex = activeConflict.matchIndex ?? FIRST_MATCH_INDEX;
+				const currentIndex = targetConflict.matchIndex ?? FIRST_MATCH_INDEX;
 				const stepDelta =
 					step === "next" ? NEXT_MATCH_STEP : PREVIOUS_MATCH_STEP;
 				const nextIndex = (currentIndex + stepDelta + matchCount) % matchCount;
-
-				const nextMatch = activeConflict.wordingMatches?.[nextIndex];
-				const nextMatchedNodeId =
-					nextMatch?.nodeId ?? activeConflict.matchedNodeId;
+				const nextMatch = wordingMatches[nextIndex];
 
 				return previousConflicts.map((item) => {
-					if (item.changeId !== activeConflict.changeId) {
+					if (item.changeId !== targetConflict.changeId) {
 						return item;
 					}
 
-					if (item.field === "title") {
-						return {
-							...item,
-							currentValue: nextMatch?.title ?? item.currentValue,
-							matchedNodeId: nextMatchedNodeId,
-							matchIndex: nextIndex,
-						};
-					}
+					const nextValue =
+						item.field === "title"
+							? (nextMatch?.title ?? item.currentValue)
+							: (nextMatch?.content ?? item.currentValue);
 
 					return {
 						...item,
-						currentValue: nextMatch?.content ?? item.currentValue,
-						matchedNodeId: nextMatchedNodeId,
+						currentValue: nextValue,
+						matchedNodeId: nextMatch?.nodeId ?? item.matchedNodeId,
 						matchIndex: nextIndex,
 					};
 				});
@@ -247,8 +248,10 @@ const MergeScreen = ({
 					const isKeepActive = conflict.resolution === "keep";
 					const isUseNewActive = conflict.resolution === "use-new";
 					const isBothActive = conflict.resolution === "both";
+
 					const wordingMatches = conflict.wordingMatches ?? [];
 					const matchCount = wordingMatches.length;
+
 					const matchIndex = conflict.matchIndex ?? FIRST_MATCH_INDEX;
 					const activeSpan =
 						wordingMatches[matchIndex]?.span ??
@@ -260,6 +263,10 @@ const MergeScreen = ({
 						hasWordingMatches ||
 						(conflict.field === "content" &&
 							conflict.mergedValue !== undefined);
+					const isOriginalMatch = matchIndex === FIRST_MATCH_INDEX;
+					const mergedPreviewValue =
+						(isOriginalMatch ? conflict.mergedValue : undefined) ??
+						`${conflict.currentValue}${BOTH_SEPARATOR}${conflict.incomingValue}`;
 
 					return (
 						<div
@@ -288,11 +295,7 @@ const MergeScreen = ({
 										<div className="flex items-center justify-between">
 											<span className="font-mono text-2xs font-bold uppercase tracking-wider text-text-muted">
 												Live Version (in KB)
-												{hasWordingMatches && wordingMatches[matchIndex]?.title
-													? ` · ${wordingMatches[matchIndex].title}`
-													: ""}
 											</span>
-
 											{isKeepActive && (
 												<span className="font-sans text-2xs font-semibold text-accent">
 													✓ Selected
@@ -420,8 +423,7 @@ const MergeScreen = ({
 												After publishing
 											</span>
 											<div className="whitespace-pre-line font-sans text-sm leading-relaxed text-text">
-												{conflict.mergedValue ??
-													`${conflict.currentValue}${BOTH_SEPARATOR}${conflict.incomingValue}`}
+												{mergedPreviewValue}
 											</div>
 										</div>
 									)}
