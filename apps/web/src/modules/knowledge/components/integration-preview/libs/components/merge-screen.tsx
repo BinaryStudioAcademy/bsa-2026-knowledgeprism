@@ -106,45 +106,12 @@ const MergeScreen = ({
 				]),
 			),
 	);
-	const [conflicts, setConflicts] = useState<FieldConflict[]>(() => {
-		const wordingMatchesByChangeId = new Map(
-			initialConflicts.flatMap((conflict) =>
-				conflict.wordingMatches &&
-				conflict.wordingMatches.length > FIRST_MATCH_INDEX
-					? [[conflict.changeId, conflict.wordingMatches] as const]
-					: [],
-			),
-		);
-
-		return initialConflicts.map((conflict) => {
-			const matchIndex = conflict.matchIndex ?? FIRST_MATCH_INDEX;
-			const wordingMatches =
-				conflict.wordingMatches ??
-				wordingMatchesByChangeId.get(conflict.changeId);
-			const match = wordingMatches?.[matchIndex];
-
-			if (match) {
-				const nextValue =
-					conflict.field === "title"
-						? (match.title ?? conflict.currentValue)
-						: (match.content ?? conflict.currentValue);
-
-				return {
-					...conflict,
-					currentValue: nextValue,
-					matchedNodeId: match.nodeId ?? conflict.matchedNodeId,
-					matchIndex,
-					resolution: conflict.resolution ?? "use-new",
-				};
-			}
-
-			return {
-				...conflict,
-				matchIndex,
-				resolution: conflict.resolution ?? "use-new",
-			};
-		});
-	});
+	const [conflicts, setConflicts] = useState<FieldConflict[]>(() =>
+		initialConflicts.map((conflict) => ({
+			...conflict,
+			resolution: conflict.resolution ?? "use-new",
+		})),
+	);
 	const [validationError, setValidationError] = useState<null | string>(null);
 
 	const handleResolveConflict = useCallback(
