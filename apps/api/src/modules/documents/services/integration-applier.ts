@@ -36,20 +36,18 @@ type ApplyParameters = {
 	changes: IntegrationChangeEntity[];
 	contentOverrides: IntegrationChangeContentOverrideDto[];
 	document: DocumentEntity;
-	placements: ApplyPlacement[];
+	placements: Placement[];
 	resolutions: IntegrationConflictResolutionDto[];
 	userId: number;
 };
 
-type ApplyPlacement = NonNullable<
+type Placement = NonNullable<
 	IntegrationChangesApplyRequestDto["placements"]
 >[number];
 
 const NEXT_POSITION_OFFSET = 1;
 const NO_CHILD_POSITION = -1;
 const FIRST_CHILD_POSITION = 0;
-const FIRST_MATCH_INDEX = 0;
-const EMPTY_LENGTH = 0;
 
 const toWrittenFieldKeys = (
 	matchedNodeId: number,
@@ -79,6 +77,8 @@ type Constructor = {
 	knowledgeNodeRepository: KnowledgeNodeRepository;
 	logger: Logger;
 };
+
+const EMPTY_LENGTH = 0;
 
 const isMergeAnalyzed = (
 	mergeMethod: null | undefined | ValueOf<typeof NodeMergeMethod>,
@@ -126,72 +126,41 @@ const resolveIncoming = (
 	};
 };
 
+const isNodeChangedSinceAnalysis = (
+	node: KnowledgeNodeEntity,
+	change: IntegrationChangeEntity,
+): boolean => {
+	const { contentJson, title } = node.toObject();
+	const { liveContent, liveTitle } = change.toObject();
+
+	return (
+		title !== liveTitle || flattenContentToText(contentJson) !== liveContent
+	);
+};
+
+class IntegrationAnalysisOutdatedError extends Error {}
+
 const getTargetMatch = (
 	change: IntegrationChangeEntity,
 	resolution: IntegrationConflictResolutionDto | undefined,
-): null | { content: string; nodeId: number; span: string; title: string } => {
+): { nodeId: number } | null => {
 	const { placement } = change.toObject();
 
 	if (resolution?.matchIndex !== undefined) {
-		const match = placement.matches[resolution.matchIndex];
+		const match = placement?.matches?.[resolution.matchIndex];
 
-		if (match) {
-			return {
-				content: match.content,
-				nodeId: match.nodeId,
-				span: match.span,
-				title: match.title,
-			};
+		if (!match) {
+			throw new IntegrationAnalysisOutdatedError();
 		}
+
+		return match;
 	}
 
 	return null;
 };
 
-const isNodeChangedSinceAnalysis = (
-	node: KnowledgeNodeEntity,
-	change: IntegrationChangeEntity,
-	resolution: IntegrationConflictResolutionDto | undefined,
-): boolean => {
-	const { contentJson, title } = node.toObject();
-	const { liveContent, liveTitle, placement } = change.toObject();
-	const targetMatch = getTargetMatch(change, resolution);
-
-	const expectedTitle = targetMatch ? targetMatch.title : liveTitle;
-
-	if (expectedTitle !== null && title !== expectedTitle) {
-		return true;
-	}
-
-	const expectedContent = targetMatch ? targetMatch.content : liveContent;
-	const currentText = flattenContentToText(contentJson);
-
-	if (expectedContent !== null && currentText !== expectedContent) {
-		return true;
-	}
-
-	const isReplacingContent =
-		resolution?.content === IntegrationResolution.USE_NEW;
-
-	if (isReplacingContent) {
-		return expectedContent === null || currentText !== expectedContent;
-	}
-
-	const expectedSpan = targetMatch
-		? targetMatch.span
-		: (placement.matches[FIRST_MATCH_INDEX]?.span ?? "");
-
-	if (expectedSpan.length > EMPTY_LENGTH) {
-		return !currentText.includes(expectedSpan);
-	}
-
-	return false;
-};
-
-class IntegrationAnalysisOutdatedError extends Error {}
-
 const withDroppedDuplicateParents = (
-	placements: ApplyPlacement[],
+	placements: Placement[],
 	{
 		changes,
 		createdChanges,
@@ -199,7 +168,7 @@ const withDroppedDuplicateParents = (
 		changes: IntegrationChangeEntity[];
 		createdChanges: IntegrationChangeEntity[];
 	},
-): ApplyPlacement[] => {
+): Placement[] => {
 	const earlierItemIdByDroppedItemId = new Map(
 		changes
 			.filter((change) => !createdChanges.includes(change))
@@ -265,6 +234,7 @@ class IntegrationApplier {
 			node,
 			override,
 			resolution,
+			targetMatch,
 			userId,
 		}: {
 			blocksByItemId: Map<number, ExtractionContentBlock[]>;
@@ -272,18 +242,18 @@ class IntegrationApplier {
 			node: KnowledgeNodeEntity;
 			override: IntegrationChangeContentOverrideDto | undefined;
 			resolution: IntegrationConflictResolutionDto | undefined;
+			targetMatch: { nodeId: number } | null;
 			userId: number;
 		},
 		transaction: Transaction,
 	): Promise<KnowledgeNodeEntity> {
-		const { extractionItemId, mergedBlocks, mergeMethod, type } =
+		const { extractionItemId, matchedNodeId, mergedBlocks, mergeMethod, type } =
 			change.toObject();
 		const { incomingContent, incomingTitle } = resolveIncoming(
 			change,
 			override,
 		);
 		const { contentJson, id, title } = node.toObject();
-
 		const { content: isUseIncomingContent, title: isUseIncomingTitle } =
 			getIncomingFields(type, resolution);
 		const isMerge =
@@ -297,12 +267,17 @@ class IntegrationApplier {
 		const replacedContent = isUseIncomingContent
 			? incomingContentJson
 			: contentJson;
+		const isAlternateTarget =
+			targetMatch !== null && targetMatch.nodeId !== matchedNodeId;
+		const effectiveMergedBlocks = isAlternateTarget
+			? null
+			: (mergedBlocks ?? null);
 		const nextContent = isMerge
 			? toMergedContent({
 					contentJson,
 					incomingContent,
 					incomingContentJson,
-					mergedBlocks: mergedBlocks ?? null,
+					mergedBlocks: effectiveMergedBlocks,
 					title,
 				})
 			: replacedContent;
@@ -500,7 +475,7 @@ class IntegrationApplier {
 	}
 
 	private async findChosenParents(
-		placements: ApplyPlacement[],
+		placements: Placement[],
 		projectId: number,
 		existingNodeIdsByItemId: ReadonlyMap<number, number>,
 	): Promise<Map<number, number>> {
@@ -592,9 +567,7 @@ class IntegrationApplier {
 
 			const resolution = resolutionByChangeId.get(id);
 			const targetMatch = getTargetMatch(change, resolution);
-			const effectiveMatchedNodeId = targetMatch
-				? targetMatch.nodeId
-				: matchedNodeId;
+			const effectiveMatchedNodeId = targetMatch?.nodeId ?? matchedNodeId;
 
 			if (effectiveMatchedNodeId === null) {
 				throw new IntegrationAnalysisOutdatedError();
@@ -607,7 +580,14 @@ class IntegrationApplier {
 					transaction,
 				));
 
-			if (!node || isNodeChangedSinceAnalysis(node, change, resolution)) {
+			if (!node) {
+				throw new IntegrationAnalysisOutdatedError();
+			}
+
+			const isAlternateTarget =
+				targetMatch !== null && targetMatch.nodeId !== matchedNodeId;
+
+			if (!isAlternateTarget && isNodeChangedSinceAnalysis(node, change)) {
 				throw new IntegrationAnalysisOutdatedError();
 			}
 
@@ -658,20 +638,14 @@ class IntegrationApplier {
 			const { extractionItemId, id, matchedNodeId, type } = change.toObject();
 			const resolution = resolutionByChangeId.get(id);
 			const targetMatch = getTargetMatch(change, resolution);
-			const effectiveMatchedNodeId = targetMatch
-				? targetMatch.nodeId
-				: matchedNodeId;
-
+			const targetNodeId = targetMatch?.nodeId ?? matchedNodeId;
 			const matchedNode =
-				effectiveMatchedNodeId === null
-					? undefined
-					: nodes.get(effectiveMatchedNodeId);
-
+				targetNodeId === null ? undefined : nodes.get(targetNodeId);
 			const fieldKeys =
-				effectiveMatchedNodeId === null
+				targetNodeId === null
 					? []
 					: toWrittenFieldKeys(
-							effectiveMatchedNodeId,
+							targetNodeId,
 							getIncomingFields(type, resolution),
 							resolution,
 						);
@@ -685,7 +659,7 @@ class IntegrationApplier {
 				writtenFieldKeys.add(fieldKey);
 			}
 
-			if (matchedNode && effectiveMatchedNodeId !== null) {
+			if (matchedNode && targetNodeId !== null) {
 				const appliedNode = await this.applyToMatchedNode(
 					{
 						blocksByItemId,
@@ -693,13 +667,14 @@ class IntegrationApplier {
 						node: matchedNode,
 						override: overrideByChangeId.get(id),
 						resolution,
+						targetMatch,
 						userId,
 					},
 					transaction,
 				);
 
-				nodes.set(effectiveMatchedNodeId, appliedNode);
-				existingNodeIdsByItemId.set(extractionItemId, effectiveMatchedNodeId);
+				nodes.set(targetNodeId, appliedNode);
+				existingNodeIdsByItemId.set(extractionItemId, targetNodeId);
 			} else {
 				newChanges.push(change);
 			}

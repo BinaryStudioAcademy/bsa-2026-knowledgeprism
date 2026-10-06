@@ -27,7 +27,10 @@ import { NodeMergeMethod } from "../libs/constants/node-merge-method.constant.js
 import { DocumentEntity } from "../models/document.entity.js";
 import { IntegrationChangeEntity } from "../models/integration-change.entity.js";
 import { type ExtractionItemRepository } from "../repositories/extraction-item.repository.js";
-import { IntegrationApplier } from "./integration-applier.js";
+import {
+	IntegrationAnalysisOutdatedError,
+	IntegrationApplier,
+} from "./integration-applier.js";
 
 const DOCUMENT_ID = 9;
 const PROJECT_ID = 4;
@@ -878,6 +881,61 @@ void describe("IntegrationApplier placements", () => {
 		);
 
 		assert.deepEqual(updatedIds, [SECOND_EXISTING_ENTRY_ID]);
+	});
+
+	void it("fails when matchIndex is out of range", async () => {
+		const { applier } = createSetup();
+
+		const changeWithMatches = IntegrationChangeEntity.initialize({
+			documentId: DOCUMENT_ID,
+			explanation: "Multiple match candidate.",
+			extractionItemId: FIRST_CHANGE_ID,
+			id: FIRST_CHANGE_ID,
+			incomingContent: "Updated Glossary content",
+			incomingTitle: "Glossary",
+			liveContent: "Glossary text",
+			liveTitle: `Node ${String(EXISTING_ENTRY_ID)}`,
+			matchedNodeId: EXISTING_ENTRY_ID,
+			placement: {
+				matches: [
+					{
+						content: "Glossary text",
+						nodeId: EXISTING_ENTRY_ID,
+						span: "Glossary",
+						title: `Node ${String(EXISTING_ENTRY_ID)}`,
+					},
+				],
+				parentExtractionItemId: null,
+				parentId: null,
+				parentTitle: null,
+				proposesParent: false,
+				siblingOrder: null,
+			},
+			score: null,
+			type: IntegrationChangeType.UPDATE,
+		});
+
+		await assert.rejects(
+			applier.apply(
+				{
+					changes: [changeWithMatches],
+					contentOverrides: [],
+					document: DOCUMENT,
+					placements: [],
+					resolutions: [
+						{
+							changeId: FIRST_CHANGE_ID,
+							content: IntegrationResolution.USE_NEW,
+							matchIndex: 5,
+							title: IntegrationResolution.USE_NEW,
+						},
+					],
+					userId: USER_ID,
+				},
+				{} as Transaction,
+			),
+			IntegrationAnalysisOutdatedError,
+		);
 	});
 
 	void it("keeps the entry's blocks and adds the incoming section after them on Merge both", async () => {
